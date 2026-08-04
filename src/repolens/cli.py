@@ -102,6 +102,8 @@ def _run_mode(
     path: Path | None,
     git_url: str | None,
     github: str | None,
+    bitbucket: str | None,
+    hf: str | None,
     ref: str | None,
     review_mode: str,
     since: str | None,
@@ -120,7 +122,13 @@ def _run_mode(
     resolved = None
     try:
         try:
-            kind, value = select_source(path=path, git_url=git_url, github=github)
+            kind, value = select_source(
+                path=path,
+                git_url=git_url,
+                github=github,
+                bitbucket=bitbucket,
+                hf=hf,
+            )
             resolved = resolve_source(kind=kind, value=value, ref=ref)
         except SourceError as exc:
             # Clone/auth failures → 3; usage / missing path / bad slug → 2
@@ -189,9 +197,15 @@ def _run_mode(
 @app.command()
 def review(
     path: Path | None = typer.Option(None, "--path", help="Local project root (default: .)"),
-    git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL (Phase 2)"),
-    github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO (Phase 2)"),
-    ref: str | None = typer.Option(None, "--ref", help="Branch/tag/commit for remotes"),
+    git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL"),
+    github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO"),
+    bitbucket: str | None = typer.Option(
+        None, "--bitbucket", help="Bitbucket WORKSPACE/REPO"
+    ),
+    hf: str | None = typer.Option(
+        None, "--hf", help="Hugging Face Hub id (ORG/NAME or datasets|spaces/ORG/NAME)"
+    ),
+    ref: str | None = typer.Option(None, "--ref", help="Branch/tag for remotes"),
     mode: str = typer.Option("full", "--mode", help="full | diff"),
     since: str | None = typer.Option(None, "--since", help="Diff base ref"),
     out: Path | None = typer.Option(None, "--out", help="Report directory"),
@@ -216,6 +230,8 @@ def review(
         path,
         git_url,
         github,
+        bitbucket,
+        hf,
         ref,
         mode,
         since,
@@ -232,9 +248,15 @@ def review(
 @app.command()
 def sentinel(
     path: Path | None = typer.Option(None, "--path", help="Local project root (default: .)"),
-    git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL (Phase 2)"),
-    github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO (Phase 2)"),
-    ref: str | None = typer.Option(None, "--ref", help="Branch/tag/commit for remotes"),
+    git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL"),
+    github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO"),
+    bitbucket: str | None = typer.Option(
+        None, "--bitbucket", help="Bitbucket WORKSPACE/REPO"
+    ),
+    hf: str | None = typer.Option(
+        None, "--hf", help="Hugging Face Hub id (ORG/NAME or datasets|spaces/ORG/NAME)"
+    ),
+    ref: str | None = typer.Option(None, "--ref", help="Branch/tag for remotes"),
     mode: str = typer.Option("full", "--mode", help="full | diff"),
     since: str | None = typer.Option(None, "--since", help="Diff base ref"),
     out: Path | None = typer.Option(None, "--out", help="Report directory"),
@@ -254,6 +276,8 @@ def sentinel(
         path,
         git_url,
         github,
+        bitbucket,
+        hf,
         ref,
         mode,
         since,
@@ -270,9 +294,15 @@ def sentinel(
 @app.command()
 def architecture(
     path: Path | None = typer.Option(None, "--path", help="Local project root (default: .)"),
-    git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL (Phase 2)"),
-    github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO (Phase 2)"),
-    ref: str | None = typer.Option(None, "--ref", help="Branch/tag/commit for remotes"),
+    git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL"),
+    github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO"),
+    bitbucket: str | None = typer.Option(
+        None, "--bitbucket", help="Bitbucket WORKSPACE/REPO"
+    ),
+    hf: str | None = typer.Option(
+        None, "--hf", help="Hugging Face Hub id (ORG/NAME or datasets|spaces/ORG/NAME)"
+    ),
+    ref: str | None = typer.Option(None, "--ref", help="Branch/tag for remotes"),
     mode: str = typer.Option("full", "--mode", help="full | diff"),
     since: str | None = typer.Option(None, "--since", help="Diff base ref"),
     out: Path | None = typer.Option(None, "--out", help="Report directory"),
@@ -292,6 +322,8 @@ def architecture(
         path,
         git_url,
         github,
+        bitbucket,
+        hf,
         ref,
         mode,
         since,

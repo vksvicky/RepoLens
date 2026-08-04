@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `api_key_env` allowlisted; symlinks skipped; `report_dir` must stay under project root
 - Provider error bodies no longer echoed to the terminal
 
+### Added (Phase 2 remotes)
+
+- `--bitbucket WORKSPACE/REPO` and `--hf` (models/datasets/spaces)
+- Auth via `BITBUCKET_TOKEN` / `HF_TOKEN` (anonymous-first)
+
 ### Added (Phase 2 MVP)
 
 - `--git-url` and `--github OWNER/REPO` with shallow clone, `--ref`, and temp cleanup

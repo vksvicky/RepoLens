@@ -1,4 +1,4 @@
-"""Resolve local paths and remote git sources (Phase 2 MVP)."""
+"""Resolve local paths and remote git sources (Phase 2)."""
 
 from __future__ import annotations
 
@@ -12,9 +12,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-SourceKind = Literal["path", "git-url", "github"]
+SourceKind = Literal["path", "git-url", "github", "bitbucket", "hf"]
 
 _SLUG_RE = re.compile(r"^([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?$")
+_HF_ID_RE = re.compile(
+    r"^(?:(datasets|spaces|models)/)?([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)$"
+)
 
 
 class SourceError(Exception):
@@ -35,8 +38,40 @@ def parse_github_slug(slug: str) -> tuple[str, str]:
     return match.group(1), match.group(2)
 
 
+def parse_bitbucket_slug(slug: str) -> tuple[str, str]:
+    match = _SLUG_RE.fullmatch(slug.strip())
+    if not match:
+        raise SourceError(
+            f"Invalid --bitbucket value {slug!r}; expected WORKSPACE/REPO"
+        )
+    return match.group(1), match.group(2)
+
+
+def parse_hf_id(repo_id: str) -> str:
+    """Normalize a Hugging Face Hub git repo id (model/dataset/space)."""
+    raw = repo_id.strip().strip("/")
+    match = _HF_ID_RE.fullmatch(raw)
+    if not match:
+        raise SourceError(
+            f"Invalid --hf value {repo_id!r}; expected "
+            "ORG/NAME or datasets|spaces|models/ORG/NAME"
+        )
+    prefix, org, name = match.group(1), match.group(2), match.group(3)
+    if prefix and prefix != "models":
+        return f"{prefix}/{org}/{name}"
+    return f"{org}/{name}"
+
+
 def build_github_url(owner: str, repo: str) -> str:
     return f"https://github.com/{owner}/{repo}.git"
+
+
+def build_bitbucket_url(workspace: str, repo: str) -> str:
+    return f"https://bitbucket.org/{workspace}/{repo}.git"
+
+
+def build_hf_url(repo_id: str) -> str:
+    return f"https://huggingface.co/{repo_id}"
 
 
 def select_source(
@@ -44,20 +79,22 @@ def select_source(
     path: Path | None,
     git_url: str | None,
     github: str | None,
+    bitbucket: str | None = None,
+    hf: str | None = None,
 ) -> tuple[SourceKind, str | Path]:
-    """Return exactly one source kind. Default path is `.` when nothing else set.
-
-    Treat ``path`` as provided only when not None. CLI should pass ``None`` when
-    the user did not set ``--path``.
-    """
+    """Return exactly one source kind. Default path is `.` when nothing else set."""
     provided = [
         ("path", path),
         ("git-url", git_url),
         ("github", github),
+        ("bitbucket", bitbucket),
+        ("hf", hf),
     ]
     active = [(k, v) for k, v in provided if v is not None]
     if len(active) > 1:
-        raise SourceError("Use exactly one source: --path, --git-url, or --github")
+        raise SourceError(
+            "Use exactly one source: --path, --git-url, --github, --bitbucket, or --hf"
+        )
     if not active:
         return "path", Path(".")
     kind, value = active[0]
@@ -91,6 +128,19 @@ def resolve_github_token() -> str | None:
     return token or None
 
 
+def resolve_bitbucket_token() -> str | None:
+    for name in ("BITBUCKET_TOKEN", "BITBUCKET_APP_PASSWORD"):
+        value = os.environ.get(name)
+        if value:
+            return value.strip()
+    return None
+
+
+def resolve_hf_token() -> str | None:
+    value = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+    return value.strip() if value else None
+
+
 def resolve_source(
     *,
     kind: SourceKind,
@@ -109,6 +159,14 @@ def resolve_source(
         owner, repo = parse_github_slug(str(value))
         url = build_github_url(owner, repo)
         label = f"github:{owner}/{repo}"
+    elif kind == "bitbucket":
+        workspace, repo = parse_bitbucket_slug(str(value))
+        url = build_bitbucket_url(workspace, repo)
+        label = f"bitbucket:{workspace}/{repo}"
+    elif kind == "hf":
+        repo_id = parse_hf_id(str(value))
+        url = build_hf_url(repo_id)
+        label = f"hf:{repo_id}"
     else:
         url = str(value).strip()
         if not url:
@@ -120,7 +178,6 @@ def resolve_source(
 
 def cleanup_source(source: ResolvedSource) -> None:
     if source.ephemeral and source.root.exists():
-        # Remove the work parent (repo + empty-template)
         parent = source.root.parent
         shutil.rmtree(parent, ignore_errors=True)
 
@@ -128,7 +185,6 @@ def cleanup_source(source: ResolvedSource) -> None:
 def _clone_ephemeral(*, url: str, ref: str | None, label: str) -> ResolvedSource:
     work = Path(tempfile.mkdtemp(prefix="repolens-"))
     dest = work / "repo"
-    # Empty template avoids copying sample hooks (fails in some sandboxed environments).
     template = work / "empty-template"
     template.mkdir()
 
@@ -140,13 +196,12 @@ def _clone_ephemeral(*, url: str, ref: str | None, label: str) -> ResolvedSource
     base_env = os.environ.copy()
     base_env.setdefault("GIT_TERMINAL_PROMPT", "0")
 
-    # Prefer anonymous clone first so a stale gh/env token cannot break public repos.
     completed = _run_git(clone_cmd, base_env)
     if completed.returncode != 0 and _looks_like_auth_failure(completed):
-        token = resolve_github_token() if "github.com" in url.lower() else None
-        if token:
+        token_env = _token_env_for_url(base_env, url)
+        if token_env is not None:
             shutil.rmtree(dest, ignore_errors=True)
-            completed = _run_git(clone_cmd, _env_with_github_token(base_env, token))
+            completed = _run_git(clone_cmd, token_env)
 
     if completed.returncode != 0:
         shutil.rmtree(work, ignore_errors=True)
@@ -161,13 +216,49 @@ def _run_git(cmd: list[str], env: dict[str, str]) -> subprocess.CompletedProcess
     return subprocess.run(cmd, check=False, capture_output=True, text=True, env=env)
 
 
-def _env_with_github_token(base: dict[str, str], token: str) -> dict[str, str]:
+def _token_env_for_url(base: dict[str, str], url: str) -> dict[str, str] | None:
+    lower = url.lower()
+    if "github.com" in lower:
+        token = resolve_github_token()
+        if not token:
+            return None
+        return _env_with_basic_auth(base, "x-access-token", token)
+    if "bitbucket.org" in lower:
+        token = resolve_bitbucket_token()
+        if not token:
+            return None
+        # Access tokens: x-token-auth; app passwords need BITBUCKET_USERNAME.
+        user = os.environ.get("BITBUCKET_USERNAME", "x-token-auth").strip() or "x-token-auth"
+        return _env_with_basic_auth(base, user, token)
+    if "huggingface.co" in lower:
+        token = resolve_hf_token()
+        if not token:
+            return None
+        # HF git accepts Bearer or user/token basic auth.
+        return _env_with_bearer(base, token)
+    return None
+
+
+def _env_with_basic_auth(base: dict[str, str], username: str, token: str) -> dict[str, str]:
     env = dict(base)
-    basic = base64.b64encode(f"x-access-token:{token}".encode()).decode()
+    basic = base64.b64encode(f"{username}:{token}".encode()).decode()
     env["GIT_CONFIG_COUNT"] = "1"
     env["GIT_CONFIG_KEY_0"] = "http.extraHeader"
     env["GIT_CONFIG_VALUE_0"] = f"AUTHORIZATION: basic {basic}"
     return env
+
+
+def _env_with_bearer(base: dict[str, str], token: str) -> dict[str, str]:
+    env = dict(base)
+    env["GIT_CONFIG_COUNT"] = "1"
+    env["GIT_CONFIG_KEY_0"] = "http.extraHeader"
+    env["GIT_CONFIG_VALUE_0"] = f"AUTHORIZATION: Bearer {token}"
+    return env
+
+
+def _env_with_github_token(base: dict[str, str], token: str) -> dict[str, str]:
+    """Backward-compatible helper used by older tests/callers."""
+    return _env_with_basic_auth(base, "x-access-token", token)
 
 
 def _looks_like_auth_failure(completed: subprocess.CompletedProcess[str]) -> bool:
@@ -180,13 +271,15 @@ def _looks_like_auth_failure(completed: subprocess.CompletedProcess[str]) -> boo
         "403",
         "401",
         "permission denied",
-        "repository not found",  # GitHub often hides private repos this way
+        "repository not found",
+        "access denied",
+        "unauthorized",
     )
     return any(n in text for n in needles)
 
 
 def _sanitize_git_error(text: str) -> str:
-    cleaned = re.sub(r"(?i)(authorization:\s*bearer\s+)\S+", r"\1***", text)
+    cleaned = re.sub(r"(?i)(authorization:\s*(?:bearer|basic)\s+)\S+", r"\1***", text)
     cleaned = re.sub(r"(?i)(://)([^/@\s]+@)", r"\1***@", cleaned)
     lines = [ln.strip() for ln in cleaned.splitlines() if ln.strip()]
     for ln in lines:

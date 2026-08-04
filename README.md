@@ -142,7 +142,7 @@ Why some filenames are `UPPERCASE.md` and others are not: see [docs/README.md](.
 
 1. **Phase 0** — Docs, playbooks, design ← **done**
 2. **Phase 1** — Core CLI (Python): local path, `review` / `sentinel`, Markdown reports ← *alpha done*
-3. **Phase 2** — Remote sources ← *MVP: `--git-url` + `--github`*; Bitbucket/HF next
+3. **Phase 2** — Remote sources (`--git-url`, `--github`, `--bitbucket`, `--hf`) ← *done*
 4. **Phase 3** — Optional scanner plugins (e.g. gitleaks, Semgrep, OSV)
 5. **Phase 4** — CI integrations (GitHub Action, etc.)
 

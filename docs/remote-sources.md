@@ -5,18 +5,24 @@ Review a repository that is **not** already on disk. RepoLens shallow-clones int
 ## Commands
 
 ```bash
-# GitHub shortcut
+# GitHub
 repolens review --github owner/repo
 repolens review --github owner/repo --ref main --dry-run
-repolens sentinel --github owner/repo --fail-on HIGH
+
+# Bitbucket
+repolens review --bitbucket workspace/repo --ref main
+
+# Hugging Face Hub (model / dataset / space git repos)
+repolens review --hf org/model
+repolens review --hf datasets/org/dataset-name
+repolens review --hf spaces/org/space-name
 
 # Any git URL (HTTPS or SSH)
 repolens review --git-url https://github.com/owner/repo.git --ref v1.2.0
 repolens review --git-url git@github.com:owner/repo.git
 ```
 
-Use **exactly one** source: `--path`, `--git-url`, or `--github`.  
-(`--bitbucket` and `--hf` are planned next; not in this MVP.)
+Use **exactly one** source: `--path`, `--git-url`, `--github`, `--bitbucket`, or `--hf`.
 
 ## Authentication (private GitHub)
 

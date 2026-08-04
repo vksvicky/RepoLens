@@ -91,3 +91,11 @@ def test_github_dry_run_mocked(tmp_path: Path, monkeypatch) -> None:
     assert result.exit_code == 0, result.output
     cleanup.assert_called()
     assert list(out.glob("gate_review_report_*.md"))
+
+
+def test_hf_and_github_conflict() -> None:
+    result = runner.invoke(
+        app,
+        ["review", "--github", "o/r", "--hf", "org/model", "--dry-run"],
+    )
+    assert result.exit_code == 2
