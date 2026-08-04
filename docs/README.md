@@ -24,6 +24,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [scanners.md](./scanners.md) | Optional scanners: plugins install, flags, cache |
 | [design/phase-2-multi-source-ingest.md](./design/phase-2-multi-source-ingest.md) | Phase 2 MVP design decisions |
 | [design/phase-3-scanners.md](./design/phase-3-scanners.md) | Phase 3 scanner plugin decisions |
+| [design/phase-4-ci-and-ecosystem.md](./design/phase-4-ci-and-ecosystem.md) | Phase 4 CI Action, PyPI, local learning |
 | [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) | CLI UX, exit codes, finding/report schema |
 | [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) | AI keys, OWASP/CVE layers, bundled vs optional scanners, local ML |
 | [adr/](./adr/) | ADRs + diagram legend (how analysis works) |

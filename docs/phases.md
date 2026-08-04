@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phase 3 complete (optional scanners — 2026-08-04); next is Phase 4  
+**Current phase:** Phase 4 in progress (CI & ecosystem — design approved 2026-08-04)  
 **CLI language:** Python 3.11+
 
 ---

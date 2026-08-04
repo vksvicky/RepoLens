@@ -4,8 +4,8 @@
 
 RepoLens is an open-source CLI that runs structured code reviews against projects you care about: on your machine, or cloned from GitHub, Bitbucket, Hugging Face, or any Git URL. It follows a clear **P1 → P2 → P3** pass (security → bugs/reliability/performance → architecture/quality) and writes audit-friendly reports with impact, remediation steps, and code-example fixes for Critical/High findings.
 
-> **Status:** Alpha (`0.1.0a1`) — local + remote reviews; optional scanners (Phase 3). Install from source.  
-> Tracker: [docs/phases.md](./docs/phases.md) · FAQ: [docs/faq.md](./docs/faq.md) · Scanners: [docs/scanners.md](./docs/scanners.md)
+> **Status:** Alpha `0.1.0a1` — Phases **0–3** done (docs, local CLI, remotes, optional scanners). Phase **4** (CI Action) next. Install from source until PyPI.  
+> Tracker: [docs/phases.md](./docs/phases.md) · FAQ: [docs/faq.md](./docs/faq.md) · Remotes: [docs/remote-sources.md](./docs/remote-sources.md) · Scanners: [docs/scanners.md](./docs/scanners.md)
 
 ---
 
