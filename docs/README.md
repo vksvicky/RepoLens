@@ -23,7 +23,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [remote-sources.md](./remote-sources.md) | Clone remotes: `--github`, `--git-url`, auth, reports |
 | [scanners.md](./scanners.md) | Optional scanners: plugins install, flags, cache |
 | [ci.md](./ci.md) | GitHub Action + Bitbucket CI script |
-| [publishing.md](./publishing.md) | PyPI Trusted Publishing / releases |
+| [publishing.md](./publishing.md) | PyPI Trusted Publisher UI + pre-publish dogfood |
 | [local-learning.md](./local-learning.md) | Opt-in on-disk index + memory |
 | [review-confidence-log.md](./review-confidence-log.md) | Confidence history template |
 | [design/phase-2-multi-source-ingest.md](./design/phase-2-multi-source-ingest.md) | Phase 2 MVP design decisions |

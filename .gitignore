@@ -39,6 +39,7 @@ coverage/
 
 # Reports & clones (local runs)
 reports/
+reports-dogfood/
 .tmp/
 .cache/
 repolens-work/
