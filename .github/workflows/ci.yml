@@ -22,12 +22,19 @@ jobs:
             LICENSE
             docs/README.md
             docs/phases.md
+            docs/faq.md
+            docs/design/cli-and-report-schema.md
+            docs/design/ai-keys-scanners-and-local-learning.md
+            docs/adr/README.md
+            docs/adr/_diagram_legend.md
+            docs/adr/01_analysis_runtime_architecture.md
             docs/CHANGELOG.md
             docs/CONTRIBUTING.md
             docs/CODE_OF_CONDUCT.md
             docs/SECURITY.md
             docs/SUPPORT.md
             docs/using-playbooks.md
+            docs/setup-ai-and-scanners.md
             playbooks/security.md
             playbooks/architecture.md
           )

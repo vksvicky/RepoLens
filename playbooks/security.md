@@ -1,9 +1,9 @@
-**Security Analysis Instruction for Cursor AI Review**
+**RepoLens Security Playbook (P1 / `sentinel`)**
 
 ---
 
 # Objective:
-Conduct a thorough security analysis of all code files currently open or available within the workspace (prefer the active change set for commit/push gates; expand when cross-cutting or when a full audit is requested). Identify any potential security vulnerabilities, bad practices, and risks. Then generate a structured output that clearly outlines:
+Conduct a thorough security analysis of the target repository (prefer the active change set when reviewing a diff; expand when cross-cutting or when a full audit is requested). Identify any potential security vulnerabilities, bad practices, and risks. Then generate a structured output that clearly outlines:
 
 - Security issues found (grouped by severity: Critical, High, Medium, Low)
 - The file and line number where each issue occurs
@@ -13,7 +13,7 @@ Conduct a thorough security analysis of all code files currently open or availab
 - **Code example fixes** (mandatory for Critical and High)
 - General best practices improvements if applicable
 
-This document is the **P1** authority for the dual-review gate (`pre-commit-dual-review`). Pair with Architecture Review for P2/P3 and release audits.
+This document is the **P1** authority for RepoLens (`repolens sentinel` and the security band of `repolens review`). Pair with [architecture.md](./architecture.md) for P2/P3 and release audits.
 
 ---
 
@@ -22,8 +22,8 @@ This document is the **P1** authority for the dual-review gate (`pre-commit-dual
 Analyze and report in priority order when the change set is large:
 
 **P1 (this document — do first):** Security  
-**P2:** Bugs, reliability, performance (see dual-review skill)  
-**P3:** Architecture & quality (Architecture Review.md, scoped or full)
+**P2:** Bugs, reliability, performance (RepoLens `review` reliability band)  
+**P3:** Architecture & quality ([architecture.md](./architecture.md), scoped or full)
 
 1. **Scan for Common Security Vulnerabilities:**
    - Injection risks (SQL Injection, Command Injection)
@@ -61,7 +61,7 @@ Analyze and report in priority order when the change set is large:
 ## 1. Executive Summary
 - Total number of issues found
 - Breakdown by severity (Critical / High / Medium / Low)
-- Gate **confidence %** when used as part of a commit/push review
+- Gate **confidence %** when used as part of a pre-merge or release review
 
 ## 2. Detailed Findings
 For each issue:
@@ -107,7 +107,7 @@ For each issue:
 
 `security_analysis_report_[date].md`
 
-For commit/push dual gates, prefer the combined export name `gate_review_report_YYYY-MM-DD.md` when the user asks to export.
+For RepoLens dual reviews, prefer the combined export name `gate_review_report_YYYY-MM-DD.md` when the user asks to export.
 
 ---
 

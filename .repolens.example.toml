@@ -1,6 +1,10 @@
-# Example config for a future RepoLens CLI (Phase 1+).
+# Example config for the RepoLens CLI (Phase 1+).
+# CLI runtime: Python 3.11+
 # Copy to ~/.config/repolens/config.toml or ./.repolens.toml and fill in values.
 # Do not commit real secrets.
+#
+# Target languages (what you review): see docs/faq.md — source-agnostic with
+# first-class JS/TS, Python, Go, JVM, C#, Ruby, PHP, Rust, Swift (+ IaC).
 
 [general]
 # default_mode = "review"   # review | sentinel | architecture
@@ -9,7 +13,16 @@
 [model]
 # provider = "openai"       # or anthropic | deepseek | ollama | ...
 # model = "gpt-4.1"
-# api_key_env = "REPOLens_API_KEY"
+# api_key_env = "OPENAI_API_KEY"   # BYOK — never commit real keys
+# For local/self-sufficient: provider = "ollama", model = "llama3.1", base_url = "http://127.0.0.1:11434"
+
+[scanners]
+# enabled = ["gitleaks", "semgrep", "osv"]   # Phase 3 — detect if installed
+# require = false                             # if true, exit when a scanner is missing
+
+[local_learning]
+# enabled = false           # Phase 4 — opt-in only; data stays on disk
+# cache_dir = ".repolens"   # informed consent required on first enable
 
 [sources]
 # github_token_env = "GITHUB_TOKEN"

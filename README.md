@@ -4,7 +4,8 @@
 
 RepoLens is an open-source CLI that runs structured code reviews against projects you care about: on your machine, or cloned from GitHub, Bitbucket, Hugging Face, or any Git URL. It follows a clear **P1 → P2 → P3** pass (security → bugs/reliability/performance → architecture/quality) and writes audit-friendly reports with impact, remediation steps, and code-example fixes for Critical/High findings.
 
-> **Status:** Early scaffolding. The CLI is not implemented yet—see [docs/phases.md](./docs/phases.md) for what is planned and what is done.
+> **Status:** Phase 0 complete (docs, playbooks, design, ADR). Phase 1 (Python CLI) is next.  
+> Tracker: [docs/phases.md](./docs/phases.md) · FAQ: [docs/faq.md](./docs/faq.md) · Architecture: [docs/adr/01_analysis_runtime_architecture.md](./docs/adr/01_analysis_runtime_architecture.md)
 
 ---
 
@@ -33,11 +34,26 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 
 ---
 
+## Languages & tools
+
+- **CLI:** Python 3.11+  
+- **Reviews:** language-agnostic, with first-class focus on JS/TS, Python, Go, JVM, C#, Ruby, PHP, Rust, Swift (+ IaC/config)  
+- **AI:** Bring your own cloud key **or** run a local model (e.g. Ollama)—no embedded RepoLens key  
+- **CVE / SAST / secrets:** optional plugins (OSV, Semgrep, gitleaks)—not forced into the slim install  
+- **Local learning (planned):** opt-in, stays on your disk, you are informed first  
+
+Full answers: **[docs/faq.md](./docs/faq.md)** · **[docs/design/ai-keys-scanners-and-local-learning.md](./docs/design/ai-keys-scanners-and-local-learning.md)**.  
+
+**Setup steps (cloud key / local Ollama / scanners):** **[docs/setup-ai-and-scanners.md](./docs/setup-ai-and-scanners.md)**.
+
+---
+
 ## Quick start (when the CLI ships)
 
 ```bash
-# Install (planned — packaging TBD)
-# pipx install repolens   # or: npm i -g repolens
+# Install (planned)
+# pipx install repolens
+# # or: uv tool install repolens
 
 # Review a local project
 repolens review --path ./my-app
@@ -52,7 +68,7 @@ repolens review --hf user/dataset-or-space-repo
 repolens review --git-url https://github.com/owner/repo.git --ref main
 ```
 
-Until then, you can already use the [playbooks](./playbooks/) with Cursor or any LLM (see [docs/using-playbooks.md](./docs/using-playbooks.md)).
+Until then, you can already use the [playbooks](./playbooks/) with any LLM chat that can read your repo (see [docs/using-playbooks.md](./docs/using-playbooks.md)).
 
 ---
 
@@ -99,12 +115,10 @@ RepoLens/
 ├── docs/                     # All other documentation
 │   ├── README.md             # Docs index + naming conventions
 │   ├── phases.md             # Implementation tracker
+│   ├── faq.md                # Languages, tools, common questions
+│   ├── design/               # CLI UX & report schema
 │   ├── using-playbooks.md
-│   ├── CHANGELOG.md
-│   ├── CONTRIBUTING.md       # GitHub community health file
-│   ├── CODE_OF_CONDUCT.md
-│   ├── SECURITY.md
-│   └── SUPPORT.md
+│   └── …                     # CHANGELOG, CONTRIBUTING, SECURITY, …
 └── .github/                  # Issue/PR templates, workflows
 ```
 
@@ -114,13 +128,13 @@ Why some filenames are `UPPERCASE.md` and others are not: see [docs/README.md](.
 
 ## Roadmap at a glance
 
-1. **Phase 0** — Docs, playbooks, open-source scaffolding ← *current*
-2. **Phase 1** — Core CLI: local path, `review` / `sentinel`, Markdown reports
+1. **Phase 0** — Docs, playbooks, design ← **done**
+2. **Phase 1** — Core CLI (Python): local path, `review` / `sentinel`, Markdown reports ← *next*
 3. **Phase 2** — Remote sources (GitHub, Bitbucket, Hugging Face, generic Git)
 4. **Phase 3** — Optional scanner plugins (e.g. gitleaks, Semgrep, OSV)
 5. **Phase 4** — CI integrations (GitHub Action, etc.)
 
-Details: **[docs/phases.md](./docs/phases.md)**.
+Details: **[docs/phases.md](./docs/phases.md)** · Design: **[docs/design/cli-and-report-schema.md](./docs/design/cli-and-report-schema.md)** · ADR: **[docs/adr/01_analysis_runtime_architecture.md](./docs/adr/01_analysis_runtime_architecture.md)**.
 
 ---
 

@@ -1,10 +1,12 @@
 # Using RepoLens playbooks without the CLI
 
-The CLI (`repolens`) is not shipped yet. You can still run the same reviews today with **Cursor**, **ChatGPT**, **Claude**, or any coding agent that can read your repo.
+The CLI (`repolens`) is not shipped yet. You can still run the same reviews today with **ChatGPT**, **Claude**, **GitHub Copilot Chat**, or any LLM that can read your repository.
+
+For choosing and preparing **cloud AI vs local AI vs scanners**, see the step-by-step guide: [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
 
 ## 1. Open the project you want to review
 
-Open the **target repository** (local checkout) in your editor or agent workspace—not only this RepoLens docs repo.
+Open the **target repository** (local checkout) in your editor or chat tool—not only this RepoLens docs repo.
 
 ## 2. Attach or paste a playbook
 
@@ -45,7 +47,7 @@ including all findings and code examples.
 ## 4. Viewing and exporting reports
 
 - **View:** Chat output, or open the saved `.md` file in any Markdown preview.
-- **Export Markdown:** Ask the agent to write `gate_review_report_YYYY-MM-DD.md`.
+- **Export Markdown:** Ask your LLM tool to write `gate_review_report_YYYY-MM-DD.md`.
 - **PDF:** `pandoc report.md -o report.pdf` or Print → Save as PDF.
 
 ## 5. When the CLI arrives

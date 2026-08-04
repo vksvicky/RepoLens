@@ -18,8 +18,14 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | Doc | Purpose |
 |-----|---------|
 | [phases.md](./phases.md) | Implementation tracker (what’s done / next) |
+| [faq.md](./faq.md) | Languages, tools, modes, export, production honesty |
+| [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) | Step-by-step: cloud key, local Ollama, scanners only |
+| [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) | CLI UX, exit codes, finding/report schema |
+| [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) | AI keys, OWASP/CVE layers, bundled vs optional scanners, local ML |
+| [adr/](./adr/) | ADRs + diagram legend (how analysis works) |
+| [adr/01_analysis_runtime_architecture.md](./adr/01_analysis_runtime_architecture.md) | Pipeline, modes, security zones (diagrams) |
 | [using-playbooks.md](./using-playbooks.md) | Run reviews today without the CLI |
-| [publishing-checklist.md](./publishing-checklist.md) | Publish the repo to GitHub |
+| [publishing-checklist.md](./publishing-checklist.md) | Publish / maintain the GitHub remote |
 | [CHANGELOG.md](./CHANGELOG.md) | User-facing release notes |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | How to contribute |
 | [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) | Community standards |

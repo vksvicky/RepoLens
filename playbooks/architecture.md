@@ -7,9 +7,9 @@ Do not assume my existing code is correct. Be skeptical. Challenge every archite
 # When to use this document
 
 * **Full audit (this entire checklist + scores):** release candidates, milestones, major refactors, or when explicitly asked for a full architecture review.
-* **Scoped pass:** on routine commit/push gates, apply only the sections that touch the change blast radius (still under the dual-review skill `pre-commit-dual-review`).
+* **Scoped pass:** on routine change reviews, apply only the sections that touch the change blast radius (RepoLens `repolens review`).
 * **Ordering:** if security (P1) Critical/High issues are open, finish those before deep P3 architecture nits unless asked otherwise.
-* Pair with `/Users/vivek/Development/Security Analysis Instruction for Cursor AI.md` for P1 security depth.
+* Pair with [security.md](./security.md) for P1 security depth.
 
 # Your Goals
 
