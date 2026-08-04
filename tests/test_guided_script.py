@@ -10,6 +10,7 @@ sys.path.insert(0, str(SCRIPTS))
 
 from repolens_guided import (  # noqa: E402
     GuidedChoices,
+    _has_cli_flag,
     build_argv,
     format_command,
     list_installed_models,
@@ -211,6 +212,23 @@ def test_build_argv_expands_user_path() -> None:
     assert not out.startswith("~")
     assert path.endswith("Demo Project")
     assert out.endswith(str(Path("Demo Project") / "reports"))
+
+
+def test_has_cli_flag_full_not_full_audit() -> None:
+    assert _has_cli_flag("  --full-audit  deeper architecture", "--full") is False
+    assert _has_cli_flag("  --full  force full LLM pack", "--full") is True
+
+
+def test_probe_review_cli_caps_full_audit_does_not_enable_full() -> None:
+    with patch("repolens_guided.subprocess.run") as run:
+        run.return_value = MagicMock(
+            returncode=0,
+            stdout="Usage\n  --full-audit\n  --verbose\n",
+            stderr="",
+        )
+        caps = probe_review_cli_caps()
+    assert caps.supports_full is False
+    assert caps.supports_verbose is True
 
 
 def test_probe_review_cli_caps_parses_help() -> None:
