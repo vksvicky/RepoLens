@@ -44,12 +44,12 @@ RepoLens’s **narrative review** (playbooks → structured findings with impact
 
 | Scanner | Role | How we integrate | Bundle into wheel? |
 |---------|------|------------------|--------------------|
-| **gitleaks** (or trufflehog) | Secrets | Subprocess / plugin | **No** by default — large native binary; optional `repolens[secrets]` extra or “download on first use” with consent |
-| **Semgrep** | SAST / OWASP-oriented rules | Subprocess | **No** by default — optional extra / detect-if-installed |
-| **OSV-Scanner** / Grype | CVE / dependency vulns | Subprocess | **No** by default — optional extra |
+| **gitleaks** | Secrets | Subprocess / plugin | **No** by default — `repolens plugins install gitleaks` |
+| **Semgrep** | SAST / OWASP-oriented rules | Subprocess | **No** by default — PATH, cache venv, or `repolens[scanners]` |
+| **OSV-Scanner** | CVE / dependency vulns | Subprocess | **No** by default — `repolens plugins install osv` |
 | **pandoc** | PDF | Subprocess | No — document Print→PDF fallback |
 
-**Decision: detect → use → never hard-fail the LLM path if missing.**
+**Decision: detect → use → never hard-fail the LLM path if missing.** (Shipped — see [phase-3-scanners.md](./phase-3-scanners.md).)
 
 ```text
 repolens review --path .
@@ -58,12 +58,12 @@ repolens review --path .
   → if user asked --require-scanners and missing: exit 2 with install hints
 ```
 
-**Optional “batteries” extras (Phase 3/4 packaging):**
+**Optional “batteries” extras (Phase 3 — shipped):**
 
 ```text
-pipx install "repolens[scanners]"   # documented installer that also fetches pinned scanner binaries
+pip install "repolens[scanners]"   # Semgrep via pip; still run plugins install for gitleaks/osv
 # or
-repolens plugins install secrets semgrep osv
+repolens plugins install gitleaks semgrep osv
 ```
 
 We **can** build convenience installers; we **should not** force multi‑hundred‑MB native tools into the default `pip install repolens`.
@@ -211,7 +211,7 @@ Those workshop tools are **large** and change often. So:
 
 **OWASP** here means: we organise and talk about issues using widely taught security themes (injection, broken access control, and so on). It is **guidance alignment**, not a government stamp that says “OWASP certified.”
 
-**CVE** here means: publicly tracked vulnerability IDs for software packages. For those, RepoLens should use a **dedicated vulnerability list tool** (planned), not guess from the AI alone.
+**CVE** here means: publicly tracked vulnerability IDs for software packages. For those, RepoLens uses **OSV-Scanner** (`--scanners` / `plugins install`), not guesses from the AI alone.
 
 **Honest promise:** AI helps you *understand and fix*. Checklist tools help you *prove and inventory*. Production-ready teams use **both**, plus their normal tests and CI—not RepoLens instead of everything else.
 
@@ -257,7 +257,7 @@ You can turn learning off or delete the local folder anytime.
 |------|-------|
 | Provider config + first-run key/Ollama UX | 1 |
 | OWASP/CWE tags on LLM findings + playbook appendix | 1–2 |
-| Plugin ABI + gitleaks/Semgrep/OSV | 3 |
-| `repolens plugins install` / `[scanners]` extra | 3–4 |
+| Plugin ABI + gitleaks/Semgrep/OSV | 3 (shipped) |
+| `repolens plugins install` / `[scanners]` extra | 3 (shipped) |
 | Local learning ADR + `.repolens/` layout | 4 |
 | Privacy section in SECURITY.md | 1 (doc), 4 (implementation) |

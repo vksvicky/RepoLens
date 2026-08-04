@@ -12,7 +12,17 @@ from repolens.inventory import FileEntry, list_files, read_excerpt
 from repolens.llm import LlmError, analyze, repair_prompt
 from repolens.playbooks import playbooks_for_mode
 from repolens.report import write_json_report, write_markdown_report
+from repolens.scanners.runner import missing_required, parse_scanners_flag, run_scanners
 from repolens.schema import FindingReport, Summary
+
+
+class ScannerRequirementError(Exception):
+    """Raised when --require-scanners is set and a requested tool is missing."""
+
+    def __init__(self, missing: list[str]) -> None:
+        self.missing = missing
+        tools = ", ".join(missing)
+        super().__init__(f"Required scanner(s) missing: {tools}. See docs/scanners.md")
 
 
 @dataclass
@@ -60,6 +70,9 @@ def run_review(
     dry_run: bool = False,
     trust_project: bool = False,
     config: RepoLensConfig | None = None,
+    scanners: str | None = "auto",
+    require_scanners: bool = False,
+    scanners_only: bool = False,
 ) -> ReviewResult:
     root = path.resolve()
     cfg = config or load_config(root, trust_project=trust_project)
@@ -85,16 +98,51 @@ def run_review(
             report=empty, markdown_path=md, json_path=js, files_scanned=len(files), dry_run=True
         )
 
-    if not files:
+    tools = parse_scanners_flag(scanners, config_enabled=cfg.scanners.enabled)
+    if scanners_only and tools is None:
+        tools = list(cfg.scanners.enabled)
+
+    scanner_runs = []
+    scanner_issues = []
+    scanner_gaps: list[str] = []
+    if tools:
+        scanner_runs, scanner_issues, scanner_gaps = run_scanners(root, tools)
+        require = require_scanners or cfg.scanners.require
+        if require:
+            missing = missing_required(tools, scanner_runs)
+            if missing:
+                raise ScannerRequirementError(missing)
+
+    if scanners_only:
+        all_ran = bool(scanner_runs) and all(r.status == "ran" for r in scanner_runs)
+        report = FindingReport(
+            confidence=75 if all_ran else 55,
+            summary=Summary(),
+            issues=list(scanner_issues),
+            durabilityGaps=list(scanner_gaps) or (
+                ["scanners-only: no scanners selected"] if not tools else []
+            ),
+            scannerRuns=list(scanner_runs),
+        )
+        report.summary = report.recount_summary()
+    elif not files:
         report = FindingReport(
             confidence=90,
             summary=Summary(),
-            issues=[],
-            durabilityGaps=["No reviewable files found (check ignores / --mode diff)"],
+            issues=list(scanner_issues),
+            durabilityGaps=["No reviewable files found (check ignores / --mode diff)"]
+            + scanner_gaps,
+            scannerRuns=list(scanner_runs),
         )
+        report.summary = report.recount_summary()
     else:
         prompt = build_prompt(mode, root, files, full_audit=full_audit)
         report = _analyze_with_repair(prompt, cfg.model)
+        if scanner_issues or scanner_runs or scanner_gaps:
+            report.issues = list(report.issues) + list(scanner_issues)
+            report.scannerRuns = list(scanner_runs)
+            report.durabilityGaps = list(report.durabilityGaps) + list(scanner_gaps)
+            report.summary = report.recount_summary()
 
     md = write_markdown_report(report, out, mode=mode) if fmt in {"md", "both"} else None
     js = write_json_report(report, out) if fmt in {"json", "both"} else None

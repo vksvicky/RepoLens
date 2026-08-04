@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 3 scanners)
+
+- Optional scanners: gitleaks, Semgrep, OSV-Scanner (detect PATH / cache)
+- `repolens plugins status|list|install` with consent download (`--yes` for CI)
+- Review flags: `--scanners`, `--require-scanners`, `--scanners-only`
+- Report section **Automated scanners** + JSON `scannerRuns`
+- Optional extra `pip install -e ".[scanners]"` (Semgrep via pip)
+- Guide: [scanners.md](./scanners.md) · [design/phase-3-scanners.md](./design/phase-3-scanners.md)
+
 ### Added
 
 - Initial open-source scaffolding: README, phases tracker, MIT license, contributing docs

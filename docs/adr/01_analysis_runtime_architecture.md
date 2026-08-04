@@ -208,7 +208,7 @@ flowchart LR
 | **LlmClient** | Provider adapters; temperature/token limits; parse JSON |
 | **SchemaValidator** | Enforce finding schema; require `impact` + `codeExample` for Critical/High |
 | **ReportWriter** | Markdown (required), JSON (optional); stdout summary via Rich |
-| **ScannerPlugins** *(Phase 3)* | Merge deterministic findings into the same report section |
+| **ScannerPlugins** *(Phase 3 — shipped)* | Merge deterministic findings into the same report section |
 
 ---
 

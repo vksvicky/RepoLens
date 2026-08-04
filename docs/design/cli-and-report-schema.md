@@ -163,4 +163,4 @@ RepoLens reviews **repositories**, not a single language runtime. Support tiers 
 
 - GUI / web app  
 - Auto-commit / auto-push  
-- Bundling Semgrep/gitleaks as required dependencies (Phase 3 plugins)
+- Bundling Semgrep/gitleaks as required dependencies (optional Phase 3 plugins instead)

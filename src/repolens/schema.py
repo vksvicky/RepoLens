@@ -60,6 +60,13 @@ class ArchitectureScores(BaseModel):
     productionReadiness: int = Field(ge=1, le=10)
 
 
+class ScannerRun(BaseModel):
+    tool: str
+    status: Literal["ran", "skipped", "failed"]
+    detail: str = ""
+    findingCount: int = Field(ge=0, default=0)
+
+
 class FindingReport(BaseModel):
     schemaVersion: str = "1.0"
     confidence: int = Field(ge=0, le=100)
@@ -67,6 +74,7 @@ class FindingReport(BaseModel):
     issues: list[Issue] = Field(default_factory=list)
     durabilityGaps: list[str] = Field(default_factory=list)
     scores: ArchitectureScores | None = None
+    scannerRuns: list[ScannerRun] = Field(default_factory=list)
 
     @field_validator("confidence")
     @classmethod

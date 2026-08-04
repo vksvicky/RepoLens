@@ -13,7 +13,8 @@ from rich.table import Table
 from repolens import __version__
 from repolens.config import write_user_config
 from repolens.llm import LlmError
-from repolens.pipeline import fail_on_triggered, run_review
+from repolens.pipeline import ScannerRequirementError, fail_on_triggered, run_review
+from repolens.plugins import install_plugins, plugin_status
 from repolens.schema import FindingReport
 from repolens.sources import SourceError, cleanup_source, resolve_source, select_source
 
@@ -22,6 +23,12 @@ app = typer.Typer(
     help="Structured security and architecture reviews for any repository.",
     no_args_is_help=True,
 )
+plugins_app = typer.Typer(
+    name="plugins",
+    help="Manage optional scanner plugins (gitleaks, Semgrep, OSV-Scanner).",
+    no_args_is_help=True,
+)
+app.add_typer(plugins_app, name="plugins")
 console = Console(stderr=True)
 
 
@@ -63,13 +70,13 @@ def init_cmd(
         raise typer.Exit(code=2)
 
     if provider == "none":
-        # Playbooks / dry-run path until Phase 3 scanners land.
         written = write_user_config(provider=None)
         console.print(f"[green]Wrote[/green] {written}")
         console.print(
-            "No AI provider configured. Use [cyan]--dry-run[/cyan], playbooks manually, "
+            "No AI provider configured. Use [cyan]--dry-run[/cyan], "
+            "[cyan]--scanners-only[/cyan] after [cyan]repolens plugins install[/cyan], "
             "or re-run [cyan]repolens init --provider ollama|openai[/cyan]. "
-            "See docs/setup-ai-and-scanners.md"
+            "See docs/setup-ai-and-scanners.md and docs/scanners.md"
         )
         return
 
@@ -95,6 +102,7 @@ def init_cmd(
             "(see docs/setup-ai-and-scanners.md)."
         )
     console.print("Try: [cyan]repolens review --path . --dry-run[/cyan]")
+    console.print("Optional scanners: [cyan]repolens plugins status[/cyan]")
 
 
 def _run_mode(
@@ -114,9 +122,16 @@ def _run_mode(
     dry_run: bool,
     full_audit: bool,
     trust_project: bool,
+    scanners: str,
+    require_scanners: bool,
+    scanners_only: bool,
 ) -> None:
     if fmt not in {"md", "json", "both"}:
         console.print("[red]--format must be md | json | both[/red]")
+        raise typer.Exit(code=2)
+
+    if scanners_only and dry_run:
+        console.print("[red]--scanners-only cannot be combined with --dry-run[/red]")
         raise typer.Exit(code=2)
 
     resolved = None
@@ -154,12 +169,19 @@ def _run_mode(
             full_audit=full_audit,
             dry_run=dry_run,
             trust_project=trust_project,
+            scanners=scanners,
+            require_scanners=require_scanners,
+            scanners_only=scanners_only,
         )
     except FileNotFoundError as exc:
         console.print(f"[red]Config/source error:[/red] {exc}")
         raise typer.Exit(code=2) from exc
     except ValueError as exc:
-        console.print(f"[red]Config error:[/red] {exc}")
+        console.print(f"[red]Config/usage error:[/red] {exc}")
+        raise typer.Exit(code=2) from exc
+    except ScannerRequirementError as exc:
+        console.print(f"[red]{exc}[/red]")
+        console.print("Install with [cyan]repolens plugins install[/cyan] or see docs/scanners.md")
         raise typer.Exit(code=2) from exc
     except LlmError as exc:
         console.print(f"[red]Model error:[/red] {exc}")
@@ -223,6 +245,15 @@ def review(
         "--trust-project-config",
         help="Allow project .repolens.toml to set provider/base_url/api_key_env",
     ),
+    scanners: str = typer.Option(
+        "auto", "--scanners", help="auto | off | comma list (gitleaks,semgrep,osv)"
+    ),
+    require_scanners: bool = typer.Option(
+        False, "--require-scanners", help="Exit 2 if a requested scanner is missing"
+    ),
+    scanners_only: bool = typer.Option(
+        False, "--scanners-only", help="Skip LLM; report scanner findings only"
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -242,6 +273,9 @@ def review(
         dry_run,
         full_audit,
         trust_project,
+        scanners,
+        require_scanners,
+        scanners_only,
     )
 
 
@@ -269,6 +303,15 @@ def sentinel(
         "--trust-project-config",
         help="Allow project .repolens.toml to set provider/base_url/api_key_env",
     ),
+    scanners: str = typer.Option(
+        "auto", "--scanners", help="auto | off | comma list (gitleaks,semgrep,osv)"
+    ),
+    require_scanners: bool = typer.Option(
+        False, "--require-scanners", help="Exit 2 if a requested scanner is missing"
+    ),
+    scanners_only: bool = typer.Option(
+        False, "--scanners-only", help="Skip LLM; report scanner findings only"
+    ),
 ) -> None:
     """Security-only review (P1 playbook)."""
     _run_mode(
@@ -288,6 +331,9 @@ def sentinel(
         dry_run,
         False,
         trust_project,
+        scanners,
+        require_scanners,
+        scanners_only,
     )
 
 
@@ -315,6 +361,15 @@ def architecture(
         "--trust-project-config",
         help="Allow project .repolens.toml to set provider/base_url/api_key_env",
     ),
+    scanners: str = typer.Option(
+        "auto", "--scanners", help="auto | off | comma list (gitleaks,semgrep,osv)"
+    ),
+    require_scanners: bool = typer.Option(
+        False, "--require-scanners", help="Exit 2 if a requested scanner is missing"
+    ),
+    scanners_only: bool = typer.Option(
+        False, "--scanners-only", help="Skip LLM; report scanner findings only"
+    ),
 ) -> None:
     """Architecture / production-readiness audit."""
     _run_mode(
@@ -334,7 +389,52 @@ def architecture(
         dry_run,
         True,
         trust_project,
+        scanners,
+        require_scanners,
+        scanners_only,
     )
+
+
+@plugins_app.command("status")
+def plugins_status_cmd() -> None:
+    """Show which scanner plugins are available (PATH or cache)."""
+    table = Table(title="Scanner plugins")
+    table.add_column("Tool")
+    table.add_column("State")
+    table.add_column("Detail")
+    for tool, state, detail in plugin_status():
+        colour = "green" if state == "available" else "yellow"
+        table.add_row(tool, f"[{colour}]{state}[/{colour}]", detail)
+    console.print(table)
+
+
+@plugins_app.command("list")
+def plugins_list_cmd() -> None:
+    """List known scanner plugins (alias of status)."""
+    plugins_status_cmd()
+
+
+@plugins_app.command("install")
+def plugins_install_cmd(
+    tools: list[str] = typer.Argument(
+        None, help="Plugin names or 'all' (default: all)"
+    ),
+    yes: bool = typer.Option(
+        False, "--yes", "-y", help="Skip consent prompts (CI / non-interactive)"
+    ),
+) -> None:
+    """Download pinned scanner binaries into ~/.cache/repolens/tools/ (with consent)."""
+    selected = tools or ["all"]
+    try:
+        messages = install_plugins(selected, yes=yes)
+    except RuntimeError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=2) from exc
+    for msg in messages:
+        console.print(msg)
+    if any("failed" in m or "skipped (declined)" in m for m in messages):
+        # Partial success still exits 0 unless everything failed hard without install
+        pass
 
 
 @app.command()
@@ -371,6 +471,9 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     table.add_row("High", str(report.summary.high))
     table.add_row("Medium", str(report.summary.medium))
     table.add_row("Low", str(report.summary.low))
+    if report.scannerRuns:
+        ran = sum(1 for r in report.scannerRuns if r.status == "ran")
+        table.add_row("Scanners ran", f"{ran}/{len(report.scannerRuns)}")
     console.print(table)
 
 

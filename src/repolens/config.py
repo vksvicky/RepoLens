@@ -35,6 +35,11 @@ class GeneralConfig(BaseModel):
     report_dir: str = "reports"
 
 
+class ScannersConfig(BaseModel):
+    enabled: list[str] = Field(default_factory=lambda: ["gitleaks", "semgrep", "osv"])
+    require: bool = False
+
+
 class LocalLearningConfig(BaseModel):
     enabled: bool = False
     cache_dir: str = ".repolens"
@@ -43,6 +48,7 @@ class LocalLearningConfig(BaseModel):
 class RepoLensConfig(BaseModel):
     general: GeneralConfig = Field(default_factory=GeneralConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
+    scanners: ScannersConfig = Field(default_factory=ScannersConfig)
     local_learning: LocalLearningConfig = Field(default_factory=LocalLearningConfig)
 
 

@@ -93,7 +93,7 @@ flowchart LR
 | **CLI alpha** | Phase 1 | Local `--path` reviews via `repolens` (BYOK / Ollama) |
 | **Transition** | Phase 1 | Local-path CLI + LLM analysis |
 | **Expanded source** | Phase 2 | Remote git hosts |
-| **Target durability** | Phase 3–4 | Scanner plugins + CI Action |
+| **Target durability** | Phase 3–4 | Scanner plugins (Phase 3 done) + CI Action (Phase 4) |
 
 When a diagram shows Phase 2+ nodes, mark them `phaseLater` (grey dashed)—do not imply they ship in Phase 1.
 
@@ -108,7 +108,7 @@ When a diagram shows Phase 2+ nodes, mark them `phaseLater` (grey dashed)—do n
 | **Z2** | Control plane | RepoLens CLI process (no secrets in reports) |
 | **Z3** | External LLM | Prompt + code excerpts over HTTPS |
 | **Z4** | Forge APIs | GitHub / Bitbucket / HF (Phase 2) |
-| **Z5** | Optional scanners | gitleaks / Semgrep / OSV (Phase 3) |
+| **Z5** | Optional scanners | gitleaks / Semgrep / OSV (Phase 3 — shipped) |
 
 **Invariant:** API keys and forge tokens never appear in report artifacts.
 

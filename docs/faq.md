@@ -78,19 +78,19 @@ Hugging Face repos (models/datasets/Spaces) are reviewed as **git content** (cod
 | **Git** on PATH | **No** — use your system Git |
 | LLM provider (cloud key or local Ollama) | **No** — you supply |
 
-### Optional security scanners (Phase 3)
+### Optional security scanners (Phase 3 — shipped)
 
 | Tool | Purpose | Default install? |
 |------|---------|------------------|
-| gitleaks (or similar) | Secrets | **Optional** — detect if installed |
-| Semgrep | SAST / many OWASP-oriented rules | **Optional** |
-| OSV-Scanner / Grype | **CVE** / dependency vulns | **Optional** |
+| gitleaks | Secrets | **Optional** — PATH or `repolens plugins install` |
+| Semgrep | SAST / pattern rules | **Optional** — PATH, cache venv, or `.[scanners]` |
+| OSV-Scanner | **CVE** / dependency vulns | **Optional** — PATH or plugins install |
 | pandoc | PDF export | **Optional** |
 
 **Can we build them in?**  
-We can ship **optional extras** or `repolens plugins install …` that fetch pinned binaries — but we will **not** put large native scanners into the **default** slim package. Missing scanners never break the LLM review path unless you pass `--require-scanners`.
+Use `repolens plugins install …` (consent download) or `pip install "repolens[scanners]"` for Semgrep via pip — large native scanners stay out of the slim default wheel. Missing scanners never break the LLM review path unless you pass `--require-scanners`.
 
-Design: [ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md).
+Guide: [scanners.md](./scanners.md) · Design: [ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md).
 
 ---
 
@@ -101,9 +101,9 @@ RepoLens uses **layers** — different tools for different jobs:
 | Layer | Question it answers | How |
 |-------|---------------------|-----|
 | **LLM + `sentinel` / security playbook** | “What OWASP-*style* issues appear in *this* code, with fixes?” | Heuristic review; tags CWE/OWASP categories when possible |
-| **Secret scanner** | “Are live credentials in the tree?” | gitleaks (Phase 3) |
-| **SAST** | “Do known bad patterns match?” | Semgrep + rulesets (Phase 3) |
-| **CVE / SCA** | “Are dependencies known-vulnerable?” | OSV-Scanner / similar (Phase 3) |
+| **Secret scanner** | “Are live credentials in the tree?” | gitleaks (`--scanners` / plugins) |
+| **SAST** | “Do known bad patterns match?” | Semgrep (`--scanners` / plugins) |
+| **CVE / SCA** | “Are dependencies known-vulnerable?” | OSV-Scanner (`--scanners` / plugins) |
 | **Your CI** | “Is this enforced on every PR?” | Dependabot, CodeQL, Snyk, etc. — we *call out gaps*, we don’t replace them |
 
 **Important:** The LLM layer is **not** a CVE database. For audit-grade **CVE** lists, enable the dependency scanner plugin (or your existing SCA in CI). “OWASP compliant” is not a certification we stamp; we **align findings** to OWASP Top 10 / CWE and recommend deterministic scanners for evidence packs.
@@ -141,14 +141,16 @@ RepoLens reads source from `--path` and may send excerpts to your configured LLM
 | **An LLM provider** | Cloud BYOK **or** local (Ollama) |
 | **Python 3.11+** | Runtime for the CLI |
 
-### Optional durability plugins (Phase 3)
+### Optional durability plugins (Phase 3 — shipped)
 
 | Tool | Role |
 |------|------|
-| **gitleaks** (or equivalent) | Secret scanning |
+| **gitleaks** | Secret scanning |
 | **Semgrep** | SAST / rule-based findings |
-| **OSV-Scanner** / similar | Dependency CVEs |
+| **OSV-Scanner** | Dependency CVEs |
 | **pandoc** | Markdown → PDF export |
+
+See [scanners.md](./scanners.md).
 
 ### Explicitly *not* replaced
 

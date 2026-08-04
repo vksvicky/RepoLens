@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from repolens.report import write_markdown_report
-from repolens.schema import FindingReport, Issue, Severity, Summary
+from repolens.schema import FindingReport, Issue, ScannerRun, Severity, Summary
 
 
 def test_write_markdown_report_includes_sections(tmp_path: Path) -> None:
@@ -29,6 +29,7 @@ def test_write_markdown_report_includes_sections(tmp_path: Path) -> None:
             )
         ],
         durabilityGaps=["ci"],
+        scannerRuns=[ScannerRun(tool="gitleaks", status="ran", findingCount=1)],
     )
     path = write_markdown_report(report, tmp_path, mode="sentinel")
     text = path.read_text(encoding="utf-8")
@@ -38,3 +39,5 @@ def test_write_markdown_report_includes_sections(tmp_path: Path) -> None:
     assert "Hardcoded API key" in text
     assert "key = os.environ" in text
     assert "## Durability gaps" in text
+    assert "## Automated scanners" in text
+    assert "gitleaks" in text
