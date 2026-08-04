@@ -1,0 +1,53 @@
+name: Bug report
+description: Report incorrect docs, playbook issues, or (later) CLI bugs
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Do not** include secrets or personal access tokens.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Documentation
+        - Playbooks
+        - CLI (not yet shipped)
+        - CI / GitHub templates
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Clear description of the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      placeholder: main @ abc1234
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: OS, links to PRs, screenshots (no secrets).

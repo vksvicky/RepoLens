@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  docs-sanity:
+    name: Docs sanity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Required files exist
+        run: |
+          set -euo pipefail
+          required=(
+            README.md
+            LICENSE
+            docs/README.md
+            docs/phases.md
+            docs/CHANGELOG.md
+            docs/CONTRIBUTING.md
+            docs/CODE_OF_CONDUCT.md
+            docs/SECURITY.md
+            docs/SUPPORT.md
+            docs/using-playbooks.md
+            playbooks/security.md
+            playbooks/architecture.md
+          )
+          for f in "${required[@]}"; do
+            test -f "$f" || { echo "Missing: $f"; exit 1; }
+          done
+          echo "All required foundation files present."
+
+      # Phase 1+: add lint/test jobs for the CLI language chosen in docs/phases.md

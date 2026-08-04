@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/vksvicky/RepoLens/security/advisories/new
+    about: Report security issues privately (update this URL when the remote exists).
+  - name: Using playbooks without the CLI
+    url: https://github.com/vksvicky/RepoLens/blob/main/docs/using-playbooks.md
+    about: Guidance for running reviews via Cursor or another LLM today.

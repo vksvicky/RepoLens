@@ -1,0 +1,47 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Secrets & local config
+.env
+.env.*
+!.env.example
+.repolens.toml
+!.repolens.example.toml
+*.pem
+*.key
+credentials.json
+
+# Python (when Phase 1 lands)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Node / Bun (if TypeScript path chosen)
+node_modules/
+.npm/
+.pnpm-store/
+coverage/
+
+# Reports & clones (local runs)
+reports/
+.tmp/
+.cache/
+repolens-work/
+
+# Logs
+*.log
