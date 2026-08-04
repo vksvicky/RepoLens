@@ -34,12 +34,23 @@ Docs/playbook-only changes do not require the Python toolchain.
 - Do not commit secrets, API keys, or live credentials
 - Be respectful—follow the [Code of Conduct](./CODE_OF_CONDUCT.md)
 
+### Dual-review gate (maintainers / agents)
+
+Before **commit** or **push** on this repo, run the Cursor **pre-commit dual-review** gate (security → bugs → architecture). Deliver:
+
+1. Chat gate verdict with confidence %  
+2. Durable report under `docs/reviews/gate_review_report_YYYY-MM-DD.md` for ship/push  
+3. A row in [review-confidence-log.md](./review-confidence-log.md)  
+
+Do **not** skip the gate for “docs-only” or large features. Push still requires an explicit override phrase after a go verdict.
+
 ### PR checklist
 
 - [ ] Description explains *why* the change exists
 - [ ] Docs/playbooks render clearly in Markdown preview
 - [ ] No secrets or personal machine paths required for others to use the change
 - [ ] Linked issue (if applicable)
+- [ ] Dual-review gate run if this change is being committed/pushed by an agent
 
 ## Playbook changes
 

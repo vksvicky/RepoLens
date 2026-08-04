@@ -78,6 +78,13 @@ runs:
         elif [ "$FROM" = "git" ]; then
           REPO="${{ inputs.git-repository }}"
           REF="${{ inputs.git-ref }}"
+          case "$REPO" in
+            https://github.com/*|https://gitlab.com/*|https://bitbucket.org/*) ;;
+            *)
+              echo "git-repository must be an https:// GitHub/GitLab/Bitbucket URL" >&2
+              exit 2
+              ;;
+          esac
           python -m pip install "repolens[scanners] @ git+${REPO}@${REF}"
         else
           echo "install-from must be local, pypi, or git; got: $FROM" >&2

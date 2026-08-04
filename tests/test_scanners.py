@@ -78,6 +78,15 @@ def test_run_gitleaks_parses_findings(tmp_path: Path) -> None:
     assert result.issues[0].file == "app.py"
 
 
+def test_semgrep_config_env_override(monkeypatch) -> None:
+    from repolens.scanners.semgrep import semgrep_config
+
+    monkeypatch.delenv("REPOLENS_SEMGREP_CONFIG", raising=False)
+    assert semgrep_config() == "auto"
+    monkeypatch.setenv("REPOLENS_SEMGREP_CONFIG", "./rules.yml")
+    assert semgrep_config() == "./rules.yml"
+
+
 def test_run_semgrep_parses_findings(tmp_path: Path) -> None:
     payload = {
         "results": [

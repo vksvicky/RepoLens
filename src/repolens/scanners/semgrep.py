@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -16,14 +17,24 @@ _SEV = {
 }
 
 
+def semgrep_config() -> str:
+    """Semgrep --config value (default auto). Override with REPOLENS_SEMGREP_CONFIG.
+
+    Use a local rules path (e.g. ``p/ci`` cached offline, or ``./semgrep.yml``)
+    for air-gapped runs — ``auto`` may fetch rules from the network.
+    """
+    return os.environ.get("REPOLENS_SEMGREP_CONFIG", "auto").strip() or "auto"
+
+
 def run_semgrep(root: Path) -> ScannerResult:
     binary = resolve_binary("semgrep")
     if binary is None:
         return ScannerResult(
             run=ScannerRun(tool="semgrep", status="skipped", detail="not found on PATH or cache")
         )
+    config = semgrep_config()
     completed = subprocess.run(
-        [str(binary), "scan", "--config", "auto", "--json", "--quiet", str(root)],
+        [str(binary), "scan", "--config", config, "--json", "--quiet", str(root)],
         check=False,
         capture_output=True,
         text=True,

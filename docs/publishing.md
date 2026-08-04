@@ -11,7 +11,7 @@ pip install "repolens[scanners]==0.1.0a1"
 ## Release workflow
 
 Tag a version matching `pyproject.toml` (e.g. `v0.1.0a1`) and push the tag.  
-[`.github/workflows/publish.yml`](../.github/workflows/publish.yml) builds the sdist/wheel and uploads via **Trusted Publishing** (OIDC). No long-lived PyPI token in GitHub secrets.
+[`.github/workflows/publish.yml`](../.github/workflows/publish.yml) builds the sdist/wheel and uploads via **Trusted Publishing** (OIDC). No long-lived PyPI token in GitHub secrets. The publish Action is **pinned to a commit SHA** (not a floating tag).
 
 ## One-time Trusted Publisher setup (manual)
 
