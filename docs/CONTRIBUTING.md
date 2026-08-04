@@ -7,7 +7,7 @@ Thanks for helping make repository reviews clearer and more useful for everyone.
 - Improve **playbooks** (`playbooks/`) for clarity, fewer false positives, or language-specific guidance
 - Improve **docs** (README, phases tracker, guides)
 - Report bugs and propose features via [GitHub Issues](../../issues)
-- Later: CLI code, tests, and scanner plugins (see [phases.md](./phases.md))
+- CLI code, tests, scanners, Action, and local learning (see [phases.md](./phases.md))
 
 ## Development setup
 

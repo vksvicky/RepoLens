@@ -2,7 +2,7 @@
 # unless you pass --trust-project-config (prevents untrusted-repo exfiltration).
 # Safe project overrides: model name, report_dir (relative only).
 #
-# Example config for the RepoLens CLI (Phase 1+).
+# Example config for the RepoLens CLI (Phases 1–4).
 # CLI runtime: Python 3.11+
 # Copy to ~/.config/repolens/config.toml or ./.repolens.toml and fill in values.
 # Do not commit real secrets.
@@ -25,11 +25,11 @@
 # require = false                             # if true, exit 2 when a scanner is missing
 
 [local_learning]
-# enabled = false           # Phase 4 — opt-in only; data stays on disk
-# cache_dir = ".repolens"   # informed consent required on first enable
+# enabled = false           # opt-in; data stays on disk (see docs/local-learning.md)
+# cache_dir = ".repolens"   # also requires: repolens learn build --accept-local-learning
 
 [sources]
-# Phase 2: private GitHub clones read this env (also accepts GH_TOKEN),
+# Private remotes: env tokens (also accepts GH_TOKEN for GitHub),
 # then fall back to `gh auth token` if available.
 # github_token_env = "GITHUB_TOKEN"
 # bitbucket_token_env = "BITBUCKET_TOKEN"

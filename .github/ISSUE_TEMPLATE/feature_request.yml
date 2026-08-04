@@ -11,11 +11,13 @@ body:
     attributes:
       label: Best-fit phase
       options:
-        - Phase 0 — Docs / playbooks
-        - Phase 1 — Core CLI
-        - Phase 2 — Remotes
-        - Phase 3 — Scanner plugins
-        - Phase 4 — CI / packaging
+        - Docs / playbooks
+        - Core CLI
+        - Remotes
+        - Scanner plugins
+        - CI / Action / packaging
+        - Local learning
+        - Other / next phase
         - Unsure
     validations:
       required: true
