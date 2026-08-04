@@ -1,4 +1,4 @@
-# Phase 6 — Enterprise CI/CD & report delivery (design)
+# Phase 7 — Enterprise CI/CD & report delivery (design)
 
 **Status:** Design sketch (not implemented)  
 **Date:** 2026-08-04  
@@ -23,8 +23,8 @@ This phase documents that target without shipping a SaaS product yet.
 | Bitbucket Pipelines script + artifacts | **Supported** | [ci.md](../ci.md) |
 | Exit codes for gatekeeping | **Supported** | [ci.md](../ci.md), CLI schema |
 | Adaptive fingerprint DB on laptop | **Phase 5** | Local disk under `.repolens/` |
-| Jenkins / CircleCI first-class docs | **Not yet** | This document (Phase 6) |
-| Email / Slack / Teams notification | **Not yet** | Phase 6 |
+| Jenkins / CircleCI first-class docs | **Not yet** | This document (Phase 7) |
+| Email / Slack / Teams notification | **Not yet** | Phase 7 |
 | Hosted RepoLens dashboard | **Non-goal for now** | Use artifacts + your own portal |
 
 **Honesty:** LLM review is a due-diligence layer, not a complete production security program ([faq.md](../faq.md)).
@@ -59,7 +59,7 @@ checkout → install RepoLens → (optional) plugins install
 
 Same as 3.2, but `.repolens/` may persist between jobs — document cleanup policy and that fingerprint DBs must not be shared across unrelated repos on the same workspace.
 
-## 4. Report delivery (Phase 6 deliverables)
+## 4. Report delivery (Phase 7 deliverables)
 
 Reports today: Markdown + optional JSON under `--out` / `reports/`.
 
@@ -71,11 +71,11 @@ Reports today: Markdown + optional JSON under `--out` / `reports/`.
 | **GitLab CI** | `artifacts: paths: [reports/]` | Document `.gitlab-ci.yml` |
 | **Email** | Post-step script or forge plugin; attach `gate_review_report_*.md` | No RepoLens SMTP server — use corporate relay |
 | **Slack / Teams** | Webhook with summary + link to artifact | Keep payload free of secrets/code dumps |
-| **Dashboard** | Ingest JSON (`--format json\|both`) into existing tool (DefectDojo, custom) | RepoLens does **not** ship a hosted UI in Phase 6 MVP |
+| **Dashboard** | Ingest JSON (`--format json\|both`) into existing tool (DefectDojo, custom) | RepoLens does **not** ship a hosted UI in Phase 7 MVP |
 
 ### 4.1 Suggested JSON contract for dashboards
 
-Reuse existing report JSON schema (`FindingReport`). Phase 6 may add a thin `repolens ci publish` helper later (optional) that POSTs summary counts to a webhook — not required for MVP if artifacts + scripts suffice.
+Reuse existing report JSON schema (`FindingReport`). Phase 7 may add a thin `repolens ci publish` helper later (optional) that POSTs summary counts to a webhook — not required for MVP if artifacts + scripts suffice.
 
 ## 5. Example sketches (to implement in docs/ci.md later)
 
@@ -128,7 +128,7 @@ jobs:
 - Do not enable content FTS learning (`repolens learn`) on shared CI disks without a retention policy.  
 - Adaptive fingerprints (paths/hashes only) are lower risk than FTS content but still workspace-local.
 
-## 7. Non-goals (Phase 6 MVP)
+## 7. Non-goals (Phase 7 MVP)
 
 - RepoLens-hosted multi-tenant SaaS dashboard  
 - Replacing enterprise GRC platforms  

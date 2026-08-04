@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phase 4 complete; Phase 5 adaptive cache in progress; **deep coverage (B+C+D)** shipping (heuristics + chunked passes + rules registry + graceful LLM spine); Phase A (cloud as quality multiplier) docs-only  
+**Current phase:** Phase 5 adaptive + deep coverage (B+C+D) shipping; **next = Phase 5.1 hardening** (metrics incl. security audit confidence); then Phase 6 explain/diagrams; Phase 7 enterprise CI; Phase A (cloud) docs-only  
 
 **CLI language:** Python 3.11+
 
@@ -165,26 +165,59 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
-## Phase 6 — Enterprise CI/CD & report delivery (design)
+## Phase 5.1 — Deep coverage hardening (design)
 
-**Goal:** Production-minded corporate use: CI agents (Jenkins, CircleCI, GitLab, …), artifact export, email/chat/dashboard handoff — without building a RepoLens SaaS UI.
+**Goal:** Honest coverage/N/A, multi-metric confidence (including **security audit confidence**), quieter heuristics, band sanity, per-pass progress UX.
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design sketch | [x] | [phase-6-enterprise-ci-and-report-delivery.md](./design/phase-6-enterprise-ci-and-report-delivery.md) |
+| Design approved | [x] | [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md) · [spec](./superpowers/specs/2026-08-04-phase-5.1-deep-hardening-design.md) |
+| Lazy N/A rejection + coverage honesty | [ ] | |
+| Gate + security (+ arch/rel) audit confidence + glossary | [ ] | Security audit confidence ≠ “% secure” |
+| Mega-file ignore globs (docs/xcuserdata/pbxproj) | [ ] | |
+| Priority/band sanity | [ ] | |
+| Per-pass progress timers | [ ] | |
+
+**Phase 5.1 exit criteria:** PatternSorcerer deep report explains metrics; confidence not stuck at raw LLM 95% with weak coverage; security audit confidence visible; timers reset per pass.
+
+---
+
+## Phase 6 — Issue explain + foolproof diagrams (design)
+
+**Goal:** UUID per issue (`stableId` + `runId`); explain toggle; deep-dive command with solutions + Mermaid/textual diagrams that never abort on render failure.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design approved | [x] | [phase-6-issue-explain-diagrams.md](./design/phase-6-issue-explain-diagrams.md) · [spec](./superpowers/specs/2026-08-04-phase-6-issue-explain-diagrams-design.md) |
+| Issue IDs on FindingReport | [ ] | |
+| `[explain]` config + `repolens explain` + `review --explain` | [ ] | |
+| Diagram spine (validate → repair → fallback → optional image) | [ ] | Exit 0 |
+
+**Phase 6 exit criteria:** User can deep-dive any finding by UUID and always get an explain file; invalid Mermaid yields textual fallback.
+
+---
+
+## Phase 7 — Enterprise CI/CD & report delivery (design)
+
+**Goal:** Production-minded corporate use: CI agents (Jenkins, CircleCI, GitLab, …), artifact export, email/chat/dashboard handoff — without building a RepoLens SaaS UI.  
+*(Formerly Phase 6 — renumbered 2026-08-04.)*
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design sketch | [x] | [phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md) |
 | Expand [ci.md](./ci.md) (Jenkins / CircleCI / GitLab) | [ ] | |
 | Artifact → email / webhook recipes | [ ] | Customer SMTP / forge plugins |
 | Adaptive cache guidance for ephemeral CI | [ ] | Off by default or restore via CI cache |
 | Dashboard ingest (JSON) recipe | [ ] | External dashboard; no hosted RepoLens UI |
 | FAQ “Corporate CI/CD” | [ ] | |
 
-**Phase 6 exit criteria:** A security/platform engineer can wire RepoLens into Jenkins or CircleCI, archive reports, optionally email/notify, and know when to disable adaptive learning on CI.
+**Phase 7 exit criteria:** A security/platform engineer can wire RepoLens into Jenkins or CircleCI, archive reports, optionally email/notify, and know when to disable adaptive learning on CI.
 
 ---
 
 ## Non-goals (for now)
 
-- Web dashboard / SaaS UI (Phase 6 may document **external** dashboard ingest only)  
+- Web dashboard / SaaS UI (Phase 7 may document **external** dashboard ingest only)  
 - Auto-commit or auto-push  
 - Replacing Snyk/CodeQL/Dependabot as the sole security program  
 - Claiming zero false positives from LLM-only analysis  
@@ -218,8 +251,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-04 | Local learning opt-in, on-disk, informed | No RepoLens training cloud; disclose cloud LLM still sends excerpts |
 | 2026-08-04 | Phase 5 design: fingerprint always-on + content opt-in | Progressive cache; per-project timeout; unified SQLite+FTS5 |
 | 2026-08-04 | Phase 5: local-first; network repo paths later | RW permissions / local cache redirect when network lands |
-| 2026-08-04 | Phase 6 design: enterprise CI + report delivery | Jenkins/CircleCI/email/dashboard via artifacts — not RepoLens SaaS |
+| 2026-08-04 | Enterprise CI design as Phase 6 (later renumbered to 7) | Jenkins/CircleCI/email/dashboard via artifacts — not RepoLens SaaS |
 | 2026-08-04 | Deep coverage B+C+D first; A (cloud) later | Same `--deep` pipeline for Anthropic/OpenAI; rules by registry id |
+| 2026-08-04 | Phase 5.1 hardening + Phase 6 explain/diagrams; enterprise → Phase 7 | Honest metrics incl. security audit confidence; foolproof Mermaid |
+| 2026-08-04 | Confidence is multi-metric | Gate confidence ≠ security audit confidence ≠ architecture scores |
 
 ---
 

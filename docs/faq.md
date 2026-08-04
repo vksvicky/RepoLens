@@ -35,6 +35,20 @@ On each review RepoLens can maintain `.repolens/repolens.sqlite` (local): file f
 | *(default)* / `--deep` | Multi-pass deep coverage + heuristics + coverage tally |
 | `--no-deep` | Single-shot LLM (legacy thin path) |
 | `--full-audit` | Deep **and** full architecture checklist + scores |
+
+## What do report metrics mean? (confidence vs security)
+
+**`Confidence` / gate confidence is not “% secure” and not an architecture grade.** It is how sure RepoLens is that *this review package* (findings + coverage + scanners) is adequate for a gate-style decision. Models often self-report high numbers; Phase **5.1** recalibrates that with coverage penalties and adds band-specific metrics.
+
+| Metric | Means | Does **not** mean |
+|--------|--------|-------------------|
+| **Gate confidence** | Adequacy of the overall review package | App is 95% secure / well-architected |
+| **Security audit confidence** | Honesty/completeness of the **P1 / sec.*** checklist + scanners | CVE-complete or production-ready security |
+| **Architecture audit confidence** | Honesty/completeness of the **P3 / arch.*** checklist | The 1–10 architecture `scores` block |
+| **Critical / High / Medium / Low** | Finding severity counts | Confidence % |
+| **Coverage** covered / N/A / missed | Checklist accountability | “N/A = ignored forever” — lazy N/A are rejected in 5.1 |
+
+Design: [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md).
 | `[deep]` in config | `enabled`, `chars_per_pass`, `mega_file_lines` |
 
 **Rules** load by **id** from a registry (project `.repolens/rules/` → user config → packaged defaults)—not hard-coded Markdown paths on the author’s machine. Override a rule with `.repolens/rules/<id>.md`.
@@ -300,7 +314,7 @@ No. Use RepoLens as a due-diligence layer **plus** tests, CI, and mature scanner
 
 **Local + GitHub Actions / Bitbucket artifacts:** documented and usable now ([ci.md](./ci.md)).
 
-**Jenkins, CircleCI, email, internal dashboards:** planned as **Phase 6** — design sketch in [design/phase-6-enterprise-ci-and-report-delivery.md](./design/phase-6-enterprise-ci-and-report-delivery.md). Pattern: run on the CI agent → archive `reports/**` → notify or ingest JSON into *your* tools. RepoLens does not ship a hosted dashboard.
+**Jenkins, CircleCI, email, internal dashboards:** planned as **Phase 7** — design sketch in [design/phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md). Pattern: run on the CI agent → archive `reports/**` → notify or ingest JSON into *your* tools. RepoLens does not ship a hosted dashboard.
 
 ---
 

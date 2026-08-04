@@ -32,7 +32,9 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [design/phase-3-scanners.md](./design/phase-3-scanners.md) | Phase 3 scanner plugin decisions |
 | [design/phase-4-ci-and-ecosystem.md](./design/phase-4-ci-and-ecosystem.md) | Phase 4 CI Action, PyPI, local learning |
 | [design/phase-5-adaptive-cache-and-recommendations.md](./design/phase-5-adaptive-cache-and-recommendations.md) | Phase 5 design: fingerprint cache, progressive review, per-project timeout |
-| [design/phase-6-enterprise-ci-and-report-delivery.md](./design/phase-6-enterprise-ci-and-report-delivery.md) | Phase 6 design: Jenkins/CircleCI, artifacts, email/dashboard (not SaaS) |
+| [design/phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md) | Phase 5.1: honest coverage, security audit confidence, quieter deep reports |
+| [design/phase-6-issue-explain-diagrams.md](./design/phase-6-issue-explain-diagrams.md) | Phase 6: UUID explain + foolproof Mermaid diagrams |
+| [design/phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md) | Phase 7 design: Jenkins/CircleCI, artifacts, email/dashboard (not SaaS) |
 | [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) | CLI UX, exit codes, finding/report schema |
 | [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) | AI keys, OWASP/CVE layers, bundled vs optional scanners, local ML |
 | [adr/](./adr/) | ADRs + diagram legend (how analysis works) |

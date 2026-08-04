@@ -110,18 +110,18 @@ Set repository variables / secured variables for API keys the same way as other 
 
 ## Adaptive cache in CI
 
-Ephemeral agents usually start cold. Prefer `[adaptive] enabled = false` in CI, or restore/save `.repolens/repolens.sqlite` with your CI cache if you want warm packs. Details: [design/phase-6-enterprise-ci-and-report-delivery.md](./design/phase-6-enterprise-ci-and-report-delivery.md).
+Ephemeral agents usually start cold. Prefer `[adaptive] enabled = false` in CI, or restore/save `.repolens/repolens.sqlite` with your CI cache if you want warm packs. Details: [design/phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md).
 
-## Corporate CI (Phase 6 — design)
+## Corporate CI (Phase 7 — design)
 
 **Today:** GitHub Action + Bitbucket script (above) are the supported first-class docs.
 
-**Next (Phase 6):** Jenkins, CircleCI, GitLab examples; email/webhook/dashboard handoff from `reports/**` artifacts — see [design/phase-6-enterprise-ci-and-report-delivery.md](./design/phase-6-enterprise-ci-and-report-delivery.md). RepoLens does not ship a hosted dashboard; export JSON/Markdown and plug into your tools.
+**Next (Phase 7):** Jenkins, CircleCI, GitLab examples; email/webhook/dashboard handoff from `reports/**` artifacts — see [design/phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md). RepoLens does not ship a hosted dashboard; export JSON/Markdown and plug into your tools.
 
 ## Related
 
 - [scanners.md](./scanners.md)  
 - [setup-ai-and-scanners.md](./setup-ai-and-scanners.md)  
 - [publishing.md](./publishing.md) — PyPI releases for `install-from: pypi`  
-- [phase-6-enterprise-ci-and-report-delivery.md](./design/phase-6-enterprise-ci-and-report-delivery.md) — enterprise delivery design  
+- [phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md) — enterprise delivery design  
 
