@@ -22,6 +22,21 @@ repolens review --path . --scanners-only
 
 If you decline a download, RepoLens prints manual install hints and still uses any matching tool already on your `PATH`.
 
+### Supported platforms for `plugins install`
+
+Pinned native downloads (gitleaks, osv-scanner) currently cover:
+
+| OS | Architectures |
+|----|----------------|
+| macOS | arm64, amd64 |
+| Linux | amd64, arm64 |
+| Windows | **Not pinned yet** — put tools on `PATH` yourself, or run under [WSL](https://learn.microsoft.com/windows/wsl/) and use Linux steps |
+
+Semgrep is installed via pip (`repolens[scanners]` or `plugins install semgrep`) and usually works on all three platforms when Python supports it.
+
+What the `[scanners]` **pip extra** contains (and that it is a RepoLens install option, not per-project config): [install-extras.md](./install-extras.md).  
+Cross-OS CLI walkthrough: [try-on-your-repo.md](./try-on-your-repo.md).
+
 ## Tools
 
 | Name | Role | Typical binary |

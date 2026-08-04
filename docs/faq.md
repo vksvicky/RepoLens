@@ -11,10 +11,102 @@ If you only read one section, read this.
 | **Extra security software?** | Kept **optional** so the default install stays small. Use tools on your `PATH`, or `repolens plugins install` / `repolens[scanners]`—no forced huge downloads. |
 | **OWASP / CVE?** | **AI** explains security themes (OWASP-style) in *your* code with fix suggestions. **OSV / Semgrep / gitleaks** list deterministic evidence (**CVE** IDs, secrets, SAST). AI alone is not a complete CVE list. |
 | **Does it learn from my repo?** | **Yes (opt-in):** on your machine only, off by default, and we tell you before it starts (`repolens learn`). We don’t upload your project to train a central RepoLens model. If you use cloud AI, that provider may still see code excerpts you send for the review. |
+| **What is `.[dev]` / `.[scanners]`?** | Optional **pip extras when installing RepoLens** (listed in RepoLens’s `pyproject.toml`). They are **not** part of the project you review. See [install-extras.md](./install-extras.md). |
+| **I have Ollama — why does review fail?** | RepoLens needs a one-time `repolens init --provider ollama` (writes `~/.config/repolens/config.toml`). `init` uses a model from `ollama list` when `--model` is omitted. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md#option-b--local-ai-on-your-computer-eg-ollama). |
 
 Longer narrative: [design/ai-keys-scanners-and-local-learning.md §5](./design/ai-keys-scanners-and-local-learning.md#5-decision-summary-plain-language).  
 
 **Setup steps for all three options:** [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) (cloud key · local Ollama · scanners only).
+
+---
+
+## What is the adaptive cache (Phase 5)?
+
+On each review RepoLens can maintain `.repolens/repolens.sqlite` (local): file fingerprints + run timings + optional FTS content (opt-in). Later runs prefer **changed + P1** files (`adaptive.mode=auto`), and store a **recommended timeout** per project. Override with `--timeout`, config, or `--full` for a full pack. Inspect with `repolens adaptive status --path .`. Disable with `[adaptive] enabled = false`.
+
+---
+
+## What is deep coverage?
+
+**Deep mode** (default **on** for LLM runs) runs heuristics, then chunked P1→P3 passes with a **rules registry** checklist (coverage IDs), and merges/dedupes into one report. Use `--no-deep` for a single-shot LLM call (faster, thinner on large repos).
+
+| Flag / config | Effect |
+|---------------|--------|
+| *(default)* / `--deep` | Multi-pass deep coverage + heuristics + coverage tally |
+| `--no-deep` | Single-shot LLM (legacy thin path) |
+| `--full-audit` | Deep **and** full architecture checklist + scores |
+| `[deep]` in config | `enabled`, `chars_per_pass`, `mega_file_lines` |
+
+**Rules** load by **id** from a registry (project `.repolens/rules/` → user config → packaged defaults)—not hard-coded Markdown paths on the author’s machine. Override a rule with `.repolens/rules/<id>.md`.
+
+If the model returns invalid JSON, RepoLens still writes a report (scanners + heuristics + any salvageable issues) and exits **0**.
+
+**Cloud tip (Phase A):** Anthropic / OpenAI use the **same `--deep` pipeline**—pick the provider via `repolens init`; deep mode is what drives checklist completeness on large repos (e.g. PatternSorcerer-sized trees).
+
+Guided wizard: `./scripts/repolens-guided.sh` prompts for deep (default **Y** on review / full-audit).
+
+---
+
+## Why did I get `LLM … timed out`?
+
+The HTTP wait for one model call expired (old default was **120s**; Ollama now defaults to **900s**). Local 7B models on large prompts often need longer.
+
+```bash
+repolens init --provider ollama --force   # refreshes config incl. timeout_seconds=900
+repolens review --path "$TARGET" --out "$TARGET/reports" --timeout 1800 --verbose
+# or narrow: --mode diff --since HEAD~20
+# or skip LLM: --scanners-only
+```
+
+Also set `timeout_seconds` in `~/.config/repolens/config.toml` or `export REPOLENS_TIMEOUT=1800`.
+
+---
+
+## Why does `repolens review` look stuck? How do I see progress?
+
+Full LLM reviews (especially local Ollama) can take minutes with little network activity. By default RepoLens prints phase lines (`Inventory` → `Scanners` → `LLM` → `Writing report`) and a heartbeat every **15s** while waiting on the model.
+
+| Flag | Effect |
+|------|--------|
+| *(default)* | Phase lines + LLM spinner (TTY) + heartbeat |
+| `--verbose` / `-v` | Extra detail (file sample, per-scanner status, prompt size) |
+| `--heartbeat 30` | Change heartbeat interval (seconds) |
+| `--heartbeat 0` | Disable heartbeats (phases still print) |
+| `--quiet` / `-q` | Hide progress (summary/report paths still print) |
+
+---
+
+## I already use Ollama — why do I still need `repolens init`?
+
+RepoLens does **not** auto-select a provider. `repolens init --provider ollama` writes your user config and sets `model` from **`ollama list`** (first installed model) unless you pass `--model`.
+
+```bash
+ollama list
+repolens init --provider ollama --force
+# or: repolens init --provider ollama --model qwen2.5:7b --force
+```
+
+A 404 from the provider usually means the config model name is not installed — fix with `--model` matching `ollama list`, or `ollama pull …`.
+
+Full steps: [setup-ai-and-scanners.md](./setup-ai-and-scanners.md#option-b--local-ai-on-your-computer-eg-ollama) · walkthrough: [try-on-your-repo.md](./try-on-your-repo.md).
+
+---
+
+## What are `[dev]` and `[scanners]`? Where do they live?
+
+They are **install options for the RepoLens tool**, not configuration for each repository you analyse.
+
+- **Defined in:** [`pyproject.toml`](../pyproject.toml) → `[project.optional-dependencies]` in the **RepoLens** repo  
+- **Used when:** you run `pip install -e ".[dev]"` (or `repolens[scanners]` from PyPI/git)  
+- **Not required in:** `acme-api` or any other target of `repolens review --path …`
+
+| Extra | Packages | Notes |
+|-------|----------|-------|
+| `dev` | pytest, pytest-cov, ruff, mypy | For developing / dogfooding RepoLens |
+| `scanners` | semgrep only | gitleaks + osv come from `repolens plugins install` |
+| `local-ml` | sentence-transformers | Opt-in local learning |
+
+Full table and examples: [install-extras.md](./install-extras.md).
 
 ---
 
@@ -203,6 +295,14 @@ or Print → Save as PDF from a Markdown preview.
 ## Is LLM-only review enough for production?
 
 No. Use RepoLens as a due-diligence layer **plus** tests, CI, and mature scanners (CVE/SAST/secrets). See [phases.md](./phases.md) Phase 3 and the design note above.
+
+## Can we use this in corporate CI/CD (Jenkins, email, dashboards)?
+
+**Local + GitHub Actions / Bitbucket artifacts:** documented and usable now ([ci.md](./ci.md)).
+
+**Jenkins, CircleCI, email, internal dashboards:** planned as **Phase 6** — design sketch in [design/phase-6-enterprise-ci-and-report-delivery.md](./design/phase-6-enterprise-ci-and-report-delivery.md). Pattern: run on the CI agent → archive `reports/**` → notify or ingest JSON into *your* tools. RepoLens does not ship a hosted dashboard.
+
+---
 
 ---
 

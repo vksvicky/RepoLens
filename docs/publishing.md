@@ -70,25 +70,23 @@ git push origin v0.1.0a1
 
 ## Pre-publish dogfood
 
-Run these on **this repo** (or another of yours) before tagging. For reviewing any local project with generic paths, see **[try-on-your-repo.md](./try-on-your-repo.md)**.
+Run these on **this repo** (or another of yours) before tagging.
 
-From a RepoLens clone with the package installed editable (replace `[username]`):
+**Install / activate the venv for your OS** (macOS, Linux, Windows PowerShell): see **[try-on-your-repo.md](./try-on-your-repo.md)**. Then, from the RepoLens clone with the venv active:
 
 ```bash
-cd /Users/[username]/Development/RepoLens
-python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
 # 1) Version + inventory
 repolens version
 repolens review --path . --out ./reports-dogfood --dry-run
 
-# 2) Plugins (consent skipped with --yes; verifies checksums + HTTPS)
+# 2) Plugins (macOS/Linux; Windows: not pinned — see scanners.md)
 repolens plugins status
 repolens plugins install all --yes
 repolens plugins status
 
-# 3) Scanners-only (no LLM key required)
+# 3) Scanners-only (no LLM key required; skip if plugins unavailable)
 repolens review --path . --out ./reports-dogfood --scanners-only --fail-on ""
 
 # 4) CI argv assembly (what the GitHub Action uses)
@@ -101,6 +99,8 @@ PY
 # 5) Optional: full LLM review if you have a key / Ollama configured
 # repolens review --path . --out ./reports-dogfood --scanners auto
 ```
+
+On Windows PowerShell, use the same `repolens …` commands after `.\.venv\Scripts\Activate.ps1`. For step 4, run `python -c "from repolens.ci_args import build_review_argv; print(build_review_argv(run='dry-run', fail_on=''))"`.
 
 **Pass criteria**
 

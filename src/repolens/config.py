@@ -10,6 +10,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 ProviderName = Literal["openai", "anthropic", "deepseek", "ollama", "openai_compatible"]
+AdaptiveMode = Literal["auto", "full", "changed"]
 
 # Project .repolens.toml must not silently redirect network / credential selection.
 PROJECT_MODEL_DENY = frozenset({"base_url", "api_key_env", "provider"})
@@ -28,6 +29,8 @@ class ModelConfig(BaseModel):
     model: str | None = None
     api_key_env: str | None = None
     base_url: str | None = None
+    # LLM HTTP timeout (seconds). None → provider default (ollama longer).
+    timeout_seconds: float | None = None
 
 
 class GeneralConfig(BaseModel):
@@ -45,11 +48,31 @@ class LocalLearningConfig(BaseModel):
     cache_dir: str = ".repolens"
 
 
+class AdaptiveConfig(BaseModel):
+    """Phase 5 fingerprint cache + timeout recommendations."""
+
+    enabled: bool = True
+    mode: AdaptiveMode = "auto"
+    timeout_margin: float = 1.3
+    min_timeout_seconds: float = 120
+    max_timeout_seconds: float = 3600
+
+
+class DeepConfig(BaseModel):
+    """Multi-pass deep coverage review (heuristics + chunked P1→P3)."""
+
+    enabled: bool = True
+    chars_per_pass: int = 100_000
+    mega_file_lines: int = 500
+
+
 class RepoLensConfig(BaseModel):
     general: GeneralConfig = Field(default_factory=GeneralConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
     scanners: ScannersConfig = Field(default_factory=ScannersConfig)
     local_learning: LocalLearningConfig = Field(default_factory=LocalLearningConfig)
+    adaptive: AdaptiveConfig = Field(default_factory=AdaptiveConfig)
+    deep: DeepConfig = Field(default_factory=DeepConfig)
 
 
 def user_config_path() -> Path:
@@ -98,6 +121,13 @@ def env_overrides() -> dict[str, Any]:
         model["base_url"] = base
     if key_env := os.environ.get("REPOLENS_API_KEY_ENV"):
         model["api_key_env"] = key_env
+    if timeout := os.environ.get("REPOLENS_TIMEOUT"):
+        try:
+            model["timeout_seconds"] = float(timeout)
+        except ValueError as exc:
+            raise ValueError(
+                f"REPOLENS_TIMEOUT must be a number of seconds, got {timeout!r}"
+            ) from exc
 
     general: dict[str, Any] = {}
     if report_dir := os.environ.get("REPOLENS_REPORT_DIR"):
@@ -165,6 +195,7 @@ def write_user_config(
     model: str | None = None,
     api_key_env: str | None = None,
     base_url: str | None = None,
+    timeout_seconds: float | None = None,
     path: Path | None = None,
 ) -> Path:
     """Write a minimal user config (used by `repolens init`)."""
@@ -188,6 +219,11 @@ def write_user_config(
         lines.append(f'api_key_env = "{api_key_env}"')
     if base_url:
         lines.append(f'base_url = "{base_url}"')
+    if timeout_seconds is not None:
+        lines.append(f"timeout_seconds = {timeout_seconds:g}")
+    elif provider == "ollama":
+        # Local models often need longer than cloud APIs for large prompts.
+        lines.append("timeout_seconds = 900")
     lines.append("")
     target.write_text("\n".join(lines), encoding="utf-8")
     return target

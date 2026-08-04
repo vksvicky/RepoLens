@@ -12,12 +12,61 @@ from repolens_guided import (  # noqa: E402
     GuidedChoices,
     _has_cli_flag,
     build_argv,
+    default_local_path,
     format_command,
+    full_pack_large_model_warning,
+    is_large_local_model,
     list_installed_models,
     parse_ollama_list,
     parse_ollama_tags_json,
     probe_review_cli_caps,
+    suggest_timeout_seconds,
 )
+
+
+def test_suggest_timeout_by_model_size() -> None:
+    assert suggest_timeout_seconds("qwen2.5:7b") == 900.0
+    assert suggest_timeout_seconds("qwen2.5:14b") == 1800.0
+    assert suggest_timeout_seconds("qwen2.5-coder:32b") == 3600.0
+    assert suggest_timeout_seconds(None) == 900.0
+    assert is_large_local_model("qwen2.5-coder:32b")
+    assert not is_large_local_model("qwen2.5:7b")
+
+
+def test_full_pack_large_model_warning() -> None:
+    msg = full_pack_large_model_warning(
+        model="qwen2.5-coder:32b",
+        force_full=False,
+        force_changed=False,
+    )
+    assert msg is not None
+    assert "32b" in msg.lower() or "qwen2.5-coder:32b" in msg
+    assert "3600" in msg
+    assert (
+        full_pack_large_model_warning(
+            model="qwen2.5-coder:32b",
+            force_full=False,
+            force_changed=True,
+        )
+        is None
+    )
+    assert (
+        full_pack_large_model_warning(
+            model="qwen2.5:7b",
+            force_full=True,
+            force_changed=False,
+        )
+        is None
+    )
+
+
+def test_default_local_path_prefers_target() -> None:
+    assert default_local_path({"TARGET": "/tmp/demo"}) == "/tmp/demo"
+    assert default_local_path({"REPOLENS_PATH": "~/proj"}) == str(
+        Path("~/proj").expanduser()
+    )
+    assert default_local_path({"TARGET": "  ", "REPOLENS_PATH": ""}) == "."
+    assert default_local_path({}) == "."
 
 
 def test_format_command_quotes_spaces() -> None:
@@ -61,6 +110,7 @@ def test_build_argv_local_review_adaptive() -> None:
         scanners_only=False,
         dry_run=False,
         force_full=False,
+        force_changed=False,
         full_audit=False,
         model=None,
         verbose=True,
@@ -90,6 +140,7 @@ def test_build_argv_scanners_only_sentinel() -> None:
         scanners_only=True,
         dry_run=False,
         force_full=False,
+        force_changed=False,
         full_audit=False,
         model="qwen2.5:7b",  # must be ignored when scanners_only
         verbose=False,
@@ -115,6 +166,7 @@ def test_build_argv_dry_run_drops_model_timeout_full() -> None:
         scanners_only=False,
         dry_run=True,
         force_full=True,
+        force_changed=False,
         full_audit=True,
         model="qwen2.5:7b",
         verbose=True,
@@ -141,6 +193,7 @@ def test_build_argv_github_remote() -> None:
         scanners_only=False,
         dry_run=False,
         force_full=True,
+        force_changed=False,
         full_audit=True,
         model="llama3.2:3b",
         verbose=True,
@@ -170,6 +223,7 @@ def test_build_argv_hf_remote() -> None:
         scanners_only=False,
         dry_run=False,
         force_full=False,
+        force_changed=False,
         full_audit=False,
         model=None,
         verbose=False,
@@ -195,6 +249,7 @@ def test_build_argv_expands_user_path() -> None:
         scanners_only=False,
         dry_run=False,
         force_full=False,
+        force_changed=False,
         full_audit=False,
         model=None,
         verbose=False,
@@ -219,6 +274,12 @@ def test_has_cli_flag_full_not_full_audit() -> None:
     assert _has_cli_flag("  --full  force full LLM pack", "--full") is True
 
 
+def test_has_cli_flag_deep_not_confused_with_no_deep() -> None:
+    assert _has_cli_flag("  --no-deep  single-shot", "--deep") is False
+    assert _has_cli_flag("  --deep/--no-deep  multi-pass", "--deep") is True
+    assert _has_cli_flag("  --deep/--no-deep  multi-pass", "--no-deep") is True
+
+
 def test_probe_review_cli_caps_full_audit_does_not_enable_full() -> None:
     with patch("repolens_guided.subprocess.run") as run:
         run.return_value = MagicMock(
@@ -228,20 +289,27 @@ def test_probe_review_cli_caps_full_audit_does_not_enable_full() -> None:
         )
         caps = probe_review_cli_caps()
     assert caps.supports_full is False
+    assert caps.supports_changed is False
     assert caps.supports_verbose is True
+    assert caps.supports_deep is False
 
 
 def test_probe_review_cli_caps_parses_help() -> None:
     with patch("repolens_guided.subprocess.run") as run:
         run.return_value = MagicMock(
             returncode=0,
-            stdout="Usage\n  --verbose\n  --timeout FLOAT\n",
+            stdout=(
+                "Usage\n  --verbose\n  --timeout FLOAT\n  --changed\n"
+                "  --deep/--no-deep\n"
+            ),
             stderr="",
         )
         caps = probe_review_cli_caps()
     assert caps.supports_verbose is True
     assert caps.supports_timeout is True
     assert caps.supports_full is False
+    assert caps.supports_changed is True
+    assert caps.supports_deep is True
 
 
 def test_probe_review_cli_caps_empty_on_error() -> None:
@@ -253,6 +321,133 @@ def test_probe_review_cli_caps_empty_on_error() -> None:
     assert caps.supports_verbose is False
     assert caps.supports_timeout is False
     assert caps.supports_full is False
+    assert caps.supports_changed is False
+    assert caps.supports_deep is False
+
+
+def test_build_argv_changed_only() -> None:
+    choices = GuidedChoices(
+        command="review",
+        path=".",
+        out="./reports",
+        scanners_only=False,
+        dry_run=False,
+        force_full=False,
+        force_changed=True,
+        full_audit=False,
+        model=None,
+        verbose=False,
+        timeout=None,
+        fmt="md",
+        scanners="auto",
+        fail_on=None,
+        remote=None,
+        ref=None,
+    )
+    argv = build_argv(choices)
+    assert "--changed" in argv
+    assert "--full" not in argv
+
+
+def test_build_argv_emits_deep() -> None:
+    choices = GuidedChoices(
+        command="review",
+        path="/tmp/demo",
+        out="/tmp/demo/reports",
+        scanners_only=False,
+        dry_run=False,
+        force_full=False,
+        force_changed=False,
+        full_audit=True,
+        model=None,
+        verbose=False,
+        timeout=None,
+        fmt="md",
+        scanners="auto",
+        fail_on=None,
+        remote=None,
+        ref=None,
+        deep=True,
+    )
+    argv = build_argv(choices)
+    assert "--deep" in argv
+    assert "--no-deep" not in argv
+    assert "--full-audit" in argv
+
+
+def test_build_argv_emits_no_deep() -> None:
+    choices = GuidedChoices(
+        command="review",
+        path="/tmp/demo",
+        out="/tmp/demo/reports",
+        scanners_only=False,
+        dry_run=False,
+        force_full=False,
+        force_changed=False,
+        full_audit=False,
+        model=None,
+        verbose=False,
+        timeout=None,
+        fmt="md",
+        scanners="auto",
+        fail_on=None,
+        remote=None,
+        ref=None,
+        deep=False,
+    )
+    argv = build_argv(choices)
+    assert "--no-deep" in argv
+    assert "--deep" not in argv
+
+
+def test_build_argv_omits_deep_when_unset() -> None:
+    choices = GuidedChoices(
+        command="review",
+        path="/tmp/demo",
+        out="/tmp/demo/reports",
+        scanners_only=False,
+        dry_run=False,
+        force_full=False,
+        force_changed=False,
+        full_audit=False,
+        model=None,
+        verbose=False,
+        timeout=None,
+        fmt="md",
+        scanners="auto",
+        fail_on=None,
+        remote=None,
+        ref=None,
+        deep=None,
+    )
+    argv = build_argv(choices)
+    assert "--deep" not in argv
+    assert "--no-deep" not in argv
+
+
+def test_build_argv_scanners_only_drops_deep() -> None:
+    choices = GuidedChoices(
+        command="review",
+        path=".",
+        out="./reports",
+        scanners_only=True,
+        dry_run=False,
+        force_full=False,
+        force_changed=False,
+        full_audit=False,
+        model=None,
+        verbose=False,
+        timeout=None,
+        fmt="md",
+        scanners="auto",
+        fail_on=None,
+        remote=None,
+        ref=None,
+        deep=True,
+    )
+    argv = build_argv(choices)
+    assert "--deep" not in argv
+    assert "--no-deep" not in argv
 
 
 def test_list_installed_models_prefers_ollama_list() -> None:

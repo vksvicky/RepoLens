@@ -93,6 +93,7 @@ repolens learn build --path ./my-app --accept-local-learning
 
 # Full local review (requires configured provider + key/Ollama)
 # Progress lines + LLM heartbeats by default; add -v for more detail
+# Deep coverage (multi-pass + heuristics) is on by default; use --no-deep for single-shot
 repolens review --path ./my-app --verbose
 repolens sentinel --path ./my-app
 ```

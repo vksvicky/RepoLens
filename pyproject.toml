@@ -59,7 +59,12 @@ Issues = "https://github.com/vksvicky/RepoLens/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-repolens = ["playbooks/*.md", "py.typed"]
+repolens = [
+  "playbooks/*.md",
+  "rules/defaults/*.md",
+  "rules/defaults/*.json",
+  "py.typed",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

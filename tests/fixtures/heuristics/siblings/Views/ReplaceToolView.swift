@@ -1,0 +1,3 @@
+struct ReplaceToolView {
+    func body() {}
+}

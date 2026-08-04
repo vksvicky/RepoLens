@@ -12,11 +12,22 @@ Thanks for helping make repository reviews clearer and more useful for everyone.
 ## Development setup
 
 1. Fork the repository and create a branch
-2. Python 3.11+:
+2. Python 3.11+ (venv activate differs by OS — full paths in [try-on-your-repo.md](./try-on-your-repo.md)).  
+   `".[dev]"` is a **RepoLens** install extra (pytest/ruff/mypy) — see [install-extras.md](./install-extras.md):
 
 ```bash
+# macOS / Linux
 python3 -m venv .venv
 source .venv/bin/activate
+pip install -e ".[dev]"
+pytest -q
+ruff check src tests
+```
+
+```powershell
+# Windows (PowerShell)
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
 pytest -q
 ruff check src tests

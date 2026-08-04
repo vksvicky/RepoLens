@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "sec.injection",
+      "rule_id": "security",
+      "band": "p1",
+      "full_audit_only": false,
+      "title": "Injection risks (SQL, command, etc.)",
+      "playbook_anchor": "Injection risks"
+    },
+    {
+      "id": "sec.xss_csrf",
+      "rule_id": "security",
+      "band": "p1",
+      "full_audit_only": false,
+      "title": "XSS and CSRF",
+      "playbook_anchor": "Cross-Site Scripting (XSS)"
+    },
+    {
+      "id": "sec.authn_authz",
+      "rule_id": "security",
+      "band": "p1",
+      "full_audit_only": false,
+      "title": "Authentication and authorization",
+      "playbook_anchor": "Insecure Authentication & Authorization"
+    },
+    {
+      "id": "sec.secrets",
+      "rule_id": "security",
+      "band": "p1",
+      "full_audit_only": false,
+      "title": "Hardcoded secrets and secret scanning gaps",
+      "playbook_anchor": "Hardcoded secrets"
+    },
+    {
+      "id": "sec.crypto_deser",
+      "rule_id": "security",
+      "band": "p1",
+      "full_audit_only": false,
+      "title": "Crypto misuse and unsafe deserialization",
+      "playbook_anchor": "Unsafe deserialization"
+    },
+    {
+      "id": "sec.input_validation",
+      "rule_id": "security",
+      "band": "p1",
+      "full_audit_only": false,
+      "title": "Input validation and sanitization",
+      "playbook_anchor": "Unvalidated or unsanitized input"
+    },
+    {
+      "id": "sec.deps_config",
+      "rule_id": "security",
+      "band": "p1",
+      "full_audit_only": false,
+      "title": "Dependencies and configuration review",
+      "playbook_anchor": "Dependency & Configuration Review"
+    },
+    {
+      "id": "sec.practice_review",
+      "rule_id": "security",
+      "band": "p1",
+      "full_audit_only": false,
+      "title": "Code quality and security practice review",
+      "playbook_anchor": "Code Quality & Practice Review"
+    },
+    {
+      "id": "rel.edge_cases",
+      "rule_id": "reliability",
+      "band": "p2",
+      "full_audit_only": false,
+      "title": "Edge cases and null handling",
+      "playbook_anchor": "Edge cases and null handling"
+    },
+    {
+      "id": "rel.concurrency",
+      "rule_id": "reliability",
+      "band": "p2",
+      "full_audit_only": false,
+      "title": "Race conditions and concurrency",
+      "playbook_anchor": "Race conditions and concurrency"
+    },
+    {
+      "id": "rel.error_recovery",
+      "rule_id": "reliability",
+      "band": "p2",
+      "full_audit_only": false,
+      "title": "Retries, timeouts, and error recovery",
+      "playbook_anchor": "Missing retries and poor error recovery"
+    },
+    {
+      "id": "rel.performance",
+      "rule_id": "reliability",
+      "band": "p2",
+      "full_audit_only": false,
+      "title": "Performance hotspots",
+      "playbook_anchor": "Performance hotspots"
+    },
+    {
+      "id": "arch.structure",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": false,
+      "title": "Architecture structure and modularity",
+      "playbook_anchor": "# 1. Architecture"
+    },
+    {
+      "id": "arch.security_surface",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": false,
+      "title": "Architecture security audit surface",
+      "playbook_anchor": "# 2. Security Audit"
+    },
+    {
+      "id": "arch.database",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": true,
+      "title": "Database design and integrity",
+      "playbook_anchor": "# 3. Database"
+    },
+    {
+      "id": "arch.api",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": false,
+      "title": "API design and consistency",
+      "playbook_anchor": "# 4. API Review"
+    },
+    {
+      "id": "arch.frontend",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": true,
+      "title": "Frontend patterns and accessibility",
+      "playbook_anchor": "# 5. Frontend Review"
+    },
+    {
+      "id": "arch.performance",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": false,
+      "title": "Performance architecture",
+      "playbook_anchor": "# 6. Performance"
+    },
+    {
+      "id": "arch.pwa",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": true,
+      "title": "PWA audit",
+      "playbook_anchor": "# 7. PWA Audit"
+    },
+    {
+      "id": "arch.code_quality",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": false,
+      "title": "Code quality and technical debt",
+      "playbook_anchor": "# 8. Code Quality"
+    },
+    {
+      "id": "arch.reliability",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": false,
+      "title": "Architecture reliability",
+      "playbook_anchor": "# 9. Reliability"
+    },
+    {
+      "id": "arch.devex",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": true,
+      "title": "Developer experience",
+      "playbook_anchor": "# 10. Developer Experience"
+    },
+    {
+      "id": "arch.dependencies",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": false,
+      "title": "Dependency hygiene",
+      "playbook_anchor": "# 11. Dependencies"
+    },
+    {
+      "id": "arch.testing",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": false,
+      "title": "Testing strategy and coverage",
+      "playbook_anchor": "# 12. Testing"
+    },
+    {
+      "id": "arch.durability",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": false,
+      "title": "Production durability companions",
+      "playbook_anchor": "# Production durability (non-negotiable companions)"
+    },
+    {
+      "id": "arch.scores",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": true,
+      "title": "Production readiness scores",
+      "playbook_anchor": "# Overall Architecture Score"
+    },
+    {
+      "id": "arch.blast_radius",
+      "rule_id": "architecture",
+      "band": "p3",
+      "full_audit_only": false,
+      "title": "Scoped change blast radius (implicit for non-full-audit)",
+      "playbook_anchor": "implicit"
+    }
+  ]
+}

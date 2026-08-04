@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Deep coverage)
+
+- Multi-pass **deep coverage** for LLM runs (default on): heuristics + chunked P1→P3 + checklist coverage tally; `--deep` / `--no-deep` (single-shot)
+- **Rules registry** by id (project `.repolens/rules/` → user → packaged defaults)—not hard-coded author-machine Markdown paths
+- Graceful structured LLM spine: ask → coerce → micro-repair → degrade; always write a report (exit 0) on schema failure
+- Guided script deep Y/n (default Y for review / full-audit; probes CLI help for `--deep`)
+- Docs: FAQ deep coverage; setup / try-on tips; Anthropic/OpenAI use the same `--deep` pipeline (Phase A)
+
 ### Added (Phase 4 CI & ecosystem)
 
 - GitHub Action (`action.yml`) with `run=auto|dry-run|scanners-only|llm`

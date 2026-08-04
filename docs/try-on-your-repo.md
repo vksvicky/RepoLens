@@ -157,7 +157,10 @@ repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only --fail-
 # Full review (after init above)
 # Progress: phase lines by default; -v for detail; heartbeats every 15s during LLM;
 #           --heartbeat 0 to disable heartbeats; -q for quiet (CI)
+# Deep coverage (heuristics + chunked passes) is on by default; --no-deep = single-shot
 repolens review --path "$TARGET" --out "$TARGET/reports" --verbose
+# Large / audit-style: --full-audit (uses deep + full architecture checklist)
+# repolens review --path "$TARGET" --out "$TARGET/reports" --full-audit --verbose
 repolens sentinel --path "$TARGET" --out "$TARGET/reports"
 ```
 
@@ -186,8 +189,13 @@ From a RepoLens checkout (with `repolens` on your `PATH`):
 ```
 
 The wizard asks for path, security/architecture/both, scanners-only vs full LLM,
-installed Ollama models, timeout, and other flags — each option shows a short
-recommendation. It prints the exact command and asks **Y/n** before running.
+**deep coverage** (default **Y** for review / full-audit; emits `--deep` / `--no-deep`
+when the CLI supports it), installed Ollama models, timeout, and other flags —
+each option shows a short recommendation. It prints the exact command and asks
+**Y/n** before running.
+
+On large trees, keep deep **on** so checklist coverage and heuristics can surface
+structural themes that a single-shot pass often misses.
 
 ---
 
@@ -329,6 +337,8 @@ repolens review --path . --out .\reports-dogfood
 |------|-------------|
 | Current directory | Omit `--path` or use `--path .` |
 | No LLM key | Use `--dry-run` or `--scanners-only` (where scanners are available) |
+| Deep coverage (default on) | `--deep` multi-pass + heuristics; `--no-deep` single-shot |
+| Full architecture audit | `--full-audit` (pairs with deep) |
 | Fail CI-style on High+ | `--fail-on HIGH` |
 | One source only | Exactly one of `--path`, `--github`, `--bitbucket`, `--hf`, `--git-url` |
 | Remotes deep dive | [remote-sources.md](./remote-sources.md) |

@@ -6,7 +6,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phase 4 complete (CI & ecosystem — 2026-08-04); next is Phase 5+ / polish  
+**Current phase:** Phase 4 complete; Phase 5 adaptive cache in progress; **deep coverage (B+C+D)** shipping (heuristics + chunked passes + rules registry + graceful LLM spine); Phase A (cloud as quality multiplier) docs-only  
+
 **CLI language:** Python 3.11+
 
 ---
@@ -128,9 +129,62 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
+## Phase 5 — Adaptive fingerprint cache & recommendations (design)
+
+**Goal:** Per-project progressive review cache + configurable timeout/ETA recommendations so users do not need to discover knobs the hard way.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design: dual-store fingerprint + opt-in content | [x] | [phase-5-adaptive-cache-and-recommendations.md](./design/phase-5-adaptive-cache-and-recommendations.md) |
+| Unified SQLite (`repolens.sqlite`) + FTS5 | [x] | `ProjectStore` + migrate `index.sqlite` → `.bak`; learning uses same DB |
+| Fingerprint sync + timeout helpers | [x] | `adaptive.py` + `[adaptive]` config (pipeline wire-up next) |
+| Adaptive LLM pack (`auto` / `full` / `changed`) | [x] | Wired in `run_review`; CLI `--full` |
+| Per-project timeout recommendation + overrides | [x] | Applied when `[model].timeout_seconds` unset; else stored in meta |
+| Incremental FTS when content learning consented | [x] | Upsert/delete on review when consent present |
+| `repolens adaptive status` | [x] | Fingerprints + recommended timeout + pending diff |
+| User docs (FAQ / setup / try-on) for adaptive UX | [~] | Design done; expand user guides next |
+
+**Phase 5 exit criteria:** Warm re-review on a large repo uses a smaller LLM pack in `auto` mode; recommended timeout is project-specific and overridable; content learning remains opt-in.
+
+---
+
+## Deep coverage review (B+C+D; Phase A later)
+
+**Goal:** Large-repo local reviews beat thin single-shot reports via heuristics, chunked P1→P3 passes, and a checklist coverage matrix. Rules load by **id** from a registry (not hard-coded author-machine Markdown paths). Cloud Anthropic/OpenAI later use the **same `--deep` pipeline**.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Graceful 4-layer LLM spine (ask → coerce → micro-repair → degrade; exit 0) | [x] | Never abort without a report |
+| Rules registry + coverage matrix | [x] | Project → user → packaged defaults by id |
+| Heuristics pre-pass (D) | [x] | Mega-files, siblings, gitignore/secrets hygiene, … |
+| Deep planner + merge + CLI `--deep` / `--no-deep` | [x] | Default on; `--no-deep` = single-shot |
+| Guided script + user docs | [x] | Deep Y/n + FAQ / setup / CHANGELOG |
+| Phase A: Anthropic/OpenAI as provider multiplier | [ ] | Docs tip only — same `--deep` pipeline |
+
+**Exit criteria:** PatternSorcerer-class `review --full-audit --deep` with a local model surfaces structural themes without requiring Claude; `--no-deep` preserved.
+
+---
+
+## Phase 6 — Enterprise CI/CD & report delivery (design)
+
+**Goal:** Production-minded corporate use: CI agents (Jenkins, CircleCI, GitLab, …), artifact export, email/chat/dashboard handoff — without building a RepoLens SaaS UI.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design sketch | [x] | [phase-6-enterprise-ci-and-report-delivery.md](./design/phase-6-enterprise-ci-and-report-delivery.md) |
+| Expand [ci.md](./ci.md) (Jenkins / CircleCI / GitLab) | [ ] | |
+| Artifact → email / webhook recipes | [ ] | Customer SMTP / forge plugins |
+| Adaptive cache guidance for ephemeral CI | [ ] | Off by default or restore via CI cache |
+| Dashboard ingest (JSON) recipe | [ ] | External dashboard; no hosted RepoLens UI |
+| FAQ “Corporate CI/CD” | [ ] | |
+
+**Phase 6 exit criteria:** A security/platform engineer can wire RepoLens into Jenkins or CircleCI, archive reports, optionally email/notify, and know when to disable adaptive learning on CI.
+
+---
+
 ## Non-goals (for now)
 
-- Web dashboard / SaaS UI  
+- Web dashboard / SaaS UI (Phase 6 may document **external** dashboard ingest only)  
 - Auto-commit or auto-push  
 - Replacing Snyk/CodeQL/Dependabot as the sole security program  
 - Claiming zero false positives from LLM-only analysis  
@@ -162,6 +216,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-04 | BYOK + local Ollama; no embedded AI key | Self-sufficient only with local model; cloud is opt-in network |
 | 2026-08-04 | Scanners optional extras, not slim default | Detect-if-installed; CVE via OSV-class tools; OWASP via LLM+Semgrep layers |
 | 2026-08-04 | Local learning opt-in, on-disk, informed | No RepoLens training cloud; disclose cloud LLM still sends excerpts |
+| 2026-08-04 | Phase 5 design: fingerprint always-on + content opt-in | Progressive cache; per-project timeout; unified SQLite+FTS5 |
+| 2026-08-04 | Phase 5: local-first; network repo paths later | RW permissions / local cache redirect when network lands |
+| 2026-08-04 | Phase 6 design: enterprise CI + report delivery | Jenkins/CircleCI/email/dashboard via artifacts — not RepoLens SaaS |
+| 2026-08-04 | Deep coverage B+C+D first; A (cloud) later | Same `--deep` pipeline for Anthropic/OpenAI; rules by registry id |
 
 ---
 

@@ -48,7 +48,9 @@ def test_index_build_and_retrieve(tmp_path: Path) -> None:
     block = retrieve_context(tmp_path, "jwt auth", limit=2)
     assert "app.py" in block
     clear_index(tmp_path)
-    assert not (tmp_path / ".repolens" / "index.sqlite").exists()
+    assert idx.query("authenticate jwt", limit=3) == []
+    # Unified DB may remain (fingerprints/runs); FTS chunks cleared
+    assert (tmp_path / ".repolens" / "repolens.sqlite").is_file()
 
 
 def test_memory_roundtrip(tmp_path: Path) -> None:

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "security",
+      "band": "p1",
+      "enabled": true,
+      "title": "P1 Security",
+      "body_file": "security.md"
+    },
+    {
+      "id": "reliability",
+      "band": "p2",
+      "enabled": true,
+      "title": "P2 Reliability",
+      "body_file": "reliability.md"
+    },
+    {
+      "id": "architecture",
+      "band": "p3",
+      "enabled": true,
+      "title": "P3 Architecture",
+      "body_file": "architecture.md"
+    }
+  ]
+}

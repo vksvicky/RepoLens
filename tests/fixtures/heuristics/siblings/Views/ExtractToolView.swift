@@ -1,0 +1,3 @@
+struct ExtractToolView {
+    func body() {}
+}
