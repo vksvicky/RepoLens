@@ -46,7 +46,9 @@ jobs:
             docs/design/phase-3-scanners.md
             docs/design/phase-4-ci-and-ecosystem.md
             docs/design/phase-5-adaptive-cache-and-recommendations.md
-            docs/design/phase-6-enterprise-ci-and-report-delivery.md
+            docs/design/phase-5.1-deep-hardening.md
+            docs/design/phase-6-issue-explain-diagrams.md
+            docs/design/phase-7-enterprise-ci-and-report-delivery.md
             action.yml
             playbooks/security.md
             playbooks/architecture.md
