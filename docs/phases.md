@@ -172,11 +172,11 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Item | Status | Notes |
 |------|--------|-------|
 | Design approved | [x] | [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md) · [spec](./superpowers/specs/2026-08-04-phase-5.1-deep-hardening-design.md) |
-| Lazy N/A rejection + coverage honesty | [ ] | |
-| Gate + security (+ arch/rel) audit confidence + glossary | [ ] | Security audit confidence ≠ “% secure” |
-| Mega-file ignore globs (docs/xcuserdata/pbxproj) | [ ] | |
-| Priority/band sanity | [ ] | |
-| Per-pass progress timers | [ ] | |
+| Lazy N/A rejection + coverage honesty | [x] | `is_lazy_na_reason` → missed |
+| Gate + security (+ arch/rel) audit confidence + glossary | [x] | `metrics.py` + report Metrics section |
+| Mega-file ignore globs (docs/xcuserdata/pbxproj) | [x] | Configurable via `[deep]` |
+| Priority/band sanity | [x] | `bands.coerce_issue_bands` |
+| Per-pass progress timers | [x] | `waiting` inside deep pass loop |
 
 **Phase 5.1 exit criteria:** PatternSorcerer deep report explains metrics; confidence not stuck at raw LLM 95% with weak coverage; security audit confidence visible; timers reset per pass.
 

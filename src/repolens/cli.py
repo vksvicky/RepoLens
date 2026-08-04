@@ -772,7 +772,11 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     table.add_column("Value")
     table.add_row("Dry run", "yes" if dry_run else "no")
     table.add_row("Files scanned", str(files))
-    table.add_row("Confidence", f"{confidence}%")
+    table.add_row("Gate confidence", f"{confidence}%")
+    if report.securityAuditConfidence is not None:
+        table.add_row("Security audit", f"{report.securityAuditConfidence}%")
+    if report.architectureAuditConfidence is not None:
+        table.add_row("Architecture audit", f"{report.architectureAuditConfidence}%")
     table.add_row("Critical", str(report.summary.critical))
     table.add_row("High", str(report.summary.high))
     table.add_row("Medium", str(report.summary.medium))

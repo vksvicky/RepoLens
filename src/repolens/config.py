@@ -64,6 +64,8 @@ class DeepConfig(BaseModel):
     enabled: bool = True
     chars_per_pass: int = 100_000
     mega_file_lines: int = 500
+    # Empty list falls back to package defaults in mega_files / runner.
+    mega_file_exclude_globs: list[str] = Field(default_factory=list)
 
 
 class RepoLensConfig(BaseModel):

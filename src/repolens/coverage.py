@@ -47,6 +47,58 @@ class CoverageResult:
     covered: list[str] = field(default_factory=list)
     na: dict[str, str] = field(default_factory=dict)
     missed: list[str] = field(default_factory=list)
+    invalid_na: dict[str, str] = field(default_factory=dict)
+
+
+# Always-invalid N/A phrases (case-insensitive substring match).
+_ALWAYS_LAZY_NA_PHRASES = (
+    "not reviewed",
+    "not explicitly reviewed",
+    "not addressed in this document",
+)
+
+# Soft-lazy phrases: invalid unless a concrete out-of-scope justification is present.
+_SOFT_LAZY_NA_PHRASES = (
+    "could be improved",
+    "partially addressed",
+)
+
+# Signals that a reason is a concrete out-of-scope justification (valid N/A).
+_CONCRETE_NA_MARKERS = (
+    "no http",
+    "no html",
+    "no sql",
+    "no orm",
+    "no network",
+    "not present",
+    "out of scope",
+    "n/a for",
+    "in pack",
+    "in provided",
+    "in reviewed",
+    "desktop app",
+)
+
+
+def is_lazy_na_reason(reason: str) -> bool:
+    """Return True when an N/A reason is lazy/invalid rather than concrete out-of-scope.
+
+    Heuristics (spec §4): "not reviewed" / "not addressed in this document" are always
+    lazy; "could be improved" / "partially addressed" are lazy without a concrete
+    out-of-scope reason (e.g. no HTTP surface).
+    """
+    text = reason.strip().lower()
+    if not text:
+        return True
+
+    if any(phrase in text for phrase in _ALWAYS_LAZY_NA_PHRASES):
+        return True
+
+    if any(phrase in text for phrase in _SOFT_LAZY_NA_PHRASES):
+        has_concrete = any(marker in text for marker in _CONCRETE_NA_MARKERS)
+        return not has_concrete
+
+    return False
 
 
 def _defaults_coverage_path() -> Path:
@@ -162,14 +214,22 @@ def evaluate_coverage(
     covered: list[str] = []
     missed: list[str] = []
     result_na: dict[str, str] = {}
+    invalid_na: dict[str, str] = {}
 
     for cov_id in wanted:
         if cov_id in na:
-            result_na[cov_id] = na[cov_id]
+            reason = na[cov_id]
+            if is_lazy_na_reason(reason):
+                missed.append(cov_id)
+                invalid_na[cov_id] = reason
+            else:
+                result_na[cov_id] = reason
             continue
         if _issue_addresses(cov_id, issue_list):
             covered.append(cov_id)
         else:
             missed.append(cov_id)
 
-    return CoverageResult(covered=covered, na=result_na, missed=missed)
+    return CoverageResult(
+        covered=covered, na=result_na, missed=missed, invalid_na=invalid_na
+    )

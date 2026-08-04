@@ -84,6 +84,10 @@ class FindingReport(BaseModel):
     scores: ArchitectureScores | None = None
     scannerRuns: list[ScannerRun] = Field(default_factory=list)
     coverage: CoverageBlock | None = None
+    # Phase 5.1 audit metrics (optional for backward compatibility with older reports).
+    securityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
+    architectureAuditConfidence: int | None = Field(default=None, ge=0, le=100)
+    reliabilityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
 
     @field_validator("confidence")
     @classmethod

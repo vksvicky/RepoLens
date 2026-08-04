@@ -12,18 +12,25 @@ from repolens.adaptive import (
     select_pack_paths,
     sync_project_fingerprints,
 )
+from repolens.bands import coerce_issue_bands
 from repolens.config import ModelConfig, RepoLensConfig, load_config, resolve_report_dir
-from repolens.coverage import evaluate_coverage
+from repolens.coverage import (
+    CoverageResult,
+    evaluate_coverage,
+    is_lazy_na_reason,
+    parse_coverage_notes,
+)
 from repolens.deep import build_deep_prompt, merge_reports, plan_deep_passes
 from repolens.heuristics import run_heuristics
 from repolens.inventory import FileEntry, list_files, read_excerpt
 from repolens.llm import default_model, resolve_llm_timeout
+from repolens.metrics import compute_audit_metrics
 from repolens.playbooks import playbooks_for_mode
 from repolens.progress import ReviewProgress, null_progress
 from repolens.report import write_json_report, write_markdown_report
 from repolens.rules.registry import Rule, load_enabled_rules
 from repolens.scanners.runner import missing_required, parse_scanners_flag, run_scanners
-from repolens.schema import CoverageBlock, FindingReport, Summary
+from repolens.schema import CoverageBlock, FindingReport, ScannerRun, Summary
 
 
 class ScannerRequirementError(Exception):
@@ -138,6 +145,45 @@ def _append_source_files(prompt: str, files: list[FileEntry]) -> str:
     return "\n".join(sections)
 
 
+def _apply_coverage_metrics(
+    report: FindingReport,
+    coverage: CoverageResult,
+    *,
+    pass_confidences: dict[str, int],
+    scanner_runs: list[ScannerRun] | None = None,
+) -> FindingReport:
+    """Set gate + band audit confidences; rewrite lazy N/A gaps to missed."""
+    runs: list[ScannerRun] = list(scanner_runs or report.scannerRuns)
+    metrics = compute_audit_metrics(
+        pass_confidences=pass_confidences,
+        coverage=coverage,
+        scanner_runs=runs,
+    )
+    report.confidence = metrics.gate_confidence
+    report.securityAuditConfidence = metrics.security_audit_confidence
+    report.architectureAuditConfidence = metrics.architecture_audit_confidence
+    report.reliabilityAuditConfidence = metrics.reliability_audit_confidence
+    report.summary = report.recount_summary()
+
+    cleaned: list[str] = []
+    for gap in report.durabilityGaps:
+        notes = parse_coverage_notes([gap])
+        if notes:
+            cid, reason = next(iter(notes.items()))
+            if is_lazy_na_reason(reason):
+                missed_gap = f"coverage:{cid}: missed — lazy N/A rejected ({reason})"
+                if missed_gap not in cleaned:
+                    cleaned.append(missed_gap)
+                continue
+        cleaned.append(gap)
+    for mid in coverage.missed:
+        marker = f"coverage:{mid}: missed"
+        if not any(marker in g for g in cleaned):
+            cleaned.append(f"coverage:{mid}: missed — neither issue nor N/A")
+    report.durabilityGaps = cleaned
+    return report
+
+
 def _analyze_deep_passes(
     *,
     root: Path,
@@ -148,13 +194,17 @@ def _analyze_deep_passes(
     cfg: RepoLensConfig,
     prog: ReviewProgress,
     prompt_prefix: str = "",
+    scanner_runs: list | None = None,
 ) -> FindingReport:
     """Heuristics → plan passes → structured LLM per pass → merge + coverage."""
     from repolens.llm_structured import analyze_structured
 
     prog.phase("→ Deep: heuristics…")
     heur = run_heuristics(
-        root, files, mega_file_lines=cfg.deep.mega_file_lines
+        root,
+        files,
+        mega_file_lines=cfg.deep.mega_file_lines,
+        mega_file_exclude_globs=cfg.deep.mega_file_exclude_globs or None,
     )
     if prog.verbose:
         prog.detail(
@@ -177,19 +227,27 @@ def _analyze_deep_passes(
     all_coverage_ids: list[str] = []
     raw_dir = root / ".repolens"
     n = len(passes)
+    provider = cfg.model.provider or "unknown"
+    model_name = cfg.model.model or default_model(cfg.model.provider)
+    timeout = resolve_llm_timeout(cfg.model)
     for idx, deep_pass in enumerate(passes, start=1):
         prog.phase(f"→ Deep pass {idx}/{n} ({deep_pass.name})…")
         prompt = build_deep_prompt(deep_pass, rules, deep_pass.coverage_ids)
         prompt = _append_source_files(prompt, deep_pass.files)
         if prompt_prefix:
             prompt = prompt_prefix + "\n\n" + prompt
-        result = analyze_structured(
-            prompt,
-            cfg.model,
-            pass_id=deep_pass.name,
-            progress=prog,
-            raw_dir=raw_dir,
+        wait_label = (
+            f"Deep pass {idx}/{n} ({deep_pass.name}) — {model_name} via {provider} "
+            f"(timeout {timeout:g}s — large repos can take several minutes)"
         )
+        with prog.waiting(wait_label):
+            result = analyze_structured(
+                prompt,
+                cfg.model,
+                pass_id=deep_pass.name,
+                progress=prog,
+                raw_dir=raw_dir,
+            )
         if result.layer == "degraded":
             prog.phase(
                 f"LLM: pass {deep_pass.name} degraded — merging partial/empty result"
@@ -208,6 +266,7 @@ def _analyze_deep_passes(
         all_coverage_ids.extend(deep_pass.coverage_ids)
 
     report = merge_reports(parts, heur.issues)
+    report.issues = coerce_issue_bands(report.issues)
     # Deduplicate coverage id list while preserving order
     seen_ids: set[str] = set()
     unique_ids: list[str] = []
@@ -217,19 +276,29 @@ def _analyze_deep_passes(
             unique_ids.append(cid)
 
     coverage = evaluate_coverage(unique_ids, report.issues, report.durabilityGaps)
-    for mid in coverage.missed:
-        gap = f"coverage:{mid}: missed — neither issue nor N/A"
-        if gap not in report.durabilityGaps:
-            report.durabilityGaps.append(gap)
     report.coverage = CoverageBlock(
         covered=list(coverage.covered),
         na=dict(coverage.na),
         missed=list(coverage.missed),
     )
+    pass_confidences: dict[str, int] = {}
+    for deep_pass, part in zip(passes, parts, strict=False):
+        pass_confidences[deep_pass.name] = part.confidence
+    report = _apply_coverage_metrics(
+        report,
+        coverage,
+        pass_confidences=pass_confidences,
+        scanner_runs=scanner_runs,
+    )
     if unique_ids:
         prog.phase(
             f"Coverage: {len(coverage.covered)} covered · "
             f"{len(coverage.na)} N/A · {len(coverage.missed)} missed"
+        )
+        prog.phase(
+            f"Metrics: gate {report.confidence}% · "
+            f"security audit {report.securityAuditConfidence}% · "
+            f"architecture audit {report.architectureAuditConfidence}%"
         )
     return report
 
@@ -423,19 +492,21 @@ def run_review(
                 )
                 started = time.time()
                 try:
-                    with prog.waiting(llm_label):
-                        if use_deep:
-                            report = _analyze_deep_passes(
-                                root=root,
-                                mode=mode,
-                                full_audit=full_audit,
-                                files=files,
-                                llm_files=llm_files,
-                                cfg=cfg,
-                                prog=prog,
-                                prompt_prefix=local_ctx,
-                            )
-                        else:
+                    if use_deep:
+                        # Per-pass waiting lives inside _analyze_deep_passes.
+                        report = _analyze_deep_passes(
+                            root=root,
+                            mode=mode,
+                            full_audit=full_audit,
+                            files=files,
+                            llm_files=llm_files,
+                            cfg=cfg,
+                            prog=prog,
+                            prompt_prefix=local_ctx,
+                            scanner_runs=scanner_runs,
+                        )
+                    else:
+                        with prog.waiting(llm_label):
                             prog.phase("Building LLM prompt…")
                             prompt = build_prompt(
                                 mode, root, llm_files, full_audit=full_audit
