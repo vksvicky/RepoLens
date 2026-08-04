@@ -163,8 +163,8 @@ Details: [remote-sources.md](./remote-sources.md).
 | Local path (`--path`) | Done (Phase 1) |
 | Generic git URL (`--git-url`) | Done (Phase 2 MVP) |
 | GitHub (`--github`) | Done (Phase 2 MVP) |
-| Bitbucket | Planned (Phase 2.1) |
-| Hugging Face Hub (git) | Planned (Phase 2.1) |
+| Bitbucket (`--bitbucket`) | Done (Phase 2) |
+| Hugging Face Hub (`--hf`) | Done (Phase 2) |
 
 ---
 

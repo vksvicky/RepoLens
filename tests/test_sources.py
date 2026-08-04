@@ -9,9 +9,13 @@ import pytest
 
 from repolens.sources import (
     SourceError,
+    build_bitbucket_url,
     build_github_url,
+    build_hf_url,
     cleanup_source,
+    parse_bitbucket_slug,
     parse_github_slug,
+    parse_hf_id,
     resolve_github_token,
     resolve_source,
     select_source,
@@ -30,27 +34,63 @@ def test_parse_github_slug_rejects_bad() -> None:
         parse_github_slug("a/b/c")
 
 
-def test_build_github_url() -> None:
+def test_parse_bitbucket_slug() -> None:
+    assert parse_bitbucket_slug("ws/repo") == ("ws", "repo")
+
+
+def test_parse_hf_id_model_dataset_space() -> None:
+    assert parse_hf_id("org/model") == "org/model"
+    assert parse_hf_id("datasets/org/data") == "datasets/org/data"
+    assert parse_hf_id("spaces/org/app") == "spaces/org/app"
+
+
+def test_parse_hf_id_rejects_bad() -> None:
+    with pytest.raises(SourceError):
+        parse_hf_id("noslash")
+    with pytest.raises(SourceError):
+        parse_hf_id("a/b/c/d")
+
+
+def test_build_urls() -> None:
     assert build_github_url("acme", "widgets") == "https://github.com/acme/widgets.git"
+    assert build_bitbucket_url("acme", "widgets") == "https://bitbucket.org/acme/widgets.git"
+    assert build_hf_url("org/model") == "https://huggingface.co/org/model"
+    assert build_hf_url("datasets/org/data") == "https://huggingface.co/datasets/org/data"
 
 
 def test_select_source_default_path() -> None:
-    kind, value = select_source(path=None, git_url=None, github=None)
+    kind, value = select_source(
+        path=None, git_url=None, github=None, bitbucket=None, hf=None
+    )
     assert kind == "path"
     assert value == Path(".")
 
 
 def test_select_source_mutual_exclusion() -> None:
     with pytest.raises(SourceError, match="exactly one"):
-        select_source(path=Path("/tmp/x"), git_url="https://example.com/a.git", github=None)
+        select_source(
+            path=Path("/tmp/x"),
+            git_url="https://example.com/a.git",
+            github=None,
+            bitbucket=None,
+            hf=None,
+        )
     with pytest.raises(SourceError, match="exactly one"):
-        select_source(path=Path("."), git_url=None, github="o/r")
+        select_source(
+            path=None,
+            git_url=None,
+            github="o/r",
+            bitbucket="w/r",
+            hf=None,
+        )
 
 
-def test_select_source_github_with_default_none_path() -> None:
-    kind, value = select_source(path=None, git_url=None, github="owner/repo")
-    assert kind == "github"
-    assert value == "owner/repo"
+def test_select_source_hf() -> None:
+    kind, value = select_source(
+        path=None, git_url=None, github=None, bitbucket=None, hf="org/model"
+    )
+    assert kind == "hf"
+    assert value == "org/model"
 
 
 def test_resolve_github_token_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -91,7 +131,6 @@ def test_resolve_git_url_clones_and_cleanup(
 
     def fake_run(args, **kwargs):  # noqa: ANN001
         calls.append(list(args))
-        # Simulate git clone creating the destination directory
         if "clone" in args:
             dest = Path(args[-1])
             dest.mkdir(parents=True, exist_ok=True)
@@ -114,7 +153,6 @@ def test_resolve_git_url_clones_and_cleanup(
         )
         assert resolved.ephemeral is True
         assert (resolved.root / "README.md").is_file()
-        # Token must not appear in any argv
         flat = " ".join(" ".join(c) for c in calls)
         assert "ghp_" not in flat
         assert "clone" in flat
@@ -124,7 +162,9 @@ def test_resolve_git_url_clones_and_cleanup(
         assert not parent.exists()
 
 
-def test_clone_failure_raises_source_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_clone_failure_raises_source_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.delenv("GH_TOKEN", raising=False)
 
@@ -142,3 +182,25 @@ def test_clone_failure_raises_source_error(tmp_path: Path, monkeypatch: pytest.M
         (tmp_path / "work2").mkdir()
         with pytest.raises(SourceError, match="Clone failed"):
             resolve_source(kind="github", value="missing/repo", ref=None)
+
+
+def test_resolve_bitbucket_and_hf_labels(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("BITBUCKET_TOKEN", raising=False)
+    monkeypatch.delenv("HF_TOKEN", raising=False)
+
+    def fake_run(args, **kwargs):  # noqa: ANN001
+        if "clone" in args:
+            Path(args[-1]).mkdir(parents=True, exist_ok=True)
+        completed = MagicMock()
+        completed.returncode = 0
+        completed.stdout = ""
+        completed.stderr = ""
+        return completed
+
+    with patch("repolens.sources.subprocess.run", side_effect=fake_run):
+        bb = resolve_source(kind="bitbucket", value="ws/repo", ref=None)
+        assert bb.label == "bitbucket:ws/repo"
+        cleanup_source(bb)
+        hf = resolve_source(kind="hf", value="org/model", ref=None)
+        assert hf.label == "hf:org/model"
+        cleanup_source(hf)

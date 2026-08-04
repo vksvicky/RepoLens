@@ -1,7 +1,7 @@
 # Design: Phase 2 — Multi-source ingest (MVP)
 
 **Status:** Approved 2026-08-04  
-**MVP scope:** `--git-url` + `--github` (Bitbucket / Hugging Face deferred)  
+**Scope:** `--git-url`, `--github`, `--bitbucket`, `--hf`  
 **Implements:** ADR-01 `SourceResolver`; CLI flags in [cli-and-report-schema.md](./cli-and-report-schema.md)
 
 ## Decisions
@@ -37,11 +37,10 @@ pick source → resolve (local | shallow clone) → inventory → pack → LLM �
 - Local: config from project root; reports under project `report_dir`.
 - Remote: model config from user/env only (project TOML in clone is still sanitized unless `--trust-project-config`); reports under `cwd/reports`.
 
-## Deferred (Phase 2.1)
+## Deferred
 
-- `--bitbucket WORKSPACE/REPO`
-- `--hf ID`
 - Persistent worktrees / `--keep-clone`
+- Arbitrary commit SHAs via `--ref` (currently branch/tag via `git clone --branch`)
 
 ## Auth docs
 

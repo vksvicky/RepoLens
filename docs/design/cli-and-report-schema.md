@@ -45,8 +45,8 @@ repolens version
 | `--path PATH` | Local project root (default: `.`) |
 | `--git-url URL` | Clone then review (Phase 2 MVP) |
 | `--github OWNER/REPO` | GitHub shortcut (Phase 2 MVP) |
-| `--bitbucket WORKSPACE/REPO` | Bitbucket shortcut (Phase 2.1) |
-| `--hf ID` | Hugging Face Hub git repo (Phase 2.1) |
+| `--bitbucket WORKSPACE/REPO` | Bitbucket shortcut (Phase 2) |
+| `--hf ID` | Hugging Face Hub git repo (Phase 2) |
 | `--ref REF` | Branch/tag/commit for remotes |
 | `--mode full\|diff` | Whole tree vs git diff / since-ref |
 | `--since REF` | Diff base for `--mode diff` |

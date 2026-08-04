@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phase 2 in progress (multi-source MVP — 2026-08-04)  
+**Current phase:** Phase 2 complete (multi-source — 2026-08-04); next is Phase 3  
 **CLI language:** Python 3.11+
 
 ---
@@ -83,12 +83,12 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 |------|--------|-------|
 | Generic `--git-url` (+ `--ref`) shallow clone to temp | [x] | Cleanup after run |
 | `--github owner/repo` | [x] | `GITHUB_TOKEN`/`GH_TOKEN` then `gh auth token` |
-| `--bitbucket workspace/repo` | [ ] | Deferred Phase 2.1 |
-| `--hf` Hugging Face Hub git repos | [ ] | Deferred Phase 2.1 |
+| `--bitbucket workspace/repo` | [x] | `BITBUCKET_TOKEN` / app password |
+| `--hf` Hugging Face Hub git repos | [x] | `HF_TOKEN`; models/datasets/spaces |
 | Size limits / ignore globs / P1 file prioritization | [x] | Reuses Phase 1 inventory |
 | Docs: auth for each host | [x] | `docs/remote-sources.md` (GitHub + git-url) |
 
-**Phase 2 exit criteria:** Same commands work for local and at least GitHub + generic git URL; secrets never logged. → **MVP met (2026-08-04)** for `--git-url` + `--github`; Bitbucket/HF remain open.
+**Phase 2 exit criteria:** Same commands work for local and at least GitHub + generic git URL; secrets never logged. → **Met (2026-08-04)** including Bitbucket + Hugging Face.
 
 ---
 
@@ -155,6 +155,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-04 | Phase 0 complete | Design + FAQ + language locked; ready for Phase 1 scaffold |
 | 2026-08-04 | Phase 1 alpha scaffold | Local CLI `0.1.0a1`: review/sentinel/init, schema, pytest CI |
 | 2026-08-04 | Phase 2 MVP | `--git-url` + `--github`; cwd reports; env/`gh` auth |
+| 2026-08-04 | Phase 2 complete | `--bitbucket` + `--hf`; all planned remotes |
 | 2026-08-04 | ADR-01 + `_diagram_legend.md` | Document how analysis works with Mermaid architecture views |
 | 2026-08-04 | BYOK + local Ollama; no embedded AI key | Self-sufficient only with local model; cloud is opt-in network |
 | 2026-08-04 | Scanners optional extras, not slim default | Detect-if-installed; CVE via OSV-class tools; OWASP via LLM+Semgrep layers |
