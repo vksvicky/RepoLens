@@ -40,10 +40,13 @@ jobs:
             docs/ci.md
             docs/publishing.md
             docs/try-on-your-repo.md
+            docs/install-extras.md
             docs/local-learning.md
             docs/design/phase-2-multi-source-ingest.md
             docs/design/phase-3-scanners.md
             docs/design/phase-4-ci-and-ecosystem.md
+            docs/design/phase-5-adaptive-cache-and-recommendations.md
+            docs/design/phase-6-enterprise-ci-and-report-delivery.md
             action.yml
             playbooks/security.md
             playbooks/architecture.md

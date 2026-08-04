@@ -137,11 +137,12 @@ def test_run_osv_parses_findings(tmp_path: Path) -> None:
 
 def test_run_scanners_collects_gaps(tmp_path: Path) -> None:
     with (
-        patch("repolens.scanners.runner.run_gitleaks") as gl,
-        patch("repolens.scanners.runner.run_semgrep") as sg,
+        patch("repolens.scanners.runner._RUNNERS", {"gitleaks": MagicMock(), "semgrep": MagicMock()}) as mocked,
     ):
         from repolens.scanners.base import ScannerResult
 
+        gl = mocked["gitleaks"]
+        sg = mocked["semgrep"]
         gl.return_value = ScannerResult(
             run=ScannerRun(tool="gitleaks", status="skipped", detail="missing")
         )

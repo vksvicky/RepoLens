@@ -15,6 +15,7 @@ from repolens.config import write_user_config
 from repolens.llm import LlmError
 from repolens.pipeline import ScannerRequirementError, fail_on_triggered, run_review
 from repolens.plugins import install_plugins, plugin_status
+from repolens.progress import ReviewProgress
 from repolens.schema import FindingReport
 from repolens.sources import SourceError, cleanup_source, resolve_source, select_source
 
@@ -33,9 +34,30 @@ learn_app = typer.Typer(
     help="Opt-in local learning (on-disk index + memory).",
     no_args_is_help=True,
 )
+adaptive_app = typer.Typer(
+    name="adaptive",
+    help="Per-project fingerprint cache and timeout recommendations.",
+    no_args_is_help=True,
+)
 app.add_typer(plugins_app, name="plugins")
 app.add_typer(learn_app, name="learn")
+app.add_typer(adaptive_app, name="adaptive")
 console = Console(stderr=True)
+
+_EMPTY_PATH_HELP = (
+    "--path is empty. In bash/zsh assign without `set` or spaces around `=`: "
+    "TARGET=/Users/[username]/Development/[your-project]  "
+    "(not: set TARGET = …). Example: --path /Users/jackfrost/Development/acme-api"
+)
+
+
+def _coerce_local_path(path: str | Path | None) -> Path | None:
+    """Convert CLI --path; reject empty strings (Path('') would silently become '.')."""
+    if path is None:
+        return None
+    if isinstance(path, str) and not path.strip():
+        raise SourceError(_EMPTY_PATH_HELP)
+    return Path(path)
 
 
 @app.callback()
@@ -90,12 +112,29 @@ def init_cmd(
         "openai": ("gpt-4.1-mini", "OPENAI_API_KEY", None),
         "anthropic": ("claude-sonnet-4-20250514", "ANTHROPIC_API_KEY", None),
         "deepseek": ("deepseek-chat", "DEEPSEEK_API_KEY", "https://api.deepseek.com/v1"),
-        "ollama": ("llama3.1", None, "http://127.0.0.1:11434/v1"),
+        "ollama": (None, None, "http://127.0.0.1:11434/v1"),
     }
     default_model, key_env, base = defaults[provider]
+    chosen_model = model or default_model
+    if provider == "ollama":
+        from repolens.llm import resolve_ollama_model
+
+        chosen_model, installed = resolve_ollama_model(model)
+        if installed and (model is None or not model.strip()):
+            console.print(
+                f"[dim]Using installed Ollama model:[/dim] {chosen_model} "
+                f"(from {', '.join(installed[:5])}"
+                f"{'…' if len(installed) > 5 else ''})"
+            )
+        elif not installed:
+            console.print(
+                "[yellow]No Ollama models found.[/yellow] "
+                f"Pull one first, e.g. [cyan]ollama pull {chosen_model}[/cyan], "
+                "or pass [cyan]--model[/cyan] after pulling."
+            )
     written = write_user_config(
         provider=provider,
-        model=model or default_model,
+        model=chosen_model,
         api_key_env=key_env,
         base_url=base,
     )
@@ -104,8 +143,9 @@ def init_cmd(
         console.print(f"Export your key: [cyan]export {key_env}=...[/cyan]")
     if provider == "ollama":
         console.print(
-            "Ensure Ollama is running and the model is pulled "
-            "(see docs/setup-ai-and-scanners.md)."
+            f"Config model is [cyan]{chosen_model}[/cyan]. "
+            "Change anytime with [cyan]repolens init --provider ollama --model NAME --force[/cyan] "
+            "or edit the config file."
         )
     console.print("Try: [cyan]repolens review --path . --dry-run[/cyan]")
     console.print("Optional scanners: [cyan]repolens plugins status[/cyan]")
@@ -113,7 +153,7 @@ def init_cmd(
 
 def _run_mode(
     mode: str,
-    path: Path | None,
+    path: str | Path | None,
     git_url: str | None,
     github: str | None,
     bitbucket: str | None,
@@ -131,6 +171,13 @@ def _run_mode(
     scanners: str,
     require_scanners: bool,
     scanners_only: bool,
+    quiet: bool = False,
+    verbose: bool = False,
+    heartbeat: float = 15.0,
+    timeout: float | None = None,
+    force_full: bool = False,
+    force_changed: bool = False,
+    deep: bool | None = None,
 ) -> None:
     if fmt not in {"md", "json", "both"}:
         console.print("[red]--format must be md | json | both[/red]")
@@ -140,11 +187,27 @@ def _run_mode(
         console.print("[red]--scanners-only cannot be combined with --dry-run[/red]")
         raise typer.Exit(code=2)
 
+    if force_full and force_changed:
+        console.print("[red]--full and --changed cannot be combined[/red]")
+        raise typer.Exit(code=2)
+
+    if quiet and verbose:
+        console.print("[red]--quiet and --verbose cannot be combined[/red]")
+        raise typer.Exit(code=2)
+
+    progress = ReviewProgress(
+        quiet=quiet,
+        verbose=verbose,
+        heartbeat_seconds=heartbeat,
+        console=console,
+    )
+
     resolved = None
     try:
         try:
+            local_path = _coerce_local_path(path)
             kind, value = select_source(
-                path=path,
+                path=local_path,
                 git_url=git_url,
                 github=github,
                 bitbucket=bitbucket,
@@ -162,7 +225,8 @@ def _run_mode(
         if out_dir is None and resolved.ephemeral:
             out_dir = Path.cwd() / "reports"
 
-        console.print(f"[dim]Source:[/dim] {resolved.label}")
+        if not quiet:
+            console.print(f"[dim]Source:[/dim] {resolved.label}")
 
         result = run_review(
             path=resolved.root,
@@ -172,12 +236,17 @@ def _run_mode(
             out_dir=out_dir,
             fmt=fmt,
             model_override=model,
+            timeout_override=timeout,
+            force_full=force_full,
+            force_changed=force_changed,
             full_audit=full_audit,
             dry_run=dry_run,
             trust_project=trust_project,
             scanners=scanners,
             require_scanners=require_scanners,
             scanners_only=scanners_only,
+            progress=progress,
+            deep=deep,
         )
     except FileNotFoundError as exc:
         console.print(f"[red]Config/source error:[/red] {exc}")
@@ -190,8 +259,23 @@ def _run_mode(
         console.print("Install with [cyan]repolens plugins install[/cyan] or see docs/scanners.md")
         raise typer.Exit(code=2) from exc
     except LlmError as exc:
+        from repolens.llm import provider_setup_hints
+
         console.print(f"[red]Model error:[/red] {exc}")
-        console.print("Run [cyan]repolens init[/cyan] or see docs/setup-ai-and-scanners.md")
+        msg = str(exc).lower()
+        if "no model provider" in msg or "missing api key" in msg:
+            for line in provider_setup_hints():
+                console.print(f"[yellow]→[/yellow] {line}")
+        elif "timed out" in msg:
+            console.print(
+                "[yellow]→[/yellow] Tip: [cyan]--timeout 1800[/cyan], "
+                "[cyan]--mode diff --since HEAD~20[/cyan], or "
+                "[cyan]--scanners-only[/cyan] / [cyan]--dry-run[/cyan] first."
+            )
+        else:
+            console.print(
+                "Run [cyan]repolens init[/cyan] or see docs/setup-ai-and-scanners.md"
+            )
         raise typer.Exit(code=4) from exc
     except typer.Exit:
         raise
@@ -224,7 +308,9 @@ def _run_mode(
 
 @app.command()
 def review(
-    path: Path | None = typer.Option(None, "--path", help="Local project root (default: .)"),
+    path: str | None = typer.Option(
+        None, "--path", help="Local project root (default: .)"
+    ),
     git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL"),
     github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO"),
     bitbucket: str | None = typer.Option(
@@ -260,6 +346,35 @@ def review(
     scanners_only: bool = typer.Option(
         False, "--scanners-only", help="Skip LLM; report scanner findings only"
     ),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Hide progress status lines"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Extra progress detail (file sample, scanner status)"
+    ),
+    heartbeat: float = typer.Option(
+        15.0,
+        "--heartbeat",
+        help="Seconds between LLM wait heartbeats (0 disables)",
+    ),
+    timeout: float | None = typer.Option(
+        None,
+        "--timeout",
+        help="LLM HTTP timeout in seconds (default: 900 for ollama, 120 otherwise)",
+    ),
+    force_full: bool = typer.Option(
+        False,
+        "--full",
+        help="Force full LLM file pack (ignore adaptive changed-only selection)",
+    ),
+    force_changed: bool = typer.Option(
+        False,
+        "--changed",
+        help="LLM pack = added/changed files only (skip LLM if none)",
+    ),
+    deep: bool | None = typer.Option(
+        None,
+        "--deep/--no-deep",
+        help="Multi-pass deep coverage (default: on; --no-deep = single-shot)",
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -282,12 +397,21 @@ def review(
         scanners,
         require_scanners,
         scanners_only,
+        quiet,
+        verbose,
+        heartbeat,
+        timeout,
+        force_full,
+        force_changed,
+        deep,
     )
 
 
 @app.command()
 def sentinel(
-    path: Path | None = typer.Option(None, "--path", help="Local project root (default: .)"),
+    path: str | None = typer.Option(
+        None, "--path", help="Local project root (default: .)"
+    ),
     git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL"),
     github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO"),
     bitbucket: str | None = typer.Option(
@@ -317,6 +441,35 @@ def sentinel(
     ),
     scanners_only: bool = typer.Option(
         False, "--scanners-only", help="Skip LLM; report scanner findings only"
+    ),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Hide progress status lines"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Extra progress detail (file sample, scanner status)"
+    ),
+    heartbeat: float = typer.Option(
+        15.0,
+        "--heartbeat",
+        help="Seconds between LLM wait heartbeats (0 disables)",
+    ),
+    timeout: float | None = typer.Option(
+        None,
+        "--timeout",
+        help="LLM HTTP timeout in seconds (default: 900 for ollama, 120 otherwise)",
+    ),
+    force_full: bool = typer.Option(
+        False,
+        "--full",
+        help="Force full LLM file pack (ignore adaptive changed-only selection)",
+    ),
+    force_changed: bool = typer.Option(
+        False,
+        "--changed",
+        help="LLM pack = added/changed files only (skip LLM if none)",
+    ),
+    deep: bool | None = typer.Option(
+        None,
+        "--deep/--no-deep",
+        help="Multi-pass deep coverage (default: on; --no-deep = single-shot)",
     ),
 ) -> None:
     """Security-only review (P1 playbook)."""
@@ -340,12 +493,21 @@ def sentinel(
         scanners,
         require_scanners,
         scanners_only,
+        quiet,
+        verbose,
+        heartbeat,
+        timeout,
+        force_full,
+        force_changed,
+        deep,
     )
 
 
 @app.command()
 def architecture(
-    path: Path | None = typer.Option(None, "--path", help="Local project root (default: .)"),
+    path: str | None = typer.Option(
+        None, "--path", help="Local project root (default: .)"
+    ),
     git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL"),
     github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO"),
     bitbucket: str | None = typer.Option(
@@ -376,6 +538,35 @@ def architecture(
     scanners_only: bool = typer.Option(
         False, "--scanners-only", help="Skip LLM; report scanner findings only"
     ),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Hide progress status lines"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Extra progress detail (file sample, scanner status)"
+    ),
+    heartbeat: float = typer.Option(
+        15.0,
+        "--heartbeat",
+        help="Seconds between LLM wait heartbeats (0 disables)",
+    ),
+    timeout: float | None = typer.Option(
+        None,
+        "--timeout",
+        help="LLM HTTP timeout in seconds (default: 900 for ollama, 120 otherwise)",
+    ),
+    force_full: bool = typer.Option(
+        False,
+        "--full",
+        help="Force full LLM file pack (ignore adaptive changed-only selection)",
+    ),
+    force_changed: bool = typer.Option(
+        False,
+        "--changed",
+        help="LLM pack = added/changed files only (skip LLM if none)",
+    ),
+    deep: bool | None = typer.Option(
+        None,
+        "--deep/--no-deep",
+        help="Multi-pass deep coverage (default: on; --no-deep = single-shot)",
+    ),
 ) -> None:
     """Architecture / production-readiness audit."""
     _run_mode(
@@ -398,6 +589,13 @@ def architecture(
         scanners,
         require_scanners,
         scanners_only,
+        quiet,
+        verbose,
+        heartbeat,
+        timeout,
+        force_full,
+        force_changed,
+        deep,
     )
 
 
@@ -471,7 +669,9 @@ def learn_build(
     except PermissionError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=2) from exc
-    console.print(f"[green]Indexed[/green] {count} file(s) → {root / '.repolens' / 'index.sqlite'}")
+    from repolens.learning.store import store_db_path
+
+    console.print(f"[green]Indexed[/green] {count} file(s) → {store_db_path(root)}")
 
 
 @learn_app.command("status")
@@ -480,17 +680,54 @@ def learn_status(
 ) -> None:
     """Show consent and index status."""
     from repolens.learning.consent import has_consent
-    from repolens.learning.index import index_db_path
+    from repolens.learning.store import store_db_path
 
     root = path.resolve()
-    db = index_db_path(root)
+    db = store_db_path(root)
     table = Table(title="Local learning")
     table.add_column("Key")
     table.add_column("Value")
     table.add_row("Consent", "yes" if has_consent(root) else "no")
-    table.add_row("Index", str(db) if db.is_file() else "missing")
+    table.add_row("Store", str(db) if db.is_file() else "missing")
     if db.is_file():
-        table.add_row("Index size", f"{db.stat().st_size} bytes")
+        table.add_row("Store size", f"{db.stat().st_size} bytes")
+    console.print(table)
+
+
+@adaptive_app.command("status")
+def adaptive_status(
+    path: Path = typer.Option(Path("."), "--path", help="Project root"),
+) -> None:
+    """Show fingerprint cache stats and recommended timeout."""
+    from repolens.config import load_config
+    from repolens.inventory import list_files
+    from repolens.learning.store import ProjectStore, store_db_path
+
+    root = path.resolve()
+    cfg = load_config(root)
+    db = store_db_path(root)
+    table = Table(title="Adaptive cache")
+    table.add_column("Key")
+    table.add_column("Value")
+    table.add_row("Enabled", "yes" if cfg.adaptive.enabled else "no")
+    table.add_row("Mode", cfg.adaptive.mode)
+    table.add_row("Store", str(db) if db.is_file() else "missing")
+    if db.is_file():
+        from repolens.adaptive import fingerprint_rows_from_entries
+
+        with ProjectStore(root) as store:
+            fps = store.list_fingerprints()
+            rec = store.get_meta("recommended_timeout_seconds")
+            runs = store.successful_llm_seconds(limit=5)
+            files = list_files(root, mode="full")
+            diff = store.diff_fingerprints(fingerprint_rows_from_entries(files))
+        table.add_row("Fingerprints", str(len(fps)))
+        table.add_row("Recommended timeout", f"{rec}s" if rec else "(none yet)")
+        table.add_row("Recent LLM seconds", ", ".join(f"{x:.1f}" for x in runs) or "(none)")
+        table.add_row(
+            "Pending changes",
+            f"+{len(diff.added)} ~{len(diff.changed)} -{len(diff.deleted)}",
+        )
     console.print(table)
 
 

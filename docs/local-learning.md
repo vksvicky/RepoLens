@@ -2,6 +2,8 @@
 
 RepoLens can keep a **local** index of your repository to improve later reviews. Nothing is uploaded to a RepoLens service.
 
+**Related (not shipped yet):** Phase 5 uses one **SQLite + FTS5** store (`.repolens/repolens.sqlite`): always-on fingerprints/timings (no contents) + the same opt-in `chunks` FTS index. See [design/phase-5-adaptive-cache-and-recommendations.md](./design/phase-5-adaptive-cache-and-recommendations.md).
+
 Design: [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) · [design/phase-4-ci-and-ecosystem.md](./design/phase-4-ci-and-ecosystem.md)
 
 ## Enable
@@ -30,6 +32,10 @@ When `enabled = true` **and** consent exists, reviews prepend retrieved local ch
 | `repolens learn status` | Consent + index presence |
 | `repolens learn clear` | Delete `index.sqlite` (keeps consent) |
 
+## Where it runs
+
+**Local-first:** adaptive fingerprints and FTS assume a normal local project checkout. Network/SMB paths may come later and will need **read-write** access to create `.repolens/` (or a local cache redirect). See [design/phase-5-adaptive-cache-and-recommendations.md §8](./design/phase-5-adaptive-cache-and-recommendations.md#8-deployment-model-local-first-network-later).
+
 ## Storage (gitignored)
 
 Under `.repolens/` (auto `.gitignore` `*`):
@@ -37,7 +43,7 @@ Under `.repolens/` (auto `.gitignore` `*`):
 | File | Role |
 |------|------|
 | `consent.toml` | Informed consent record |
-| `index.sqlite` | Keyword / FTS5 index |
+| `repolens.sqlite` | Unified store: fingerprints/runs + FTS5 `chunks` (Phase 5); legacy `index.sqlite` migrated on open |
 | `memory.toml` | Dismissals / ignore path preferences |
 
 ## Optional embeddings

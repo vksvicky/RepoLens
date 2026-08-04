@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
+from repolens.coverage import parse_coverage_notes
 from repolens.schema import FindingReport, Issue, Severity
 
 
@@ -108,6 +109,8 @@ def render_markdown(
         lines.append("_None called out._")
     lines.append("")
 
+    lines.extend(_render_coverage_section(report))
+
     if report.scores is not None:
         s = report.scores
         lines.extend(
@@ -127,6 +130,56 @@ def render_markdown(
         )
 
     return "\n".join(lines)
+
+
+def _render_coverage_section(report: FindingReport) -> list[str]:
+    """Render checklist coverage when deep-mode coverage or coverage gaps exist."""
+    cov = report.coverage
+    na_from_gaps = parse_coverage_notes(report.durabilityGaps)
+    missed_from_gaps = [
+        g.split(":", 2)[1]
+        for g in report.durabilityGaps
+        if g.startswith("coverage:") and "missed" in g.lower()
+    ]
+
+    if cov is None and not na_from_gaps and not missed_from_gaps:
+        return []
+
+    covered = list(cov.covered) if cov is not None else []
+    na = dict(cov.na) if cov is not None else dict(na_from_gaps)
+    if cov is None:
+        for cid, reason in na_from_gaps.items():
+            na.setdefault(cid, reason)
+    missed = list(cov.missed) if cov is not None else list(missed_from_gaps)
+
+    lines: list[str] = [
+        "## Coverage",
+        "",
+        (
+            f"- **Covered:** {len(covered)} · **N/A:** {len(na)} · "
+            f"**Missed:** {len(missed)}"
+        ),
+        "",
+    ]
+    if covered:
+        lines.append("### Covered")
+        lines.append("")
+        for cid in covered:
+            lines.append(f"- `{cid}`")
+        lines.append("")
+    if na:
+        lines.append("### N/A")
+        lines.append("")
+        for cid, reason in na.items():
+            lines.append(f"- `{cid}`: {reason}")
+        lines.append("")
+    if missed:
+        lines.append("### Missed")
+        lines.append("")
+        for cid in missed:
+            lines.append(f"- `{cid}`")
+        lines.append("")
+    return lines
 
 
 def _render_issue(issue: Issue) -> list[str]:

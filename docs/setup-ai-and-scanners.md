@@ -88,7 +88,12 @@ Then:
 repolens review --path /path/to/your/project
 # or
 repolens sentinel --path /path/to/your/project   # security-only
+# Large repos / full audits: deep coverage is on by default
+# repolens review --path /path/to/your/project --full-audit --deep
+# Faster thin pass: --no-deep
 ```
+
+Anthropic and OpenAI use the **same `--deep` pipeline** as local Ollama—provider choice is a quality multiplier, not a separate path.
 
 #### 4) Optional — playbooks without the CLI
 
@@ -125,10 +130,12 @@ ollama --version
 
 #### 2) Download a model (one-time, needs network)
 
-Pick a model that fits your machine. Example:
+Pick a model that fits your machine (any model Ollama supports). Examples:
 
 ```bash
-ollama pull llama3.1
+ollama pull qwen2.5:7b
+# or: ollama pull llama3.1
+ollama list   # confirm what is installed
 ```
 
 Larger models need more RAM/disk. If pull fails, try a smaller model from Ollama’s library.
@@ -136,32 +143,56 @@ Larger models need more RAM/disk. If pull fails, try a smaller model from Ollama
 #### 3) Smoke-test the local model
 
 ```bash
-ollama run llama3.1 "Reply with the single word: pong"
+ollama run qwen2.5:7b "Reply with the single word: pong"
+# use the same name `ollama list` shows
 ```
 
 You should get a short reply. Leave Ollama running.
 
 #### 4) Point RepoLens at Ollama *(CLI)*
 
+Installing Ollama alone is **not** enough. RepoLens does not assume a provider until you write config once:
+
+```bash
+repolens init --provider ollama
+# Writes ~/.config/repolens/config.toml  (or $XDG_CONFIG_HOME/repolens/config.toml)
+# Uses the first model from `ollama list` when --model is omitted
+```
+
+To pin a specific installed model:
+
+```bash
+repolens init --provider ollama --model qwen2.5:7b --force
+```
+
+That creates something like:
+
 ```toml
 # ~/.config/repolens/config.toml
 [model]
 provider = "ollama"
-model = "llama3.1"
-base_url = "http://127.0.0.1:11434"
+model = "qwen2.5:7b"   # whatever init selected / you passed
+base_url = "http://127.0.0.1:11434/v1"
 # No cloud api_key_env needed
 ```
 
-```bash
-repolens review --path /path/to/your/project
-```
+If you skip this step, `repolens review` errors with “No model provider configured” and (when Ollama is running) lists installed models and suggests `init`.
+
+`init` also sets `timeout_seconds = 900` for Ollama (local models are slower than cloud APIs). Override with `--timeout`, `REPOLENS_TIMEOUT`, or edit the config.
 
 #### 5) Run a review
 
 ```bash
-repolens init --provider ollama
-repolens review --path /path/to/your/project
+repolens review --path /path/to/your/project --verbose
+# Large repos: deep coverage (default) + more time, or narrow scope
+# repolens review --path /path/to/your/project --full-audit --timeout 3600
+# repolens review --path /path/to/your/project --mode diff --since HEAD~20
+# Thin single-shot: --no-deep
 ```
+
+Deep mode loads **rules by id** from the packaged registry (overridable under `.repolens/rules/`), not fixed author-machine Markdown paths. FAQ: [What is deep coverage?](./faq.md#what-is-deep-coverage).
+
+If you see **timed out**, the model did not finish within the HTTP limit — raise `--timeout`, use `--mode diff`, or run `--scanners-only` / `--dry-run` first.
 
 Playbooks-only path still works: [using-playbooks.md](./using-playbooks.md).
 

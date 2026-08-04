@@ -67,6 +67,14 @@ class ScannerRun(BaseModel):
     findingCount: int = Field(ge=0, default=0)
 
 
+class CoverageBlock(BaseModel):
+    """Optional coverage tally (deep mode); omitted in older reports."""
+
+    covered: list[str] = Field(default_factory=list)
+    na: dict[str, str] = Field(default_factory=dict)
+    missed: list[str] = Field(default_factory=list)
+
+
 class FindingReport(BaseModel):
     schemaVersion: str = "1.0"
     confidence: int = Field(ge=0, le=100)
@@ -75,6 +83,7 @@ class FindingReport(BaseModel):
     durabilityGaps: list[str] = Field(default_factory=list)
     scores: ArchitectureScores | None = None
     scannerRuns: list[ScannerRun] = Field(default_factory=list)
+    coverage: CoverageBlock | None = None
 
     @field_validator("confidence")
     @classmethod

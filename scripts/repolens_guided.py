@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
 import shutil
@@ -23,6 +24,54 @@ def _has_cli_flag(help_text: str, flag: str) -> bool:
     return re.search(rf"(?<![\w-]){re.escape(flag)}(?![\w-])", help_text) is not None
 
 
+def default_local_path(environ: Mapping[str, str] | None = None) -> str:
+    """Prefer TARGET / REPOLENS_PATH when set (docs use TARGET=…); else cwd."""
+    env = os.environ if environ is None else environ
+    for key in ("TARGET", "REPOLENS_PATH"):
+        raw = (env.get(key) or "").strip()
+        if raw:
+            return str(Path(raw).expanduser())
+    return "."
+
+
+def suggest_timeout_seconds(model: str | None) -> float:
+    """Default HTTP timeout hint from model size tags in the name."""
+    name = (model or "").lower()
+    if re.search(r"(?<!\d)(70|72|65)b\b", name):
+        return 3600.0
+    if re.search(r"(?<!\d)32b\b", name):
+        return 3600.0
+    if re.search(r"(?<!\d)14b\b", name):
+        return 1800.0
+    return 900.0
+
+
+def is_large_local_model(model: str | None) -> bool:
+    """True when the name looks like a heavy local LLM (14B+)."""
+    return suggest_timeout_seconds(model) >= 1800.0
+
+
+def full_pack_large_model_warning(
+    *,
+    model: str | None,
+    force_full: bool,
+    force_changed: bool,
+) -> str | None:
+    """Warn when a large model is paired with a likely full LLM pack."""
+    if not is_large_local_model(model) or force_changed:
+        return None
+    if force_full:
+        pack = "forced full pack (--full)"
+    else:
+        pack = "adaptive pack (unchanged repos stay full)"
+    return (
+        f"Warning: {model} is a large local model with a likely {pack}. "
+        "Expect a very large prompt and long runtimes; prefer "
+        "'Changed files only', or set timeout to "
+        f"{int(suggest_timeout_seconds(model))}s+."
+    )
+
+
 @dataclass(frozen=True)
 class ReviewCliCaps:
     """Flags present in `repolens review --help` for this install."""
@@ -30,6 +79,8 @@ class ReviewCliCaps:
     supports_verbose: bool
     supports_timeout: bool
     supports_full: bool
+    supports_changed: bool
+    supports_deep: bool
 
 
 @dataclass
@@ -40,6 +91,7 @@ class GuidedChoices:
     scanners_only: bool
     dry_run: bool
     force_full: bool
+    force_changed: bool
     full_audit: bool
     model: str | None
     verbose: bool
@@ -49,6 +101,7 @@ class GuidedChoices:
     fail_on: str | None
     remote: tuple[RemoteKind, str] | None
     ref: str | None
+    deep: bool | None = None
 
 
 def probe_review_cli_caps() -> ReviewCliCaps:
@@ -68,6 +121,8 @@ def probe_review_cli_caps() -> ReviewCliCaps:
         supports_verbose=_has_cli_flag(help_text, "--verbose"),
         supports_timeout=_has_cli_flag(help_text, "--timeout"),
         supports_full=_has_cli_flag(help_text, "--full"),
+        supports_changed=_has_cli_flag(help_text, "--changed"),
+        supports_deep=_has_cli_flag(help_text, "--deep"),
     )
 
 
@@ -120,6 +175,8 @@ def build_argv(choices: GuidedChoices) -> list[str]:
         argv.append("--dry-run")
     if choices.force_full and not choices.scanners_only and not choices.dry_run:
         argv.append("--full")
+    if choices.force_changed and not choices.scanners_only and not choices.dry_run:
+        argv.append("--changed")
     llm_pack = (
         choices.full_audit
         and choices.command == "review"
@@ -128,6 +185,12 @@ def build_argv(choices: GuidedChoices) -> list[str]:
     )
     if llm_pack:
         argv.append("--full-audit")
+    if (
+        choices.deep is not None
+        and not choices.scanners_only
+        and not choices.dry_run
+    ):
+        argv.append("--deep" if choices.deep else "--no-deep")
     if (
         choices.model
         and not choices.scanners_only
@@ -259,7 +322,15 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
     ref: str | None = None
 
     if source == 1:
-        path_raw = _prompt_text("Repository path", ".")
+        path_default = default_local_path()
+        if path_default != ".":
+            src = (
+                "TARGET"
+                if (os.environ.get("TARGET") or "").strip()
+                else "REPOLENS_PATH"
+            )
+            print(f"(default from ${src}: {path_default})")
+        path_raw = _prompt_text("Repository path", path_default)
         path = str(Path(path_raw).expanduser())
         default_out = str(Path(path) / "reports")
         out_raw = _prompt_text("Report output directory", default_out)
@@ -306,16 +377,21 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
         "review",
     )[kind_idx - 1]
 
-    adaptive_tip = (
-        "omit --full — warm runs use a smaller pack"
-        if caps.supports_full
-        else "LLM review with configured pack"
-    )
     depth_options: list[tuple[str, str]] = [
         ("Scanners only", "--scanners-only — no LLM; seconds"),
         ("Dry-run inventory", "--dry-run — list what would run"),
-        ("Adaptive LLM", adaptive_tip),
+        (
+            "Adaptive LLM",
+            "smaller pack when files change; unchanged re-run still full",
+        ),
     ]
+    if caps.supports_changed:
+        depth_options.append(
+            (
+                "Changed files only",
+                "--changed — skip LLM if cache shows no edits",
+            ),
+        )
     if caps.supports_full:
         depth_options.append(
             ("Force full LLM pack", "--full — first deep audit / cold cache"),
@@ -325,9 +401,11 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
         depth_options,
         default=3,
     )
-    scanners_only = depth_idx == 1
-    dry_run = depth_idx == 2
-    force_full = caps.supports_full and depth_idx == 4
+    depth_label = depth_options[depth_idx - 1][0]
+    scanners_only = depth_label.startswith("Scanners")
+    dry_run = depth_label.startswith("Dry-run")
+    force_changed = depth_label.startswith("Changed")
+    force_full = depth_label.startswith("Force full")
     llm_will_run = not scanners_only and not dry_run
 
     full_audit = False
@@ -344,6 +422,23 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
             default=1,
         )
         full_audit = playbook_idx == 2
+
+    deep: bool | None = None
+    if llm_will_run and caps.supports_deep:
+        # Default Y for review / full-audit (and other LLM modes — deep is CLI default).
+        deep_default = True
+        if full_audit or command == "review":
+            deep_hint = (
+                "Enable deep coverage (--deep)? "
+                "Recommended for full audits / large repos "
+                "(heuristics + chunked P1→P3 + checklist coverage)"
+            )
+        else:
+            deep_hint = (
+                "Enable deep coverage (--deep)? "
+                "Multi-pass + heuristics; --no-deep = single-shot"
+            )
+        deep = _prompt_yes(deep_hint, default=deep_default)
 
     model: str | None = None
     if llm_will_run:
@@ -373,19 +468,29 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
                     break
             print(f"Enter 0–{len(models)}." if models else "Enter 0.")
 
+    warn = full_pack_large_model_warning(
+        model=model,
+        force_full=force_full,
+        force_changed=force_changed,
+    )
+    if warn:
+        print(f"\n{warn}")
+
     verbose = False
     if caps.supports_verbose:
         verbose = _prompt_yes("Enable --verbose?", default=True)
 
     timeout: float | None = None
     if llm_will_run and caps.supports_timeout:
+        suggested = suggest_timeout_seconds(model)
+        hint = (
+            f"{int(suggested)}s suggested for this model size; "
+            "'n'/'none' to omit"
+        )
         while True:
-            raw = input(
-                "Timeout seconds [900] "
-                "(1800 for large/first run; 'n'/'none' to omit): "
-            ).strip().lower()
+            raw = input(f"Timeout seconds [{int(suggested)}] ({hint}): ").strip().lower()
             if not raw:
-                timeout = 900.0
+                timeout = suggested
                 break
             if raw in {"n", "no", "none"}:
                 timeout = None
@@ -397,7 +502,7 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
                 break
             except ValueError:
                 print(
-                    "Enter a positive number, empty for 900, "
+                    f"Enter a positive number, empty for {int(suggested)}, "
                     "or n/none to omit."
                 )
 
@@ -440,6 +545,7 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
         scanners_only=scanners_only,
         dry_run=dry_run,
         force_full=force_full,
+        force_changed=force_changed,
         full_audit=full_audit,
         model=model,
         verbose=verbose,
@@ -449,6 +555,7 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
         fail_on=fail_on,
         remote=remote,
         ref=ref,
+        deep=deep,
     )
 
 
@@ -471,10 +578,22 @@ def main() -> int:
         if choices.scanners_only or choices.dry_run:
             print("ETA tip: typically completes in seconds.")
         else:
-            print(
-                "ETA tip: local LLM may take several minutes "
-                "on cold/full packs."
+            warn = full_pack_large_model_warning(
+                model=choices.model,
+                force_full=choices.force_full,
+                force_changed=choices.force_changed,
             )
+            if warn:
+                print(warn)
+                print(
+                    "ETA tip: large local models on full packs often need "
+                    "30–90+ minutes; repair retries double that."
+                )
+            else:
+                print(
+                    "ETA tip: local LLM may take several minutes "
+                    "on cold/full packs."
+                )
 
         if not _prompt_yes("Run this command?", default=True):
             print("Declined — not running.")

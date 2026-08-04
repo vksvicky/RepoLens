@@ -1,61 +1,60 @@
-"""Load review playbooks from package data or repository checkout."""
+"""Thin adapter: mode → ordered playbook labels/content via rules registry."""
 
 from __future__ import annotations
 
-from importlib import resources
 from pathlib import Path
+
+from repolens.rules.registry import get_rule
 
 
 def playbooks_dir() -> Path:
-    """Return directory containing security.md / architecture.md."""
-    # Prefer packaged data
+    """Return directory containing packaged default rule bodies (compat)."""
+    from importlib import resources
+
     try:
-        root = resources.files("repolens") / "playbooks"
-        if root.is_dir() and (root / "security.md").is_file():  # type: ignore[operator]
+        root = resources.files("repolens.rules") / "defaults"
+        if root.is_dir():
             return Path(str(root))
     except (TypeError, FileNotFoundError, ModuleNotFoundError):
         pass
-
-    here = Path(__file__).resolve()
-    candidates = [
-        here.parent / "playbooks",
-        here.parents[2] / "playbooks",  # repo root when running from src layout
-    ]
-    for candidate in candidates:
-        if (candidate / "security.md").is_file():
-            return candidate
+    here = Path(__file__).resolve().parent / "rules" / "defaults"
+    if here.is_dir():
+        return here
     raise FileNotFoundError(
-        "Could not locate playbooks/security.md. Ensure RepoLens is installed with package data."
+        "Could not locate rules defaults pack. Ensure RepoLens is installed with package data."
     )
 
 
 def load_playbook(name: str) -> str:
-    path = playbooks_dir() / name
-    if not path.is_file():
-        raise FileNotFoundError(f"Playbook not found: {path}")
-    return path.read_text(encoding="utf-8")
+    """Load a playbook by legacy filename or rule id (compat).
+
+    Prefer ``get_rule(rule_id).body`` for new code.
+    """
+    rule_id = name.removesuffix(".md")
+    try:
+        return get_rule(rule_id).body
+    except KeyError as exc:
+        raise FileNotFoundError(f"Playbook not found for name={name!r}") from exc
 
 
 def playbooks_for_mode(mode: str, *, full_audit: bool = False) -> list[tuple[str, str]]:
     """Return ordered (label, content) playbooks for a CLI mode."""
     if mode == "sentinel":
-        return [("P1 security", load_playbook("security.md"))]
+        rule = get_rule("security")
+        return [("P1 security", rule.body)]
     if mode == "architecture":
-        return [("P3 architecture", load_playbook("architecture.md"))]
+        rule = get_rule("architecture")
+        return [("P3 architecture", rule.body)]
     if mode == "review":
-        items = [
-            ("P1 security", load_playbook("security.md")),
-            (
-                "P2 reliability",
-                (
-                    "Identify high-confidence bugs, reliability, and performance issues "
-                    "in the provided files. Require impact and codeExample for Critical/High. "
-                    "Return the RepoLens FindingReport JSON schema only."
-                ),
-            ),
+        security = get_rule("security")
+        reliability = get_rule("reliability")
+        architecture = get_rule("architecture")
+        items: list[tuple[str, str]] = [
+            ("P1 security", security.body),
+            ("P2 reliability", reliability.body),
         ]
         if full_audit:
-            items.append(("P3 architecture", load_playbook("architecture.md")))
+            items.append(("P3 architecture", architecture.body))
         else:
             items.append(
                 (
