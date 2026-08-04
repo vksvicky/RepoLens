@@ -20,6 +20,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [phases.md](./phases.md) | Implementation tracker (what’s done / next) |
 | [faq.md](./faq.md) | Languages, tools, modes, export, production honesty |
 | [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) | Step-by-step: cloud key, local Ollama, scanners only |
+| [try-on-your-repo.md](./try-on-your-repo.md) | Test RepoLens against a local project (`[username]` paths) |
 | [remote-sources.md](./remote-sources.md) | Clone remotes: `--github`, `--git-url`, auth, reports |
 | [scanners.md](./scanners.md) | Optional scanners: plugins install, flags, cache |
 | [ci.md](./ci.md) | GitHub Action + Bitbucket CI script |

@@ -39,6 +39,7 @@ jobs:
             docs/scanners.md
             docs/ci.md
             docs/publishing.md
+            docs/try-on-your-repo.md
             docs/local-learning.md
             docs/design/phase-2-multi-source-ingest.md
             docs/design/phase-3-scanners.md

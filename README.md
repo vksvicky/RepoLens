@@ -50,7 +50,8 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 - **CI:** official GitHub Action (`action.yml`) — see [docs/ci.md](./docs/ci.md)
 
 Full answers: **[docs/faq.md](./docs/faq.md)** · **[docs/design/ai-keys-scanners-and-local-learning.md](./docs/design/ai-keys-scanners-and-local-learning.md)**.  
-**Setup (cloud / Ollama / scanners):** **[docs/setup-ai-and-scanners.md](./docs/setup-ai-and-scanners.md)**.
+**Setup (cloud / Ollama / scanners):** **[docs/setup-ai-and-scanners.md](./docs/setup-ai-and-scanners.md)**.  
+**Try it on a local project:** **[docs/try-on-your-repo.md](./docs/try-on-your-repo.md)**.
 
 ---
 

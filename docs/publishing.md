@@ -70,10 +70,12 @@ git push origin v0.1.0a1
 
 ## Pre-publish dogfood
 
-Run these on **this repo** (or another of yours) before tagging. From a clone with the package installed editable:
+Run these on **this repo** (or another of yours) before tagging. For reviewing any local project with generic paths, see **[try-on-your-repo.md](./try-on-your-repo.md)**.
+
+From a RepoLens clone with the package installed editable (replace `[username]`):
 
 ```bash
-cd /path/to/RepoLens
+cd /Users/[username]/Development/RepoLens
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
