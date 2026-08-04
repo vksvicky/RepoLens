@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phase 4 in progress (CI & ecosystem — design approved 2026-08-04)  
+**Current phase:** Phase 4 complete (CI & ecosystem — 2026-08-04); next is Phase 5+ / polish  
 **CLI language:** Python 3.11+
 
 ---
@@ -116,15 +116,15 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| GitHub Action (official workflow) | [ ] | |
-| Bitbucket Pipe or documented script | [ ] | |
-| Pre-built binaries / package publish | [ ] | PyPI and/or npm |
-| Example configs for monorepos | [ ] | |
-| Confidence / history log helpers | [ ] | Optional `docs/review-confidence-log.md` |
-| Local ML learning (opt-in, on-disk only) | [ ] | `.repolens/` index + memory; informed consent; no phone-home |
-| Privacy notice + `local_learning` config | [ ] | See design/ai-keys-scanners-and-local-learning.md |
+| GitHub Action (official workflow) | [x] | Root `action.yml` + `repolens-example.yml` |
+| Bitbucket Pipe or documented script | [x] | Script in `docs/ci.md` (no marketplace Pipe) |
+| Pre-built binaries / package publish | [x] | Trusted Publishing workflow + `docs/publishing.md` |
+| Example configs for monorepos | [x] | `examples/monorepo/` |
+| Confidence / history log helpers | [x] | `docs/review-confidence-log.md` |
+| Local ML learning (opt-in, on-disk only) | [x] | FTS index + memory; `[local-ml]` optional |
+| Privacy notice + `local_learning` config | [x] | Consent gate + `docs/local-learning.md` |
 
-**Phase 4 exit criteria:** Documented CI example; published install path; local-learning design implemented or explicitly deferred with FAQ accuracy.
+**Phase 4 exit criteria:** Documented CI example; published install path; local-learning design implemented or explicitly deferred with FAQ accuracy. → **Met (2026-08-04)** (PyPI upload needs one-time Trusted Publisher setup)
 
 ---
 
@@ -157,6 +157,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-04 | Phase 2 MVP | `--git-url` + `--github`; cwd reports; env/`gh` auth |
 | 2026-08-04 | Phase 2 complete | `--bitbucket` + `--hf`; all planned remotes |
 | 2026-08-04 | Phase 3 complete | Optional scanners + `plugins install`; report merge |
+| 2026-08-04 | Phase 4 complete | Action, publish workflow, local learning, CI docs |
 | 2026-08-04 | ADR-01 + `_diagram_legend.md` | Document how analysis works with Mermaid architecture views |
 | 2026-08-04 | BYOK + local Ollama; no embedded AI key | Self-sufficient only with local model; cloud is opt-in network |
 | 2026-08-04 | Scanners optional extras, not slim default | Detect-if-installed; CVE via OSV-class tools; OWASP via LLM+Semgrep layers |

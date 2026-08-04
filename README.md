@@ -4,8 +4,8 @@
 
 RepoLens is an open-source CLI that runs structured code reviews against projects you care about: on your machine, or cloned from GitHub, Bitbucket, Hugging Face, or any Git URL. It follows a clear **P1 → P2 → P3** pass (security → bugs/reliability/performance → architecture/quality) and writes audit-friendly reports with impact, remediation steps, and code-example fixes for Critical/High findings.
 
-> **Status:** Alpha `0.1.0a1` — Phases **0–3** done (docs, local CLI, remotes, optional scanners). Phase **4** (CI Action) next. Install from source until PyPI.  
-> Tracker: [docs/phases.md](./docs/phases.md) · FAQ: [docs/faq.md](./docs/faq.md) · Remotes: [docs/remote-sources.md](./docs/remote-sources.md) · Scanners: [docs/scanners.md](./docs/scanners.md)
+> **Status:** Alpha `0.1.0a1` — Phases **0–4** done (CLI, remotes, scanners, GitHub Action, local learning). Install from source or git; PyPI via Trusted Publishing when configured.  
+> Tracker: [docs/phases.md](./docs/phases.md) · [CI](./docs/ci.md) · [Scanners](./docs/scanners.md) · [Local learning](./docs/local-learning.md)
 
 ---
 
@@ -31,6 +31,7 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 | `repolens sentinel` | **Security-only** scan (P1 playbook)—fast guardrail pass |
 | `repolens architecture` | Architecture / production-readiness audit (full playbook) |
 | `repolens plugins` | Optional scanners: `status` / `install` (gitleaks, Semgrep, OSV) |
+| `repolens learn` | Opt-in local index: `build` / `status` / `clear` |
 | `repolens export` | Export or convert an existing report (e.g. Markdown → PDF if tools allow) |
 
 ---
@@ -41,7 +42,7 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 - **Reviews:** language-agnostic, with first-class focus on JS/TS, Python, Go, JVM, C#, Ruby, PHP, Rust, Swift (+ IaC/config)  
 - **AI:** Bring your own cloud key **or** run a local model (e.g. Ollama)—no embedded RepoLens key  
 - **CVE / SAST / secrets:** optional plugins (OSV, Semgrep, gitleaks)—not forced into the slim install  
-- **Local learning (planned):** opt-in, stays on your disk, you are informed first  
+- **Local learning:** opt-in on-disk index (`repolens learn`), informed consent first  
 
 Full answers: **[docs/faq.md](./docs/faq.md)** · **[docs/design/ai-keys-scanners-and-local-learning.md](./docs/design/ai-keys-scanners-and-local-learning.md)**.  
 
@@ -149,7 +150,7 @@ Why some filenames are `UPPERCASE.md` and others are not: see [docs/README.md](.
 2. **Phase 1** — Core CLI (Python): local path, `review` / `sentinel`, Markdown reports ← *alpha done*
 3. **Phase 2** — Remote sources (`--git-url`, `--github`, `--bitbucket`, `--hf`) ← *done*
 4. **Phase 3** — Optional scanner plugins (gitleaks, Semgrep, OSV) ← *done*
-5. **Phase 4** — CI integrations (GitHub Action, etc.)
+5. **Phase 4** — GitHub Action, PyPI publish path, local learning ← *done*
 
 Details: **[docs/phases.md](./docs/phases.md)** · Design: **[docs/design/cli-and-report-schema.md](./docs/design/cli-and-report-schema.md)** · ADR: **[docs/adr/01_analysis_runtime_architecture.md](./docs/adr/01_analysis_runtime_architecture.md)**.
 

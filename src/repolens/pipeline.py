@@ -137,6 +137,15 @@ def run_review(
         report.summary = report.recount_summary()
     else:
         prompt = build_prompt(mode, root, files, full_audit=full_audit)
+        if cfg.local_learning.enabled:
+            from repolens.learning.consent import has_consent
+            from repolens.learning.retrieve import retrieve_context
+
+            if has_consent(root):
+                query = f"{mode} " + " ".join(f.relative for f in files[:40])
+                local_ctx = retrieve_context(root, query, limit=5)
+                if local_ctx:
+                    prompt = local_ctx + "\n\n" + prompt
         report = _analyze_with_repair(prompt, cfg.model)
         if scanner_issues or scanner_runs or scanner_gaps:
             report.issues = list(report.issues) + list(scanner_issues)

@@ -1,0 +1,13 @@
+# Example project config for a monorepo root.
+# Safe fields only — provider/base_url/api_key_env are ignored without --trust-project-config.
+
+[general]
+report_dir = "reports"
+
+[scanners]
+enabled = ["gitleaks", "semgrep", "osv"]
+require = false
+
+[local_learning]
+enabled = false
+cache_dir = ".repolens"

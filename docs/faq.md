@@ -112,7 +112,7 @@ RepoLens uses **layers** — different tools for different jobs:
 
 ## Can RepoLens learn from my repo with ML? Is that local?
 
-**Yes (planned Phase 4+), local-first and opt-in.**
+**Yes (Phase 4 — shipped), local-first and opt-in.** See [local-learning.md](./local-learning.md).
 
 | Behaviour | Detail |
 |-----------|--------|
