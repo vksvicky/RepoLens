@@ -34,6 +34,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `api_key_env` allowlisted; symlinks skipped; `report_dir` must stay under project root
 - Provider error bodies no longer echoed to the terminal
 
+### Added (Phase 2 MVP)
+
+- `--git-url` and `--github OWNER/REPO` with shallow clone, `--ref`, and temp cleanup
+- GitHub auth: `GITHUB_TOKEN` / `GH_TOKEN`, else `gh auth token`
+- Remote reports default to `./reports` under the current working directory
+- Guide: [remote-sources.md](./remote-sources.md)
+
 ### Added (Phase 1 alpha)
 
 - Python package `repolens` (`0.1.0a1`): `review`, `sentinel`, `architecture`, `export`, `init`, `version`

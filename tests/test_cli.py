@@ -61,3 +61,33 @@ def test_export_prints_path(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "Report:" in result.output
     assert report.name in result.output.replace("\n", "")
+
+
+def test_github_and_path_conflict(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        ["review", "--path", str(tmp_path), "--github", "o/r", "--dry-run"],
+    )
+    assert result.exit_code == 2
+    assert "exactly one" in result.output.lower() or "Source error" in result.output
+
+
+def test_github_dry_run_mocked(tmp_path: Path, monkeypatch) -> None:
+    from unittest.mock import patch
+
+    from repolens.sources import ResolvedSource
+
+    fake = ResolvedSource(root=tmp_path, ephemeral=True, label="github:o/r")
+    (tmp_path / "a.py").write_text("x=1\n", encoding="utf-8")
+    out = tmp_path / "reports-out"
+    with (
+        patch("repolens.cli.resolve_source", return_value=fake),
+        patch("repolens.cli.cleanup_source") as cleanup,
+    ):
+        result = runner.invoke(
+            app,
+            ["review", "--github", "o/r", "--out", str(out), "--dry-run"],
+        )
+    assert result.exit_code == 0, result.output
+    cleanup.assert_called()
+    assert list(out.glob("gate_review_report_*.md"))

@@ -15,6 +15,7 @@ from repolens.config import write_user_config
 from repolens.llm import LlmError
 from repolens.pipeline import fail_on_triggered, run_review
 from repolens.schema import FindingReport
+from repolens.sources import SourceError, cleanup_source, resolve_source, select_source
 
 app = typer.Typer(
     name="repolens",
@@ -98,7 +99,10 @@ def init_cmd(
 
 def _run_mode(
     mode: str,
-    path: Path,
+    path: Path | None,
+    git_url: str | None,
+    github: str | None,
+    ref: str | None,
     review_mode: str,
     since: str | None,
     out: Path | None,
@@ -109,22 +113,34 @@ def _run_mode(
     full_audit: bool,
     trust_project: bool,
 ) -> None:
-    root = path.resolve()
-    if not root.exists():
-        console.print(f"[red]Path not found:[/red] {root}")
-        raise typer.Exit(code=2)
-
     if fmt not in {"md", "json", "both"}:
         console.print("[red]--format must be md | json | both[/red]")
         raise typer.Exit(code=2)
 
+    resolved = None
     try:
+        try:
+            kind, value = select_source(path=path, git_url=git_url, github=github)
+            resolved = resolve_source(kind=kind, value=value, ref=ref)
+        except SourceError as exc:
+            # Clone/auth failures → 3; usage / missing path / bad slug → 2
+            msg = str(exc)
+            code = 3 if msg.startswith("Clone failed") else 2
+            console.print(f"[red]Source error:[/red] {exc}")
+            raise typer.Exit(code=code) from None
+
+        out_dir = out
+        if out_dir is None and resolved.ephemeral:
+            out_dir = Path.cwd() / "reports"
+
+        console.print(f"[dim]Source:[/dim] {resolved.label}")
+
         result = run_review(
-            path=root,
+            path=resolved.root,
             mode=mode,
             review_mode=review_mode,
             since=since,
-            out_dir=out,
+            out_dir=out_dir,
             fmt=fmt,
             model_override=model,
             full_audit=full_audit,
@@ -141,9 +157,14 @@ def _run_mode(
         console.print(f"[red]Model error:[/red] {exc}")
         console.print("Run [cyan]repolens init[/cyan] or see docs/setup-ai-and-scanners.md")
         raise typer.Exit(code=4) from exc
+    except typer.Exit:
+        raise
     except RuntimeError as exc:
         console.print(f"[red]Source error:[/red] {exc}")
-        raise typer.Exit(code=3) from exc
+        raise typer.Exit(code=3) from None
+    finally:
+        if resolved is not None:
+            cleanup_source(resolved)
 
     _print_summary(
         result.report.confidence,
@@ -167,7 +188,10 @@ def _run_mode(
 
 @app.command()
 def review(
-    path: Path = typer.Option(Path("."), "--path", help="Local project root"),
+    path: Path | None = typer.Option(None, "--path", help="Local project root (default: .)"),
+    git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL (Phase 2)"),
+    github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO (Phase 2)"),
+    ref: str | None = typer.Option(None, "--ref", help="Branch/tag/commit for remotes"),
     mode: str = typer.Option("full", "--mode", help="full | diff"),
     since: str | None = typer.Option(None, "--since", help="Diff base ref"),
     out: Path | None = typer.Option(None, "--out", help="Report directory"),
@@ -188,13 +212,29 @@ def review(
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
-        "review", path, mode, since, out, fmt, model, fail_on, dry_run, full_audit, trust_project
+        "review",
+        path,
+        git_url,
+        github,
+        ref,
+        mode,
+        since,
+        out,
+        fmt,
+        model,
+        fail_on,
+        dry_run,
+        full_audit,
+        trust_project,
     )
 
 
 @app.command()
 def sentinel(
-    path: Path = typer.Option(Path("."), "--path", help="Local project root"),
+    path: Path | None = typer.Option(None, "--path", help="Local project root (default: .)"),
+    git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL (Phase 2)"),
+    github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO (Phase 2)"),
+    ref: str | None = typer.Option(None, "--ref", help="Branch/tag/commit for remotes"),
     mode: str = typer.Option("full", "--mode", help="full | diff"),
     since: str | None = typer.Option(None, "--since", help="Diff base ref"),
     out: Path | None = typer.Option(None, "--out", help="Report directory"),
@@ -210,13 +250,29 @@ def sentinel(
 ) -> None:
     """Security-only review (P1 playbook)."""
     _run_mode(
-        "sentinel", path, mode, since, out, fmt, model, fail_on, dry_run, False, trust_project
+        "sentinel",
+        path,
+        git_url,
+        github,
+        ref,
+        mode,
+        since,
+        out,
+        fmt,
+        model,
+        fail_on,
+        dry_run,
+        False,
+        trust_project,
     )
 
 
 @app.command()
 def architecture(
-    path: Path = typer.Option(Path("."), "--path", help="Local project root"),
+    path: Path | None = typer.Option(None, "--path", help="Local project root (default: .)"),
+    git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL (Phase 2)"),
+    github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO (Phase 2)"),
+    ref: str | None = typer.Option(None, "--ref", help="Branch/tag/commit for remotes"),
     mode: str = typer.Option("full", "--mode", help="full | diff"),
     since: str | None = typer.Option(None, "--since", help="Diff base ref"),
     out: Path | None = typer.Option(None, "--out", help="Report directory"),
@@ -232,7 +288,20 @@ def architecture(
 ) -> None:
     """Architecture / production-readiness audit."""
     _run_mode(
-        "architecture", path, mode, since, out, fmt, model, fail_on, dry_run, True, trust_project
+        "architecture",
+        path,
+        git_url,
+        github,
+        ref,
+        mode,
+        since,
+        out,
+        fmt,
+        model,
+        fail_on,
+        dry_run,
+        True,
+        trust_project,
     )
 
 

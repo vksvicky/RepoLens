@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | **Accepted** (Phase 0 design; Phase 1 alpha implements local path) |
+| **Status** | **Accepted** (Phase 1 local path; Phase 2 MVP remotes: git-url + GitHub) |
 | **Date** | 2026-08-04 |
 | **Context** | RepoLens must explain—visually and in prose—how a repository is ingested, prioritised (P1→P2→P3), analysed, validated, and reported across local and remote sources without replacing CI scanners. |
 | **Decision** | Adopt a **pipeline architecture**: Source → Inventory → Context pack → LLM analyse → Schema validate → Report. Modes (`review`, `sentinel`, `architecture`) select playbooks and priority bands; remotes and scanner plugins are phased add-ons. |
@@ -292,7 +292,7 @@ flowchart LR
 |-------|------|-------------------|
 | **0** | Playbooks + docs (this ADR) | Baseline |
 | **1** | Local `--path`, LLM pipeline, Markdown reports | Solid boxes |
-| **2** | `--github` / `--bitbucket` / `--hf` / `--git-url` | Dashed `phaseLater` until built |
+| **2** | `--github` / `--git-url` (MVP); Bitbucket/HF next | Solid for MVP hosts |
 | **3** | Optional gitleaks / Semgrep / OSV merge | Dashed until built |
 | **4** | GitHub Action, packaging | Out of this runtime diagram |
 

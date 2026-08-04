@@ -35,6 +35,8 @@ jobs:
             docs/SUPPORT.md
             docs/using-playbooks.md
             docs/setup-ai-and-scanners.md
+            docs/remote-sources.md
+            docs/design/phase-2-multi-source-ingest.md
             playbooks/security.md
             playbooks/architecture.md
             pyproject.toml
