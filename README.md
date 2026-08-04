@@ -7,7 +7,7 @@ RepoLens is an open-source CLI that runs structured code reviews against project
 > **Status:** Alpha `0.1.0a1` — **Phases 0–4 complete**  
 > Local CLI · remotes (GitHub / Bitbucket / HF / git URL) · optional scanners · GitHub Action · opt-in local learning · PyPI Trusted Publishing workflow (upload after one-time PyPI setup)  
 > Install: `pip install -e .` from a clone, or `pip install "repolens @ git+https://github.com/vksvicky/RepoLens.git"`  
-> Docs: [phases](./docs/phases.md) · [FAQ](./docs/faq.md) · [CI / Action](./docs/ci.md) · [remotes](./docs/remote-sources.md) · [scanners](./docs/scanners.md) · [local learning](./docs/local-learning.md) · [publishing](./docs/publishing.md)
+> Docs: [phases](./docs/phases.md) · [FAQ](./docs/faq.md) · [install extras](./docs/install-extras.md) · [CI / Action](./docs/ci.md) · [remotes](./docs/remote-sources.md) · [scanners](./docs/scanners.md) · [local learning](./docs/local-learning.md) · [publishing](./docs/publishing.md)
 
 ---
 
@@ -51,11 +51,25 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 
 Full answers: **[docs/faq.md](./docs/faq.md)** · **[docs/design/ai-keys-scanners-and-local-learning.md](./docs/design/ai-keys-scanners-and-local-learning.md)**.  
 **Setup (cloud / Ollama / scanners):** **[docs/setup-ai-and-scanners.md](./docs/setup-ai-and-scanners.md)**.  
-**Try it on a local project:** **[docs/try-on-your-repo.md](./docs/try-on-your-repo.md)**.
+**Try it (local + GitHub / Bitbucket / HF / git URL):** **[docs/try-on-your-repo.md](./docs/try-on-your-repo.md)**.  
+Interactive helper: `./scripts/repolens-guided.sh` (see [try-on-your-repo](docs/try-on-your-repo.md#guided-review-interactive)).
 
 ---
 
 ## Quick start
+
+### Install extras (`[dev]`, `[scanners]`, …)
+
+These are **optional parts of the RepoLens package** (defined in this repo’s [`pyproject.toml`](./pyproject.toml)). They are **not** settings inside the apps you review.
+
+| Extra | Command | What you get |
+|-------|---------|--------------|
+| *(none)* | `pip install -e .` | CLI only |
+| **dev** | `pip install -e ".[dev]"` | + pytest, pytest-cov, ruff, mypy |
+| **scanners** | `pip install -e ".[scanners]"` | + Semgrep (gitleaks/osv still via `repolens plugins install`) |
+| **local-ml** | `pip install -e ".[local-ml]"` | + sentence-transformers |
+
+Full detail: **[docs/install-extras.md](./docs/install-extras.md)**.
 
 ```bash
 # From a clone
@@ -64,6 +78,7 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 
 # First-run: cloud key, local Ollama, or none
+# Ollama: uses a model from `ollama list` (or pass --model NAME)
 repolens init --provider ollama   # or openai | anthropic | deepseek | none
 
 # Inventory + report skeleton (no model call)
@@ -77,21 +92,27 @@ repolens review --path ./my-app --scanners-only
 repolens learn build --path ./my-app --accept-local-learning
 
 # Full local review (requires configured provider + key/Ollama)
-repolens review --path ./my-app
+# Progress lines + LLM heartbeats by default; add -v for more detail
+repolens review --path ./my-app --verbose
 repolens sentinel --path ./my-app
 ```
 
-### Remotes
+### Sources (local + remotes)
 
 ```bash
-repolens review --github owner/repo --dry-run
-repolens review --git-url https://github.com/owner/repo.git --ref main
-repolens review --bitbucket workspace/repo --dry-run
+# Local folder
+repolens review --path ./my-app --dry-run
+
+# GitHub / Bitbucket / Hugging Face / any git URL
+repolens review --github owner/repo --ref main --dry-run
+repolens review --bitbucket workspace/repo --ref main --dry-run
 repolens review --hf org/model --dry-run
+repolens review --hf datasets/org/dataset-name --dry-run
+repolens review --git-url https://github.com/owner/repo.git --ref main --dry-run
 ```
 
 Private remotes: `GITHUB_TOKEN` / `BITBUCKET_TOKEN` / `HF_TOKEN` (or `gh auth login`).  
-See [docs/remote-sources.md](./docs/remote-sources.md) · [docs/scanners.md](./docs/scanners.md).
+Full examples: [docs/try-on-your-repo.md](./docs/try-on-your-repo.md) · [docs/remote-sources.md](./docs/remote-sources.md) · [docs/scanners.md](./docs/scanners.md).
 
 ### GitHub Actions
 

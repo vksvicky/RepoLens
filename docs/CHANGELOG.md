@@ -16,10 +16,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional extra `repolens[local-ml]`; docs [local-learning.md](./local-learning.md)
 - Monorepo example + [review-confidence-log.md](./review-confidence-log.md)
 
+### Added
+
+- Guided review script: `scripts/repolens-guided.sh` / `scripts/repolens_guided.py`
+- Review progress feedback: phase lines, `--verbose` detail, LLM wait heartbeats (`--heartbeat`), `--quiet`
+- Configurable LLM timeout: `--timeout`, `timeout_seconds` in config, `REPOLENS_TIMEOUT` (Ollama default **900s**)
+- Phase 5 adaptive review: unified `.repolens/repolens.sqlite`, fingerprint sync, smaller LLM packs on warm runs, recommended timeout, `--full`, `repolens adaptive status`
+
+### Fixed
+
+- Missing provider errors now probe for Ollama and print `repolens init --provider ollama` + config path
+- Empty `--path ""` (e.g. unset `$TARGET`) errors clearly instead of silently reviewing `.`
+- `repolens init --provider ollama` uses an **installed** Ollama model (e.g. `qwen2.5:7b`) instead of always defaulting to `llama3.1` (documented in setup / FAQ / try-on-your-repo)
+
 ### Changed (docs sync)
 
 - README / FAQ / SECURITY / setup / ADR / issue templates updated for Phases 0–4 complete
-- [try-on-your-repo.md](./try-on-your-repo.md): generic `[username]` paths for local testing
+- [try-on-your-repo.md](./try-on-your-repo.md): macOS / Linux / Windows + commands for local / GitHub / Bitbucket / HF / git URL (`[username]` placeholders; `jackfrost` only as example)
+- [remote-sources.md](./remote-sources.md): expanded per-forge command + auth tables
+- [install-extras.md](./install-extras.md) + README/FAQ: `[dev]` / `[scanners]` / `[local-ml]` live in RepoLens `pyproject.toml` (not in reviewed projects); CI guard `tests/test_docs_extras.py`
 
 ### Security
 
