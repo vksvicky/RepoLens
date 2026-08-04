@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phase 2 complete (multi-source — 2026-08-04); next is Phase 3  
+**Current phase:** Phase 3 complete (optional scanners — 2026-08-04); next is Phase 4  
 **CLI language:** Python 3.11+
 
 ---
@@ -98,15 +98,15 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Plugin interface | [ ] | Detect-if-installed; never hard-fail LLM path |
-| Secret scanning adapter (e.g. gitleaks) | [ ] | Optional extra / download-with-consent |
-| SAST adapter (e.g. Semgrep) | [ ] | OWASP-oriented rulesets where licensed |
-| Dependency / CVE adapter (e.g. OSV) | [ ] | Real CVE enumeration |
-| Optional `repolens[scanners]` / `plugins install` | [ ] | Not in slim default wheel |
-| Section in report: “Automated scanners” | [ ] | |
-| Docs: enabling plugins | [ ] | |
+| Plugin interface | [x] | Detect PATH + `~/.cache/repolens/tools/`; LLM path never hard-fails |
+| Secret scanning adapter (e.g. gitleaks) | [x] | `scanners/gitleaks.py` |
+| SAST adapter (e.g. Semgrep) | [x] | `scanners/semgrep.py` (`--config auto`) |
+| Dependency / CVE adapter (e.g. OSV) | [x] | `scanners/osv.py` |
+| Optional `repolens[scanners]` / `plugins install` | [x] | Consent download; `--yes` for CI; Semgrep via pip extra |
+| Section in report: “Automated scanners” | [x] | Markdown + `scannerRuns` JSON |
+| Docs: enabling plugins | [x] | `docs/scanners.md` · design note |
 
-**Phase 3 exit criteria:** Plugins optional; CLI works without them; when enabled, findings merge cleanly.
+**Phase 3 exit criteria:** Plugins optional; CLI works without them; when enabled, findings merge cleanly. → **Met (2026-08-04)**
 
 ---
 
@@ -156,6 +156,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-04 | Phase 1 alpha scaffold | Local CLI `0.1.0a1`: review/sentinel/init, schema, pytest CI |
 | 2026-08-04 | Phase 2 MVP | `--git-url` + `--github`; cwd reports; env/`gh` auth |
 | 2026-08-04 | Phase 2 complete | `--bitbucket` + `--hf`; all planned remotes |
+| 2026-08-04 | Phase 3 complete | Optional scanners + `plugins install`; report merge |
 | 2026-08-04 | ADR-01 + `_diagram_legend.md` | Document how analysis works with Mermaid architecture views |
 | 2026-08-04 | BYOK + local Ollama; no embedded AI key | Self-sufficient only with local model; cloud is opt-in network |
 | 2026-08-04 | Scanners optional extras, not slim default | Detect-if-installed; CVE via OSV-class tools; OWASP via LLM+Semgrep layers |

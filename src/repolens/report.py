@@ -75,6 +75,19 @@ def render_markdown(
             lines.extend(_render_issue(issue))
             lines.append("")
 
+    lines.extend(["## Automated scanners", ""])
+    if report.scannerRuns:
+        for run in report.scannerRuns:
+            lines.append(
+                f"- **{run.tool}**: `{run.status}`"
+                + (f" — {run.detail}" if run.detail else "")
+                + (f" ({run.findingCount} finding(s))" if run.status == "ran" else "")
+            )
+        lines.append("")
+    else:
+        lines.append("_No scanners requested or configured._")
+        lines.append("")
+
     lines.extend(["## Plan to fix", ""])
     immediate = [i for i in report.issues if i.fixTiming == "immediately"]
     if immediate:

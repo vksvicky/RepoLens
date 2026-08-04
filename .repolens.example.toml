@@ -21,8 +21,8 @@
 # For local/self-sufficient: provider = "ollama", model = "llama3.1", base_url = "http://127.0.0.1:11434"
 
 [scanners]
-# enabled = ["gitleaks", "semgrep", "osv"]   # Phase 3 — detect if installed
-# require = false                             # if true, exit when a scanner is missing
+# enabled = ["gitleaks", "semgrep", "osv"]   # detect if on PATH or cache
+# require = false                             # if true, exit 2 when a scanner is missing
 
 [local_learning]
 # enabled = false           # Phase 4 — opt-in only; data stays on disk

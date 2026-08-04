@@ -4,8 +4,8 @@
 
 RepoLens is an open-source CLI that runs structured code reviews against projects you care about: on your machine, or cloned from GitHub, Bitbucket, Hugging Face, or any Git URL. It follows a clear **P1 → P2 → P3** pass (security → bugs/reliability/performance → architecture/quality) and writes audit-friendly reports with impact, remediation steps, and code-example fixes for Critical/High findings.
 
-> **Status:** Phase 1 alpha — local CLI (`repolens`) available from source. Phase 0 docs/playbooks complete.  
-> Tracker: [docs/phases.md](./docs/phases.md) · FAQ: [docs/faq.md](./docs/faq.md) · Architecture: [docs/adr/01_analysis_runtime_architecture.md](./docs/adr/01_analysis_runtime_architecture.md)
+> **Status:** Alpha (`0.1.0a1`) — local + remote reviews; optional scanners (Phase 3). Install from source.  
+> Tracker: [docs/phases.md](./docs/phases.md) · FAQ: [docs/faq.md](./docs/faq.md) · Scanners: [docs/scanners.md](./docs/scanners.md)
 
 ---
 
@@ -25,11 +25,12 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 
 ## Modes
 
-| Command (planned) | What it does |
-|-------------------|--------------|
+| Command | What it does |
+|---------|--------------|
 | `repolens review` | Full dual review: P1 security + P2 reliability + P3 architecture (scoped or full) |
 | `repolens sentinel` | **Security-only** scan (P1 playbook)—fast guardrail pass |
 | `repolens architecture` | Architecture / production-readiness audit (full playbook) |
+| `repolens plugins` | Optional scanners: `status` / `install` (gitleaks, Semgrep, OSV) |
 | `repolens export` | Export or convert an existing report (e.g. Markdown → PDF if tools allow) |
 
 ---
@@ -62,21 +63,25 @@ repolens init --provider ollama   # or openai | anthropic | deepseek | none
 # Inventory + report skeleton (no model call)
 repolens review --path ./my-app --dry-run
 
+# Optional scanners (secrets / SAST / CVE)
+repolens plugins install all
+repolens review --path ./my-app --scanners-only
+
 # Full local review (requires configured provider + key/Ollama)
 repolens review --path ./my-app
 repolens sentinel --path ./my-app
 ```
 
-Remote sources (Phase 2 MVP):
+Remote sources:
 
 ```bash
 repolens review --github owner/repo --dry-run
 repolens review --git-url https://github.com/owner/repo.git --ref main
+repolens review --bitbucket workspace/repo --dry-run
+repolens review --hf org/model --dry-run
 ```
 
-Private GitHub: set `GITHUB_TOKEN` / `GH_TOKEN` or use `gh auth login`. See [docs/remote-sources.md](./docs/remote-sources.md).
-
-Bitbucket / Hugging Face shortcuts arrive in Phase 2.1.  
+Private remotes: `GITHUB_TOKEN` / `BITBUCKET_TOKEN` / `HF_TOKEN` (or `gh auth login`). See [docs/remote-sources.md](./docs/remote-sources.md) · [docs/scanners.md](./docs/scanners.md).  
 You can also use the [playbooks](./playbooks/) with any LLM chat (see [docs/using-playbooks.md](./docs/using-playbooks.md)).
 
 ---
@@ -143,7 +148,7 @@ Why some filenames are `UPPERCASE.md` and others are not: see [docs/README.md](.
 1. **Phase 0** — Docs, playbooks, design ← **done**
 2. **Phase 1** — Core CLI (Python): local path, `review` / `sentinel`, Markdown reports ← *alpha done*
 3. **Phase 2** — Remote sources (`--git-url`, `--github`, `--bitbucket`, `--hf`) ← *done*
-4. **Phase 3** — Optional scanner plugins (e.g. gitleaks, Semgrep, OSV)
+4. **Phase 3** — Optional scanner plugins (gitleaks, Semgrep, OSV) ← *done*
 5. **Phase 4** — CI integrations (GitHub Action, etc.)
 
 Details: **[docs/phases.md](./docs/phases.md)** · Design: **[docs/design/cli-and-report-schema.md](./docs/design/cli-and-report-schema.md)** · ADR: **[docs/adr/01_analysis_runtime_architecture.md](./docs/adr/01_analysis_runtime_architecture.md)**.

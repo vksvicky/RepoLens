@@ -11,9 +11,9 @@ RepoLens itself is the **review process**. To actually run a review you pick **o
 | **[B. Local AI](#option-b--local-ai-on-your-computer-e-g-ollama)** | You want code to stay on your machine | Yes |
 | **[C. Scanners only](#option-c--checklist-scanners-only-no-ai-narrative)** | You only need secrets / CVE-style lists | No — inventory only |
 
-> **Status today:** Phase 1 alpha — install from source (`pip install -e .`) and run `repolens init`.  
+> **Status today:** Phases 1–3 — install from source (`pip install -e .`) and run `repolens init`.  
 > - Options **A** and **B** work via the CLI **or** **[playbooks + any LLM chat](./using-playbooks.md)**.  
-> - Optional scanners (Option **C** plugins) land in Phase 3; use `--dry-run` for inventory-only now.
+> - Option **C** scanners: `repolens plugins install` · see [scanners.md](./scanners.md).
 
 ---
 
@@ -184,8 +184,6 @@ Playbooks-only path still works: [using-playbooks.md](./using-playbooks.md).
 ### What you are doing
 You install optional **security checklist tools**. They report things like leaked secrets or known-bad library versions. They do **not** write the full “here’s why and how to fix it” story—that still needs Option A or B.
 
-> **Phase:** Scanner integration is **Phase 3**. Steps below are the intended setup so you can prepare early.
-
 ### Steps
 
 #### 1) Install Git (required)
@@ -194,7 +192,15 @@ Same as [Before any option](#before-any-option).
 
 #### 2) Install the checklist tools you care about
 
-Examples (install any subset):
+Easiest with RepoLens (prompts for consent; use `--yes` in CI):
+
+```bash
+repolens plugins status
+repolens plugins install all
+# or: pip install -e ".[scanners]"   # Semgrep via pip; still run plugins install for gitleaks/osv
+```
+
+Or install tools yourself (any subset):
 
 | Tool | Role | Typical install docs |
 |------|------|----------------------|
@@ -202,15 +208,15 @@ Examples (install any subset):
 | [Semgrep](https://semgrep.dev) | Pattern / SAST rules | `pip install semgrep` or their installer |
 | [OSV-Scanner](https://google.github.io/osv-scanner/) | Known dependency vulnerabilities (CVE-related) | Their install guide |
 
-Verify each tool:
+Verify:
 
 ```bash
-gitleaks version          # if installed
-semgrep --version         # if installed
-osv-scanner --version     # if installed
+repolens plugins status
+# or:
+gitleaks version && semgrep --version && osv-scanner --version
 ```
 
-#### 3) Enable scanners in RepoLens *(CLI)*
+#### 3) Enable scanners in RepoLens
 
 ```toml
 [scanners]
@@ -219,21 +225,19 @@ require = false    # set true only if you want RepoLens to fail when a tool is m
 ```
 
 ```bash
-repolens review --path /path/to/your/project --scanners-only   # planned — inventory, no AI story
-# or combine with AI:
-repolens review --path /path/to/your/project                   # planned — AI + scanners if present
+repolens review --path /path/to/your/project --scanners-only   # no AI story
+# or combine with AI (scanners auto when present):
+repolens review --path /path/to/your/project --scanners auto
 ```
 
-#### 4) Until Phase 3 ships
-
-Run the tools **directly** on your project (see each tool’s docs), and/or use Option A/B playbooks for the narrative review. RepoLens will later **merge** scanner output into the same report.
+Full flag reference: [scanners.md](./scanners.md).
 
 ### Checklist — Option C
 
 - [ ] Git installed  
-- [ ] At least one scanner installed and `--version` works  
+- [ ] At least one scanner available (`repolens plugins status`)  
 - [ ] You understand this path does **not** replace the written AI report  
-- [ ] Config lists enabled scanners **(CLI Phase 3)**  
+- [ ] Config lists enabled scanners (optional)  
 
 ---
 
