@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import shlex
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
@@ -10,15 +12,18 @@ from repolens_guided import (  # noqa: E402
     GuidedChoices,
     build_argv,
     format_command,
+    list_installed_models,
     parse_ollama_list,
     parse_ollama_tags_json,
+    probe_review_cli_caps,
 )
 
 
 def test_format_command_quotes_spaces() -> None:
-    assert "Demo Project" in format_command(
-        ["repolens", "review", "--path", "/tmp/Demo Project"]
-    )
+    argv = ["repolens", "review", "--path", "/tmp/Demo Project"]
+    formatted = format_command(argv)
+    assert "Demo Project" in formatted
+    assert shlex.split(formatted) == argv
 
 
 def test_parse_ollama_list_skips_header() -> None:
@@ -38,6 +43,13 @@ def test_parse_ollama_tags_json() -> None:
         ]
     }
     assert parse_ollama_tags_json(payload) == ["qwen2.5:7b", "mistral:7b"]
+
+
+def test_parse_ollama_tags_json_rejects_non_dict() -> None:
+    assert parse_ollama_tags_json([]) == []
+    assert parse_ollama_tags_json("models") == []
+    assert parse_ollama_tags_json(None) == []
+    assert parse_ollama_tags_json(42) == []
 
 
 def test_build_argv_local_review_adaptive() -> None:
@@ -94,6 +106,32 @@ def test_build_argv_scanners_only_sentinel() -> None:
     assert "--fail-on" in argv and "HIGH" in argv
 
 
+def test_build_argv_dry_run_drops_model_timeout_full() -> None:
+    choices = GuidedChoices(
+        command="review",
+        path="/tmp/demo",
+        out="/tmp/demo/reports",
+        scanners_only=False,
+        dry_run=True,
+        force_full=True,
+        full_audit=True,
+        model="qwen2.5:7b",
+        verbose=True,
+        timeout=900.0,
+        fmt="md",
+        scanners="auto",
+        fail_on=None,
+        remote=None,
+        ref=None,
+    )
+    argv = build_argv(choices)
+    assert "--dry-run" in argv
+    assert "--model" not in argv
+    assert "--timeout" not in argv
+    assert "--full" not in argv
+    assert "--full-audit" not in argv
+
+
 def test_build_argv_github_remote() -> None:
     choices = GuidedChoices(
         command="review",
@@ -121,3 +159,103 @@ def test_build_argv_github_remote() -> None:
     assert "--model" in argv and "llama3.2:3b" in argv
     assert "--format" in argv and "both" in argv
     assert "--scanners" in argv and "off" in argv
+
+
+def test_build_argv_hf_remote() -> None:
+    choices = GuidedChoices(
+        command="architecture",
+        path=None,
+        out="./reports",
+        scanners_only=False,
+        dry_run=False,
+        force_full=False,
+        full_audit=False,
+        model=None,
+        verbose=False,
+        timeout=None,
+        fmt="md",
+        scanners="auto",
+        fail_on=None,
+        remote=("hf", "org/model"),
+        ref="v1",
+    )
+    argv = build_argv(choices)
+    assert argv[1] == "architecture"
+    assert "--hf" in argv and "org/model" in argv
+    assert "--ref" in argv and "v1" in argv
+    assert "--path" not in argv
+
+
+def test_build_argv_expands_user_path() -> None:
+    choices = GuidedChoices(
+        command="review",
+        path="~/Demo Project",
+        out="~/Demo Project/reports",
+        scanners_only=False,
+        dry_run=False,
+        force_full=False,
+        full_audit=False,
+        model=None,
+        verbose=False,
+        timeout=None,
+        fmt="md",
+        scanners="auto",
+        fail_on=None,
+        remote=None,
+        ref=None,
+    )
+    argv = build_argv(choices)
+    path = argv[argv.index("--path") + 1]
+    out = argv[argv.index("--out") + 1]
+    assert not path.startswith("~")
+    assert not out.startswith("~")
+    assert path.endswith("Demo Project")
+    assert out.endswith(str(Path("Demo Project") / "reports"))
+
+
+def test_probe_review_cli_caps_parses_help() -> None:
+    with patch("repolens_guided.subprocess.run") as run:
+        run.return_value = MagicMock(
+            returncode=0,
+            stdout="Usage\n  --verbose\n  --timeout FLOAT\n",
+            stderr="",
+        )
+        caps = probe_review_cli_caps()
+    assert caps.supports_verbose is True
+    assert caps.supports_timeout is True
+    assert caps.supports_full is False
+
+
+def test_probe_review_cli_caps_empty_on_error() -> None:
+    with patch(
+        "repolens_guided.subprocess.run",
+        side_effect=OSError("missing"),
+    ):
+        caps = probe_review_cli_caps()
+    assert caps.supports_verbose is False
+    assert caps.supports_timeout is False
+    assert caps.supports_full is False
+
+
+def test_list_installed_models_prefers_ollama_list() -> None:
+    with patch("repolens_guided.subprocess.run") as run:
+        run.return_value = MagicMock(
+            returncode=0,
+            stdout="NAME\nqwen2.5:7b\n",
+            stderr="",
+        )
+        with patch("repolens_guided.urllib.request.urlopen") as urlopen:
+            assert list_installed_models() == ["qwen2.5:7b"]
+            urlopen.assert_not_called()
+
+
+def test_list_installed_models_falls_back_to_tags_api() -> None:
+    with patch("repolens_guided.subprocess.run") as run:
+        run.return_value = MagicMock(returncode=1, stdout="", stderr="")
+        with patch("repolens_guided.urllib.request.urlopen") as urlopen:
+            resp = MagicMock()
+            resp.read.return_value = b'{"models":[{"name":"fallback:1b"}]}'
+            resp.__enter__.return_value = resp
+            resp.__exit__.return_value = None
+            urlopen.return_value = resp
+            assert list_installed_models() == ["fallback:1b"]

@@ -10,11 +10,21 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 RemoteKind = Literal["github", "git-url", "bitbucket", "hf"]
+
+
+@dataclass(frozen=True)
+class ReviewCliCaps:
+    """Flags present in `repolens review --help` for this install."""
+
+    supports_verbose: bool
+    supports_timeout: bool
+    supports_full: bool
 
 
 @dataclass
@@ -36,6 +46,26 @@ class GuidedChoices:
     ref: str | None
 
 
+def probe_review_cli_caps() -> ReviewCliCaps:
+    """Probe once which optional review flags the local CLI documents."""
+    try:
+        proc = subprocess.run(
+            ["repolens", "review", "--help"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        help_text = f"{proc.stdout or ''}{proc.stderr or ''}"
+    except (OSError, subprocess.SubprocessError):
+        help_text = ""
+    return ReviewCliCaps(
+        supports_verbose="--verbose" in help_text,
+        supports_timeout="--timeout" in help_text,
+        supports_full="--full" in help_text,
+    )
+
+
 def parse_ollama_list(text: str) -> list[str]:
     names: list[str] = []
     for line in text.splitlines():
@@ -48,7 +78,9 @@ def parse_ollama_list(text: str) -> list[str]:
     return names
 
 
-def parse_ollama_tags_json(payload: dict) -> list[str]:
+def parse_ollama_tags_json(payload: Mapping[str, Any] | object) -> list[str]:
+    if not isinstance(payload, dict):
+        return []
     names: list[str] = []
     for item in payload.get("models") or []:
         if not isinstance(item, dict):
@@ -73,16 +105,23 @@ def build_argv(choices: GuidedChoices) -> list[str]:
         if choices.ref:
             argv.extend(["--ref", choices.ref])
     else:
-        argv.extend(["--path", choices.path or "."])
+        path = str(Path(choices.path or ".").expanduser())
+        argv.extend(["--path", path])
     if choices.out:
-        argv.extend(["--out", choices.out])
+        argv.extend(["--out", str(Path(choices.out).expanduser())])
     if choices.scanners_only:
         argv.append("--scanners-only")
     if choices.dry_run:
         argv.append("--dry-run")
     if choices.force_full and not choices.scanners_only and not choices.dry_run:
         argv.append("--full")
-    if choices.full_audit and choices.command == "review" and not choices.scanners_only and not choices.dry_run:
+    llm_pack = (
+        choices.full_audit
+        and choices.command == "review"
+        and not choices.scanners_only
+        and not choices.dry_run
+    )
+    if llm_pack:
         argv.append("--full-audit")
     if (
         choices.model
@@ -92,9 +131,17 @@ def build_argv(choices: GuidedChoices) -> list[str]:
         argv.extend(["--model", choices.model])
     if choices.verbose:
         argv.append("--verbose")
-    if choices.timeout is not None and not choices.scanners_only and not choices.dry_run:
+    if (
+        choices.timeout is not None
+        and not choices.scanners_only
+        and not choices.dry_run
+    ):
         # strip trailing .0 for integers
-        t = str(int(choices.timeout)) if float(choices.timeout).is_integer() else str(choices.timeout)
+        t = (
+            str(int(choices.timeout))
+            if float(choices.timeout).is_integer()
+            else str(choices.timeout)
+        )
         argv.extend(["--timeout", t])
     if choices.fmt and choices.fmt != "md":
         argv.extend(["--format", choices.fmt])
@@ -130,7 +177,13 @@ def list_installed_models() -> list[str]:
         ) as resp:
             payload = json.loads(resp.read().decode())
         return parse_ollama_tags_json(payload)
-    except (OSError, urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError):
+    except (
+        OSError,
+        urllib.error.URLError,
+        TimeoutError,
+        json.JSONDecodeError,
+        ValueError,
+    ):
         return []
 
 
@@ -164,7 +217,7 @@ def _prompt_choice(
     *,
     default: int = 1,
 ) -> int:
-    """Show a numbered menu; return 1-based index. options are (label, recommendation)."""
+    """Show a numbered menu; return 1-based index. options are (label, tip)."""
     print(f"\n{title}")
     for i, (label, tip) in enumerate(options, start=1):
         mark = " (default)" if i == default else ""
@@ -183,7 +236,9 @@ def _prompt_choice(
         print(f"Enter a number 1–{len(options)}.")
 
 
-def _collect_choices() -> GuidedChoices:
+def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
+    caps = caps if caps is not None else probe_review_cli_caps()
+
     source = _prompt_choice(
         "Source",
         [
@@ -199,10 +254,11 @@ def _collect_choices() -> GuidedChoices:
     ref: str | None = None
 
     if source == 1:
-        path = _prompt_text("Repository path", ".")
+        path_raw = _prompt_text("Repository path", ".")
+        path = str(Path(path_raw).expanduser())
         default_out = str(Path(path) / "reports")
         out_raw = _prompt_text("Report output directory", default_out)
-        out = out_raw or default_out
+        out = str(Path(out_raw or default_out).expanduser())
     else:
         remote_kind_idx = _prompt_choice(
             "Remote kind",
@@ -214,13 +270,21 @@ def _collect_choices() -> GuidedChoices:
             ],
             default=1,
         )
-        kind_map: list[RemoteKind] = ["github", "git-url", "bitbucket", "hf"]
+        kind_map: list[RemoteKind] = [
+            "github",
+            "git-url",
+            "bitbucket",
+            "hf",
+        ]
         kind = kind_map[remote_kind_idx - 1]
-        value = _prompt_text(f"Value for --{kind if kind != 'git-url' else 'git-url'}")
+        flag_name = "git-url" if kind == "git-url" else kind
+        value = _prompt_text(f"Value for --{flag_name}")
         remote = (kind, value)
-        ref_raw = input("Optional --ref (branch/tag/commit) [none]: ").strip()
+        ref_raw = input(
+            "Optional --ref (branch/tag/commit) [none]: "
+        ).strip()
         ref = ref_raw or None
-        out = _prompt_text("Report output directory", "./reports")
+        out = str(Path(_prompt_text("Report output directory", "./reports")).expanduser())
 
     kind_idx = _prompt_choice(
         "Review kind",
@@ -237,19 +301,28 @@ def _collect_choices() -> GuidedChoices:
         "review",
     )[kind_idx - 1]
 
+    adaptive_tip = (
+        "omit --full — warm runs use a smaller pack"
+        if caps.supports_full
+        else "LLM review with configured pack"
+    )
+    depth_options: list[tuple[str, str]] = [
+        ("Scanners only", "--scanners-only — no LLM; seconds"),
+        ("Dry-run inventory", "--dry-run — list what would run"),
+        ("Adaptive LLM", adaptive_tip),
+    ]
+    if caps.supports_full:
+        depth_options.append(
+            ("Force full LLM pack", "--full — first deep audit / cold cache"),
+        )
     depth_idx = _prompt_choice(
         "LLM depth",
-        [
-            ("Scanners only", "--scanners-only — no LLM; seconds"),
-            ("Dry-run inventory", "--dry-run — list what would run"),
-            ("Adaptive LLM", "omit --full — warm runs use a smaller pack"),
-            ("Force full LLM pack", "--full — first deep audit / cold cache"),
-        ],
+        depth_options,
         default=3,
     )
     scanners_only = depth_idx == 1
     dry_run = depth_idx == 2
-    force_full = depth_idx == 4
+    force_full = caps.supports_full and depth_idx == 4
     llm_will_run = not scanners_only and not dry_run
 
     full_audit = False
@@ -258,7 +331,10 @@ def _collect_choices() -> GuidedChoices:
             "Playbook depth",
             [
                 ("Scoped architecture", "default — focused architecture pass"),
-                ("Full architecture audit", "--full-audit — deeper architecture review"),
+                (
+                    "Full architecture audit",
+                    "--full-audit — deeper architecture review",
+                ),
             ],
             default=1,
         )
@@ -292,26 +368,33 @@ def _collect_choices() -> GuidedChoices:
                     break
             print(f"Enter 0–{len(models)}." if models else "Enter 0.")
 
-    verbose = _prompt_yes("Enable --verbose?", default=True)
+    verbose = False
+    if caps.supports_verbose:
+        verbose = _prompt_yes("Enable --verbose?", default=True)
 
-    timeout: float | None
-    while True:
-        raw = input(
-            "Timeout seconds [900] (1800 for large/first run; 'n'/'none' to omit): "
-        ).strip().lower()
-        if not raw:
-            timeout = 900.0
-            break
-        if raw in {"n", "no", "none"}:
-            timeout = None
-            break
-        try:
-            timeout = float(raw)
-            if timeout <= 0:
-                raise ValueError
-            break
-        except ValueError:
-            print("Enter a positive number, empty for 900, or n/none to omit.")
+    timeout: float | None = None
+    if llm_will_run and caps.supports_timeout:
+        while True:
+            raw = input(
+                "Timeout seconds [900] "
+                "(1800 for large/first run; 'n'/'none' to omit): "
+            ).strip().lower()
+            if not raw:
+                timeout = 900.0
+                break
+            if raw in {"n", "no", "none"}:
+                timeout = None
+                break
+            try:
+                timeout = float(raw)
+                if timeout <= 0:
+                    raise ValueError
+                break
+            except ValueError:
+                print(
+                    "Enter a positive number, empty for 900, "
+                    "or n/none to omit."
+                )
 
     fmt_idx = _prompt_choice(
         "Report format",
@@ -369,12 +452,14 @@ def main() -> int:
         if shutil.which("repolens") is None:
             print(
                 "repolens not found on PATH.\n"
-                "Tip: install the package (pip/uv) and activate your venv, then retry.",
+                "Tip: install the package (pip/uv) and activate your venv, "
+                "then retry.",
                 file=sys.stderr,
             )
             return 2
 
-        choices = _collect_choices()
+        caps = probe_review_cli_caps()
+        choices = _collect_choices(caps)
         argv = build_argv(choices)
         print("\nCommand:")
         print(f"  {format_command(argv)}")
@@ -382,7 +467,8 @@ def main() -> int:
             print("ETA tip: typically completes in seconds.")
         else:
             print(
-                "ETA tip: local LLM may take several minutes on cold/full packs."
+                "ETA tip: local LLM may take several minutes "
+                "on cold/full packs."
             )
 
         if not _prompt_yes("Run this command?", default=True):
@@ -391,7 +477,7 @@ def main() -> int:
 
         proc = subprocess.run(argv, check=False)
         return int(proc.returncode)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, EOFError):
         print()
         return 0
 
