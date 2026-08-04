@@ -67,7 +67,16 @@ repolens review --path ./my-app
 repolens sentinel --path ./my-app
 ```
 
-Remote sources (`--github`, `--git-url`, …) arrive in Phase 2.  
+Remote sources (Phase 2 MVP):
+
+```bash
+repolens review --github owner/repo --dry-run
+repolens review --git-url https://github.com/owner/repo.git --ref main
+```
+
+Private GitHub: set `GITHUB_TOKEN` / `GH_TOKEN` or use `gh auth login`. See [docs/remote-sources.md](./docs/remote-sources.md).
+
+Bitbucket / Hugging Face shortcuts arrive in Phase 2.1.  
 You can also use the [playbooks](./playbooks/) with any LLM chat (see [docs/using-playbooks.md](./docs/using-playbooks.md)).
 
 ---
@@ -132,8 +141,8 @@ Why some filenames are `UPPERCASE.md` and others are not: see [docs/README.md](.
 ## Roadmap at a glance
 
 1. **Phase 0** — Docs, playbooks, design ← **done**
-2. **Phase 1** — Core CLI (Python): local path, `review` / `sentinel`, Markdown reports ← *in progress (alpha)*
-3. **Phase 2** — Remote sources (GitHub, Bitbucket, Hugging Face, generic Git)
+2. **Phase 1** — Core CLI (Python): local path, `review` / `sentinel`, Markdown reports ← *alpha done*
+3. **Phase 2** — Remote sources ← *MVP: `--git-url` + `--github`*; Bitbucket/HF next
 4. **Phase 3** — Optional scanner plugins (e.g. gitleaks, Semgrep, OSV)
 5. **Phase 4** — CI integrations (GitHub Action, etc.)
 

@@ -20,6 +20,8 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [phases.md](./phases.md) | Implementation tracker (what’s done / next) |
 | [faq.md](./faq.md) | Languages, tools, modes, export, production honesty |
 | [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) | Step-by-step: cloud key, local Ollama, scanners only |
+| [remote-sources.md](./remote-sources.md) | Clone remotes: `--github`, `--git-url`, auth, reports |
+| [design/phase-2-multi-source-ingest.md](./design/phase-2-multi-source-ingest.md) | Phase 2 MVP design decisions |
 | [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) | CLI UX, exit codes, finding/report schema |
 | [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) | AI keys, OWASP/CVE layers, bundled vs optional scanners, local ML |
 | [adr/](./adr/) | ADRs + diagram legend (how analysis works) |

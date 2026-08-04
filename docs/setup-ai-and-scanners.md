@@ -20,7 +20,7 @@ RepoLens itself is the **review process**. To actually run a review you pick **o
 ## Before any option
 
 1. Install **[Git](https://git-scm.com/downloads)** if you do not have it.  
-2. Have the **project folder** you want to review on your computer (or wait for Phase 2 remotes).  
+2. Have the **project folder** on your computer, **or** use a remote (`--github` / `--git-url` — see [remote-sources.md](./remote-sources.md)).  
 3. Decide how private the code is:
    - OK to send excerpts to a cloud AI provider → Option A is fine.  
    - Must stay on this machine → Option B (and skip cloud keys).

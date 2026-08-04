@@ -156,13 +156,15 @@ RepoLens complements—does **not** replace—**pytest/jest/etc.**, **CI**, **De
 
 ### Hosting sources (Phase 2)
 
+Details: [remote-sources.md](./remote-sources.md).
+
 | Source | Support |
 |--------|---------|
-| Local path | Phase 1 |
-| Generic git URL | Phase 2 |
-| GitHub | Phase 2 |
-| Bitbucket | Phase 2 |
-| Hugging Face Hub (git) | Phase 2 |
+| Local path (`--path`) | Done (Phase 1) |
+| Generic git URL (`--git-url`) | Done (Phase 2 MVP) |
+| GitHub (`--github`) | Done (Phase 2 MVP) |
+| Bitbucket | Planned (Phase 2.1) |
+| Hugging Face Hub (git) | Planned (Phase 2.1) |
 
 ---
 

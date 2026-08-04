@@ -29,6 +29,8 @@
 # cache_dir = ".repolens"   # informed consent required on first enable
 
 [sources]
+# Phase 2: private GitHub clones read this env (also accepts GH_TOKEN),
+# then fall back to `gh auth token` if available.
 # github_token_env = "GITHUB_TOKEN"
 # bitbucket_token_env = "BITBUCKET_TOKEN"
 # hf_token_env = "HF_TOKEN"
