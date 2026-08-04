@@ -19,6 +19,43 @@ def test_catalog_has_mvp_tools() -> None:
     for tool in cat:
         assert "darwin-arm64" in cat[tool]
         assert "linux-amd64" in cat[tool]
+    for plat, spec in cat["gitleaks"].items():
+        assert spec.sha256 and len(spec.sha256) == 64, plat
+    for plat, spec in cat["osv"].items():
+        assert spec.sha256 and len(spec.sha256) == 64, plat
+
+
+def test_download_rejects_checksum_mismatch(tmp_path: Path) -> None:
+    from repolens.plugins import _download
+
+    dest = tmp_path / "bin"
+    with patch("repolens.plugins.httpx.stream") as stream:
+        # Avoid real network: write bytes via a fake context manager
+        class Resp:
+            url = "https://example.com/x"
+            def raise_for_status(self) -> None:
+                return None
+            def iter_bytes(self):
+                yield b"not-the-expected-bytes"
+
+        class CM:
+            def __enter__(self):
+                return Resp()
+            def __exit__(self, *args):
+                return False
+
+        stream.return_value = CM()
+        try:
+            _download(
+                "https://example.com/x",
+                dest,
+                sha256="0" * 64,
+            )
+            raised = False
+        except RuntimeError as exc:
+            raised = "checksum mismatch" in str(exc)
+    assert raised
+    assert not dest.exists()
 
 
 def test_plugin_status_rows() -> None:
@@ -60,7 +97,7 @@ def test_safe_extract_zip_rejects_traversal(tmp_path: Path) -> None:
 def test_install_plugins_binary_yes(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
 
-    def fake_download(url: str, dest: Path) -> None:
+    def fake_download(url: str, dest: Path, *, sha256: str | None = None) -> None:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(b"#!/bin/sh\necho osv\n")
 
@@ -69,7 +106,7 @@ def test_install_plugins_binary_yes(tmp_path: Path, monkeypatch) -> None:
         patch("repolens.plugins._download", side_effect=fake_download),
     ):
         messages = install_plugins(["osv"], yes=True)
-    assert any("installed" in m for m in messages)
+    assert any("installed" in m for m in messages), messages
     target = tmp_path / "cache" / "repolens" / "tools" / "osv" / "osv-scanner"
     assert target.is_file()
     assert target.stat().st_mode & 0o111

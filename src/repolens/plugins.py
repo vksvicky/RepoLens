@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import platform
 import shutil
 import stat
@@ -26,6 +27,7 @@ class AssetSpec:
     kind: str  # "archive" | "binary" | "pip"
     archive_member: str | None = None
     pip_package: str | None = None
+    sha256: str | None = None  # required for archive/binary downloads
 
 
 def _platform_key() -> str:
@@ -46,75 +48,77 @@ def _platform_key() -> str:
 
 
 def catalog() -> dict[str, dict[str, AssetSpec]]:
-    """Pinned release assets by tool → platform."""
+    """Pinned release assets by tool → platform (with SHA-256 for native downloads)."""
     gitleaks_v = "8.24.0"
     osv_v = "1.9.2"
     semgrep_v = "1.100.0"
+    gl_base = f"https://github.com/gitleaks/gitleaks/releases/download/v{gitleaks_v}/"
     gl = {
         "darwin-arm64": AssetSpec(
             "gitleaks",
             gitleaks_v,
-            f"https://github.com/gitleaks/gitleaks/releases/download/v{gitleaks_v}/"
-            f"gitleaks_{gitleaks_v}_darwin_arm64.tar.gz",
+            f"{gl_base}gitleaks_{gitleaks_v}_darwin_arm64.tar.gz",
             "archive",
             archive_member="gitleaks",
+            sha256="a3d281867df087ded8c2f9afd35d61ff923a25e64caa127b720991ee433d763b",
         ),
         "darwin-amd64": AssetSpec(
             "gitleaks",
             gitleaks_v,
-            f"https://github.com/gitleaks/gitleaks/releases/download/v{gitleaks_v}/"
-            f"gitleaks_{gitleaks_v}_darwin_x64.tar.gz",
+            f"{gl_base}gitleaks_{gitleaks_v}_darwin_x64.tar.gz",
             "archive",
             archive_member="gitleaks",
+            sha256="bd9ed3294c086f10dcc5fc25de57d44ba940c19c1a5a3d5f1cfeb10b9dff005e",
         ),
         "linux-amd64": AssetSpec(
             "gitleaks",
             gitleaks_v,
-            f"https://github.com/gitleaks/gitleaks/releases/download/v{gitleaks_v}/"
-            f"gitleaks_{gitleaks_v}_linux_x64.tar.gz",
+            f"{gl_base}gitleaks_{gitleaks_v}_linux_x64.tar.gz",
             "archive",
             archive_member="gitleaks",
+            sha256="cb49b7de5ee986510fe8666ca0273a6cc15eb82571f2f14832c9e8920751f3a4",
         ),
         "linux-arm64": AssetSpec(
             "gitleaks",
             gitleaks_v,
-            f"https://github.com/gitleaks/gitleaks/releases/download/v{gitleaks_v}/"
-            f"gitleaks_{gitleaks_v}_linux_arm64.tar.gz",
+            f"{gl_base}gitleaks_{gitleaks_v}_linux_arm64.tar.gz",
             "archive",
             archive_member="gitleaks",
+            sha256="3755cc9b81f2466ad308f722a064ca04df27f59d551396183efe07978fef8fcb",
         ),
     }
+    osv_base = f"https://github.com/google/osv-scanner/releases/download/v{osv_v}/"
     osv = {
         "darwin-arm64": AssetSpec(
             "osv",
             osv_v,
-            f"https://github.com/google/osv-scanner/releases/download/v{osv_v}/"
-            "osv-scanner_darwin_arm64",
+            f"{osv_base}osv-scanner_darwin_arm64",
             "binary",
+            sha256="393f2c7089d9431bd26a3804d6e46d417b1c05abd5d49c41c7dfc174c520acf0",
         ),
         "darwin-amd64": AssetSpec(
             "osv",
             osv_v,
-            f"https://github.com/google/osv-scanner/releases/download/v{osv_v}/"
-            "osv-scanner_darwin_amd64",
+            f"{osv_base}osv-scanner_darwin_amd64",
             "binary",
+            sha256="487ab433b2c2a8c80b737c0bd428a80e6d2e211b4adf775a52a6964163fa3249",
         ),
         "linux-amd64": AssetSpec(
             "osv",
             osv_v,
-            f"https://github.com/google/osv-scanner/releases/download/v{osv_v}/"
-            "osv-scanner_linux_amd64",
+            f"{osv_base}osv-scanner_linux_amd64",
             "binary",
+            sha256="d6af4b67fa5de658598bd2d445efb99e90d1734b3146962418719c4350ecb74b",
         ),
         "linux-arm64": AssetSpec(
             "osv",
             osv_v,
-            f"https://github.com/google/osv-scanner/releases/download/v{osv_v}/"
-            "osv-scanner_linux_arm64",
+            f"{osv_base}osv-scanner_linux_arm64",
             "binary",
+            sha256="9c6160afb26c79449a1f1b667323b989a57dda8fc19f22936c9ff920fd97ddfa",
         ),
     }
-    # Semgrep via pip into an isolated venv (all platforms with Python).
+    # Semgrep via pip (PyPI TLS + pinned version; no native binary checksum).
     semgrep = {
         key: AssetSpec(
             "semgrep",
@@ -184,7 +188,15 @@ def install_plugins(
     return messages
 
 
-def _download(url: str, dest: Path) -> None:
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _download(url: str, dest: Path, *, sha256: str | None = None) -> None:
     if not url.startswith("https://"):
         raise RuntimeError("refusing non-HTTPS plugin download URL")
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -196,10 +208,21 @@ def _download(url: str, dest: Path) -> None:
         with dest.open("wb") as fh:
             for chunk in response.iter_bytes():
                 fh.write(chunk)
+    if sha256:
+        actual = _sha256_file(dest)
+        if actual != sha256:
+            dest.unlink(missing_ok=True)
+            raise RuntimeError(f"checksum mismatch for {url}: expected {sha256}, got {actual}")
 
 
 def _chmod_exec(path: Path) -> None:
     path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
+def _require_sha256(spec: AssetSpec) -> str:
+    if not spec.sha256:
+        raise RuntimeError(f"missing pinned sha256 for {spec.name} {spec.version}")
+    return spec.sha256
 
 
 def _install_binary(spec: AssetSpec) -> None:
@@ -207,7 +230,7 @@ def _install_binary(spec: AssetSpec) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / ("osv-scanner" if spec.name == "osv" else spec.name)
     tmp = out_dir / ".download"
-    _download(spec.url, tmp)
+    _download(spec.url, tmp, sha256=_require_sha256(spec))
     tmp.replace(target)
     _chmod_exec(target)
 
@@ -248,7 +271,7 @@ def _install_archive(spec: AssetSpec) -> None:
     out_dir = tools_cache_dir() / spec.name
     out_dir.mkdir(parents=True, exist_ok=True)
     tmp = out_dir / ".download"
-    _download(spec.url, tmp)
+    _download(spec.url, tmp, sha256=_require_sha256(spec))
     extract_dir = out_dir / "extract"
     if extract_dir.exists():
         shutil.rmtree(extract_dir)

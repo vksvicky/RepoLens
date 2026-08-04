@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - README / FAQ / SECURITY / setup / ADR / issue templates updated for Phases 0–4 complete
 
+### Security
+
+- Plugin installs verify SHA-256 for gitleaks/OSV release assets
+- Publish workflow pins `pypa/gh-action-pypi-publish` to commit SHA (v1.13.0)
+- Action `git-repository` restricted to https GitHub/GitLab/Bitbucket URLs
+- Semgrep config overridable via `REPOLENS_SEMGREP_CONFIG` (offline-friendly)
+- Dual-review gate process documented in CONTRIBUTING + exported reports under `docs/reviews/`
+
 ### Added (Phase 3 scanners)
 
 - Optional scanners: gitleaks, Semgrep, OSV-Scanner (detect PATH / cache)
