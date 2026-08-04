@@ -37,8 +37,13 @@ jobs:
             docs/setup-ai-and-scanners.md
             docs/remote-sources.md
             docs/scanners.md
+            docs/ci.md
+            docs/publishing.md
+            docs/local-learning.md
             docs/design/phase-2-multi-source-ingest.md
             docs/design/phase-3-scanners.md
+            docs/design/phase-4-ci-and-ecosystem.md
+            action.yml
             playbooks/security.md
             playbooks/architecture.md
             pyproject.toml

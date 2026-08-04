@@ -1,0 +1,127 @@
+name: RepoLens
+description: Run RepoLens structured reviews (scanners + optional LLM) in GitHub Actions
+author: RepoLens contributors
+branding:
+  icon: search
+  color: blue
+
+inputs:
+  path:
+    description: Project root to review (in the consumer workspace)
+    required: false
+    default: "."
+  mode:
+    description: review | sentinel | architecture
+    required: false
+    default: "review"
+  run:
+    description: auto | dry-run | scanners-only | llm
+    required: false
+    default: "auto"
+  fail-on:
+    description: Exit 1 if findings at/above severity (empty disables)
+    required: false
+    default: "HIGH"
+  scanners:
+    description: auto | off | comma list
+    required: false
+    default: "auto"
+  require-scanners:
+    description: Fail if a requested scanner is missing
+    required: false
+    default: "false"
+  version:
+    description: PyPI version when install-from=pypi
+    required: false
+    default: "0.1.0a1"
+  install-from:
+    description: local (action checkout) | pypi | git
+    required: false
+    default: "local"
+  install-plugins:
+    description: Run repolens plugins install all --yes
+    required: false
+    default: "true"
+  git-repository:
+    description: Git URL when install-from=git
+    required: false
+    default: "https://github.com/vksvicky/RepoLens.git"
+  git-ref:
+    description: Git ref when install-from=git
+    required: false
+    default: "main"
+
+outputs:
+  command:
+    description: Assembled CLI command
+    value: ${{ steps.assemble.outputs.command }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install RepoLens
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        python -m pip install --upgrade pip
+        FROM="${{ inputs.install-from }}"
+        if [ "$FROM" = "local" ]; then
+          python -m pip install -e ".[scanners]"
+        elif [ "$FROM" = "pypi" ]; then
+          python -m pip install "repolens[scanners]==${{ inputs.version }}"
+        elif [ "$FROM" = "git" ]; then
+          REPO="${{ inputs.git-repository }}"
+          REF="${{ inputs.git-ref }}"
+          python -m pip install "repolens[scanners] @ git+${REPO}@${REF}"
+        else
+          echo "install-from must be local, pypi, or git; got: $FROM" >&2
+          exit 2
+        fi
+        repolens version
+
+    - name: Install scanner plugins
+      if: ${{ inputs.install-plugins == 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        repolens plugins install all --yes || {
+          echo "Plugin install had failures; continuing with PATH/cache tools" >&2
+        }
+
+    - name: Assemble and run RepoLens
+      id: assemble
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_RUN: ${{ inputs.run }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_SCANNERS: ${{ inputs.scanners }}
+        INPUT_REQUIRE_SCANNERS: ${{ inputs.require-scanners }}
+      run: |
+        set -euo pipefail
+        mapfile -t ARGV < <(python - <<'PY'
+        import os
+        from repolens.ci_args import build_review_argv
+
+        argv = build_review_argv(
+            mode=os.environ["INPUT_MODE"],
+            path=os.environ["INPUT_PATH"],
+            run=os.environ["INPUT_RUN"],
+            fail_on=os.environ.get("INPUT_FAIL_ON", ""),
+            scanners=os.environ.get("INPUT_SCANNERS", "auto"),
+            require_scanners=os.environ["INPUT_REQUIRE_SCANNERS"] == "true",
+        )
+        print("\n".join(argv))
+        PY
+        )
+        printf -v CMD '%q ' "${ARGV[@]}"
+        echo "command=${CMD}" >> "$GITHUB_OUTPUT"
+        echo "Running: ${ARGV[*]}"
+        "${ARGV[@]}"

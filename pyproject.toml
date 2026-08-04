@@ -42,6 +42,9 @@ dev = [
 scanners = [
   "semgrep>=1.100,<2",
 ]
+local-ml = [
+  "sentence-transformers>=3.0,<4",
+]
 
 [project.scripts]
 repolens = "repolens.cli:run"

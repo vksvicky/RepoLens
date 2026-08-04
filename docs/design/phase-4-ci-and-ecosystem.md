@@ -1,6 +1,6 @@
 # Design: Phase 4 — CI & ecosystem
 
-**Status:** Approved 2026-08-04 (brainstorm)  
+**Status:** Implemented 2026-08-04  
 **Related:** [phases.md](../phases.md) · [ai-keys-scanners-and-local-learning.md](./ai-keys-scanners-and-local-learning.md) · [phase-3-scanners.md](./phase-3-scanners.md)
 
 ## Decisions
@@ -125,6 +125,6 @@ Local learning (opt-in; not Action default)
 
 ## Exit criteria (from phases.md)
 
-- [ ] Documented CI example (`docs/ci.md` + Action)  
-- [ ] Published install path (PyPI alpha + docs; git fallback)  
-- [ ] Local-learning implemented (not deferred) with accurate FAQ  
+- [x] Documented CI example (`docs/ci.md` + Action)  
+- [x] Published install path (publish workflow + docs; git/Action `local` install; PyPI upload after Trusted Publisher setup)  
+- [x] Local-learning implemented (not deferred) with accurate FAQ  

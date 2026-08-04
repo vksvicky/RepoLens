@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 4 CI & ecosystem)
+
+- GitHub Action (`action.yml`) with `run=auto|dry-run|scanners-only|llm`
+- Example workflow + [ci.md](./ci.md) (includes Bitbucket script)
+- PyPI Trusted Publishing workflow + [publishing.md](./publishing.md)
+- Opt-in local learning: `repolens learn build|status|clear`, FTS index, consent
+- Optional extra `repolens[local-ml]`; docs [local-learning.md](./local-learning.md)
+- Monorepo example + [review-confidence-log.md](./review-confidence-log.md)
+
 ### Added (Phase 3 scanners)
 
 - Optional scanners: gitleaks, Semgrep, OSV-Scanner (detect PATH / cache)

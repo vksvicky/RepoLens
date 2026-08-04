@@ -1,0 +1,37 @@
+# Example consumer workflow — copy or adapt in your repositories.
+# In *this* repo it dogfoods the composite Action with --dry-run (no LLM keys required).
+name: RepoLens example
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "action.yml"
+      - "src/repolens/ci_args.py"
+      - ".github/workflows/repolens-example.yml"
+
+jobs:
+  repolens:
+    name: RepoLens dry-run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run RepoLens
+        uses: ./
+        with:
+          path: .
+          mode: review
+          run: dry-run
+          fail-on: ""
+          install-from: local
+          install-plugins: "false"
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repolens-reports
+          path: reports/
+          if-no-files-found: ignore

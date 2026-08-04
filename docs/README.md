@@ -22,6 +22,10 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) | Step-by-step: cloud key, local Ollama, scanners only |
 | [remote-sources.md](./remote-sources.md) | Clone remotes: `--github`, `--git-url`, auth, reports |
 | [scanners.md](./scanners.md) | Optional scanners: plugins install, flags, cache |
+| [ci.md](./ci.md) | GitHub Action + Bitbucket CI script |
+| [publishing.md](./publishing.md) | PyPI Trusted Publishing / releases |
+| [local-learning.md](./local-learning.md) | Opt-in on-disk index + memory |
+| [review-confidence-log.md](./review-confidence-log.md) | Confidence history template |
 | [design/phase-2-multi-source-ingest.md](./design/phase-2-multi-source-ingest.md) | Phase 2 MVP design decisions |
 | [design/phase-3-scanners.md](./design/phase-3-scanners.md) | Phase 3 scanner plugin decisions |
 | [design/phase-4-ci-and-ecosystem.md](./design/phase-4-ci-and-ecosystem.md) | Phase 4 CI Action, PyPI, local learning |

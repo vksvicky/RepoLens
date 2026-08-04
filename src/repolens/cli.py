@@ -28,7 +28,13 @@ plugins_app = typer.Typer(
     help="Manage optional scanner plugins (gitleaks, Semgrep, OSV-Scanner).",
     no_args_is_help=True,
 )
+learn_app = typer.Typer(
+    name="learn",
+    help="Opt-in local learning (on-disk index + memory).",
+    no_args_is_help=True,
+)
 app.add_typer(plugins_app, name="plugins")
+app.add_typer(learn_app, name="learn")
 console = Console(stderr=True)
 
 
@@ -435,6 +441,69 @@ def plugins_install_cmd(
     if any("failed" in m or "skipped (declined)" in m for m in messages):
         # Partial success still exits 0 unless everything failed hard without install
         pass
+
+
+@learn_app.command("build")
+def learn_build(
+    path: Path = typer.Option(Path("."), "--path", help="Project root"),
+    accept: bool = typer.Option(
+        False,
+        "--accept-local-learning",
+        help="Record informed consent for on-disk local learning",
+    ),
+) -> None:
+    """Build or rebuild the local keyword index under .repolens/."""
+    from repolens.learning.consent import CONSENT_NOTICE
+    from repolens.learning.index import LearningIndex
+
+    root = path.resolve()
+    if not accept:
+        from repolens.learning.consent import has_consent
+
+        if not has_consent(root):
+            console.print(CONSENT_NOTICE)
+            console.print(
+                "[yellow]Re-run with[/yellow] [cyan]--accept-local-learning[/cyan] to consent."
+            )
+            raise typer.Exit(code=2)
+    try:
+        count = LearningIndex(root).build(accept=accept)
+    except PermissionError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=2) from exc
+    console.print(f"[green]Indexed[/green] {count} file(s) → {root / '.repolens' / 'index.sqlite'}")
+
+
+@learn_app.command("status")
+def learn_status(
+    path: Path = typer.Option(Path("."), "--path", help="Project root"),
+) -> None:
+    """Show consent and index status."""
+    from repolens.learning.consent import has_consent
+    from repolens.learning.index import index_db_path
+
+    root = path.resolve()
+    db = index_db_path(root)
+    table = Table(title="Local learning")
+    table.add_column("Key")
+    table.add_column("Value")
+    table.add_row("Consent", "yes" if has_consent(root) else "no")
+    table.add_row("Index", str(db) if db.is_file() else "missing")
+    if db.is_file():
+        table.add_row("Index size", f"{db.stat().st_size} bytes")
+    console.print(table)
+
+
+@learn_app.command("clear")
+def learn_clear(
+    path: Path = typer.Option(Path("."), "--path", help="Project root"),
+) -> None:
+    """Delete the local index database (consent file kept)."""
+    from repolens.learning.index import clear_index
+
+    root = path.resolve()
+    clear_index(root)
+    console.print(f"[green]Cleared index under[/green] {root / '.repolens'}")
 
 
 @app.command()
