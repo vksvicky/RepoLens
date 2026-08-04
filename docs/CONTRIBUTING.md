@@ -9,16 +9,22 @@ Thanks for helping make repository reviews clearer and more useful for everyone.
 - Report bugs and propose features via [GitHub Issues](../../issues)
 - Later: CLI code, tests, and scanner plugins (see [phases.md](./phases.md))
 
-## Development setup (docs-only phase)
+## Development setup
 
-Right now the repo is documentation + playbooks. To contribute:
+1. Fork the repository and create a branch
+2. Python 3.11+:
 
-1. Fork the repository
-2. Create a branch: `git checkout -b docs/short-description`
-3. Make your changes
-4. Open a Pull Request against `main`
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+pytest -q
+ruff check src tests
+```
 
-When the CLI lands, this section will add language-specific install and test commands.
+3. Open a Pull Request against `main`
+
+Docs/playbook-only changes do not require the Python toolchain.
 
 ## Pull request guidelines
 

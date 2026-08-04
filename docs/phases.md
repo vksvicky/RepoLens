@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phase 1 (Phase 0 complete — 2026-08-04)  
+**Current phase:** Phase 1 in progress (CLI alpha `0.1.0a1` — 2026-08-04)  
 **CLI language:** Python 3.11+
 
 ---
@@ -55,21 +55,21 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Package scaffold + `repolens` entrypoint | [ ] | |
-| Config file (`~/.config/repolens/` or project `.repolens.toml`) | [ ] | API keys, report dir, model |
-| First-run UX: BYOK vs Ollama vs scanners-only | [ ] | See design/ai-keys-scanners-and-local-learning.md |
-| Cloud + local (Ollama) provider adapters | [ ] | No embedded vendor key |
-| Load playbooks from `playbooks/` | [ ] | |
-| `repolens sentinel` — security-only (P1) | [ ] | |
-| `repolens review` — P1 → P2 → P3 on local tree/diff | [ ] | |
-| Finding schema: severity, impact, fix, codeExample (required Critical/High) | [ ] | |
-| OWASP/CWE tags on LLM findings (best-effort) | [ ] | Not a CVE DB |
-| Confidence % in summary | [ ] | |
-| Write `reports/gate_review_report_YYYY-MM-DD.md` | [ ] | |
-| `repolens export` (Markdown path; PDF if pandoc present) | [ ] | |
-| Unit/integration tests (TDD) for report writer & CLI args | [ ] | |
-| User docs: install + first review + AI key FAQ | [ ] | |
-| Setup guide: cloud / Ollama / scanners-only | [x] | `docs/setup-ai-and-scanners.md` (CLI commands marked planned) |
+| Package scaffold + `repolens` entrypoint | [x] | `pyproject.toml`, `src/repolens`, console script |
+| Config file (`~/.config/repolens/` or project `.repolens.toml`) | [x] | + `REPOLENS_*` env overlay |
+| First-run UX: BYOK vs Ollama vs scanners-only | [x] | `repolens init --provider ...` |
+| Cloud + local (Ollama) provider adapters | [x] | OpenAI-compatible + Anthropic + Ollama |
+| Load playbooks from `playbooks/` | [x] | Package data + checkout fallback |
+| `repolens sentinel` — security-only (P1) | [x] | |
+| `repolens review` — P1 → P2 → P3 on local tree/diff | [x] | `--mode full|diff`, `--full-audit` |
+| Finding schema: severity, impact, fix, codeExample (required Critical/High) | [x] | Pydantic validators |
+| OWASP/CWE tags on LLM findings (best-effort) | [x] | Optional `owasp` / `cwe` fields |
+| Confidence % in summary | [x] | CLI table + Markdown |
+| Write `reports/gate_review_report_YYYY-MM-DD.md` | [x] | + JSON via `--format` |
+| `repolens export` (Markdown path; PDF if pandoc present) | [x] | |
+| Unit/integration tests (TDD) for report writer & CLI args | [x] | pytest in CI |
+| User docs: install + first review + AI key FAQ | [x] | README quick start + setup guide + CONTRIBUTING |
+| Setup guide: cloud / Ollama / scanners-only | [x] | `docs/setup-ai-and-scanners.md` (CLI alpha) |
 
 **Phase 1 exit criteria:** Local full + sentinel reviews produce Markdown reports with mandatory Critical/High code examples; tests green in CI.
 
@@ -150,9 +150,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-04 | CLI-first; no UI in early phases | Focus on portable reviews |
 | 2026-08-04 | Root = `README` + `LICENSE` only for docs; rest under `docs/` | Clean root; GitHub still finds community files in `/docs` |
 | 2026-08-04 | `phases.md` kebab-case; keep `CONTRIBUTING.md` etc. uppercase | Only GitHub/Keep-a-Changelog conventional names use CAPS |
-| 2026-08-04 | CLI language **Python 3.11+** (`typer`/`rich` planned) | Scanner ecosystem + HF/git scripting; `pipx`/`uv` distribution |
+| 2026-08-04 | CLI language **Python 3.11+** (`typer`/`rich`/`pydantic`/`httpx`) | Scanner ecosystem + HF/git scripting; `pipx`/`uv` distribution |
 | 2026-08-04 | Target review: language-agnostic with first-class JS/TS, Python, Go, JVM, C#, Ruby, PHP, Rust, Swift | Match real multi-stack adoption; IaC/config first-class for security |
 | 2026-08-04 | Phase 0 complete | Design + FAQ + language locked; ready for Phase 1 scaffold |
+| 2026-08-04 | Phase 1 alpha scaffold | Local CLI `0.1.0a1`: review/sentinel/init, schema, pytest CI |
 | 2026-08-04 | ADR-01 + `_diagram_legend.md` | Document how analysis works with Mermaid architecture views |
 | 2026-08-04 | BYOK + local Ollama; no embedded AI key | Self-sufficient only with local model; cloud is opt-in network |
 | 2026-08-04 | Scanners optional extras, not slim default | Detect-if-installed; CVE via OSV-class tools; OWASP via LLM+Semgrep layers |

@@ -28,9 +28,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Step-by-step setup guide for cloud AI, local Ollama, and scanners-only ([setup-ai-and-scanners.md](./setup-ai-and-scanners.md))
 - Docs and playbooks made vendor-neutral (no editor-specific agent branding)
 
+### Security
+
+- Project `.repolens.toml` cannot override `provider` / `base_url` / `api_key_env` unless `--trust-project-config`
+- `api_key_env` allowlisted; symlinks skipped; `report_dir` must stay under project root
+- Provider error bodies no longer echoed to the terminal
+
+### Added (Phase 1 alpha)
+
+- Python package `repolens` (`0.1.0a1`): `review`, `sentinel`, `architecture`, `export`, `init`, `version`
+- Finding schema with mandatory Critical/High `impact` + `codeExample`
+- OpenAI-compatible / Anthropic / Ollama adapters (BYOK; no embedded keys)
+- Markdown + JSON report writers; pytest CI job
+
 ### Notes
 
-- CLI (`repolens review` / `repolens sentinel`) is not implemented yet—see [phases.md](./phases.md)
+- Published PyPI install is not tagged yet—install from source. See [phases.md](./phases.md)
 
 ## [0.0.0] - 2026-08-04
 

@@ -127,9 +127,13 @@ Disable by config or deleting `.repolens/`. Full policy: [design/ai-keys-scanner
 
 ---
 
+## Is it safe to review untrusted repositories?
+
+RepoLens reads source from `--path` and may send excerpts to your configured LLM. Project `.repolens.toml` **cannot** override `provider`, `base_url`, or `api_key_env` unless you pass `--trust-project-config`. Put provider settings in `~/.config/repolens/config.toml` or `REPOLENS_*` env vars. Symlinks and report paths that escape the project root are skipped/rejected.
+
 ## What tools and libraries does RepoLens integrate with?
 
-### Required to run full reviews (planned Phase 1)
+### Required to run full reviews (Phase 1)
 
 | Tool | Role |
 |------|------|

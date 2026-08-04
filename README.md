@@ -4,7 +4,7 @@
 
 RepoLens is an open-source CLI that runs structured code reviews against projects you care about: on your machine, or cloned from GitHub, Bitbucket, Hugging Face, or any Git URL. It follows a clear **P1 → P2 → P3** pass (security → bugs/reliability/performance → architecture/quality) and writes audit-friendly reports with impact, remediation steps, and code-example fixes for Critical/High findings.
 
-> **Status:** Phase 0 complete (docs, playbooks, design, ADR). Phase 1 (Python CLI) is next.  
+> **Status:** Phase 1 alpha — local CLI (`repolens`) available from source. Phase 0 docs/playbooks complete.  
 > Tracker: [docs/phases.md](./docs/phases.md) · FAQ: [docs/faq.md](./docs/faq.md) · Architecture: [docs/adr/01_analysis_runtime_architecture.md](./docs/adr/01_analysis_runtime_architecture.md)
 
 ---
@@ -23,7 +23,7 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 
 ---
 
-## Modes (planned)
+## Modes
 
 | Command (planned) | What it does |
 |-------------------|--------------|
@@ -48,27 +48,27 @@ Full answers: **[docs/faq.md](./docs/faq.md)** · **[docs/design/ai-keys-scanner
 
 ---
 
-## Quick start (when the CLI ships)
+## Quick start
 
 ```bash
-# Install (planned)
-# pipx install repolens
-# # or: uv tool install repolens
+# From a clone (alpha)
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
 
-# Review a local project
+# First-run: cloud key, local Ollama, or none
+repolens init --provider ollama   # or openai | anthropic | deepseek | none
+
+# Inventory + report skeleton (no model call)
+repolens review --path ./my-app --dry-run
+
+# Full local review (requires configured provider + key/Ollama)
 repolens review --path ./my-app
-
-# Security-only
 repolens sentinel --path ./my-app
-
-# Remote sources
-repolens review --github owner/repo
-repolens review --bitbucket workspace/repo
-repolens review --hf user/dataset-or-space-repo
-repolens review --git-url https://github.com/owner/repo.git --ref main
 ```
 
-Until then, you can already use the [playbooks](./playbooks/) with any LLM chat that can read your repo (see [docs/using-playbooks.md](./docs/using-playbooks.md)).
+Remote sources (`--github`, `--git-url`, …) arrive in Phase 2.  
+You can also use the [playbooks](./playbooks/) with any LLM chat (see [docs/using-playbooks.md](./docs/using-playbooks.md)).
 
 ---
 
@@ -111,6 +111,9 @@ More: [playbooks/README.md](./playbooks/README.md). Contributions: [docs/CONTRIB
 RepoLens/
 ├── README.md                 # This page (root on purpose)
 ├── LICENSE                   # MIT
+├── pyproject.toml            # Python package (Phase 1)
+├── src/repolens/             # CLI + pipeline
+├── tests/                    # pytest suite
 ├── playbooks/                # Review instruction sources
 ├── docs/                     # All other documentation
 │   ├── README.md             # Docs index + naming conventions
@@ -129,7 +132,7 @@ Why some filenames are `UPPERCASE.md` and others are not: see [docs/README.md](.
 ## Roadmap at a glance
 
 1. **Phase 0** — Docs, playbooks, design ← **done**
-2. **Phase 1** — Core CLI (Python): local path, `review` / `sentinel`, Markdown reports ← *next*
+2. **Phase 1** — Core CLI (Python): local path, `review` / `sentinel`, Markdown reports ← *in progress (alpha)*
 3. **Phase 2** — Remote sources (GitHub, Bitbucket, Hugging Face, generic Git)
 4. **Phase 3** — Optional scanner plugins (e.g. gitleaks, Semgrep, OSV)
 5. **Phase 4** — CI integrations (GitHub Action, etc.)

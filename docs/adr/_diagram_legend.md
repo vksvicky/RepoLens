@@ -90,6 +90,7 @@ flowchart LR
 | Plateau | RepoLens phase | Meaning |
 |---------|----------------|---------|
 | **Baseline** | Phase 0 | Docs + playbooks only (no CLI runtime) |
+| **CLI alpha** | Phase 1 | Local `--path` reviews via `repolens` (BYOK / Ollama) |
 | **Transition** | Phase 1 | Local-path CLI + LLM analysis |
 | **Expanded source** | Phase 2 | Remote git hosts |
 | **Target durability** | Phase 3–4 | Scanner plugins + CI Action |

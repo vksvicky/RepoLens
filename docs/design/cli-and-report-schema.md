@@ -1,7 +1,7 @@
 # Design: CLI UX & report schema
 
-**Status:** Approved for Phase 0 exit (2026-08-04)  
-**Implements in:** Phase 1+  
+**Status:** Approved for Phase 0 exit; Phase 1 alpha implemented (2026-08-04)  
+**Implements in:** Phase 1+ (local path done; remotes in Phase 2)  
 **CLI language:** Python 3.11+ (see [Decision](#decision-cli-implementation-language))  
 **Runtime topology (diagrams):** [ADR-01](../adr/01_analysis_runtime_architecture.md) · [legend](../adr/_diagram_legend.md)
 
@@ -16,11 +16,11 @@
 
 **Choice: Python 3.11+**, packaged as console script `repolens`. Optional later: PyInstaller/uvx binaries (Phase 4).
 
-Suggested stack (Phase 1, not installed yet):
+Stack (Phase 1 alpha):
 
 | Concern | Library (planned) |
 |---------|-------------------|
-| CLI | `typer` + `rich` |
+| CLI | `typer` + `rich` (implemented) |
 | Config | `tomllib` / `pydantic-settings` |
 | HTTP / Git hosts | `httpx`, `GitPython` or subprocess `git` |
 | Tests | `pytest` |
@@ -55,6 +55,7 @@ repolens version
 | `--model NAME` | Override configured model |
 | `--fail-on SEVERITY` | Exit non-zero if findings ≥ severity (CI) |
 | `--dry-run` | Resolve sources + file list; no LLM call |
+| `--trust-project-config` | Allow project `.repolens.toml` to set provider/base_url/api_key_env |
 
 ### Exit codes
 
@@ -148,7 +149,7 @@ Search order:
 
 See [`.repolens.example.toml`](../../.repolens.example.toml).
 
-Secrets: API keys via env only; never write keys into reports.
+Secrets: API keys via env only; never write keys into reports. Untrusted project TOML cannot set `provider` / `base_url` / `api_key_env` unless `--trust-project-config`.
 
 ---
 
