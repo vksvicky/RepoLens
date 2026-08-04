@@ -9,9 +9,16 @@ sys.path.insert(0, str(SCRIPTS))
 from repolens_guided import (  # noqa: E402
     GuidedChoices,
     build_argv,
+    format_command,
     parse_ollama_list,
     parse_ollama_tags_json,
 )
+
+
+def test_format_command_quotes_spaces() -> None:
+    assert "Demo Project" in format_command(
+        ["repolens", "review", "--path", "/tmp/Demo Project"]
+    )
 
 
 def test_parse_ollama_list_skips_header() -> None:
