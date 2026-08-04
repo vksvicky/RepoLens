@@ -35,7 +35,7 @@ def test_write_markdown_report_includes_sections(tmp_path: Path) -> None:
     text = path.read_text(encoding="utf-8")
     assert path.name.startswith("gate_review_report_")
     assert "## Gate verdict" in text
-    assert "Confidence:** 70%" in text or "**Confidence:** 70%" in text
+    assert "Gate confidence:** 70%" in text or "**Gate confidence:** 70%" in text
     assert "Hardcoded API key" in text
     assert "key = os.environ" in text
     assert "## Durability gaps" in text

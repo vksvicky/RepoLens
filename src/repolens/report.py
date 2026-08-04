@@ -44,13 +44,14 @@ def render_markdown(
         f"# Gate review report — {date.today().isoformat()}",
         "",
         f"**Mode:** `{mode}`",
-        f"**Confidence:** {report.confidence}%",
+        f"**Gate confidence:** {report.confidence}%",
         f"**Commit go/no-go:** {commit_go}",
         f"**Push go/no-go:** {push_go}",
         "",
         "## Gate verdict",
         "",
-        f"- **Confidence:** {report.confidence}%",
+        f"- **Gate confidence:** {report.confidence}% "
+        "(adequacy of this review package — not “% secure”)",
         (
             f"- **Counts:** Critical {report.summary.critical} · "
             f"High {report.summary.high} · Medium {report.summary.medium} · "
@@ -58,6 +59,7 @@ def render_markdown(
         ),
         "",
     ]
+    lines.extend(_render_metrics_section(report))
 
     bands = (
         ("P1", "P1 — Security"),
@@ -130,6 +132,49 @@ def render_markdown(
         )
 
     return "\n".join(lines)
+
+
+def _render_metrics_section(report: FindingReport) -> list[str]:
+    """Glossary + band audit confidences (Phase 5.1)."""
+    if (
+        report.securityAuditConfidence is None
+        and report.architectureAuditConfidence is None
+        and report.reliabilityAuditConfidence is None
+    ):
+        return []
+    lines = [
+        "## Metrics",
+        "",
+        "| Metric | Value | Meaning |",
+        "|--------|-------|---------|",
+        (
+            f"| Gate confidence | {report.confidence}% | How adequate this review "
+            "package is for a gate decision — **not** “% secure” |"
+        ),
+    ]
+    if report.securityAuditConfidence is not None:
+        lines.append(
+            f"| Security audit confidence | {report.securityAuditConfidence}% | "
+            "Honesty/completeness of P1 / `sec.*` checklist + scanners |"
+        )
+    if report.reliabilityAuditConfidence is not None:
+        lines.append(
+            f"| Reliability audit confidence | {report.reliabilityAuditConfidence}% | "
+            "Honesty/completeness of P2 / `rel.*` checklist |"
+        )
+    if report.architectureAuditConfidence is not None:
+        lines.append(
+            f"| Architecture audit confidence | {report.architectureAuditConfidence}% | "
+            "Honesty/completeness of P3 / `arch.*` checklist |"
+        )
+    lines.extend(
+        [
+            "| Severity counts | (above) | Finding tallies — independent of confidence % |",
+            "| Coverage | (below) | covered / N/A / missed checklist ids |",
+            "",
+        ]
+    )
+    return lines
 
 
 def _render_coverage_section(report: FindingReport) -> list[str]:

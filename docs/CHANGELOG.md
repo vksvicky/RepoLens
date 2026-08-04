@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 5.1 deep hardening)
+
+- **Gate confidence** recalibrated from coverage (lazy N/A → missed); separate **security / architecture / reliability audit confidence**
+- Report **Metrics** glossary (confidence ≠ “% secure”); CLI summary shows security audit %
+- Mega-file heuristic skips docs / `xcuserdata` / `pbxproj` by default
+- Priority band coercion (heuristics / non-`sec.*` off P1)
+- Deep progress wait timer resets **per pass**
+
 ### Added (Deep coverage)
 
 - Multi-pass **deep coverage** for LLM runs (default on): heuristics + chunked P1→P3 + checklist coverage tally; `--deep` / `--no-deep` (single-shot)

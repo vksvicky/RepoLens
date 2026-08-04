@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from repolens.heuristics.ci_gaps import find_ci_gaps
 from repolens.heuristics.gitignore_secrets import find_gitignore_secret_gaps
-from repolens.heuristics.mega_files import find_mega_files
+from repolens.heuristics.mega_files import DEFAULT_MEGA_FILE_EXCLUDES, find_mega_files
 from repolens.heuristics.scripts_hygiene import find_script_credential_hygiene, find_todo_density
 from repolens.heuristics.siblings import find_sibling_pairs
 from repolens.inventory import FileEntry
@@ -25,12 +26,22 @@ def run_heuristics(
     entries: list[FileEntry],
     *,
     mega_file_lines: int = 500,
+    mega_file_exclude_globs: Sequence[str] | None = None,
 ) -> HeuristicResult:
     root = root.resolve()
     issues: list[Issue] = []
     hot_paths: list[str] = []
 
-    mega_issues, mega_hots = find_mega_files(entries, mega_file_lines=mega_file_lines)
+    excludes = (
+        mega_file_exclude_globs
+        if mega_file_exclude_globs is not None
+        else DEFAULT_MEGA_FILE_EXCLUDES
+    )
+    mega_issues, mega_hots = find_mega_files(
+        entries,
+        mega_file_lines=mega_file_lines,
+        exclude_globs=excludes,
+    )
     issues.extend(mega_issues)
     hot_paths.extend(mega_hots)
 

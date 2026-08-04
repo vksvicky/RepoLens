@@ -47,7 +47,7 @@
 ### Task 3: Explain command
 
 - [ ] **Step 1:** Integration test with mocked `analyze_structured` writes `explain_*.md` containing Problem / Solutions / Diagram.
-- [ ] **Step 2:** `repolens explain`; lookup latest JSON + last_report pointer; respect `[explain].enabled`.
+- [ ] **Step 2:** Typer `repolens explain <uuid>` — lookup latest JSON + last_report pointer; respect `[explain].enabled`. Wire CLI flags from spec §5: `--no-diagram` (skip Mermaid/diagram section generation) and `--render-image` (force/opt into optional PNG/SVG when a renderer is available; honor `[explain].render_image` when flag omitted). Pass both through to `explain.py` / `diagrams.process_diagram`.
 - [ ] **Step 3:** Commit when user asks.
 
 ### Task 4: Review `--explain` + config + docs
