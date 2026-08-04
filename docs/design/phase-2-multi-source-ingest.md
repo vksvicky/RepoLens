@@ -1,6 +1,6 @@
 # Design: Phase 2 — Multi-source ingest (MVP)
 
-**Status:** Approved 2026-08-04  
+**Status:** Implemented 2026-08-04  
 **Scope:** `--git-url`, `--github`, `--bitbucket`, `--hf`  
 **Implements:** ADR-01 `SourceResolver`; CLI flags in [cli-and-report-schema.md](./cli-and-report-schema.md)
 

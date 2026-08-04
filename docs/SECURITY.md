@@ -46,7 +46,7 @@ Product behaviour (for operators of the CLI):
 | API keys | Bring your own; store in env / secret store — never in reports or git |
 | Cloud LLM | Code excerpts in prompts go to **your chosen provider** under their terms |
 | Local LLM | Supported path (e.g. Ollama) so reviews need not leave the machine |
-| Local learning (planned) | Opt-in index/memory under `.repolens/` (or cache dir); **no** upload to a RepoLens training service; user must be informed on enable |
+| Local learning (shipped) | Opt-in index/memory under `.repolens/`; **no** upload to a RepoLens training service; informed consent on enable (`repolens learn`) |
 | Scanners | Optional plugins; do not require cloud accounts for gitleaks/Semgrep/OSV-style tools |
 
-Details: [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) · [faq.md](./faq.md).
+Details: [local-learning.md](./local-learning.md) · [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) · [faq.md](./faq.md).

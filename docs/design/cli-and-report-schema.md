@@ -1,7 +1,7 @@
 # Design: CLI UX & report schema
 
-**Status:** Approved for Phase 0 exit; Phase 1 alpha implemented (2026-08-04)  
-**Implements in:** Phase 1+ (local path done; `--git-url`/`--github` in Phase 2 MVP)  
+**Status:** Approved; Phases 1–4 implemented (2026-08-04)  
+**Implements in:** Phase 1+ (local, remotes, scanners, CI Action, local learning)  
 **CLI language:** Python 3.11+ (see [Decision](#decision-cli-implementation-language))  
 **Runtime topology (diagrams):** [ADR-01](../adr/01_analysis_runtime_architecture.md) · [legend](../adr/_diagram_legend.md)
 
@@ -14,11 +14,11 @@
 | **Python 3.11+** ★ | Excellent CLI ergonomics (`typer`/`click`), strong security-scanner ecosystem, Hugging Face / data-science familiarity, easy packaging via `pipx`/`uv` | Heavier runtime than a static binary |
 | TypeScript (Node/Bun) | Fast iteration if UI added later; Octokit-native | Weaker fit for wrapping Semgrep/OSV/gitleaks; dual ecosystem for “security CLI” audience |
 
-**Choice: Python 3.11+**, packaged as console script `repolens`. Optional later: PyInstaller/uvx binaries (Phase 4).
+**Choice: Python 3.11+**, packaged as console script `repolens`. PyPI via Trusted Publishing; optional later PyInstaller/uvx binaries.
 
-Stack (Phase 1 alpha):
+Stack:
 
-| Concern | Library (planned) |
+| Concern | Library |
 |---------|-------------------|
 | CLI | `typer` + `rich` (implemented) |
 | Config | `tomllib` / `pydantic-settings` |

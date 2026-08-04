@@ -1,7 +1,7 @@
 # Design: AI keys, scanners, OWASP/CVE, and local learning
 
-**Status:** Accepted product principles (Phase 0)  
-**Implements:** Phase 1 (keys / local LLM), Phase 3 (scanners), Phase 4+ (local learning)  
+**Status:** Accepted product principles — Phases 1, 3, and 4 behaviour shipped (2026-08-04)  
+**Implements:** Phase 1 (keys / local LLM), Phase 3 (scanners), Phase 4 (local learning)  
 **User-facing summary:** [../faq.md](../faq.md)
 
 ---
@@ -32,7 +32,7 @@ RepoLens’s **narrative review** (playbooks → structured findings with impact
 
 ### Phase 1 core (shipped with `pip`/`uv` install)
 
-| Dependency class | Examples (planned) | Bundled? |
+| Dependency class | Examples | Bundled? |
 |------------------|--------------------|----------|
 | CLI / UX | `typer`, `rich` | Yes (Python deps) |
 | Config / validation | `pydantic`, `tomllib` | Yes |
@@ -101,7 +101,7 @@ RepoLens uses a **layered** security story. Layers answer different questions.
 
 **Goal:** Improve relevance over time **without** uploading the user’s repository to RepoLens servers (there are none in the CLI model).
 
-### What we will do (Phase 4+ — design locked now)
+### What we do (Phase 4 — shipped; see [local-learning.md](../local-learning.md))
 
 | Feature | Behaviour | Storage |
 |---------|-----------|---------|
@@ -243,11 +243,11 @@ You can turn learning off or delete the local folder anytime.
 
 | Question | Plain answer |
 |----------|--------------|
-| Need an AI key? | For cloud AI, **yes (yours)**. For AI on your PC, **no cloud key**. For checklist-only scans later, **no AI key**. |
+| Need an AI key? | For cloud AI, **yes (yours)**. For AI on your PC, **no cloud key**. For scanners-only (`--scanners-only`), **no AI key**. |
 | Self-sufficient? | **Full report:** only after you add cloud AI **or** local AI. **RepoLens alone** is the process + templates, not a hidden free AI service. |
-| Extra scanning tools built-in? | **Optional.** Small default install; big security tools added only if you want them. |
-| OWASP / CVE? | **AI** explains OWASP-style risks in your code. **Separate tools** list real CVE IDs in dependencies. We do both layers; we don’t pretend AI replaces CVE databases. |
-| Learn from my repo? | **Planned, local, opt-in, announced up front.** No silent upload to RepoLens for training. |
+| Extra scanning tools built-in? | **Optional.** Small default install; `repolens plugins install` or `[scanners]` when you want them. |
+| OWASP / CVE? | **AI** explains OWASP-style risks in your code. **OSV-Scanner / Semgrep / gitleaks** list deterministic evidence. We do both layers. |
+| Learn from my repo? | **Yes — local, opt-in, announced up front** (`repolens learn`). No silent upload to RepoLens for training. |
 
 ---
 
@@ -259,5 +259,5 @@ You can turn learning off or delete the local folder anytime.
 | OWASP/CWE tags on LLM findings + playbook appendix | 1–2 |
 | Plugin ABI + gitleaks/Semgrep/OSV | 3 (shipped) |
 | `repolens plugins install` / `[scanners]` extra | 3 (shipped) |
-| Local learning ADR + `.repolens/` layout | 4 |
-| Privacy section in SECURITY.md | 1 (doc), 4 (implementation) |
+| Local learning + `.repolens/` layout | 4 (shipped) |
+| Privacy section in SECURITY.md | shipped |

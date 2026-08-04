@@ -6,11 +6,11 @@ If you only read one section, read this.
 
 | Question | Plain answer |
 |----------|--------------|
-| **Do I need an AI key?** | For cloud AI (ChatGPT-style providers), **yes—you use your own key**. You can also run AI **on your own computer** (no cloud key). Checklist-only scans (later) need no AI key. |
+| **Do I need an AI key?** | For cloud AI (ChatGPT-style providers), **yes—you use your own key**. You can also run AI **on your own computer** (no cloud key). Scanners-only (`--scanners-only`) needs no AI key. |
 | **Is it self-sufficient?** | The download is the **review process and templates**, not a free built-in AI brain. For a full written review you add **your cloud key** or a **local AI**. For maximum privacy, use local AI. |
-| **Extra security software?** | Kept **optional** so the default install stays small. RepoLens can use tools you already have, or help install them later if you ask—it won’t force huge downloads on everyone. |
-| **OWASP / CVE?** | **AI** explains security themes (OWASP-style) in *your* code with fix suggestions. **Separate tools** list known library holes (**CVE** IDs). We use both kinds of check; AI alone is not a complete CVE list. |
-| **Does it learn from my repo?** | **Planned:** yes, but **on your machine only**, **off by default**, and **we tell you** before it starts. We don’t upload your project to train a central RepoLens model. If you use cloud AI, that provider may still see code excerpts you send for the review. |
+| **Extra security software?** | Kept **optional** so the default install stays small. Use tools on your `PATH`, or `repolens plugins install` / `repolens[scanners]`—no forced huge downloads. |
+| **OWASP / CVE?** | **AI** explains security themes (OWASP-style) in *your* code with fix suggestions. **OSV / Semgrep / gitleaks** list deterministic evidence (**CVE** IDs, secrets, SAST). AI alone is not a complete CVE list. |
+| **Does it learn from my repo?** | **Yes (opt-in):** on your machine only, off by default, and we tell you before it starts (`repolens learn`). We don’t upload your project to train a central RepoLens model. If you use cloud AI, that provider may still see code excerpts you send for the review. |
 
 Longer narrative: [design/ai-keys-scanners-and-local-learning.md §5](./design/ai-keys-scanners-and-local-learning.md#5-decision-summary-plain-language).  
 

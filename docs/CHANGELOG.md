@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional extra `repolens[local-ml]`; docs [local-learning.md](./local-learning.md)
 - Monorepo example + [review-confidence-log.md](./review-confidence-log.md)
 
+### Changed (docs sync)
+
+- README / FAQ / SECURITY / setup / ADR / issue templates updated for Phases 0–4 complete
+
 ### Added (Phase 3 scanners)
 
 - Optional scanners: gitleaks, Semgrep, OSV-Scanner (detect PATH / cache)

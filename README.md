@@ -4,8 +4,10 @@
 
 RepoLens is an open-source CLI that runs structured code reviews against projects you care about: on your machine, or cloned from GitHub, Bitbucket, Hugging Face, or any Git URL. It follows a clear **P1 → P2 → P3** pass (security → bugs/reliability/performance → architecture/quality) and writes audit-friendly reports with impact, remediation steps, and code-example fixes for Critical/High findings.
 
-> **Status:** Alpha `0.1.0a1` — Phases **0–4** done (CLI, remotes, scanners, GitHub Action, local learning). Install from source or git; PyPI via Trusted Publishing when configured.  
-> Tracker: [docs/phases.md](./docs/phases.md) · [CI](./docs/ci.md) · [Scanners](./docs/scanners.md) · [Local learning](./docs/local-learning.md)
+> **Status:** Alpha `0.1.0a1` — **Phases 0–4 complete**  
+> Local CLI · remotes (GitHub / Bitbucket / HF / git URL) · optional scanners · GitHub Action · opt-in local learning · PyPI Trusted Publishing workflow (upload after one-time PyPI setup)  
+> Install: `pip install -e .` from a clone, or `pip install "repolens @ git+https://github.com/vksvicky/RepoLens.git"`  
+> Docs: [phases](./docs/phases.md) · [FAQ](./docs/faq.md) · [CI / Action](./docs/ci.md) · [remotes](./docs/remote-sources.md) · [scanners](./docs/scanners.md) · [local learning](./docs/local-learning.md) · [publishing](./docs/publishing.md)
 
 ---
 
@@ -27,12 +29,14 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 
 | Command | What it does |
 |---------|--------------|
-| `repolens review` | Full dual review: P1 security + P2 reliability + P3 architecture (scoped or full) |
-| `repolens sentinel` | **Security-only** scan (P1 playbook)—fast guardrail pass |
-| `repolens architecture` | Architecture / production-readiness audit (full playbook) |
-| `repolens plugins` | Optional scanners: `status` / `install` (gitleaks, Semgrep, OSV) |
+| `repolens review` | Full dual review: P1 security + P2 reliability + P3 architecture |
+| `repolens sentinel` | **Security-only** scan (P1 playbook) |
+| `repolens architecture` | Architecture / production-readiness audit |
+| `repolens plugins` | Optional scanners: `status` / `list` / `install` |
 | `repolens learn` | Opt-in local index: `build` / `status` / `clear` |
-| `repolens export` | Export or convert an existing report (e.g. Markdown → PDF if tools allow) |
+| `repolens init` | Write user config (cloud key, Ollama, or none) |
+| `repolens export` | Export / convert a report (e.g. Markdown → PDF via pandoc) |
+| `repolens version` | Print package version |
 
 ---
 
@@ -41,19 +45,19 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 - **CLI:** Python 3.11+  
 - **Reviews:** language-agnostic, with first-class focus on JS/TS, Python, Go, JVM, C#, Ruby, PHP, Rust, Swift (+ IaC/config)  
 - **AI:** Bring your own cloud key **or** run a local model (e.g. Ollama)—no embedded RepoLens key  
-- **CVE / SAST / secrets:** optional plugins (OSV, Semgrep, gitleaks)—not forced into the slim install  
-- **Local learning:** opt-in on-disk index (`repolens learn`), informed consent first  
+- **CVE / SAST / secrets:** optional plugins (OSV, Semgrep, gitleaks)—not in the slim default install  
+- **Local learning:** opt-in on-disk FTS index (`repolens learn`), informed consent first  
+- **CI:** official GitHub Action (`action.yml`) — see [docs/ci.md](./docs/ci.md)
 
 Full answers: **[docs/faq.md](./docs/faq.md)** · **[docs/design/ai-keys-scanners-and-local-learning.md](./docs/design/ai-keys-scanners-and-local-learning.md)**.  
-
-**Setup steps (cloud key / local Ollama / scanners):** **[docs/setup-ai-and-scanners.md](./docs/setup-ai-and-scanners.md)**.
+**Setup (cloud / Ollama / scanners):** **[docs/setup-ai-and-scanners.md](./docs/setup-ai-and-scanners.md)**.
 
 ---
 
 ## Quick start
 
 ```bash
-# From a clone (alpha)
+# From a clone
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
@@ -68,12 +72,15 @@ repolens review --path ./my-app --dry-run
 repolens plugins install all
 repolens review --path ./my-app --scanners-only
 
+# Opt-in local learning (stays on disk)
+repolens learn build --path ./my-app --accept-local-learning
+
 # Full local review (requires configured provider + key/Ollama)
 repolens review --path ./my-app
 repolens sentinel --path ./my-app
 ```
 
-Remote sources:
+### Remotes
 
 ```bash
 repolens review --github owner/repo --dry-run
@@ -82,30 +89,44 @@ repolens review --bitbucket workspace/repo --dry-run
 repolens review --hf org/model --dry-run
 ```
 
-Private remotes: `GITHUB_TOKEN` / `BITBUCKET_TOKEN` / `HF_TOKEN` (or `gh auth login`). See [docs/remote-sources.md](./docs/remote-sources.md) · [docs/scanners.md](./docs/scanners.md).  
-You can also use the [playbooks](./playbooks/) with any LLM chat (see [docs/using-playbooks.md](./docs/using-playbooks.md)).
+Private remotes: `GITHUB_TOKEN` / `BITBUCKET_TOKEN` / `HF_TOKEN` (or `gh auth login`).  
+See [docs/remote-sources.md](./docs/remote-sources.md) · [docs/scanners.md](./docs/scanners.md).
+
+### GitHub Actions
+
+```yaml
+- uses: actions/checkout@v4
+- uses: vksvicky/RepoLens@main
+  with:
+    path: .
+    run: auto          # scanners always; LLM if API key secret is set
+    # or: run: dry-run
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # optional
+```
+
+Details: [docs/ci.md](./docs/ci.md).
+
+Playbooks also work with any LLM chat: [docs/using-playbooks.md](./docs/using-playbooks.md).
 
 ---
 
 ## Reports
 
-### In the terminal / chat
+### In the terminal
 Summaries show **confidence %**, severity counts, and top findings.
 
 ### Saved Markdown (default artifact)
 ```text
 reports/gate_review_report_YYYY-MM-DD.md
 ```
-Each Critical/High finding should include explanation, **impact**, recommended fix, and a **code example**.
+Each Critical/High finding includes explanation, **impact**, recommended fix, and a **code example**. Reports include an **Automated scanners** section when scanners run.
 
 ### PDF
-Markdown is the source of truth. Convert with pandoc when available:
-
 ```bash
 pandoc reports/gate_review_report_YYYY-MM-DD.md -o reports/gate_review_report_YYYY-MM-DD.pdf
+# or: Print → Save as PDF from a Markdown preview
 ```
-
-Or open the Markdown preview and use **Print → Save as PDF**.
 
 ---
 
@@ -124,35 +145,34 @@ More: [playbooks/README.md](./playbooks/README.md). Contributions: [docs/CONTRIB
 
 ```text
 RepoLens/
-├── README.md                 # This page (root on purpose)
+├── README.md                 # This page
 ├── LICENSE                   # MIT
-├── pyproject.toml            # Python package (Phase 1)
-├── src/repolens/             # CLI + pipeline
+├── action.yml                # GitHub Action (composite)
+├── pyproject.toml            # Python package
+├── src/repolens/             # CLI, pipeline, scanners, learning
 ├── tests/                    # pytest suite
 ├── playbooks/                # Review instruction sources
-├── docs/                     # All other documentation
-│   ├── README.md             # Docs index + naming conventions
-│   ├── phases.md             # Implementation tracker
-│   ├── faq.md                # Languages, tools, common questions
-│   ├── design/               # CLI UX & report schema
-│   ├── using-playbooks.md
-│   └── …                     # CHANGELOG, CONTRIBUTING, SECURITY, …
-└── .github/                  # Issue/PR templates, workflows
+├── examples/monorepo/        # Sample project config
+├── docs/                     # Guides, FAQ, ADR, design, phases
+└── .github/workflows/        # CI, publish, Action example
 ```
 
-Why some filenames are `UPPERCASE.md` and others are not: see [docs/README.md](./docs/README.md#naming-pattern).
+Naming conventions: [docs/README.md](./docs/README.md#naming-pattern).
 
 ---
 
-## Roadmap at a glance
+## Roadmap
 
-1. **Phase 0** — Docs, playbooks, design ← **done**
-2. **Phase 1** — Core CLI (Python): local path, `review` / `sentinel`, Markdown reports ← *alpha done*
-3. **Phase 2** — Remote sources (`--git-url`, `--github`, `--bitbucket`, `--hf`) ← *done*
-4. **Phase 3** — Optional scanner plugins (gitleaks, Semgrep, OSV) ← *done*
-5. **Phase 4** — GitHub Action, PyPI publish path, local learning ← *done*
+| Phase | Scope | Status |
+|-------|--------|--------|
+| **0** | Docs, playbooks, design | Done |
+| **1** | Core CLI (local path, reports, BYOK / Ollama) | Done (alpha) |
+| **2** | Remotes (`--git-url`, `--github`, `--bitbucket`, `--hf`) | Done |
+| **3** | Optional scanners (gitleaks, Semgrep, OSV) | Done |
+| **4** | GitHub Action, PyPI publish path, local learning | Done |
+| **Next** | Harden publish / marketplace polish / richer embeddings | Open |
 
-Details: **[docs/phases.md](./docs/phases.md)** · Design: **[docs/design/cli-and-report-schema.md](./docs/design/cli-and-report-schema.md)** · ADR: **[docs/adr/01_analysis_runtime_architecture.md](./docs/adr/01_analysis_runtime_architecture.md)**.
+Tracker: **[docs/phases.md](./docs/phases.md)** · Design: **[docs/design/](./docs/design/)** · ADR: **[docs/adr/01_analysis_runtime_architecture.md](./docs/adr/01_analysis_runtime_architecture.md)**.
 
 ---
 

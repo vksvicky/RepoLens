@@ -1,5 +1,5 @@
 name: Bug report
-description: Report incorrect docs, playbook issues, or (later) CLI bugs
+description: Report incorrect docs, playbook issues, CLI, Action, or scanner bugs
 title: "[Bug]: "
 labels: ["bug"]
 body:
@@ -14,8 +14,10 @@ body:
       options:
         - Documentation
         - Playbooks
-        - CLI (not yet shipped)
-        - CI / GitHub templates
+        - CLI
+        - Scanners / plugins
+        - GitHub Action / CI
+        - Local learning
         - Other
     validations:
       required: true

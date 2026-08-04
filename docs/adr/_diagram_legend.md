@@ -93,9 +93,9 @@ flowchart LR
 | **CLI alpha** | Phase 1 | Local `--path` reviews via `repolens` (BYOK / Ollama) |
 | **Transition** | Phase 1 | Local-path CLI + LLM analysis |
 | **Expanded source** | Phase 2 | Remote git hosts |
-| **Target durability** | Phase 3–4 | Scanner plugins (Phase 3 done) + CI Action (Phase 4) |
+| **Target durability** | Phase 3–4 | Scanner plugins + CI Action (**both shipped**) |
 
-When a diagram shows Phase 2+ nodes, mark them `phaseLater` (grey dashed)—do not imply they ship in Phase 1.
+Historical diagrams may still mark Phase 2+ nodes as `phaseLater` (grey dashed); treat legend plateaus as current when they say shipped.
 
 ---
 

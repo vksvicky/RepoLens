@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | **Accepted** (Phase 2 remotes: git-url, GitHub, Bitbucket, Hugging Face) |
+| **Status** | **Accepted** (Phases 1–4 shipped: local + remotes + scanners + Action + local learning) |
 | **Date** | 2026-08-04 |
 | **Context** | RepoLens must explain—visually and in prose—how a repository is ingested, prioritised (P1→P2→P3), analysed, validated, and reported across local and remote sources without replacing CI scanners. |
 | **Decision** | Adopt a **pipeline architecture**: Source → Inventory → Context pack → LLM analyse → Schema validate → Report. Modes (`review`, `sentinel`, `architecture`) select playbooks and priority bands; remotes and scanner plugins are phased add-ons. |
