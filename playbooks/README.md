@@ -2,7 +2,7 @@
 
 These Markdown files are the **source of truth** for RepoLens review quality.
 
-| File | Used by (planned CLI) | Purpose |
+| File | Used by (CLI) | Purpose |
 |------|------------------------|---------|
 | [security.md](./security.md) | `repolens sentinel`, and P1 of `repolens review` | Security analysis |
 | [architecture.md](./architecture.md) | `repolens architecture`, P3 / full audits | Architecture & production readiness |

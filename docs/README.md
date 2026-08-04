@@ -24,7 +24,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) | AI keys, OWASP/CVE layers, bundled vs optional scanners, local ML |
 | [adr/](./adr/) | ADRs + diagram legend (how analysis works) |
 | [adr/01_analysis_runtime_architecture.md](./adr/01_analysis_runtime_architecture.md) | Pipeline, modes, security zones (diagrams) |
-| [using-playbooks.md](./using-playbooks.md) | Run reviews today without the CLI |
+| [using-playbooks.md](./using-playbooks.md) | Run reviews via playbooks (with or without the CLI) |
 | [publishing-checklist.md](./publishing-checklist.md) | Publish / maintain the GitHub remote |
 | [CHANGELOG.md](./CHANGELOG.md) | User-facing release notes |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | How to contribute |

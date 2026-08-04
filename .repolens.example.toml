@@ -1,3 +1,7 @@
+# Security note: project-local [model] provider/base_url/api_key_env are IGNORED
+# unless you pass --trust-project-config (prevents untrusted-repo exfiltration).
+# Safe project overrides: model name, report_dir (relative only).
+#
 # Example config for the RepoLens CLI (Phase 1+).
 # CLI runtime: Python 3.11+
 # Copy to ~/.config/repolens/config.toml or ./.repolens.toml and fill in values.

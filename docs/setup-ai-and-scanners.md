@@ -11,10 +11,9 @@ RepoLens itself is the **review process**. To actually run a review you pick **o
 | **[B. Local AI](#option-b--local-ai-on-your-computer-e-g-ollama)** | You want code to stay on your machine | Yes |
 | **[C. Scanners only](#option-c--checklist-scanners-only-no-ai-narrative)** | You only need secrets / CVE-style lists | No — inventory only |
 
-> **Status today:** The `repolens` CLI is **not shipped yet** (Phase 1).  
-> - Options **A** and **B** can already be done with **[playbooks + any LLM chat](./using-playbooks.md)** using that product’s AI.  
-> - Commands marked **(planned CLI)** will work after Phase 1 / 3.  
-> Follow the steps now to prepare accounts and tools; use the playbook path until the CLI lands.
+> **Status today:** Phase 1 alpha — install from source (`pip install -e .`) and run `repolens init`.  
+> - Options **A** and **B** work via the CLI **or** **[playbooks + any LLM chat](./using-playbooks.md)**.  
+> - Optional scanners (Option **C** plugins) land in Phase 3; use `--dry-run` for inventory-only now.
 
 ---
 
@@ -69,9 +68,9 @@ To make it stick for new terminals, add the same line to your shell profile (`~/
 $env:OPENAI_API_KEY = "sk-your-key-here"
 ```
 
-#### 3) Tell RepoLens which provider to use **(planned CLI)**
+#### 3) Tell RepoLens which provider to use *(CLI)*
 
-When the CLI ships, create or edit config (see [`.repolens.example.toml`](../.repolens.example.toml)):
+Create or edit config (see [`.repolens.example.toml`](../.repolens.example.toml)), or run `repolens init`:
 
 ```toml
 # ~/.config/repolens/config.toml  OR  ./.repolens.toml
@@ -84,15 +83,15 @@ api_key_env = "OPENAI_API_KEY"      # name of the env var — not the key itself
 Then:
 
 ```bash
-repolens review --path /path/to/your/project     # planned CLI
+repolens review --path /path/to/your/project
 # or
 repolens sentinel --path /path/to/your/project   # security-only
 ```
 
-#### 4) Until the CLI ships — use playbooks
+#### 4) Optional — playbooks without the CLI
 
 1. Open your **project** in an editor or LLM chat that can see the files.  
-2. Follow [using-playbooks.md](./using-playbooks.md) (that product already uses *its* AI connection).  
+2. Follow [using-playbooks.md](./using-playbooks.md).  
 3. Ask for a Markdown export if you need a saved report.
 
 ### Checklist — Option A
@@ -100,7 +99,7 @@ repolens sentinel --path /path/to/your/project   # security-only
 - [ ] Provider account created  
 - [ ] API key stored safely (password manager)  
 - [ ] Key set in environment variable (not committed to git)  
-- [ ] Config points at provider **(CLI)** or your LLM chat is signed in **(today)**  
+- [ ] Config points at provider (`repolens init`) or your LLM chat is signed in  
 - [ ] You accept that **code excerpts** go to that provider during a review  
 
 ---
@@ -140,7 +139,7 @@ ollama run llama3.1 "Reply with the single word: pong"
 
 You should get a short reply. Leave Ollama running.
 
-#### 4) Point RepoLens at Ollama **(planned CLI)**
+#### 4) Point RepoLens at Ollama *(CLI)*
 
 ```toml
 # ~/.config/repolens/config.toml
@@ -152,12 +151,17 @@ base_url = "http://127.0.0.1:11434"
 ```
 
 ```bash
-repolens review --path /path/to/your/project     # planned CLI
+repolens review --path /path/to/your/project
 ```
 
-#### 5) Until the CLI ships
+#### 5) Run a review
 
-Use [playbooks](./using-playbooks.md) with an editor that can target a **local** model if your tool supports it; otherwise Option B’s full path waits for the RepoLens CLI + Ollama integration (Phase 1).
+```bash
+repolens init --provider ollama
+repolens review --path /path/to/your/project
+```
+
+Playbooks-only path still works: [using-playbooks.md](./using-playbooks.md).
 
 ### Checklist — Option B
 
@@ -206,7 +210,7 @@ semgrep --version         # if installed
 osv-scanner --version     # if installed
 ```
 
-#### 3) Enable scanners in RepoLens **(planned CLI)**
+#### 3) Enable scanners in RepoLens *(CLI)*
 
 ```toml
 [scanners]

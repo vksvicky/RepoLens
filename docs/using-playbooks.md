@@ -1,6 +1,6 @@
 # Using RepoLens playbooks without the CLI
 
-The CLI (`repolens`) is not shipped yet. You can still run the same reviews today with **ChatGPT**, **Claude**, **GitHub Copilot Chat**, or any LLM that can read your repository.
+Prefer the CLI when you can (`pip install -e .` from a clone — see [setup-ai-and-scanners.md](./setup-ai-and-scanners.md)). You can also run the same reviews with **ChatGPT**, **Claude**, **GitHub Copilot Chat**, or any LLM that can read your repository.
 
 For choosing and preparing **cloud AI vs local AI vs scanners**, see the step-by-step guide: [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
 
@@ -12,9 +12,9 @@ Open the **target repository** (local checkout) in your editor or chat tool—no
 
 | Goal | Playbook |
 |------|----------|
-| Security-only (like future `repolens sentinel`) | [playbooks/security.md](../playbooks/security.md) |
+| Security-only (`repolens sentinel`) | [playbooks/security.md](../playbooks/security.md) |
 | Full architecture / production audit | [playbooks/architecture.md](../playbooks/architecture.md) |
-| Full dual review (like future `repolens review`) | Use **both**, in order: security first, then architecture (scoped to the change unless you want a full audit) |
+| Full dual review (`repolens review`) | Use **both**, in order: security first, then architecture (scoped to the change unless you want a full audit) |
 
 ## 3. Example prompts
 
