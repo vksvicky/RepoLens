@@ -13,5 +13,6 @@ These Markdown files are the **source of truth** for RepoLens review quality.
 - Prefer evidence from real code paths over speculation.
 - Call out gaps in tests/CI/scanners; do not pretend LLM review replaces them.
 - Keep guidance portable across languages and hosts (local, GitHub, Bitbucket, Hugging Face, etc.).
+- Language support tiers (first-class vs best-effort): [docs/faq.md](../docs/faq.md).
 
 Improvements welcome via PR—see [docs/CONTRIBUTING.md](../docs/CONTRIBUTING.md).

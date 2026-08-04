@@ -36,3 +36,17 @@ We aim to acknowledge reports within **7 days** and to keep you updated on remed
 - Prefer `*.example` env files
 - Add secret patterns to `.gitignore`
 - Do not commit API keys for LLM providers or forge tokens
+
+## AI keys, code privacy, and local learning
+
+Product behaviour (for operators of the CLI):
+
+| Topic | Policy |
+|-------|--------|
+| API keys | Bring your own; store in env / secret store — never in reports or git |
+| Cloud LLM | Code excerpts in prompts go to **your chosen provider** under their terms |
+| Local LLM | Supported path (e.g. Ollama) so reviews need not leave the machine |
+| Local learning (planned) | Opt-in index/memory under `.repolens/` (or cache dir); **no** upload to a RepoLens training service; user must be informed on enable |
+| Scanners | Optional plugins; do not require cloud accounts for gitleaks/Semgrep/OSV-style tools |
+
+Details: [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) · [faq.md](./faq.md).

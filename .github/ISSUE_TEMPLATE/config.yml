@@ -5,4 +5,4 @@ contact_links:
     about: Report security issues privately (update this URL when the remote exists).
   - name: Using playbooks without the CLI
     url: https://github.com/vksvicky/RepoLens/blob/main/docs/using-playbooks.md
-    about: Guidance for running reviews via Cursor or another LLM today.
+    about: Guidance for running reviews via playbooks and an LLM today.

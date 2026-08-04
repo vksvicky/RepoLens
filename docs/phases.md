@@ -5,7 +5,9 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
-**Full review mode:** `repolens review` (P1 → P2 → P3)
+**Full review mode:** `repolens review` (P1 → P2 → P3)  
+**Current phase:** Phase 1 (Phase 0 complete — 2026-08-04)  
+**CLI language:** Python 3.11+
 
 ---
 
@@ -25,7 +27,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Repository created under `/Users/vivek/Development/RepoLens` | [x] | |
+| Repository created and published | [x] | https://github.com/vksvicky/RepoLens |
 | User-friendly README | [x] | |
 | This phases tracker (`docs/phases.md`) | [x] | Renamed from `PHASES.md`; lives under `docs/` |
 | Docs under `docs/`; root keeps `README` + `LICENSE` | [x] | Community health files in `docs/` (GitHub-supported) |
@@ -37,10 +39,13 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | CONTRIBUTING / CODE_OF_CONDUCT / SECURITY / SUPPORT / CHANGELOG | [x] | Under `docs/` with conventional filenames |
 | GitHub issue / PR templates | [x] | `.github/` |
 | Placeholder CI workflow | [x] | Docs / lint later |
-| Choose implementation language (Python vs TypeScript) | [ ] | Decision before Phase 1 coding |
-| Design spec for CLI UX & report schema | [ ] | `docs/design/` when approved |
+| Choose implementation language (Python vs TypeScript) | [x] | **Python 3.11+** — see design doc + FAQ |
+| Design spec for CLI UX & report schema | [x] | `docs/design/cli-and-report-schema.md` |
+| FAQ (incl. target languages / tools) | [x] | `docs/faq.md` |
+| ADR-01 analysis runtime + diagram legend | [x] | `docs/adr/` (Mermaid HLD / sequence / zones) |
+| Remote published (`vksvicky/RepoLens`) | [x] | https://github.com/vksvicky/RepoLens |
 
-**Phase 0 exit criteria:** Docs + playbooks + community files on `main`; language/design decided.
+**Phase 0 exit criteria:** Docs + playbooks + community files on `main`; language/design decided. → **Met (2026-08-04).**
 
 ---
 
@@ -52,15 +57,19 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 |------|--------|-------|
 | Package scaffold + `repolens` entrypoint | [ ] | |
 | Config file (`~/.config/repolens/` or project `.repolens.toml`) | [ ] | API keys, report dir, model |
+| First-run UX: BYOK vs Ollama vs scanners-only | [ ] | See design/ai-keys-scanners-and-local-learning.md |
+| Cloud + local (Ollama) provider adapters | [ ] | No embedded vendor key |
 | Load playbooks from `playbooks/` | [ ] | |
 | `repolens sentinel` — security-only (P1) | [ ] | |
 | `repolens review` — P1 → P2 → P3 on local tree/diff | [ ] | |
 | Finding schema: severity, impact, fix, codeExample (required Critical/High) | [ ] | |
+| OWASP/CWE tags on LLM findings (best-effort) | [ ] | Not a CVE DB |
 | Confidence % in summary | [ ] | |
 | Write `reports/gate_review_report_YYYY-MM-DD.md` | [ ] | |
 | `repolens export` (Markdown path; PDF if pandoc present) | [ ] | |
 | Unit/integration tests (TDD) for report writer & CLI args | [ ] | |
-| User docs: install + first review | [ ] | |
+| User docs: install + first review + AI key FAQ | [ ] | |
+| Setup guide: cloud / Ollama / scanners-only | [x] | `docs/setup-ai-and-scanners.md` (CLI commands marked planned) |
 
 **Phase 1 exit criteria:** Local full + sentinel reviews produce Markdown reports with mandatory Critical/High code examples; tests green in CI.
 
@@ -89,10 +98,11 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Plugin interface | [ ] | |
-| Secret scanning adapter (e.g. gitleaks) | [ ] | |
-| SAST adapter (e.g. Semgrep) | [ ] | |
-| Dependency / CVE adapter (e.g. OSV) | [ ] | |
+| Plugin interface | [ ] | Detect-if-installed; never hard-fail LLM path |
+| Secret scanning adapter (e.g. gitleaks) | [ ] | Optional extra / download-with-consent |
+| SAST adapter (e.g. Semgrep) | [ ] | OWASP-oriented rulesets where licensed |
+| Dependency / CVE adapter (e.g. OSV) | [ ] | Real CVE enumeration |
+| Optional `repolens[scanners]` / `plugins install` | [ ] | Not in slim default wheel |
 | Section in report: “Automated scanners” | [ ] | |
 | Docs: enabling plugins | [ ] | |
 
@@ -111,8 +121,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Pre-built binaries / package publish | [ ] | PyPI and/or npm |
 | Example configs for monorepos | [ ] | |
 | Confidence / history log helpers | [ ] | Optional `docs/review-confidence-log.md` |
+| Local ML learning (opt-in, on-disk only) | [ ] | `.repolens/` index + memory; informed consent; no phone-home |
+| Privacy notice + `local_learning` config | [ ] | See design/ai-keys-scanners-and-local-learning.md |
 
-**Phase 4 exit criteria:** Documented CI example; published install path for outsiders.
+**Phase 4 exit criteria:** Documented CI example; published install path; local-learning design implemented or explicitly deferred with FAQ accuracy.
 
 ---
 
@@ -122,6 +134,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 - Auto-commit or auto-push  
 - Replacing Snyk/CodeQL/Dependabot as the sole security program  
 - Claiming zero false positives from LLM-only analysis  
+- Shipping a shared/cloud RepoLens API key  
+- Training a global model on user repositories  
+- Silent local learning without consent  
+- Claiming CVE-complete coverage from the LLM playbook alone  
 
 ---
 
@@ -134,6 +150,13 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-04 | CLI-first; no UI in early phases | Focus on portable reviews |
 | 2026-08-04 | Root = `README` + `LICENSE` only for docs; rest under `docs/` | Clean root; GitHub still finds community files in `/docs` |
 | 2026-08-04 | `phases.md` kebab-case; keep `CONTRIBUTING.md` etc. uppercase | Only GitHub/Keep-a-Changelog conventional names use CAPS |
+| 2026-08-04 | CLI language **Python 3.11+** (`typer`/`rich` planned) | Scanner ecosystem + HF/git scripting; `pipx`/`uv` distribution |
+| 2026-08-04 | Target review: language-agnostic with first-class JS/TS, Python, Go, JVM, C#, Ruby, PHP, Rust, Swift | Match real multi-stack adoption; IaC/config first-class for security |
+| 2026-08-04 | Phase 0 complete | Design + FAQ + language locked; ready for Phase 1 scaffold |
+| 2026-08-04 | ADR-01 + `_diagram_legend.md` | Document how analysis works with Mermaid architecture views |
+| 2026-08-04 | BYOK + local Ollama; no embedded AI key | Self-sufficient only with local model; cloud is opt-in network |
+| 2026-08-04 | Scanners optional extras, not slim default | Detect-if-installed; CVE via OSV-class tools; OWASP via LLM+Semgrep layers |
+| 2026-08-04 | Local learning opt-in, on-disk, informed | No RepoLens training cloud; disclose cloud LLM still sends excerpts |
 
 ---
 
