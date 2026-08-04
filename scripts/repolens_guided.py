@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shlex
 import shutil
 import subprocess
@@ -16,6 +17,10 @@ from pathlib import Path
 from typing import Any, Literal
 
 RemoteKind = Literal["github", "git-url", "bitbucket", "hf"]
+
+
+def _has_cli_flag(help_text: str, flag: str) -> bool:
+    return re.search(rf"(?<![\w-]){re.escape(flag)}(?![\w-])", help_text) is not None
 
 
 @dataclass(frozen=True)
@@ -60,9 +65,9 @@ def probe_review_cli_caps() -> ReviewCliCaps:
     except (OSError, subprocess.SubprocessError):
         help_text = ""
     return ReviewCliCaps(
-        supports_verbose="--verbose" in help_text,
-        supports_timeout="--timeout" in help_text,
-        supports_full="--full" in help_text,
+        supports_verbose=_has_cli_flag(help_text, "--verbose"),
+        supports_timeout=_has_cli_flag(help_text, "--timeout"),
+        supports_full=_has_cli_flag(help_text, "--full"),
     )
 
 
