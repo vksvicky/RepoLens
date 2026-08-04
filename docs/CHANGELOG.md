@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed (docs sync)
 
 - README / FAQ / SECURITY / setup / ADR / issue templates updated for Phases 0–4 complete
+- [try-on-your-repo.md](./try-on-your-repo.md): generic `[username]` paths for local testing
 
 ### Security
 
