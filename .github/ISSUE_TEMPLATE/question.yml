@@ -1,0 +1,54 @@
+name: Question / discussion
+description: Ask about setup, teaching workflows, CI, or how RepoLens is meant to be used
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For defects use **Bug report**. For product ideas use **Feature request**.
+        General teaching / shipping feedback can also go on
+        [issue #6](https://github.com/vksvicky/RepoLens/issues/6).
+        **Do not** paste secrets, API keys, or proprietary source.
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Topic
+      options:
+        - Setup / install
+        - AI providers (Ollama / cloud)
+        - Scanners / plugins
+        - CI / Action
+        - Reports / metrics
+        - Teaching / mentoring
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to do?
+      description: Goal in plain language.
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Commands, docs, or approaches so far (optional but helpful).
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "macOS · pip from git · ollama · qwen2.5-coder:32b"
+  - type: checkboxes
+    id: mode
+    attributes:
+      label: Related modes
+      options:
+        - label: `repolens review`
+        - label: `repolens sentinel`
+        - label: `repolens architecture`
+        - label: Plugins / scanners
+        - label: Local learning
+        - label: Not sure / N/A
