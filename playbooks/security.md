@@ -26,7 +26,7 @@ Analyse and report in priority order when the change set is large:
 **P3:** Architecture & quality ([architecture.md](./architecture.md), scoped or full)
 
 1. **Scan for Common Security Vulnerabilities:**
-   - Injection risks (SQL Injection, Command Injection)
+   - Injection risks (SQL Injection, Command Injection). **Not** command injection: list-form `subprocess.run(argv, …)` / `shell=False` (Python default). Only flag when `shell=True` or a single shell string is executed; prefer Semgrep evidence for real injection.
    - Cross-Site Scripting (XSS)
    - Cross-Site Request Forgery (CSRF)
    - Insecure Authentication & Authorization mechanisms

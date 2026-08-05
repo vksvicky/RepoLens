@@ -42,6 +42,7 @@
 # chars_per_pass = 100000   # Max file-size budget (bytes) packed into each pass
 # mega_file_lines = 500     # Heuristic LOC threshold for mega-file findings
 # mega_file_exclude_globs = ["**/*.md", "**/docs/**", "**/.superpowers/**", "**/xcuserdata/**", "**/*.xcuserstate", "**/*.pbxproj"]
+# fp_calibrations = { subprocess_list_not_injection = true }  # demote list-form subprocess “injection” FPs (default on)
 # CLI: --deep / --no-deep (None → this config; --no-deep restores single-shot)
 
 [sources]

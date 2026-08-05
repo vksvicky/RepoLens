@@ -66,6 +66,9 @@ class DeepConfig(BaseModel):
     mega_file_lines: int = 500
     # Empty list falls back to package defaults in mega_files / runner.
     mega_file_exclude_globs: list[str] = Field(default_factory=list)
+    # Empty map → packaged FP-calibration defaults (see repolens.fp_calibrations).
+    # Set an id to false to disable; unknown ids are ignored.
+    fp_calibrations: dict[str, bool] = Field(default_factory=dict)
 
 
 class RepoLensConfig(BaseModel):
