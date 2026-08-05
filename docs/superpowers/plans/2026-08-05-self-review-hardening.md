@@ -69,4 +69,5 @@
 
 ## PR 4 — Docs polish
 
-- [ ] `docs/try-on-your-repo.md` Low nits  
+- [x] `docs/try-on-your-repo.md` Low nits  
+- [x] FAQ pointer under self-review / dogfood (already present)  
