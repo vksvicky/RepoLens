@@ -57,9 +57,10 @@
 
 ## PR 2 — Guided script (after PR 1)
 
-- [ ] `_run_capture` helper + High subprocess fixes  
-- [ ] URL validation; `_prompt_text` empty edge  
-- [ ] Tests in `tests/test_guided_script.py`
+- [x] `run_capture` helper + High subprocess fixes  
+- [x] URL validation; `_prompt_text` empty edge  
+- [x] Tests in `tests/test_guided_script.py`  
+- [x] Extract `_prompt_remote` for clearer `_collect_choices`
 
 ## PR 3 — Mega-file splits (after PR 2)
 

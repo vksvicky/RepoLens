@@ -19,9 +19,54 @@ from typing import Any, Literal
 
 RemoteKind = Literal["github", "git-url", "bitbucket", "hf"]
 
+_OWNER_REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+_HF_RE = re.compile(
+    r"^(datasets/|spaces/)?[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+)
+_GIT_URL_RE = re.compile(r"^(https?://|git@|ssh://).+", re.IGNORECASE)
+
 
 def _has_cli_flag(help_text: str, flag: str) -> bool:
     return re.search(rf"(?<![\w-]){re.escape(flag)}(?![\w-])", help_text) is not None
+
+
+def run_capture(
+    argv: list[str],
+    *,
+    timeout: float,
+) -> str:
+    """Run a command; return combined stdout/stderr, or '' on any failure."""
+    try:
+        proc = subprocess.run(
+            argv,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+        return f"{proc.stdout or ''}{proc.stderr or ''}"
+    except Exception:  # noqa: BLE001 — guided UX must not crash on probe failures
+        return ""
+
+
+def validate_remote_value(kind: RemoteKind, value: str) -> str | None:
+    """Return an error message if ``value`` is invalid for ``kind``, else None."""
+    text = value.strip()
+    if not text:
+        return "Value cannot be empty."
+    if kind in {"github", "bitbucket"}:
+        if not _OWNER_REPO_RE.match(text):
+            return "Expected owner/repo (letters, digits, ., _, -)."
+        return None
+    if kind == "hf":
+        if not _HF_RE.match(text):
+            return "Expected org/name or datasets|spaces/org/name."
+        return None
+    if kind == "git-url":
+        if not _GIT_URL_RE.match(text):
+            return "Expected a git URL (https://, git@, or ssh://)."
+        return None
+    return None
 
 
 def default_local_path(environ: Mapping[str, str] | None = None) -> str:
@@ -106,17 +151,7 @@ class GuidedChoices:
 
 def probe_review_cli_caps() -> ReviewCliCaps:
     """Probe once which optional review flags the local CLI documents."""
-    try:
-        proc = subprocess.run(
-            ["repolens", "review", "--help"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-        help_text = f"{proc.stdout or ''}{proc.stderr or ''}"
-    except (OSError, subprocess.SubprocessError):
-        help_text = ""
+    help_text = run_capture(["repolens", "review", "--help"], timeout=10)
     return ReviewCliCaps(
         supports_verbose=_has_cli_flag(help_text, "--verbose"),
         supports_timeout=_has_cli_flag(help_text, "--timeout"),
@@ -225,20 +260,12 @@ def format_command(argv: list[str]) -> str:
 
 
 def list_installed_models() -> list[str]:
-    try:
-        proc = subprocess.run(
-            ["ollama", "list"],
-            capture_output=True,
-            text=True,
-            timeout=3,
-            check=False,
-        )
-        if proc.returncode == 0 and proc.stdout.strip():
-            names = parse_ollama_list(proc.stdout)
-            if names:
-                return names
-    except (OSError, subprocess.SubprocessError):
-        pass
+    listed = run_capture(["ollama", "list"], timeout=3)
+    if listed.strip():
+        # run_capture merges stderr; parse_ollama_list ignores junk lines.
+        names = parse_ollama_list(listed)
+        if names:
+            return names
     try:
         with urllib.request.urlopen(
             "http://127.0.0.1:11434/api/tags", timeout=1
@@ -258,12 +285,18 @@ def list_installed_models() -> list[str]:
 def _prompt_text(prompt: str, default: str | None = None) -> str:
     suffix = f" [{default}]" if default is not None else ""
     while True:
-        raw = input(f"{prompt}{suffix}: ").strip()
+        try:
+            raw = input(f"{prompt}{suffix}: ").strip()
+        except EOFError:
+            if default is not None:
+                return default
+            print("Input ended; please provide a value.")
+            continue
         if raw:
             return raw
         if default is not None:
             return default
-        print("Please enter a value.")
+        print("Please enter a value (cannot be empty).")
 
 
 def _prompt_yes(prompt: str, *, default: bool = True) -> bool:
@@ -304,13 +337,39 @@ def _prompt_choice(
         print(f"Enter a number 1–{len(options)}.")
 
 
+def _prompt_remote() -> tuple[tuple[RemoteKind, str], str | None, str]:
+    """Prompt for remote kind/value/ref and report out directory."""
+    remote_kind_idx = _prompt_choice(
+        "Remote kind",
+        [
+            ("GitHub owner/repo", "--github"),
+            ("Git URL", "--git-url"),
+            ("Bitbucket", "--bitbucket"),
+            ("Hugging Face", "--hf"),
+        ],
+        default=1,
+    )
+    kind_map: list[RemoteKind] = ["github", "git-url", "bitbucket", "hf"]
+    kind = kind_map[remote_kind_idx - 1]
+    flag_name = "git-url" if kind == "git-url" else kind
+    while True:
+        value = _prompt_text(f"Value for --{flag_name}")
+        err = validate_remote_value(kind, value)
+        if err is None:
+            break
+        print(f"Invalid --{flag_name}: {err}")
+    ref_raw = input("Optional --ref (branch/tag/commit) [none]: ").strip()
+    out = str(Path(_prompt_text("Report output directory", "./reports")).expanduser())
+    return (kind, value.strip()), (ref_raw or None), out
+
+
 def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
     caps = caps if caps is not None else probe_review_cli_caps()
 
     source = _prompt_choice(
         "Source",
         [
-            ("Local path", "analyze a checkout on disk"),
+            ("Local path", "analyse a checkout on disk"),
             ("Advanced remote", "GitHub / git URL / Bitbucket / HF"),
         ],
         default=1,
@@ -336,31 +395,7 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
         out_raw = _prompt_text("Report output directory", default_out)
         out = str(Path(out_raw or default_out).expanduser())
     else:
-        remote_kind_idx = _prompt_choice(
-            "Remote kind",
-            [
-                ("GitHub owner/repo", "--github"),
-                ("Git URL", "--git-url"),
-                ("Bitbucket", "--bitbucket"),
-                ("Hugging Face", "--hf"),
-            ],
-            default=1,
-        )
-        kind_map: list[RemoteKind] = [
-            "github",
-            "git-url",
-            "bitbucket",
-            "hf",
-        ]
-        kind = kind_map[remote_kind_idx - 1]
-        flag_name = "git-url" if kind == "git-url" else kind
-        value = _prompt_text(f"Value for --{flag_name}")
-        remote = (kind, value)
-        ref_raw = input(
-            "Optional --ref (branch/tag/commit) [none]: "
-        ).strip()
-        ref = ref_raw or None
-        out = str(Path(_prompt_text("Report output directory", "./reports")).expanduser())
+        remote, ref, out = _prompt_remote()
 
     kind_idx = _prompt_choice(
         "Review kind",

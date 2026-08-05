@@ -11,6 +11,7 @@ sys.path.insert(0, str(SCRIPTS))
 from repolens_guided import (  # noqa: E402
     GuidedChoices,
     _has_cli_flag,
+    _prompt_text,
     build_argv,
     default_local_path,
     format_command,
@@ -20,7 +21,9 @@ from repolens_guided import (  # noqa: E402
     parse_ollama_list,
     parse_ollama_tags_json,
     probe_review_cli_caps,
+    run_capture,
     suggest_timeout_seconds,
+    validate_remote_value,
 )
 
 
@@ -323,6 +326,39 @@ def test_probe_review_cli_caps_empty_on_error() -> None:
     assert caps.supports_full is False
     assert caps.supports_changed is False
     assert caps.supports_deep is False
+
+
+def test_probe_review_cli_caps_empty_on_unexpected_error() -> None:
+    with patch(
+        "repolens_guided.subprocess.run",
+        side_effect=RuntimeError("boom"),
+    ):
+        caps = probe_review_cli_caps()
+    assert caps.supports_verbose is False
+
+
+def test_run_capture_returns_empty_on_failure() -> None:
+    with patch(
+        "repolens_guided.subprocess.run",
+        side_effect=TimeoutError("slow"),
+    ):
+        assert run_capture(["repolens", "review", "--help"], timeout=1) == ""
+
+
+def test_validate_remote_value() -> None:
+    assert validate_remote_value("github", "owner/repo") is None
+    assert validate_remote_value("github", "bad") is not None
+    assert validate_remote_value("github", "") is not None
+    assert validate_remote_value("hf", "datasets/org/name") is None
+    assert validate_remote_value("git-url", "https://github.com/o/r.git") is None
+    assert validate_remote_value("git-url", "not-a-url") is not None
+
+
+def test_prompt_text_uses_default_and_rejects_empty() -> None:
+    with patch("builtins.input", side_effect=["", "  ", "ok"]):
+        assert _prompt_text("Path") == "ok"
+    with patch("builtins.input", side_effect=[""]):
+        assert _prompt_text("Path", ".") == "."
 
 
 def test_build_argv_changed_only() -> None:
