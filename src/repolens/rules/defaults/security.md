@@ -100,6 +100,7 @@ For each issue:
 - Use CVSS (Common Vulnerability Scoring System) scores to prioritise where possible.
 - Highlight any systemic patterns that increase risk (e.g., recurring lack of input validation).
 - Prefer evidence from actual code paths; avoid speculative findings.
+- List-form `subprocess.run(argv, …)` / `shell=False` is **not** command injection. Flag only with `shell=True` or a shell string; prefer Semgrep for real injection.
 - Note gaps in **mature automated scanning** (Dependabot/Renovate, Snyk or equivalent SCA, CodeQL/Semgrep, secret scanning). LLM review does not replace these in CI.
 
 ---

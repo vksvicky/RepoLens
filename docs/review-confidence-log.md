@@ -14,6 +14,7 @@ Durable record of dual-review gate confidence over time.
 | 2026-08-05 | WIP→commit | 90% | 0/0/0/0 | PR1 self-review noise + British English report prose | chat |
 | 2026-08-05 | WIP→commit | 90% | 0/0/0/1 | PR3 mega-file splits (cli/llm/pipeline/guided packages); 272 pytest green | chat |
 | 2026-08-05 | WIP→commit | 94% | 0/0/0/0 | PR4 try-on-your-repo Low nits + FAQ dogfood hardening pointer | chat |
+| 2026-08-05 | WIP→commit | 91% | 0/0/0/0 | FP calibrations via [deep].fp_calibrations; subprocess list-form demote; 278 pytest | chat |
 
 ## How to use
 

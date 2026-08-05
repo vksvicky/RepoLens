@@ -232,6 +232,12 @@ def _analyze_deep_passes(
 
     report = merge_reports(parts, heur.issues)
     report.issues = coerce_issue_bands(report.issues)
+    from repolens.fp_calibrations import apply_fp_calibrations
+
+    # Calibrate LLM-merged issues only (heuristics are already mixed in;
+    # calibrations match injection/subprocess text patterns, not heuristic cats).
+    report.issues = apply_fp_calibrations(report.issues, cfg.deep)
+    report.summary = report.recount_summary()
     # Deduplicate coverage id list while preserving order
     seen_ids: set[str] = set()
     unique_ids: list[str] = []

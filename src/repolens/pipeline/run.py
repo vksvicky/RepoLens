@@ -336,6 +336,12 @@ def run_review(
                                 root=root,
                                 on_delta=gen.note_delta,
                             )
+                            from repolens.fp_calibrations import apply_fp_calibrations
+
+                            report.issues = apply_fp_calibrations(
+                                report.issues, cfg.deep
+                            )
+                            report.summary = report.recount_summary()
                         gen.mark_done()
                 except BaseException:
                     if store is not None:
