@@ -48,8 +48,7 @@ On each review RepoLens can maintain `.repolens/repolens.sqlite` (local): file f
 | **Critical / High / Medium / Low** | Finding severity counts | Confidence % |
 | **Coverage** covered / N/A / missed | Checklist accountability | “N/A = ignored forever” — lazy N/A are rejected in 5.1 |
 
-Design: [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md).
-| `[deep]` in config | `enabled`, `chars_per_pass`, `mega_file_lines` |
+Design: [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md). Config: `[deep]` (`enabled`, `chars_per_pass`, `mega_file_lines`).
 
 **Rules** load by **id** from a registry (project `.repolens/rules/` → user config → packaged defaults)—not hard-coded Markdown paths on the author’s machine. Override a rule with `.repolens/rules/<id>.md`.
 
@@ -58,6 +57,59 @@ If the model returns invalid JSON, RepoLens still writes a report (scanners + he
 **Cloud tip (Phase A):** Anthropic / OpenAI use the **same `--deep` pipeline**—pick the provider via `repolens init`; deep mode is what drives checklist completeness on large repos (e.g. PatternSorcerer-sized trees).
 
 Guided wizard: `./scripts/repolens-guided.sh` prompts for deep (default **Y** on review / full-audit).
+
+---
+
+## Do I need `--full-audit` every time? (review profiles)
+
+**No.** Full audit runs deep P1→P2→P3 with the full architecture checklist — often **30–60+ minutes** on a 32B local model and a ~180-file pack. Use profiles:
+
+| Goal | Suggested command | Typical cost (32B local, large pack) |
+|------|-------------------|--------------------------------------|
+| Verify metric / security band only | `repolens sentinel …` (P1 only) | ~1 deep pass |
+| Day-to-day / PR delta | `repolens review --changed …` | Often skips LLM if no file delta; else smaller pack |
+| Normal dual review | `repolens review …` (deep on, **no** `--full-audit`) | 3 passes, scoped P3 |
+| Release / milestone | `repolens review --full-audit …` | 3 passes + full arch + scores |
+| Fast scanners only | `repolens review --scanners-only …` | Seconds–minutes |
+| Thin single-shot | `repolens review --no-deep …` | 1 LLM call (weaker coverage) |
+
+To check the **security audit confidence** fix without a 40‑minute full audit: run **`sentinel`** (or `review` without `--full-audit`).
+
+---
+
+## Which model should I use? (quality vs time vs machine)
+
+Findings quality is mostly **model + pack size**, not CPU brand alone. Apple Silicon (M4) is strong for local LLMs; **unified memory** and model size dominate wall time.
+
+| Setup | Quality (depth / adherence) | Speed | Notes |
+|-------|----------------------------|-------|-------|
+| Cloud Claude / GPT (Phase A) | Highest for checklist prose | Minutes | BYOK; same `--deep` pipeline |
+| Local **32B+** coder (e.g. `qwen2.5-coder:32b`) | Strong local | Slow (tens of min / pass) | Needs ~24–48 GB+ unified memory comfortably |
+| Local **14B** | Medium | Medium | Good daily driver on 16–24 GB |
+| Local **7B** | Thinner / more N/A | Faster | Prefer `--changed` / smaller packs; heuristics still help |
+| `--scanners-only` | No LLM narrative | Fast | Complements, does not replace playbook review |
+
+**Rough local guidance**
+
+| Machine RAM (unified / system) | Prefer | Avoid for full-audit packs |
+|-------------------------------|--------|----------------------------|
+| ≤16 GB | 7B, deep + `--changed`, or cloud | 32B full-audit on large repos |
+| 24–36 GB | 14B daily; 32B for sentinel / scoped review | Frequent 32B `--full-audit` |
+| 48 GB+ (e.g. high-spec M4) | 32B deep review OK; full-audit for releases | Expect 30–60+ min on large packs anyway |
+
+Guided script warns when a large model is paired with a likely full pack. Timeouts: 7B ~900s, 14B ~1800s, 32B ~3600s per HTTP call (see guided helpers).
+
+---
+
+## What does “still waiting” mean during a deep pass?
+
+Today each LLM pass is a **blocking HTTP** request (not token-streaming yet). The heartbeat shows:
+
+- which deep pass (p1/p2/p3) and model/provider  
+- prompt size / file count / coverage ids  
+- for Ollama: best-effort `/api/ps` (model loaded / idle)  
+
+It does **not** yet show “% tokens generated”. Streaming progress is a follow-up improvement.
 
 ---
 

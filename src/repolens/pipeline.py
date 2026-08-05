@@ -241,7 +241,22 @@ def _analyze_deep_passes(
             f"Deep pass {idx}/{n} ({deep_pass.name}) — {model_name} via {provider} "
             f"(timeout {timeout:g}s — large repos can take several minutes)"
         )
-        with prog.waiting(wait_label):
+        wait_hint = (
+            f"blocking HTTP to {provider} (no token stream yet); "
+            f"prompt ≈ {len(prompt):,} chars; "
+            f"{len(deep_pass.files)} file(s); "
+            f"{len(deep_pass.coverage_ids)} coverage id(s)"
+        )
+        status_fn = None
+        if provider == "ollama":
+            from repolens.provider_status import ollama_running_summary
+
+            ollama_base = cfg.model.base_url
+
+            def status_fn(base: str | None = ollama_base) -> str | None:
+                return ollama_running_summary(base)
+
+        with prog.waiting(wait_label, hint=wait_hint, status_fn=status_fn):
             result = analyze_structured(
                 prompt,
                 cfg.model,

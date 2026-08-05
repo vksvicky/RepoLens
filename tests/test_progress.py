@@ -48,6 +48,25 @@ def test_waiting_heartbeat(monkeypatch) -> None:
     assert "still waiting" in text
 
 
+def test_waiting_heartbeat_includes_hint_and_status_fn() -> None:
+    buf = io.StringIO()
+    prog = ReviewProgress(
+        heartbeat_seconds=0.05,
+        verbose=True,
+        console=Console(file=buf, force_terminal=False),
+    )
+    with prog.waiting(
+        "Deep pass 1/3 (p1)",
+        hint="prompt ≈ 12,000 chars",
+        status_fn=lambda: "Ollama: qwen running",
+    ):
+        time.sleep(0.12)
+    text = buf.getvalue()
+    assert "still waiting" in text
+    assert "prompt ≈ 12,000 chars" in text
+    assert "Ollama: qwen" in text.replace("\n", "")
+
+
 def test_waiting_heartbeat_disabled() -> None:
     buf = io.StringIO()
     prog = ReviewProgress(
