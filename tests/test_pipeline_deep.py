@@ -145,7 +145,7 @@ def test_deep_waiting_once_per_pass(tmp_path: Path) -> None:
     waiting_labels: list[str] = []
 
     @contextmanager
-    def fake_waiting(self, message: str):
+    def fake_waiting(self, message: str, **_kwargs):
         waiting_labels.append(message)
         yield
 
@@ -187,7 +187,7 @@ def test_no_deep_keeps_outer_waiting(tmp_path: Path) -> None:
     waiting_labels: list[str] = []
 
     @contextmanager
-    def fake_waiting(self, message: str):
+    def fake_waiting(self, message: str, **_kwargs):
         waiting_labels.append(message)
         yield
 

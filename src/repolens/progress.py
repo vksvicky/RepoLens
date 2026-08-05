@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field
 from typing import TextIO
@@ -44,14 +44,27 @@ class ReviewProgress:
         self._print(f"[dim]  · {message}[/dim]")
 
     @contextmanager
-    def waiting(self, message: str) -> Iterator[None]:
-        """Show spinner (TTY) and periodic heartbeat while a long step runs."""
+    def waiting(
+        self,
+        message: str,
+        *,
+        hint: str | None = None,
+        status_fn: Callable[[], str | None] | None = None,
+    ) -> Iterator[None]:
+        """Show spinner (TTY) and periodic heartbeat while a long step runs.
+
+        ``hint`` is printed once at start (verbose) and appended to heartbeats.
+        ``status_fn`` is polled each heartbeat for live provider detail (e.g. Ollama).
+        Until streaming ships, heartbeats mean “HTTP call still in flight”, not token %.
+        """
         if self.quiet:
             yield
             return
 
         assert self.console is not None
         self.phase(message)
+        if hint:
+            self.detail(hint)
         stop = threading.Event()
         started = time.monotonic()
 
@@ -59,7 +72,20 @@ class ReviewProgress:
             interval = max(0.05, float(self.heartbeat_seconds))
             while not stop.wait(interval):
                 elapsed = int(time.monotonic() - started)
-                self._print(f"[dim]… still waiting ({elapsed}s): {message}[/dim]")
+                extras: list[str] = []
+                if hint:
+                    extras.append(hint)
+                if status_fn is not None:
+                    try:
+                        live = status_fn()
+                    except Exception:  # noqa: BLE001 — never break wait on status probe
+                        live = None
+                    if live:
+                        extras.append(live)
+                suffix = (" — " + " | ".join(extras)) if extras else ""
+                self._print(
+                    f"[dim]… still waiting ({elapsed}s): {message}{suffix}[/dim]"
+                )
 
         use_heartbeat = float(self.heartbeat_seconds) > 0
         thread: threading.Thread | None = None
