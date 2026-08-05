@@ -22,7 +22,20 @@ Longer narrative: [design/ai-keys-scanners-and-local-learning.md §5](./design/a
 
 ## What is the adaptive cache (Phase 5)?
 
-On each review RepoLens can maintain `.repolens/repolens.sqlite` (local): file fingerprints + run timings + optional FTS content (opt-in). Later runs prefer **changed + P1** files (`adaptive.mode=auto`), and store a **recommended timeout** per project. Override with `--timeout`, config, or `--full` for a full pack. Inspect with `repolens adaptive status --path .`. Disable with `[adaptive] enabled = false`.
+On each review RepoLens can maintain `.repolens/repolens.sqlite` (local): file fingerprints + run timings + optional FTS content (opt-in). Later runs prefer **changed + P1** files (`adaptive.mode=auto`), and store a **recommended timeout** per project.
+
+| Flag / config | Effect |
+|---------------|--------|
+| *(default)* `adaptive.mode=auto` | Warm re-review: smaller LLM pack (changed + hot paths) |
+| `--changed` | LLM pack = added/changed only (skip LLM if none) |
+| `--full` | Force full LLM pack (ignore adaptive selection) |
+| `--timeout N` / `REPOLENS_TIMEOUT` / `[model].timeout_seconds` | Explicit timeout — **always wins** over the recommendation |
+| `repolens adaptive status --path .` | Fingerprints, pending diff, recommended timeout |
+| `[adaptive] enabled = false` | Disable fingerprint cache / pack selection |
+
+**Timeout resolution order:** CLI `--timeout` → `REPOLENS_TIMEOUT` → explicit `[model].timeout_seconds` → `meta.recommended_timeout_seconds` (from prior runs) → provider default (Ollama 900s, cloud 120s).
+
+Fingerprints never store file contents. FTS content learning stays opt-in (`repolens learn` + consent). Design: [phase-5-adaptive-cache-and-recommendations.md](./design/phase-5-adaptive-cache-and-recommendations.md).
 
 ---
 
@@ -44,17 +57,20 @@ On each review RepoLens can maintain `.repolens/repolens.sqlite` (local): file f
 |--------|--------|-------------------|
 | **Gate confidence** | Adequacy of the overall review package | App is 95% secure / well-architected |
 | **Security audit confidence** | Honesty/completeness of the **P1 / `sec.*`** checklist + scanners, **reduced** when Critical/High security findings remain | A CleanVibes-style “% secure” posture score, or CVE completeness |
-| **Architecture audit confidence** | Honesty/completeness of the **P3 / arch.*** checklist | The 1–10 architecture `scores` block |
+| **Architecture audit confidence** | Honesty/completeness of the P3 / `arch.*` checklist | The 1–10 architecture `scores` block |
 | **Critical / High / Medium / Low** | Finding severity counts | Confidence % |
 | **Coverage** covered / N/A / missed | Checklist accountability | “N/A = ignored forever” — lazy N/A are rejected in 5.1 |
+| **Duration** | Wall-clock for the whole command | Per-pass LLM time alone |
 
-Design: [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md). Config: `[deep]` (`enabled`, `chars_per_pass`, `mega_file_lines`).
+**Mode scope:** `repolens sentinel` scores the **security** band only — architecture / reliability audit % are omitted (N/A), not `0%`. Gate confidence reflects that sentinel package. Reports are named `gate_review_report_{mode}_YYYY-MM-DD_HHMM.*` so modes do not overwrite each other.
+
+Design: [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md). Config: `[deep]` (`enabled`, `chars_per_pass`, `mega_file_lines`, `mega_file_exclude_globs`).
 
 **Rules** load by **id** from a registry (project `.repolens/rules/` → user config → packaged defaults)—not hard-coded Markdown paths on the author’s machine. Override a rule with `.repolens/rules/<id>.md`.
 
 If the model returns invalid JSON, RepoLens still writes a report (scanners + heuristics + any salvageable issues) and exits **0**.
 
-**Cloud tip (Phase A):** OpenAI / Anthropic / DeepSeek / `openai_compatible` use the **same `--deep` pipeline**—pick the provider via `repolens init`; deep mode is what drives checklist completeness on large repos (e.g. PatternSorcerer-sized trees).
+**Cloud tip (Phase A):** OpenAI / Anthropic / DeepSeek / `openai_compatible` use the **same `--deep` pipeline** as Ollama — provider choice is quality/cost/privacy, not a separate review path. Pick via `repolens init --provider …`. Heartbeats stream completion chars for all of these (Ollama also shows `/api/ps` load). Named aliases for Azure/Groq/etc. are **Phase 8**; native Gemini/Bedrock are **Phase 9**.
 
 Guided wizard: `./scripts/repolens-guided.sh` prompts for deep (default **Y** on review / full-audit).
 

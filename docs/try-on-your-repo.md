@@ -159,8 +159,13 @@ repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only --fail-
 #           --heartbeat 0 to disable heartbeats; -q for quiet (CI)
 # Deep coverage (heuristics + chunked passes) is on by default; --no-deep = single-shot
 repolens review --path "$TARGET" --out "$TARGET/reports" --verbose
+# After the first run: inspect adaptive cache / recommended timeout
+repolens adaptive status --path "$TARGET"
+# Warm / PR-sized re-run (smaller pack; may skip LLM if nothing changed)
+# repolens review --path "$TARGET" --out "$TARGET/reports" --changed --verbose
 # Large / audit-style: --full-audit (uses deep + full architecture checklist)
 # repolens review --path "$TARGET" --out "$TARGET/reports" --full-audit --verbose
+# Security-only (P1): does not overwrite a review report; arch metrics omitted
 repolens sentinel --path "$TARGET" --out "$TARGET/reports"
 ```
 
@@ -339,6 +344,9 @@ repolens review --path . --out .\reports-dogfood
 | No LLM key | Use `--dry-run` or `--scanners-only` (where scanners are available) |
 | Deep coverage (default on) | `--deep` multi-pass + heuristics; `--no-deep` single-shot |
 | Full architecture audit | `--full-audit` (pairs with deep) |
+| Faster warm re-review | `--changed` or default `adaptive.mode=auto`; see `repolens adaptive status` |
+| Force full LLM pack | `--full` |
+| Cloud BYOK same pipeline | `repolens init --provider openai\|anthropic\|deepseek` (Phase A) |
 | Fail CI-style on High+ | `--fail-on HIGH` |
 | One source only | Exactly one of `--path`, `--github`, `--bitbucket`, `--hf`, `--git-url` |
 | Remotes deep dive | [remote-sources.md](./remote-sources.md) |

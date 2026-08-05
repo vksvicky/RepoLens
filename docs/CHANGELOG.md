@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mega-file heuristic skips docs / `xcuserdata` / `pbxproj` by default
 - Priority band coercion (heuristics / non-`sec.*` off P1)
 - Deep progress wait timer resets **per pass**
+- Streamed LLM wait progress (Ollama + BYOK); report **Duration** + `{mode}_HHMM` filenames
+- Sentinel / partial modes omit unscored audit bands (not `0%`)
+- User docs: adaptive UX (FAQ / setup / try-on); Phase A same-`--deep`-pipeline tip complete
 
 ### Added (Deep coverage)
 
