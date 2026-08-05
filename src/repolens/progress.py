@@ -14,6 +14,34 @@ from rich.console import Console
 
 
 @dataclass
+class LlmGenerateProgress:
+    """Thread-safe counters updated while an LLM stream is in flight."""
+
+    chars: int = 0
+    chunks: int = 0
+    phase: str = "connecting"  # connecting | generating | done
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+
+    def note_delta(self, text: str) -> None:
+        if not text:
+            return
+        with self._lock:
+            self.chars += len(text)
+            self.chunks += 1
+            self.phase = "generating"
+
+    def mark_done(self) -> None:
+        with self._lock:
+            self.phase = "done"
+
+    def summary(self) -> str:
+        with self._lock:
+            if self.chars <= 0:
+                return "stream: waiting for first token (prompt still evaluating)"
+            return f"stream: {self.chars:,} chars · {self.chunks} chunk(s) received"
+
+
+@dataclass
 class ReviewProgress:
     """Phase lines (A), verbose details (B), and LLM wait heartbeat (C)."""
 
@@ -53,9 +81,9 @@ class ReviewProgress:
     ) -> Iterator[None]:
         """Show spinner (TTY) and periodic heartbeat while a long step runs.
 
-        ``hint`` is printed once at start (verbose) and appended to heartbeats.
-        ``status_fn`` is polled each heartbeat for live provider detail (e.g. Ollama).
-        Until streaming ships, heartbeats mean “HTTP call still in flight”, not token %.
+        ``hint`` is printed once at start (verbose). Heartbeats prefer live
+        ``status_fn`` output (stream chars, Ollama /api/ps) over repeating the
+        static hint, so progress lines stay readable.
         """
         if self.quiet:
             yield
@@ -73,8 +101,6 @@ class ReviewProgress:
             while not stop.wait(interval):
                 elapsed = int(time.monotonic() - started)
                 extras: list[str] = []
-                if hint:
-                    extras.append(hint)
                 if status_fn is not None:
                     try:
                         live = status_fn()
@@ -82,6 +108,8 @@ class ReviewProgress:
                         live = None
                     if live:
                         extras.append(live)
+                elif hint:
+                    extras.append(hint)
                 suffix = (" — " + " | ".join(extras)) if extras else ""
                 self._print(
                     f"[dim]… still waiting ({elapsed}s): {message}{suffix}[/dim]"

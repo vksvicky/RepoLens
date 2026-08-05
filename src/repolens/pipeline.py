@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,7 +27,7 @@ from repolens.inventory import FileEntry, list_files, read_excerpt
 from repolens.llm import default_model, resolve_llm_timeout
 from repolens.metrics import compute_audit_metrics
 from repolens.playbooks import playbooks_for_mode
-from repolens.progress import ReviewProgress, null_progress
+from repolens.progress import LlmGenerateProgress, ReviewProgress, null_progress
 from repolens.report import write_json_report, write_markdown_report
 from repolens.rules.registry import Rule, load_enabled_rules
 from repolens.scanners.runner import missing_required, parse_scanners_flag, run_scanners
@@ -242,19 +243,27 @@ def _analyze_deep_passes(
             f"(timeout {timeout:g}s — large repos can take several minutes)"
         )
         wait_hint = (
-            f"blocking HTTP to {provider} (no token stream yet); "
+            f"streaming chat completions; "
             f"prompt ≈ {len(prompt):,} chars; "
             f"{len(deep_pass.files)} file(s); "
             f"{len(deep_pass.coverage_ids)} coverage id(s)"
         )
-        status_fn = None
-        if provider == "ollama":
-            from repolens.provider_status import ollama_running_summary
+        gen = LlmGenerateProgress()
+        ollama_base = cfg.model.base_url if provider == "ollama" else None
 
-            ollama_base = cfg.model.base_url
+        def status_fn(
+            progress: LlmGenerateProgress = gen,
+            base: str | None = ollama_base,
+            use_ollama: bool = provider == "ollama",
+        ) -> str | None:
+            bits = [progress.summary()]
+            if use_ollama:
+                from repolens.provider_status import ollama_running_summary
 
-            def status_fn(base: str | None = ollama_base) -> str | None:
-                return ollama_running_summary(base)
+                live = ollama_running_summary(base)
+                if live:
+                    bits.append(live)
+            return " | ".join(bits)
 
         with prog.waiting(wait_label, hint=wait_hint, status_fn=status_fn):
             result = analyze_structured(
@@ -263,7 +272,9 @@ def _analyze_deep_passes(
                 pass_id=deep_pass.name,
                 progress=prog,
                 raw_dir=raw_dir,
+                on_delta=gen.note_delta,
             )
+        gen.mark_done()
         if result.layer == "degraded":
             prog.phase(
                 f"LLM: pass {deep_pass.name} degraded — merging partial/empty result"
@@ -311,11 +322,18 @@ def _analyze_deep_passes(
             f"Coverage: {len(coverage.covered)} covered · "
             f"{len(coverage.na)} N/A · {len(coverage.missed)} missed"
         )
-        prog.phase(
-            f"Metrics: gate {report.confidence}% · "
-            f"security audit {report.securityAuditConfidence}% · "
-            f"architecture audit {report.architectureAuditConfidence}%"
-        )
+        metric_bits = [f"gate {report.confidence}%"]
+        if report.securityAuditConfidence is not None:
+            metric_bits.append(f"security audit {report.securityAuditConfidence}%")
+        if report.reliabilityAuditConfidence is not None:
+            metric_bits.append(
+                f"reliability audit {report.reliabilityAuditConfidence}%"
+            )
+        if report.architectureAuditConfidence is not None:
+            metric_bits.append(
+                f"architecture audit {report.architectureAuditConfidence}%"
+            )
+        prog.phase("Metrics: " + " · ".join(metric_bits))
     return report
 
 
@@ -345,6 +363,7 @@ def run_review(
         raise ValueError("--full and --changed cannot be combined")
     prog = progress or null_progress()
     root = path.resolve()
+    run_started = time.time()
     cfg = config or load_config(root, trust_project=trust_project)
     if model_override:
         cfg.model.model = model_override
@@ -376,9 +395,14 @@ def run_review(
                 summary=Summary(),
                 issues=[],
                 durabilityGaps=["dry-run: no LLM call"],
+                durationSeconds=round(time.time() - run_started, 1),
             )
             md = write_markdown_report(empty, out, mode=mode) if fmt in {"md", "both"} else None
-            js = write_json_report(empty, out) if fmt in {"json", "both"} else None
+            js = (
+                write_json_report(empty, out, mode=mode)
+                if fmt in {"json", "both"}
+                else None
+            )
             prog.phase("Done (dry-run)")
             return ReviewResult(
                 report=empty,
@@ -522,7 +546,32 @@ def run_review(
                             scanner_runs=scanner_runs,
                         )
                     else:
-                        with prog.waiting(llm_label):
+                        gen = LlmGenerateProgress()
+                        ollama_base = (
+                            cfg.model.base_url if provider == "ollama" else None
+                        )
+
+                        def status_fn(
+                            progress: LlmGenerateProgress = gen,
+                            base: str | None = ollama_base,
+                            use_ollama: bool = provider == "ollama",
+                        ) -> str | None:
+                            bits = [progress.summary()]
+                            if use_ollama:
+                                from repolens.provider_status import (
+                                    ollama_running_summary,
+                                )
+
+                                live = ollama_running_summary(base)
+                                if live:
+                                    bits.append(live)
+                            return " | ".join(bits)
+
+                        with prog.waiting(
+                            llm_label,
+                            hint="streaming chat completions",
+                            status_fn=status_fn,
+                        ):
                             prog.phase("Building LLM prompt…")
                             prompt = build_prompt(
                                 mode, root, llm_files, full_audit=full_audit
@@ -531,8 +580,13 @@ def run_review(
                                 prompt = local_ctx + "\n\n" + prompt
                             prog.detail(f"prompt size ≈ {len(prompt):,} characters")
                             report = _analyze_with_repair(
-                                prompt, cfg.model, progress=prog, root=root
+                                prompt,
+                                cfg.model,
+                                progress=prog,
+                                root=root,
+                                on_delta=gen.note_delta,
                             )
+                        gen.mark_done()
                 except BaseException:
                     if store is not None:
                         store.record_run(
@@ -575,9 +629,14 @@ def run_review(
                     )
                     report.summary = report.recount_summary()
 
+        report.durationSeconds = round(time.time() - run_started, 1)
         prog.phase(f"Writing report → {out}")
         md = write_markdown_report(report, out, mode=mode) if fmt in {"md", "both"} else None
-        js = write_json_report(report, out) if fmt in {"json", "both"} else None
+        js = (
+            write_json_report(report, out, mode=mode)
+            if fmt in {"json", "both"}
+            else None
+        )
         prog.phase("Done")
         return ReviewResult(
             report=report,
@@ -600,13 +659,19 @@ def _analyze_with_repair(
     *,
     progress: ReviewProgress | None = None,
     root: Path | None = None,
+    on_delta: Callable[[str], None] | None = None,
 ) -> FindingReport:
     from repolens.llm_structured import analyze_structured
 
     prog = progress or null_progress()
     raw_dir = (root / ".repolens") if root is not None else None
     result = analyze_structured(
-        prompt, model_cfg, pass_id="single", progress=prog, raw_dir=raw_dir
+        prompt,
+        model_cfg,
+        pass_id="single",
+        progress=prog,
+        raw_dir=raw_dir,
+        on_delta=on_delta,
     )
     if result.layer == "degraded":
         prog.phase(

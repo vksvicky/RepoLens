@@ -54,7 +54,7 @@ Design: [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md). Con
 
 If the model returns invalid JSON, RepoLens still writes a report (scanners + heuristics + any salvageable issues) and exits **0**.
 
-**Cloud tip (Phase A):** Anthropic / OpenAI use the **same `--deep` pipeline**—pick the provider via `repolens init`; deep mode is what drives checklist completeness on large repos (e.g. PatternSorcerer-sized trees).
+**Cloud tip (Phase A):** OpenAI / Anthropic / DeepSeek / `openai_compatible` use the **same `--deep` pipeline**—pick the provider via `repolens init`; deep mode is what drives checklist completeness on large repos (e.g. PatternSorcerer-sized trees).
 
 Guided wizard: `./scripts/repolens-guided.sh` prompts for deep (default **Y** on review / full-audit).
 
@@ -336,7 +336,35 @@ No. Use the [playbooks](../playbooks/) with any LLM that can read your repo—se
 
 ## What is `repolens sentinel`?
 
-Security-only mode (P1 playbook). Faster guardrail pass without a full architecture audit. Full dual review is `repolens review`.
+Security-only mode (P1 playbook). One deep security pass (plus scanners/heuristics) — not a full dual review. Architecture / reliability audit % are **omitted** (N/A), not 0%. Gate confidence reflects the sentinel package only.
+
+Reports are written as `gate_review_report_sentinel_YYYY-MM-DD_HHMM.md` so they do not overwrite a prior `review` report. Full dual review remains `repolens review`.
+
+## Why do wait lines say “still waiting” for so long?
+
+Local 32B models often spend minutes on **prompt evaluation** before the first output token. Heartbeats stream completions and show **chars/chunks received** (plus Ollama `/api/ps` when local). Until the first token arrives, “waiting for first token (prompt still evaluating)” is expected — not a hang.
+
+Each report also records **Duration** (wall clock for the whole command).
+
+## Which BYOK / cloud providers are supported?
+
+| `repolens init --provider` | Key env | Transport | Streamed wait UX |
+|----------------------------|---------|-----------|------------------|
+| `openai` | `OPENAI_API_KEY` | OpenAI chat completions | Yes |
+| `anthropic` | `ANTHROPIC_API_KEY` | Anthropic Messages API | Yes |
+| `deepseek` | `DEEPSEEK_API_KEY` | OpenAI-compatible | Yes |
+| `openai_compatible` | `REPOLENS_API_KEY` | Your `--base-url` (Azure, Groq, OpenRouter, LM Studio, …) | Yes |
+| `ollama` | _(none)_ | Local OpenAI-compatible | Yes + `/api/ps` |
+| `none` | — | No LLM | N/A |
+
+**Planned (not shipped yet):**
+
+| Phase | What |
+|-------|------|
+| **Phase 8** | Named aliases + recipes: Azure OpenAI, Mistral, Groq, OpenRouter, LM Studio/vLLM, … ([design](./design/phase-8-provider-aliases-and-recipes.md)) |
+| **Phase 9** | Native SDKs where needed: Gemini/Vertex, Bedrock, … ([design](./design/phase-9-native-provider-sdks.md)) |
+
+Until then, many hosts work via `openai_compatible` + `--base-url`. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
 
 ---
 
@@ -351,7 +379,7 @@ No. It produces reports and exit codes. Git push stays under your control.
 Prefer Markdown reports, then:
 
 ```bash
-pandoc reports/gate_review_report_YYYY-MM-DD.md -o report.pdf
+pandoc reports/gate_review_report_review_YYYY-MM-DD_HHMM.md -o report.pdf
 ```
 
 or Print → Save as PDF from a Markdown preview.

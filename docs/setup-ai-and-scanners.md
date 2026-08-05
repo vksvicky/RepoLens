@@ -37,13 +37,30 @@ You create an account with an AI company, copy a **secret key**, and let RepoLen
 ### Steps
 
 #### 1) Create a key with a provider
-Pick one (examples):
 
-| Provider | Where to get a key (typical) |
-|----------|------------------------------|
-| OpenAI | [platform.openai.com](https://platform.openai.com) → API keys |
-| Anthropic | [console.anthropic.com](https://console.anthropic.com) → API keys |
-| DeepSeek | [platform.deepseek.com](https://platform.deepseek.com) → API keys |
+**First-class BYOK** (named in `repolens init --provider …`):
+
+| Provider | Env var | Where to get a key (typical) | Progress while waiting |
+|----------|---------|------------------------------|------------------------|
+| `openai` | `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com) → API keys | Streamed chars/chunks |
+| `anthropic` | `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) → API keys | Streamed chars/chunks (Messages SSE) |
+| `deepseek` | `DEEPSEEK_API_KEY` | [platform.deepseek.com](https://platform.deepseek.com) → API keys | Streamed chars/chunks |
+
+**Escape hatch** — any OpenAI-compatible HTTP API (Azure OpenAI, Groq, Mistral, OpenRouter, LM Studio, vLLM, …):
+
+```bash
+repolens init --provider openai_compatible --model <name> \
+  --base-url https://your-host/v1 --force
+export REPOLENS_API_KEY="..."
+```
+
+| Provider | Env var | Notes |
+|----------|---------|--------|
+| `openai_compatible` | `REPOLENS_API_KEY` | Set `base_url` + `model` for that host; same streamed wait UX |
+
+**Not BYOK:** `ollama` (local) and `none` (scanners / dry-run only).
+
+**Coming later:** Phase 8 adds named aliases/recipes (Azure, Mistral, Groq, OpenRouter, …); Phase 9 adds native Gemini/Vertex/Bedrock when OpenAI-compatible is not enough. See [phases.md](./phases.md).
 
 1. Sign up / sign in.  
 2. Add billing if the provider requires it.  
@@ -77,9 +94,10 @@ Create or edit config (see [`.repolens.example.toml`](../.repolens.example.toml)
 ```toml
 # ~/.config/repolens/config.toml  OR  ./.repolens.toml
 [model]
-provider = "openai"                 # or anthropic | deepseek | ...
+provider = "openai"                 # openai | anthropic | deepseek | openai_compatible
 model = "gpt-4.1"                   # use a model your account supports
 api_key_env = "OPENAI_API_KEY"      # name of the env var — not the key itself
+# base_url = "https://…"            # required for most openai_compatible hosts
 ```
 
 Then:
@@ -93,7 +111,7 @@ repolens sentinel --path /path/to/your/project   # security-only
 # Faster thin pass: --no-deep
 ```
 
-Anthropic and OpenAI use the **same `--deep` pipeline** as local Ollama—provider choice is a quality multiplier, not a separate path.
+All first-class BYOK providers and `openai_compatible` use the **same `--deep` pipeline** as Ollama—provider choice is a quality/cost/privacy multiplier, not a separate review path. Wait heartbeats show streamed output for all of them (Ollama adds `/api/ps` load detail).
 
 #### 4) Optional — playbooks without the CLI
 

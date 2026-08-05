@@ -2,11 +2,49 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import datetime
 from pathlib import Path
 
 from repolens.coverage import parse_coverage_notes
 from repolens.schema import FindingReport, Issue, Severity
+
+
+def report_timestamp(when: datetime | None = None) -> datetime:
+    """Local clock used for report filenames and headings."""
+    return when or datetime.now().astimezone()
+
+
+def report_stamp(when: datetime | None = None) -> str:
+    """Filesystem-safe stamp: ``YYYY-MM-DD_HHMM`` (avoids same-day overwrites)."""
+    return report_timestamp(when).strftime("%Y-%m-%d_%H%M")
+
+
+def report_heading_time(when: datetime | None = None) -> str:
+    """Human-readable local time for the report title: ``YYYY-MM-DD HH:MM``."""
+    return report_timestamp(when).strftime("%Y-%m-%d %H:%M")
+
+
+def format_duration(seconds: float | None) -> str | None:
+    """Human-readable wall-clock duration for report headers."""
+    if seconds is None:
+        return None
+    total = max(0, int(round(seconds)))
+    hours, rem = divmod(total, 3600)
+    minutes, secs = divmod(rem, 60)
+    if hours:
+        return f"{hours}h {minutes}m {secs}s ({total}s)"
+    if minutes:
+        return f"{minutes}m {secs}s ({total}s)"
+    return f"{secs}s"
+
+
+def report_basename(mode: str, when: datetime | None = None) -> str:
+    """Report stem including mode so sentinel/review/architecture do not collide.
+
+    Example: ``gate_review_report_sentinel_2026-08-05_1430``
+    """
+    safe = mode.strip().lower().replace(" ", "_") or "review"
+    return f"gate_review_report_{safe}_{report_stamp(when)}"
 
 
 def write_markdown_report(
@@ -16,19 +54,28 @@ def write_markdown_report(
     mode: str = "review",
     commit_go: str = "n/a",
     push_go: str = "n/a",
+    when: datetime | None = None,
 ) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"gate_review_report_{date.today().isoformat()}.md"
+    path = out_dir / f"{report_basename(mode, when)}.md"
     path.write_text(
-        render_markdown(report, mode=mode, commit_go=commit_go, push_go=push_go),
+        render_markdown(
+            report, mode=mode, commit_go=commit_go, push_go=push_go, when=when
+        ),
         encoding="utf-8",
     )
     return path
 
 
-def write_json_report(report: FindingReport, out_dir: Path) -> Path:
+def write_json_report(
+    report: FindingReport,
+    out_dir: Path,
+    *,
+    mode: str = "review",
+    when: datetime | None = None,
+) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"gate_review_report_{date.today().isoformat()}.json"
+    path = out_dir / f"{report_basename(mode, when)}.json"
     path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
     return path
 
@@ -39,26 +86,36 @@ def render_markdown(
     mode: str,
     commit_go: str,
     push_go: str,
+    when: datetime | None = None,
 ) -> str:
+    heading_time = report_heading_time(when)
     lines: list[str] = [
-        f"# Gate review report — {date.today().isoformat()}",
+        f"# Gate review report — {heading_time}",
         "",
         f"**Mode:** `{mode}`",
-        f"**Gate confidence:** {report.confidence}%",
-        f"**Commit go/no-go:** {commit_go}",
-        f"**Push go/no-go:** {push_go}",
-        "",
-        "## Gate verdict",
-        "",
-        f"- **Gate confidence:** {report.confidence}% "
-        "(adequacy of this review package — not “% secure”)",
-        (
-            f"- **Counts:** Critical {report.summary.critical} · "
-            f"High {report.summary.high} · Medium {report.summary.medium} · "
-            f"Low {report.summary.low}"
-        ),
-        "",
+        f"**Generated:** {heading_time}",
     ]
+    duration = format_duration(report.durationSeconds)
+    if duration is not None:
+        lines.append(f"**Duration:** {duration}")
+    lines.extend(
+        [
+            f"**Gate confidence:** {report.confidence}%",
+            f"**Commit go/no-go:** {commit_go}",
+            f"**Push go/no-go:** {push_go}",
+            "",
+            "## Gate verdict",
+            "",
+            f"- **Gate confidence:** {report.confidence}% "
+            "(adequacy of this review package — not “% secure”)",
+            (
+                f"- **Counts:** Critical {report.summary.critical} · "
+                f"High {report.summary.high} · Medium {report.summary.medium} · "
+                f"Low {report.summary.low}"
+            ),
+            "",
+        ]
+    )
     lines.extend(_render_metrics_section(report))
 
     bands = (

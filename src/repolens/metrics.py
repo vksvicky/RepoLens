@@ -8,9 +8,12 @@ Formulas (Phase 5.1; tune via config later if needed):
 - **Open Critical/High findings** in that band further reduce band confidence
   (security: P1 or ``sec.*`` / scanner cats; reliability: P2 or ``rel.*``;
   architecture: P3 or ``arch.*`` / ``heuristic.*``)
-- ``gate_confidence`` = min(band confidences, pass confidences)
+- ``gate_confidence`` = min(**ran** pass confidences + **scored** band confidences)
   − global missed penalty (−4/id, cap −40)
   − global invalid-N/A penalty (−3/id, cap −30)
+
+Passes that did not run (e.g. sentinel = P1 only) contribute **neither** a 0%
+band score nor a floor for the gate. Unscored bands are ``None`` (N/A), not 0%.
 
 **Security audit confidence is not “% secure”** and is not a CleanVibes-style
 posture score. It combines checklist honesty with a penalty for open Critical/High
@@ -42,9 +45,9 @@ _SCANNER_CAT_MARKERS = ("gitleaks", "semgrep", "osv")
 @dataclass(frozen=True)
 class AuditMetrics:
     gate_confidence: int
-    security_audit_confidence: int
-    architecture_audit_confidence: int
-    reliability_audit_confidence: int
+    security_audit_confidence: int | None
+    architecture_audit_confidence: int | None
+    reliability_audit_confidence: int | None
 
 
 def _clamp(value: int, lo: int = 0, hi: int = 100) -> int:
@@ -126,6 +129,14 @@ def _scanners_all_ran(scanner_runs: list[ScannerRun]) -> bool:
     return all(run.status == "ran" for run in scanner_runs)
 
 
+def _lookup_pass(pass_confidences: dict[str, int], *keys: str) -> int | None:
+    """Return confidence for the first key present; missing keys are not 0%."""
+    for key in keys:
+        if key in pass_confidences:
+            return pass_confidences[key]
+    return None
+
+
 def compute_audit_metrics(
     *,
     pass_confidences: dict[str, int],
@@ -133,44 +144,71 @@ def compute_audit_metrics(
     scanner_runs: list[ScannerRun],
     issues: Iterable[Issue] | None = None,
 ) -> AuditMetrics:
-    """Derive gate + per-band audit confidences after deep merge."""
+    """Derive gate + per-band audit confidences after deep merge.
+
+    Only bands whose pass ran are scored. Sentinel (``p1`` only) yields a security
+    audit % and gate based on that pass — architecture/reliability stay ``None``.
+    """
     scanner_bonus = _SCANNER_ALL_RAN_BONUS if _scanners_all_ran(scanner_runs) else 0
     issue_list = list(issues or [])
 
-    p1 = pass_confidences.get("p1", pass_confidences.get("security", 0))
-    p2 = pass_confidences.get("p2", pass_confidences.get("reliability", 0))
-    p3 = pass_confidences.get("p3", pass_confidences.get("architecture", 0))
+    p1 = _lookup_pass(pass_confidences, "p1", "security")
+    p2 = _lookup_pass(pass_confidences, "p2", "reliability")
+    p3 = _lookup_pass(pass_confidences, "p3", "architecture")
 
-    security = compute_band_confidence(
-        prefix="sec.",
-        base_confidence=p1,
-        coverage=coverage,
-        scanner_bonus=scanner_bonus,
-        finding_penalty=severity_finding_penalty(issue_list, band="security"),
-    )
-    reliability = compute_band_confidence(
-        prefix="rel.",
-        base_confidence=p2,
-        coverage=coverage,
-        scanner_bonus=0,
-        finding_penalty=severity_finding_penalty(issue_list, band="reliability"),
-    )
-    architecture = compute_band_confidence(
-        prefix="arch.",
-        base_confidence=p3,
-        coverage=coverage,
-        scanner_bonus=0,
-        finding_penalty=severity_finding_penalty(issue_list, band="architecture"),
-    )
+    security: int | None = None
+    if p1 is not None:
+        security = compute_band_confidence(
+            prefix="sec.",
+            base_confidence=p1,
+            coverage=coverage,
+            scanner_bonus=scanner_bonus,
+            finding_penalty=severity_finding_penalty(issue_list, band="security"),
+        )
 
-    present_pass = [v for v in (p1, p2, p3) if v is not None]
-    band_vals = [security, architecture, reliability]
-    floor = min([*present_pass, *band_vals]) if (present_pass or band_vals) else 0
+    reliability: int | None = None
+    if p2 is not None:
+        reliability = compute_band_confidence(
+            prefix="rel.",
+            base_confidence=p2,
+            coverage=coverage,
+            scanner_bonus=0,
+            finding_penalty=severity_finding_penalty(issue_list, band="reliability"),
+        )
 
-    global_missed = min(_MISSED_CAP, _MISSED_PENALTY * len(coverage.missed))
-    global_invalid = min(
-        _INVALID_NA_CAP, _INVALID_NA_PENALTY * len(coverage.invalid_na)
-    )
+    architecture: int | None = None
+    if p3 is not None:
+        architecture = compute_band_confidence(
+            prefix="arch.",
+            base_confidence=p3,
+            coverage=coverage,
+            scanner_bonus=0,
+            finding_penalty=severity_finding_penalty(issue_list, band="architecture"),
+        )
+
+    present = [
+        v
+        for v in (p1, p2, p3, security, architecture, reliability)
+        if v is not None
+    ]
+    floor = min(present) if present else 0
+
+    # Global coverage penalties only for ids belonging to scored bands.
+    scored_prefixes: list[str] = []
+    if security is not None:
+        scored_prefixes.append("sec.")
+    if reliability is not None:
+        scored_prefixes.append("rel.")
+    if architecture is not None:
+        scored_prefixes.append("arch.")
+
+    def _in_scope(cid: str) -> bool:
+        return any(cid.startswith(p) for p in scored_prefixes)
+
+    scoped_missed = [m for m in coverage.missed if _in_scope(m)]
+    scoped_invalid = [i for i in coverage.invalid_na if _in_scope(i)]
+    global_missed = min(_MISSED_CAP, _MISSED_PENALTY * len(scoped_missed))
+    global_invalid = min(_INVALID_NA_CAP, _INVALID_NA_PENALTY * len(scoped_invalid))
     gate = _clamp(floor - global_missed - global_invalid)
 
     return AuditMetrics(

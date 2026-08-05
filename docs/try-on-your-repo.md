@@ -175,7 +175,7 @@ repolens review --path $TARGET --out "$TARGET\reports"
 repolens sentinel --path $TARGET --out "$TARGET\reports"
 ```
 
-Open the Markdown under `$TARGET/reports/gate_review_report_YYYY-MM-DD.md` (for jackfrost’s sample: `acme-api/reports/…`).
+Open the Markdown under `$TARGET/reports/gate_review_report_{mode}_YYYY-MM-DD_HHMM.md` (for jackfrost’s sample: `acme-api/reports/…`).
 
 ---
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -37,12 +38,13 @@ def analyze_structured(
     pass_id: str,
     progress: ReviewProgress | None = None,
     raw_dir: Path | None = None,
+    on_delta: Callable[[str], None] | None = None,
 ) -> StructuredLlmResult:
     prog = progress or null_progress()
     save_root = raw_dir if raw_dir is not None else Path(".repolens")
 
     try:
-        raw_text = analyze_raw(prompt, model_cfg)
+        raw_text = analyze_raw(prompt, model_cfg, on_delta=on_delta)
     except LlmError as exc:
         return _degrade_result("", str(exc), pass_id, prog, save_root)
 
@@ -63,7 +65,7 @@ def analyze_structured(
         prog.phase("LLM: first response invalid — retrying with repair prompt…")
         repair_msg = repair_prompt(raw_text, str(parse_exc))
         try:
-            repaired_raw = analyze_raw(repair_msg, model_cfg)
+            repaired_raw = analyze_raw(repair_msg, model_cfg, on_delta=on_delta)
             try:
                 report = parse_report_json(repaired_raw)
                 return StructuredLlmResult(

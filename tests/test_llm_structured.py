@@ -11,7 +11,7 @@ from repolens.llm_structured import analyze_structured
 def mock_analyze_raw(monkeypatch):
     responses = []
     
-    def _mock(prompt, model_cfg, *, client=None):
+    def _mock(prompt, model_cfg, *, client=None, on_delta=None):
         if not responses:
             raise LlmError("No more mock responses")
         res = responses.pop(0)

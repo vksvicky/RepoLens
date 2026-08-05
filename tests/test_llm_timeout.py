@@ -26,7 +26,8 @@ def test_resolve_llm_timeout_defaults() -> None:
 def test_analyze_timeout_message() -> None:
     cfg = ModelConfig(provider="ollama", model="qwen2.5:7b", timeout_seconds=12)
     client = MagicMock()
-    client.post.side_effect = httpx.TimeoutException("timed out")
+    # Ollama uses streaming; timeout surfaces from client.stream(...)
+    client.stream.side_effect = httpx.TimeoutException("timed out")
     with pytest.raises(LlmError, match="timed out after 12"):
         analyze("prompt", cfg, client=client)
 

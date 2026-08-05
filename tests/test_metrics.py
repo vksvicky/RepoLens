@@ -89,6 +89,9 @@ def test_gate_confidence_at_most_lowest_band() -> None:
         ],
     )
     assert isinstance(metrics, AuditMetrics)
+    assert metrics.security_audit_confidence is not None
+    assert metrics.architecture_audit_confidence is not None
+    assert metrics.reliability_audit_confidence is not None
     assert metrics.security_audit_confidence < 95
     # Gate must not exceed the lowest band confidence
     bands = [
@@ -98,6 +101,44 @@ def test_gate_confidence_at_most_lowest_band() -> None:
     ]
     assert metrics.gate_confidence <= min(bands)
     assert metrics.gate_confidence <= min(95, 90, 92)
+
+
+def test_sentinel_only_scores_security_band() -> None:
+    """Missing P2/P3 must not become 0% architecture or drag gate to 0."""
+    coverage = CoverageResult(
+        covered=["sec.secrets", "sec.injection"],
+        missed=[],
+        na={"sec.xss_csrf": "No web surface in pack"},
+    )
+    metrics = compute_audit_metrics(
+        pass_confidences={"p1": 95},
+        coverage=coverage,
+        scanner_runs=[
+            ScannerRun(tool="gitleaks", status="ran"),
+            ScannerRun(tool="semgrep", status="ran"),
+            ScannerRun(tool="osv", status="ran"),
+        ],
+    )
+    assert metrics.security_audit_confidence == 100  # 95 + scanner 5
+    assert metrics.architecture_audit_confidence is None
+    assert metrics.reliability_audit_confidence is None
+    assert metrics.gate_confidence == 95  # min(p1=95, security=100)
+
+
+def test_architecture_mode_only_scores_architecture_band() -> None:
+    metrics = compute_audit_metrics(
+        pass_confidences={"p3": 88},
+        coverage=CoverageResult(
+            covered=["arch.testing"],
+            missed=[],
+            na={},
+        ),
+        scanner_runs=[],
+    )
+    assert metrics.architecture_audit_confidence == 88
+    assert metrics.security_audit_confidence is None
+    assert metrics.reliability_audit_confidence is None
+    assert metrics.gate_confidence == 88
 
 
 def test_security_audit_penalized_by_high_p1_findings() -> None:
