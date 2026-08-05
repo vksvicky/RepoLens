@@ -33,7 +33,6 @@ For day-to-day dogfood from a clone, use `".[dev]"`. Add Semgrep with `".[dev,sc
 
 ---
 
-
 ## 1) Install RepoLens from a clone
 
 ### macOS
@@ -46,8 +45,6 @@ pip install -e ".[dev]"
 repolens version
 ```
 
-Example after substitution: `cd /Users/jackfrost/Development/RepoLens`
-
 ### Linux
 
 ```bash
@@ -57,8 +54,6 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 repolens version
 ```
-
-Example after substitution: `cd /home/jackfrost/Development/RepoLens`
 
 If `python3` is missing, install via your distro (for example `sudo apt install python3 python3-venv python3-pip` on Debian/Ubuntu).
 
@@ -73,8 +68,6 @@ py -3.11 -m venv .venv
 pip install -e ".[dev]"
 repolens version
 ```
-
-Example after substitution: `cd C:\Users\jackfrost\Development\RepoLens`
 
 If script activation is blocked:
 
@@ -108,15 +101,11 @@ TARGET=/Users/[username]/Development/[your-project]
 TARGET=/Users/[username]/Development/[your-project]
 ```
 
-Example: `TARGET=/Users/jackfrost/Development/acme-api`
-
 ### Linux
 
 ```bash
 TARGET=/home/[username]/Development/[your-project]
 ```
-
-Example: `TARGET=/home/jackfrost/Development/acme-api`
 
 ### Windows (PowerShell)
 
@@ -124,7 +113,7 @@ Example: `TARGET=/home/jackfrost/Development/acme-api`
 $TARGET = "C:\Users\[username]\Development\[your-project]"
 ```
 
-Example: `$TARGET = "C:\Users\jackfrost\Development\acme-api"`
+(Placeholders → concrete paths: see the table at the top of this page.)
 
 ### One-time: configure a model provider (full LLM review only)
 
@@ -180,7 +169,7 @@ repolens review --path $TARGET --out "$TARGET\reports"
 repolens sentinel --path $TARGET --out "$TARGET\reports"
 ```
 
-Open the Markdown under `$TARGET/reports/gate_review_report_{mode}_YYYY-MM-DD_HHMM.md` (for jackfrost’s sample: `acme-api/reports/…`).
+Open the Markdown under `$TARGET/reports/gate_review_report_{mode}_YYYY-MM-DD_HHMM.md`.
 
 ---
 
@@ -210,12 +199,9 @@ Keep the RepoLens venv **activated**. Use **exactly one** source flag — do not
 
 Remote clones are temporary; reports land under **`./reports/` in your current working directory** (override with `--out`). Auth and edge cases: [remote-sources.md](./remote-sources.md).
 
-### Local folder (same as §2)
+### Local folder
 
-```bash
-repolens review --path /Users/[username]/Development/[your-project] --dry-run
-# Example: repolens review --path /Users/jackfrost/Development/acme-api --dry-run
-```
+Same as §2 (`--path "$TARGET"` / `--path …`).
 
 ### GitHub (`--github`)
 
@@ -224,9 +210,6 @@ repolens review --github [owner]/[repo] --dry-run
 repolens review --github [owner]/[repo] --ref main --scanners-only --fail-on ""
 repolens review --github [owner]/[repo] --ref main
 repolens sentinel --github [owner]/[repo]
-
-# Example:
-# repolens review --github jackfrost/acme-api --ref main --dry-run
 ```
 
 Private repos: set `GITHUB_TOKEN` / `GH_TOKEN`, or run `gh auth login`.
@@ -237,9 +220,6 @@ Private repos: set `GITHUB_TOKEN` / `GH_TOKEN`, or run `gh auth login`.
 repolens review --git-url https://github.com/[owner]/[repo].git --ref main --dry-run
 repolens review --git-url https://gitlab.com/[owner]/[repo].git --ref main --dry-run
 repolens review --git-url git@github.com:[owner]/[repo].git --dry-run
-
-# Example:
-# repolens review --git-url https://github.com/jackfrost/acme-api.git --ref main --dry-run
 ```
 
 ### Bitbucket (`--bitbucket`)
@@ -248,9 +228,6 @@ repolens review --git-url git@github.com:[owner]/[repo].git --dry-run
 repolens review --bitbucket [workspace]/[repo] --dry-run
 repolens review --bitbucket [workspace]/[repo] --ref main --scanners-only --fail-on ""
 repolens review --bitbucket [workspace]/[repo] --ref main
-
-# Example:
-# repolens review --bitbucket jackfrost/acme-api --ref main --dry-run
 ```
 
 Private repos: set `BITBUCKET_TOKEN` (or `BITBUCKET_APP_PASSWORD`). For app passwords also set `BITBUCKET_USERNAME`.
@@ -258,16 +235,9 @@ Private repos: set `BITBUCKET_TOKEN` (or `BITBUCKET_APP_PASSWORD`). For app pass
 ### Hugging Face Hub (`--hf`)
 
 ```bash
-# Model repo
 repolens review --hf [org]/[name] --dry-run
-
-# Dataset or Space (prefix required)
 repolens review --hf datasets/[org]/[name] --dry-run
 repolens review --hf spaces/[org]/[name] --dry-run
-
-# Example:
-# repolens review --hf jackfrost/acme-model --dry-run
-# repolens review --hf datasets/jackfrost/acme-data --dry-run
 ```
 
 Private Hub repos: set `HF_TOKEN` or `HUGGING_FACE_HUB_TOKEN`.
@@ -283,40 +253,22 @@ Private Hub repos: set `HF_TOKEN` or `HUGGING_FACE_HUB_TOKEN`.
 
 ## 4) Review the RepoLens repo itself (dogfood)
 
-### macOS
+From the RepoLens clone (venv activated — see §1 for OS paths):
 
 ```bash
-cd /Users/[username]/Development/RepoLens
-source .venv/bin/activate
-
+# macOS / Linux
 repolens review --path . --out ./reports-dogfood --dry-run
 repolens plugins install all --yes
 repolens review --path . --out ./reports-dogfood --scanners-only --fail-on ""
 ```
-
-### Linux
-
-```bash
-cd /home/[username]/Development/RepoLens
-source .venv/bin/activate
-
-repolens review --path . --out ./reports-dogfood --dry-run
-repolens plugins install all --yes
-repolens review --path . --out ./reports-dogfood --scanners-only --fail-on ""
-```
-
-### Windows (PowerShell)
 
 ```powershell
-cd C:\Users\[username]\Development\RepoLens
-.\.venv\Scripts\Activate.ps1
-
+# Windows (PowerShell) — plugins install not pinned yet; dry-run / LLM still work
 repolens review --path . --out .\reports-dogfood --dry-run
-# plugins install: not pinned for Windows yet — use dry-run / LLM, or install tools manually
 repolens review --path . --out .\reports-dogfood
 ```
 
-`reports-dogfood/` is gitignored. Pass criteria for a pre-publish check are in [publishing.md](./publishing.md#pre-publish-dogfood).
+`reports-dogfood/` is gitignored. Pass criteria: [publishing.md](./publishing.md#pre-publish-dogfood). Self-review noise hardening: [FAQ](./faq.md#how-do-we-harden-repolens-against-its-own-dogfood-noise).
 
 ---
 

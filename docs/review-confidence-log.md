@@ -13,6 +13,7 @@ Durable record of dual-review gate confidence over time.
 | 2026-08-05 | WIP→push | 92% | 0/0/0/0 | FAQ + report Metrics/Coverage formula glossary (docs/UX only) | chat |
 | 2026-08-05 | WIP→commit | 90% | 0/0/0/0 | PR1 self-review noise + British English report prose | chat |
 | 2026-08-05 | WIP→commit | 90% | 0/0/0/1 | PR3 mega-file splits (cli/llm/pipeline/guided packages); 272 pytest green | chat |
+| 2026-08-05 | WIP→commit | 94% | 0/0/0/0 | PR4 try-on-your-repo Low nits + FAQ dogfood hardening pointer | chat |
 
 ## How to use
 
