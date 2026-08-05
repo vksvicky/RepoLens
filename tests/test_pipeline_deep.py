@@ -71,7 +71,9 @@ def test_deep_mode_merges_three_passes_heuristics_and_lists_coverage(
 
     call_pass_ids: list[str] = []
 
-    def fake_analyze(prompt, model_cfg, *, pass_id, progress=None, raw_dir=None):
+    def fake_analyze(
+        prompt, model_cfg, *, pass_id, progress=None, raw_dir=None, on_delta=None, **_
+    ):
         call_pass_ids.append(pass_id)
         if pass_id == "p1":
             return _pass_report(
@@ -280,7 +282,9 @@ def test_deep_metrics_penalize_lazy_na_and_render_glossary(tmp_path: Path) -> No
         deep=DeepConfig(enabled=True),
     )
 
-    def fake_analyze(prompt, model_cfg, *, pass_id, progress=None, raw_dir=None):
+    def fake_analyze(
+        prompt, model_cfg, *, pass_id, progress=None, raw_dir=None, on_delta=None, **_
+    ):
         report = FindingReport(
             confidence=95,
             summary=Summary(),
@@ -333,7 +337,9 @@ def test_degraded_pass_still_merges(tmp_path: Path) -> None:
         deep=DeepConfig(enabled=True),
     )
 
-    def fake_analyze(prompt, model_cfg, *, pass_id, progress=None, raw_dir=None):
+    def fake_analyze(
+        prompt, model_cfg, *, pass_id, progress=None, raw_dir=None, on_delta=None, **_
+    ):
         if pass_id == "p1":
             return StructuredLlmResult(
                 report=FindingReport(
