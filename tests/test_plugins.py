@@ -113,7 +113,7 @@ def test_install_plugins_binary_yes(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_cli_plugins_status() -> None:
-    with patch("repolens.cli.plugin_status", return_value=[("gitleaks", "missing", "hint")]):
+    with patch("repolens.cli.plugins.plugin_status", return_value=[("gitleaks", "missing", "hint")]):
         result = runner.invoke(app, ["plugins", "status"])
     assert result.exit_code == 0, result.output
     assert "gitleaks" in result.output
@@ -121,7 +121,7 @@ def test_cli_plugins_status() -> None:
 
 def test_cli_plugins_install_yes_mocked(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    with patch("repolens.cli.install_plugins", return_value=["gitleaks: installed 8.24.0"]) as inst:
+    with patch("repolens.cli.plugins.install_plugins", return_value=["gitleaks: installed 8.24.0"]) as inst:
         result = runner.invoke(app, ["plugins", "install", "gitleaks", "--yes"])
     assert result.exit_code == 0, result.output
     inst.assert_called_once()
@@ -133,7 +133,7 @@ def test_cli_require_scanners_exit_2(tmp_path: Path) -> None:
     from repolens.pipeline import ScannerRequirementError
 
     with patch(
-        "repolens.cli.run_review",
+        "repolens.cli.commands_review.run_review",
         side_effect=ScannerRequirementError(["gitleaks"]),
     ):
         result = runner.invoke(
@@ -169,7 +169,7 @@ def test_cli_scanners_only_mocked(tmp_path: Path) -> None:
         files_scanned=1,
         dry_run=False,
     )
-    with patch("repolens.cli.run_review", return_value=fake):
+    with patch("repolens.cli.commands_review.run_review", return_value=fake):
         result = runner.invoke(
             app,
             [

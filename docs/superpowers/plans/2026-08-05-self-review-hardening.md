@@ -64,8 +64,8 @@
 
 ## PR 3 — Mega-file splits (after PR 2)
 
-- [ ] Split `cli.py` / `llm.py` / `pipeline.py` / guided script per design table  
-- [ ] Re-exports; full pytest green per family  
+- [x] Split `cli.py` / `llm.py` / `pipeline.py` / guided script per design table
+- [x] Re-exports; full pytest green per family
 
 ## PR 4 — Docs polish
 
