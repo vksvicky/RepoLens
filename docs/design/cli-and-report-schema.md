@@ -132,7 +132,7 @@ JSON shape produced by the model and normalized by the CLI:
 
 ### Markdown report
 
-Filename: `gate_review_report_YYYY-MM-DD.md` (optionally `_<shortsha>.md`)
+Filename: `gate_review_report_{mode}_YYYY-MM-DD_HHMM.md` (mode = `review` \| `sentinel` \| `architecture`; local time; avoids same-day / cross-mode overwrite)
 
 Sections: Gate verdict → P1 → P2 → P3 → Plan to fix → Durability gaps → (optional) Architecture scores.
 

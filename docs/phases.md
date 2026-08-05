@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phase 5 adaptive + deep coverage (B+C+D) shipping; **next = Phase 5.1 hardening** (metrics incl. security audit confidence); then Phase 6 explain/diagrams; Phase 7 enterprise CI; Phase A (cloud) docs-only  
+**Current phase:** Phase 5 / 5.1 shipping; **next** Phase 6 explain/diagrams → Phase 7 enterprise CI → **Phase 8** provider aliases/recipes → **Phase 9** native SDKs  
 
 **CLI language:** Python 3.11+
 
@@ -66,7 +66,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Finding schema: severity, impact, fix, codeExample (required Critical/High) | [x] | Pydantic validators |
 | OWASP/CWE tags on LLM findings (best-effort) | [x] | Optional `owasp` / `cwe` fields |
 | Confidence % in summary | [x] | CLI table + Markdown |
-| Write `reports/gate_review_report_YYYY-MM-DD.md` | [x] | + JSON via `--format` |
+| Write `reports/gate_review_report_{mode}_YYYY-MM-DD_HHMM.md` | [x] | + JSON; mode + time avoid overwrite |
 | `repolens export` (Markdown path; PDF if pandoc present) | [x] | |
 | Unit/integration tests (TDD) for report writer & CLI args | [x] | pytest in CI |
 | User docs: install + first review + AI key FAQ | [x] | README quick start + setup guide + CONTRIBUTING |
@@ -215,6 +215,37 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
+## Phase 8 — Provider aliases & setup recipes (design)
+
+**Goal:** Named `repolens init` aliases + docs/recipes for common hosts (Azure OpenAI, Mistral, Groq, OpenRouter, …) on the existing OpenAI-compatible transport. **Options 1 + 2** from the provider expansion discussion.  
+**Not in this phase:** Native Gemini/Bedrock SDKs → Phase 9. Enterprise CI → Phase 7.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design sketch | [x] | [phase-8-provider-aliases-and-recipes.md](./design/phase-8-provider-aliases-and-recipes.md) · [spec](./superpowers/specs/2026-08-05-phase-8-provider-aliases-design.md) |
+| P0 aliases: Azure, Mistral, Groq, OpenRouter | [ ] | Map to OpenAI-compatible + stream |
+| Setup/FAQ recipes (P0–P2) | [ ] | LM Studio / vLLM as `openai_compatible` |
+| Gemini: recipe or “see Phase 9” | [ ] | No half-native adapter in Phase 8 |
+
+**Phase 8 exit criteria:** Users can `init --provider groq|mistral|azure|openrouter` (and follow recipes for self-hosted OpenAI-compatible hosts) without hand-editing obscure `base_url`s.
+
+---
+
+## Phase 9 — Native provider SDKs (design)
+
+**Goal:** First-party adapters where the wire protocol is **not** OpenAI chat completions (**Option 3**): Gemini / Vertex, Bedrock, and similar — only when Phase 8 aliases are insufficient.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design sketch | [x] | [phase-9-native-provider-sdks.md](./design/phase-9-native-provider-sdks.md) · [spec](./superpowers/specs/2026-08-05-phase-9-native-provider-sdks-design.md) |
+| Native Gemini and/or Vertex | [ ] | Stream → `on_delta` |
+| Native Bedrock (if demanded) | [ ] | Prefer Converse + thin httpx |
+| Keep Phase 8 aliases on OpenAI-compatible path | [ ] | Do not rewrite without cause |
+
+**Phase 9 exit criteria:** At least one native provider ships with init + streaming wait UX + tests; FAQ clearly marks alias vs native.
+
+---
+
 ## Non-goals (for now)
 
 - Web dashboard / SaaS UI (Phase 7 may document **external** dashboard ingest only)  
@@ -255,6 +286,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-04 | Deep coverage B+C+D first; A (cloud) later | Same `--deep` pipeline for Anthropic/OpenAI; rules by registry id |
 | 2026-08-04 | Phase 5.1 hardening + Phase 6 explain/diagrams; enterprise → Phase 7 | Honest metrics incl. security audit confidence; foolproof Mermaid |
 | 2026-08-04 | Confidence is multi-metric | Gate confidence ≠ security audit confidence ≠ architecture scores |
+| 2026-08-05 | Provider expansion = Phase 8 + 9, not Phase 7 | Phase 7 = enterprise CI only; Phase 8 = aliases + recipes (opts 1–2); Phase 9 = native SDKs (opt 3) |
 
 ---
 

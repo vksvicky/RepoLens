@@ -214,7 +214,9 @@ def write_user_config(
     if provider:
         lines.append(f'provider = "{provider}"')
     else:
-        lines.append('# provider = "openai"  # or anthropic | deepseek | ollama')
+        lines.append(
+            '# provider = "openai"  # openai | anthropic | deepseek | openai_compatible | ollama'
+        )
     if model:
         lines.append(f'model = "{model}"')
     if api_key_env:

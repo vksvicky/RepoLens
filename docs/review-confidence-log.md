@@ -8,6 +8,7 @@ Durable record of dual-review gate confidence over time.
 | 2026-08-04 | 9704834 | 88% | 0/0/1/1 | Phase 3 scanners (chat-only; not exported) | chat |
 | 2026-08-04 | feat/guided-review-script WIP | 86% | 0/0/2/2 | Deep coverage + rules registry + guided (pre local merge) | chat |
 | 2026-08-04 | 15b2cd9 | 92% | 0/0/0/0 | Docs-only: Phase 5.1/6 designs + enterprise→7 (chat gate) | chat |
+| 2026-08-05 | WIP→commit | 88% | 0/0/1/1 | Streamed LLM wait + report stamps/mode/duration; sentinel metrics; Phase 8/9 designs | chat |
 
 ## How to use
 

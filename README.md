@@ -141,13 +141,13 @@ Summaries show **confidence %**, severity counts, and top findings.
 
 ### Saved Markdown (default artifact)
 ```text
-reports/gate_review_report_YYYY-MM-DD.md
+reports/gate_review_report_{mode}_YYYY-MM-DD_HHMM.md
 ```
-Each Critical/High finding includes explanation, **impact**, recommended fix, and a **code example**. Reports include an **Automated scanners** section when scanners run.
+`mode` is `review`, `sentinel`, or `architecture`. Each Critical/High finding includes explanation, **impact**, recommended fix, and a **code example**. Reports include an **Automated scanners** section when scanners run.
 
 ### PDF
 ```bash
-pandoc reports/gate_review_report_YYYY-MM-DD.md -o reports/gate_review_report_YYYY-MM-DD.pdf
+pandoc reports/gate_review_report_review_YYYY-MM-DD_HHMM.md -o reports/gate_review_report_review_YYYY-MM-DD_HHMM.pdf
 # or: Print → Save as PDF from a Markdown preview
 ```
 

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 from rich.console import Console
 
-from repolens.progress import ReviewProgress
+from repolens.progress import LlmGenerateProgress, ReviewProgress
 
 
 def test_phase_prints_unless_quiet() -> None:
@@ -63,8 +63,18 @@ def test_waiting_heartbeat_includes_hint_and_status_fn() -> None:
         time.sleep(0.12)
     text = buf.getvalue()
     assert "still waiting" in text
+    # Static hint once (verbose detail); heartbeats prefer live status_fn.
     assert "prompt ≈ 12,000 chars" in text
     assert "Ollama: qwen" in text.replace("\n", "")
+
+
+def test_llm_generate_progress_summary() -> None:
+    gen = LlmGenerateProgress()
+    assert "waiting for first token" in gen.summary()
+    gen.note_delta('{"confidence":')
+    gen.note_delta(" 80}")
+    assert "chars" in gen.summary()
+    assert "2 chunk" in gen.summary()
 
 
 def test_waiting_heartbeat_disabled() -> None:

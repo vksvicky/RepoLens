@@ -76,17 +76,31 @@ def init_cmd(
     provider: str = typer.Option(
         ...,
         "--provider",
-        help="openai | anthropic | deepseek | ollama | none",
-        prompt="Provider (openai / anthropic / deepseek / ollama / none)",
+        help="openai | anthropic | deepseek | openai_compatible | ollama | none",
+        prompt=(
+            "Provider (openai / anthropic / deepseek / openai_compatible / ollama / none)"
+        ),
     ),
     model: str | None = typer.Option(None, "--model", help="Default model name"),
+    base_url: str | None = typer.Option(
+        None,
+        "--base-url",
+        help="Override API base URL (required for most openai_compatible hosts)",
+    ),
     force: bool = typer.Option(False, "--force", help="Overwrite existing user config"),
 ) -> None:
     """First-run setup: write ~/.config/repolens/config.toml (BYOK, Ollama, or scanners-only)."""
     from repolens.config import user_config_path
 
     provider = provider.strip().lower()
-    allowed = {"openai", "anthropic", "deepseek", "ollama", "none"}
+    allowed = {
+        "openai",
+        "anthropic",
+        "deepseek",
+        "openai_compatible",
+        "ollama",
+        "none",
+    }
     if provider not in allowed:
         console.print(f"[red]Unknown provider:[/red] {provider}. Choose from {sorted(allowed)}")
         raise typer.Exit(code=2)
@@ -112,10 +126,23 @@ def init_cmd(
         "openai": ("gpt-4.1-mini", "OPENAI_API_KEY", None),
         "anthropic": ("claude-sonnet-4-20250514", "ANTHROPIC_API_KEY", None),
         "deepseek": ("deepseek-chat", "DEEPSEEK_API_KEY", "https://api.deepseek.com/v1"),
+        # Escape hatch for Azure OpenAI, Groq, Mistral, OpenRouter, LM Studio, etc.
+        "openai_compatible": (
+            "gpt-4.1-mini",
+            "REPOLENS_API_KEY",
+            "https://api.openai.com/v1",
+        ),
         "ollama": (None, None, "http://127.0.0.1:11434/v1"),
     }
     default_model, key_env, base = defaults[provider]
     chosen_model = model or default_model
+    chosen_base = base_url or base
+    if provider == "openai_compatible" and not base_url:
+        console.print(
+            "[yellow]openai_compatible[/yellow] usually needs "
+            "[cyan]--base-url[/cyan] (e.g. Azure / Groq / OpenRouter / LM Studio). "
+            f"Writing placeholder [dim]{chosen_base}[/dim] — edit config if wrong."
+        )
     if provider == "ollama":
         from repolens.llm import resolve_ollama_model
 
@@ -136,7 +163,7 @@ def init_cmd(
         provider=provider,
         model=chosen_model,
         api_key_env=key_env,
-        base_url=base,
+        base_url=chosen_base,
     )
     console.print(f"[green]Wrote[/green] {written}")
     if key_env:
@@ -767,6 +794,8 @@ def export(
 
 
 def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_run: bool) -> None:
+    from repolens.report import format_duration
+
     table = Table(title="RepoLens summary")
     table.add_column("Metric")
     table.add_column("Value")
@@ -777,6 +806,9 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
         table.add_row("Security audit", f"{report.securityAuditConfidence}%")
     if report.architectureAuditConfidence is not None:
         table.add_row("Architecture audit", f"{report.architectureAuditConfidence}%")
+    duration = format_duration(report.durationSeconds)
+    if duration is not None:
+        table.add_row("Duration", duration)
     table.add_row("Critical", str(report.summary.critical))
     table.add_row("High", str(report.summary.high))
     table.add_row("Medium", str(report.summary.medium))

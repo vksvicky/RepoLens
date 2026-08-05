@@ -2,7 +2,8 @@
 
 **Status:** Design sketch (not implemented)  
 **Date:** 2026-08-04  
-**Depends on:** Phase 4 Action/CI docs, Phase 5 adaptive cache (local-first)
+**Depends on:** Phase 4 Action/CI docs, Phase 5 adaptive cache (local-first)  
+**Not in Phase 7:** Extra LLM providers (Gemini, Azure aliases, Mistral, …) → **Phase 8** (aliases/recipes) and **Phase 9** (native SDKs).
 
 ## 1. Problem
 
@@ -148,4 +149,6 @@ jobs:
 - [ci.md](../ci.md) — what ships today  
 - [phase-4-ci-and-ecosystem.md](./phase-4-ci-and-ecosystem.md)  
 - [phase-5-adaptive-cache-and-recommendations.md](./phase-5-adaptive-cache-and-recommendations.md) §8 local-first / network later  
+- [phase-8-provider-aliases-and-recipes.md](./phase-8-provider-aliases-and-recipes.md) — more BYOK hosts (aliases)  
+- [phase-9-native-provider-sdks.md](./phase-9-native-provider-sdks.md) — Gemini / Bedrock native  
 - [faq.md](../faq.md) — production honesty  

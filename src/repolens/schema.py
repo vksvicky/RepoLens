@@ -88,6 +88,8 @@ class FindingReport(BaseModel):
     securityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
     architectureAuditConfidence: int | None = Field(default=None, ge=0, le=100)
     reliabilityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
+    # Wall-clock seconds for the full review command (inventory → report write).
+    durationSeconds: float | None = Field(default=None, ge=0)
 
     @field_validator("confidence")
     @classmethod

@@ -2,7 +2,8 @@
 
 **Status:** Design sketch (not implemented)  
 **Date:** 2026-08-04  
-**Depends on:** Phase 4 Action/CI docs, Phase 5 adaptive cache (local-first)
+**Depends on:** Phase 4 Action/CI docs, Phase 5 adaptive cache (local-first)  
+**Not in Phase 7:** Extra LLM providers → Phase 8 (aliases/recipes) / Phase 9 (native SDKs).
 
 ## 1. Problem
 
