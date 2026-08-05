@@ -184,16 +184,32 @@ def test_hf_and_github_conflict() -> None:
     assert result.exit_code == 2
 
 
+def _command_option_names(command: str) -> set[str]:
+    """Flag names registered on a Typer subcommand (render-independent)."""
+    from typer.main import get_command
+
+    click_app = get_command(app)
+    cmd = click_app.commands[command]
+    names: set[str] = set()
+    for param in cmd.params:
+        names.update(getattr(param, "opts", ()) or ())
+        names.update(getattr(param, "secondary_opts", ()) or ())
+    return names
+
+
 def test_review_help_includes_deep_flags() -> None:
+    names = _command_option_names("review")
+    assert "--deep" in names
+    assert "--no-deep" in names
     result = runner.invoke(app, ["review", "--help"])
     assert result.exit_code == 0
-    assert "--deep" in result.output
-    assert "--no-deep" in result.output
+    # Rendered help can vary by Rich/Click; registration is the contract.
 
 
 def test_sentinel_and_architecture_help_include_deep() -> None:
     for cmd in ("sentinel", "architecture"):
+        names = _command_option_names(cmd)
+        assert "--deep" in names, cmd
+        assert "--no-deep" in names, cmd
         result = runner.invoke(app, [cmd, "--help"])
         assert result.exit_code == 0, result.output
-        assert "--deep" in result.output
-        assert "--no-deep" in result.output
