@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phase 5 / 5.1 shipping; **next** Phase 6 explain/diagrams → Phase 7 enterprise CI → **Phase 8** provider aliases/recipes → **Phase 9** native SDKs  
+**Current phase:** Phases **2–5.1 complete**; **next** Phase 6 explain/diagrams → Phase 7 enterprise CI → Phase 8 provider aliases → Phase 9 native SDKs  
 
 **CLI language:** Python 3.11+
 
@@ -138,13 +138,13 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Design: dual-store fingerprint + opt-in content | [x] | [phase-5-adaptive-cache-and-recommendations.md](./design/phase-5-adaptive-cache-and-recommendations.md) |
 | Unified SQLite (`repolens.sqlite`) + FTS5 | [x] | `ProjectStore` + migrate `index.sqlite` → `.bak`; learning uses same DB |
 | Fingerprint sync + timeout helpers | [x] | `adaptive.py` + `[adaptive]` config (pipeline wire-up next) |
-| Adaptive LLM pack (`auto` / `full` / `changed`) | [x] | Wired in `run_review`; CLI `--full` |
+| Adaptive LLM pack (`auto` / `full` / `changed`) | [x] | Wired in `run_review`; CLI `--full` / `--changed` |
 | Per-project timeout recommendation + overrides | [x] | Applied when `[model].timeout_seconds` unset; else stored in meta |
 | Incremental FTS when content learning consented | [x] | Upsert/delete on review when consent present |
 | `repolens adaptive status` | [x] | Fingerprints + recommended timeout + pending diff |
-| User docs (FAQ / setup / try-on) for adaptive UX | [~] | Design done; expand user guides next |
+| User docs (FAQ / setup / try-on) for adaptive UX | [x] | FAQ adaptive table; setup + try-on warm-run tips |
 
-**Phase 5 exit criteria:** Warm re-review on a large repo uses a smaller LLM pack in `auto` mode; recommended timeout is project-specific and overridable; content learning remains opt-in.
+**Phase 5 exit criteria:** Warm re-review on a large repo uses a smaller LLM pack in `auto` mode; recommended timeout is project-specific and overridable; content learning remains opt-in. → **Met (2026-08-05)**
 
 ---
 
@@ -159,9 +159,9 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Heuristics pre-pass (D) | [x] | Mega-files, siblings, gitignore/secrets hygiene, … |
 | Deep planner + merge + CLI `--deep` / `--no-deep` | [x] | Default on; `--no-deep` = single-shot |
 | Guided script + user docs | [x] | Deep Y/n + FAQ / setup / CHANGELOG |
-| Phase A: Anthropic/OpenAI as provider multiplier | [ ] | Docs tip only — same `--deep` pipeline |
+| Phase A: Anthropic/OpenAI as provider multiplier | [x] | Docs tip — same `--deep` pipeline + streamed wait UX |
 
-**Exit criteria:** PatternSorcerer-class `review --full-audit --deep` with a local model surfaces structural themes without requiring Claude; `--no-deep` preserved.
+**Exit criteria:** PatternSorcerer-class `review --full-audit --deep` with a local model surfaces structural themes without requiring Claude; `--no-deep` preserved. → **Met (2026-08-05)** (Phase A = docs + shared pipeline)
 
 ---
 
@@ -177,8 +177,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Mega-file ignore globs (docs/xcuserdata/pbxproj) | [x] | Configurable via `[deep]` |
 | Priority/band sanity | [x] | `bands.coerce_issue_bands` |
 | Per-pass progress timers | [x] | `waiting` inside deep pass loop |
+| Streamed LLM wait + report duration / mode stamps | [x] | Ollama + BYOK SSE; `durationSeconds`; `{mode}_HHMM` filenames |
+| Sentinel metrics omit unscored bands | [x] | Arch/rel `None`, not 0%; gate from ran passes only |
 
-**Phase 5.1 exit criteria:** PatternSorcerer deep report explains metrics; confidence not stuck at raw LLM 95% with weak coverage; security audit confidence visible; timers reset per pass.
+**Phase 5.1 exit criteria:** PatternSorcerer deep report explains metrics; confidence not stuck at raw LLM 95% with weak coverage; security audit confidence visible; timers reset per pass. → **Met (2026-08-05)**
 
 ---
 
@@ -287,6 +289,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-04 | Phase 5.1 hardening + Phase 6 explain/diagrams; enterprise → Phase 7 | Honest metrics incl. security audit confidence; foolproof Mermaid |
 | 2026-08-04 | Confidence is multi-metric | Gate confidence ≠ security audit confidence ≠ architecture scores |
 | 2026-08-05 | Provider expansion = Phase 8 + 9, not Phase 7 | Phase 7 = enterprise CI only; Phase 8 = aliases + recipes (opts 1–2); Phase 9 = native SDKs (opt 3) |
+| 2026-08-05 | Phases 5 + 5.1 + deep coverage (incl. Phase A docs) complete | Adaptive user docs finished; metrics/stream/sentinel polish landed |
 
 ---
 

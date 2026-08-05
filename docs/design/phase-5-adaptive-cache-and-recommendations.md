@@ -1,7 +1,7 @@
 # Phase 5 — Adaptive fingerprint cache, progressive review, configurable recommendations
 
-**Status:** Design approved (Approach 1 + A+C; **unified SQLite + FTS5** — no JSON fingerprint layer)  
-**Date:** 2026-08-04  
+**Status:** Implemented (Approach 1 + A+C; **unified SQLite + FTS5** — no JSON fingerprint layer)  
+**Date:** 2026-08-04 (docs polish complete 2026-08-05)  
 **Depends on:** Phase 4 local learning (FTS5), Phase 1 inventory/LLM pipeline
 
 ## 1. Problem

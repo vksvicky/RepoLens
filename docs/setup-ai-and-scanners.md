@@ -205,12 +205,19 @@ repolens review --path /path/to/your/project --verbose
 # Large repos: deep coverage (default) + more time, or narrow scope
 # repolens review --path /path/to/your/project --full-audit --timeout 3600
 # repolens review --path /path/to/your/project --mode diff --since HEAD~20
+# Warm / PR-sized: --changed (skip LLM if no fingerprint delta)
+# Force full pack: --full
 # Thin single-shot: --no-deep
+repolens adaptive status --path /path/to/your/project
 ```
 
 Deep mode loads **rules by id** from the packaged registry (overridable under `.repolens/rules/`), not fixed author-machine Markdown paths. FAQ: [What is deep coverage?](./faq.md#what-is-deep-coverage).
 
-If you see **timed out**, the model did not finish within the HTTP limit — raise `--timeout`, use `--mode diff`, or run `--scanners-only` / `--dry-run` first.
+**Adaptive cache (Phase 5):** After the first review, `.repolens/repolens.sqlite` stores fingerprints + run timings. Later `auto` runs send a smaller LLM pack. Inspect with `repolens adaptive status`. Timeout order: `--timeout` → `REPOLENS_TIMEOUT` → `[model].timeout_seconds` → recommended → provider default. Disable with `[adaptive] enabled = false`. FAQ: [What is the adaptive cache?](./faq.md#what-is-the-adaptive-cache-phase-5).
+
+**Cloud BYOK (Phase A):** `openai` / `anthropic` / `deepseek` / `openai_compatible` use the same `--deep` pipeline as Ollama — switch with `repolens init --provider …`. Streaming wait progress works for all of them.
+
+If you see **timed out**, the model did not finish within the HTTP limit — raise `--timeout`, use `--changed` / `--mode diff`, or run `--scanners-only` / `--dry-run` first.
 
 Playbooks-only path still works: [using-playbooks.md](./using-playbooks.md).
 

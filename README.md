@@ -95,6 +95,8 @@ repolens learn build --path ./my-app --accept-local-learning
 # Progress lines + LLM heartbeats by default; add -v for more detail
 # Deep coverage (multi-pass + heuristics) is on by default; use --no-deep for single-shot
 repolens review --path ./my-app --verbose
+# After first run: warm packs + recommended timeout
+repolens adaptive status --path ./my-app
 repolens sentinel --path ./my-app
 ```
 
