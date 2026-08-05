@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from repolens.coverage import coverage_ids_for_pass
 from repolens.inventory import FileEntry
+from repolens.prose import BRITISH_ENGLISH_INSTRUCTION
 from repolens.rules.registry import Rule
 from repolens.schema import FindingReport, Issue, Summary
 
@@ -226,7 +227,8 @@ def build_deep_prompt(
     else:
         sections.append("(none)")
     sections.append("")
+    sections.append(BRITISH_ENGLISH_INSTRUCTION)
     sections.append(
-        "Analyze using the rules and coverage contract. Return FindingReport JSON only."
+        "Analyse using the rules and coverage contract. Return FindingReport JSON only."
     )
     return "\n".join(sections)

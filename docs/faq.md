@@ -59,6 +59,16 @@ Fingerprints never store file contents. FTS content learning stays opt-in (`repo
 | `--no-deep` | Single-shot LLM (legacy thin path) |
 | `--full-audit` | Deep **and** full architecture checklist + scores |
 
+## What language do reports use?
+
+Report chrome (Metrics, Coverage, About, Disclaimer) and LLM/heuristic finding prose are written in **British English** (e.g. behaviour, organise, analyse, prioritise). Prompts instruct the model accordingly; code identifiers and paths stay as in the repo.
+
+## How do we harden RepoLens against its own dogfood noise?
+
+Self-review on this repo should not drown in agent scratch (`.superpowers/`), heuristic fixtures, or pedagogical “password” mentions in playbooks. Plan: [superpowers/specs/2026-08-05-self-review-hardening-design.md](./superpowers/specs/2026-08-05-self-review-hardening-design.md) · [implementation plan](./superpowers/plans/2026-08-05-self-review-hardening.md).
+
+---
+
 ## What do report metrics mean? (confidence vs security)
 
 **`Confidence` / gate confidence is not “% secure” and not an architecture grade.** It is how sure RepoLens is that *this review package* (findings + coverage + scanners) is adequate for a gate-style decision. Models often self-report high numbers; Phase **5.1** recalibrates that with coverage penalties and adds band-specific metrics.

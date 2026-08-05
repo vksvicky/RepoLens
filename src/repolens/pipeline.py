@@ -34,6 +34,7 @@ from repolens.llm import default_model, resolve_llm_timeout
 from repolens.metrics import compute_audit_metrics
 from repolens.playbooks import playbooks_for_mode
 from repolens.progress import LlmGenerateProgress, ReviewProgress, null_progress
+from repolens.prose import BRITISH_ENGLISH_INSTRUCTION
 from repolens.report import write_json_report, write_markdown_report
 from repolens.rules.registry import Rule, load_enabled_rules
 from repolens.scanners.runner import missing_required, parse_scanners_flag, run_scanners
@@ -77,7 +78,10 @@ def build_prompt(mode: str, root: Path, files: list[FileEntry], *, full_audit: b
         sections.append(read_excerpt(entry))
         sections.append("```")
         sections.append("")
-    sections.append("Analyze the files using the playbooks. Return FindingReport JSON only.")
+    sections.append(BRITISH_ENGLISH_INSTRUCTION)
+    sections.append(
+        "Analyse the files using the playbooks. Return FindingReport JSON only."
+    )
     return "\n".join(sections)
 
 

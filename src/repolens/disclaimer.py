@@ -43,7 +43,7 @@ def offering_markdown_lines() -> list[str]:
             "RepoLens is part of the "
             f"**[{CYCLERUNCODE_CLUB_NAME}]({CYCLERUNCODE_CLUB_URL})** offering — "
             "teaching playbooks and tools for structured code review, security, "
-            "and shipping with confidence."
+            "and shipping with confidence. Report prose uses British English."
         ),
         "",
     ]

@@ -141,7 +141,7 @@ Specifically review:
 * manifest
 * service worker
 * caching strategy
-* offline behavior
+* offline behaviour
 * install flow
 * update flow
 * background sync

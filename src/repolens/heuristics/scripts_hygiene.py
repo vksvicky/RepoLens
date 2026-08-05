@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from repolens.heuristics.paths import is_test_fixture
 from repolens.inventory import FileEntry
 from repolens.schema import Issue, Severity
 
@@ -21,14 +22,12 @@ _COMMENTED_CODE = re.compile(
     re.MULTILINE,
 )
 
-_SCRIPT_DOC_SUFFIXES = {
+# Executable / shell scripts only — pedagogical markdown discussing passwords is out of scope.
+_SCRIPT_SUFFIXES = {
     ".sh",
     ".bash",
     ".zsh",
     ".ps1",
-    ".md",
-    ".txt",
-    ".rst",
 }
 
 
@@ -38,9 +37,11 @@ def find_script_credential_hygiene(entries: list[FileEntry]) -> list[Issue]:
         path = entry.path
         if not path.is_file():
             continue
+        if is_test_fixture(entry.relative):
+            continue
         suffix = path.suffix.lower()
         name = path.name.lower()
-        if suffix not in _SCRIPT_DOC_SUFFIXES and "notarize" not in name:
+        if suffix not in _SCRIPT_SUFFIXES and "notarize" not in name:
             continue
         try:
             text = path.read_text(encoding="utf-8", errors="replace")

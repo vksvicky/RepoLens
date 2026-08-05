@@ -11,6 +11,7 @@ from repolens.schema import Issue, Severity
 DEFAULT_MEGA_FILE_EXCLUDES: tuple[str, ...] = (
     "**/*.md",
     "**/docs/**",
+    "**/.superpowers/**",
     "**/xcuserdata/**",
     "**/*.xcuserstate",
     "**/*.pbxproj",

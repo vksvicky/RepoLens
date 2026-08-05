@@ -119,6 +119,50 @@ def test_todo_fixme_density_emits_low(tmp_path: Path) -> None:
     assert todos, f"expected TODO/FIXME density issue, got: {[i.title for i in result.issues]}"
 
 
+def test_mega_file_excludes_superpowers_paths(tmp_path: Path) -> None:
+    from repolens.heuristics.mega_files import is_mega_file_excluded
+
+    assert is_mega_file_excluded(".superpowers/sdd/big.diff")
+    assert is_mega_file_excluded("docs/readme.md")
+
+
+def test_sibling_pairs_skip_test_fixtures(tmp_path: Path) -> None:
+    views = tmp_path / "tests" / "fixtures" / "heuristics" / "siblings" / "Views"
+    views.mkdir(parents=True)
+    (views / "ExtractToolView.swift").write_text("struct ExtractToolView {}\n", encoding="utf-8")
+    (views / "ReplaceToolView.swift").write_text("struct ReplaceToolView {}\n", encoding="utf-8")
+    rel = "tests/fixtures/heuristics/siblings/Views"
+    entries = _entries_for(
+        tmp_path,
+        f"{rel}/ExtractToolView.swift",
+        f"{rel}/ReplaceToolView.swift",
+    )
+    result = run_heuristics(tmp_path, entries)
+    dups = [i for i in result.issues if "sibling" in i.title.lower() or "duplic" in i.title.lower()]
+    assert not dups
+
+
+def test_scripts_hygiene_skips_markdown_playbooks(tmp_path: Path) -> None:
+    md = tmp_path / "playbooks" / "security.md"
+    md.parent.mkdir(parents=True)
+    md.write_text(
+        "# Security\nUse a password or Apple ID for notarization examples.\n",
+        encoding="utf-8",
+    )
+    sh = tmp_path / "scripts" / "notarize.sh"
+    sh.parent.mkdir(parents=True)
+    sh.write_text(
+        "#!/bin/bash\nexport APPLE_ID_PASSWORD=secret\nxcrun notarytool submit x\n",
+        encoding="utf-8",
+    )
+    entries = _entries_for(tmp_path, "playbooks/security.md", "scripts/notarize.sh")
+    result = run_heuristics(tmp_path, entries)
+    hygiene = [i for i in result.issues if i.category == "heuristic.scripts_hygiene"]
+    assert hygiene
+    assert all(i.file.endswith(".sh") for i in hygiene)
+    assert not any(i.file.endswith(".md") for i in hygiene)
+
+
 def test_missing_dependabot_when_package_manifest_exists(tmp_path: Path) -> None:
     (tmp_path / "package.json").write_text('{"name":"demo"}\n', encoding="utf-8")
     (tmp_path / "src").mkdir()

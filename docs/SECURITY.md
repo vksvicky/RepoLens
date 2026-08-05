@@ -14,8 +14,7 @@ RepoLens is in early development. Security fixes will target the latest `main` b
 If you discover a security issue in **RepoLens itself** (CLI, CI action, docs that leak secrets, dependency issues in this repo):
 
 1. **Do not** open a public GitHub issue.
-2. Use [GitHub Private Vulnerability Reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) on this repository (preferred), **or**
-3. Email the maintainers (add a public contact here when the GitHub remote is published).
+2. Use [GitHub Private Vulnerability Reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) on the [RepoLens repository](https://github.com/vksvicky/RepoLens) (preferred and currently the only public contact path).
 
 Please include:
 
