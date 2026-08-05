@@ -242,33 +242,55 @@ def _render_metrics_section(report: FindingReport) -> list[str]:
     lines = [
         "## Metrics",
         "",
+        (
+            "**Gate** = adequacy of *this review package* (findings + checklist "
+            "coverage + scanners) for a go/no-go style decision — **not** "
+            "“% secure” or an architecture grade. Band audits score checklist "
+            "honesty per P1/`sec.*`, P2/`rel.*`, P3/`arch.*`. See FAQ: "
+            "*What do report metrics mean?*"
+        ),
+        "",
         "| Metric | Value | Meaning |",
         "|--------|-------|---------|",
         (
-            f"| Gate confidence | {report.confidence}% | How adequate this review "
-            "package is for a gate decision — **not** “% secure” |"
+            f"| Gate confidence | {report.confidence}% | Weakest scored pass/band, "
+            "then −4/missed id and −3/invalid N/A (global, capped) — **not** "
+            "“% secure” |"
         ),
     ]
     if report.securityAuditConfidence is not None:
         lines.append(
             f"| Security audit confidence | {report.securityAuditConfidence}% | "
-            "Checklist honesty for P1 / `sec.*` **minus** open Critical/High "
-            "security findings — **not** a vibes-style posture score |"
+            "P1/`sec.*` base − missed/invalid N/A + scanner bonus − Critical/High "
+            "**security** findings (P1 or `sec.*`) — **not** a posture score |"
         )
     if report.reliabilityAuditConfidence is not None:
         lines.append(
             f"| Reliability audit confidence | {report.reliabilityAuditConfidence}% | "
-            "Honesty/completeness of P2 / `rel.*` checklist |"
+            "P2/`rel.*` base − missed/invalid N/A − Critical/High in that band |"
         )
     if report.architectureAuditConfidence is not None:
         lines.append(
             f"| Architecture audit confidence | {report.architectureAuditConfidence}% | "
-            "Honesty/completeness of P3 / `arch.*` checklist |"
+            "P3/`arch.*` base − missed/invalid N/A − Critical/High in that band |"
         )
     lines.extend(
         [
             "| Severity counts | (above) | Finding tallies — independent of confidence % |",
-            "| Coverage | (below) | covered / N/A / missed checklist ids |",
+            "| Coverage | (below) | Checklist ids: covered / honest N/A / missed |",
+            "",
+            "### How these % are calculated",
+            "",
+            "1. Each deep pass supplies a **base** confidence.",
+            "2. Band % = base − **4×missed** ids in band (cap −40) − **3×invalid N/A** "
+            "(cap −30); security also **+5** if all scanners `ran`; then "
+            "−**20**/Critical and −**10**/High attributed to that band.",
+            "3. **Gate** = min(ran pass bases + scored band %) − the same missed / "
+            "invalid-N/A penalties across scored bands (clamp 0–100).",
+            "",
+            "High security audit + lower gate usually means reliability/architecture "
+            "or **missed** checklist ids are the weak link — not that security is "
+            "perfect in absolute terms.",
             "",
         ]
     )
@@ -297,6 +319,14 @@ def _render_coverage_section(report: FindingReport) -> list[str]:
 
     lines: list[str] = [
         "## Coverage",
+        "",
+        (
+            "Deep-mode checklist accountability (`sec.*` / `rel.*` / `arch.*` rule ids). "
+            "**Covered** = addressed (issue and/or explicit note). "
+            "**N/A** = honestly out of scope for this repo (with reason). "
+            "**Missed** = in scope but neither covered nor a valid N/A — lowers "
+            "gate/band confidence. Details: FAQ *What do report metrics mean?*"
+        ),
         "",
         (
             f"- **Covered:** {len(covered)} · **N/A:** {len(na)} · "
