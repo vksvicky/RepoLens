@@ -43,7 +43,7 @@ On each review RepoLens can maintain `.repolens/repolens.sqlite` (local): file f
 | Metric | Means | Does **not** mean |
 |--------|--------|-------------------|
 | **Gate confidence** | Adequacy of the overall review package | App is 95% secure / well-architected |
-| **Security audit confidence** | Honesty/completeness of the **P1 / sec.*** checklist + scanners | CVE-complete or production-ready security |
+| **Security audit confidence** | Honesty/completeness of the **P1 / `sec.*`** checklist + scanners, **reduced** when Critical/High security findings remain | A CleanVibes-style “% secure” posture score, or CVE completeness |
 | **Architecture audit confidence** | Honesty/completeness of the **P3 / arch.*** checklist | The 1–10 architecture `scores` block |
 | **Critical / High / Medium / Low** | Finding severity counts | Confidence % |
 | **Coverage** covered / N/A / missed | Checklist accountability | “N/A = ignored forever” — lazy N/A are rejected in 5.1 |

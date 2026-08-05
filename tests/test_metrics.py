@@ -100,6 +100,56 @@ def test_gate_confidence_at_most_lowest_band() -> None:
     assert metrics.gate_confidence <= min(95, 90, 92)
 
 
+def test_security_audit_penalized_by_high_p1_findings() -> None:
+    """Open High P1 findings must pull security audit below 100 even with clean coverage."""
+    from repolens.schema import Issue, Severity
+
+    coverage = CoverageResult(
+        covered=["sec.injection", "sec.secrets"],
+        missed=[],
+        na={"sec.xss_csrf": "No web surface in pack"},
+    )
+    issues = [
+        Issue(
+            severity=Severity.HIGH,
+            priority="P1",
+            category="sec.injection",
+            file="a.swift",
+            line=1,
+            title="Injection risk",
+            explanation="bad",
+            impact="RCE risk",
+            recommendedFix="sanitize",
+            codeExample="fix()",
+        ),
+        Issue(
+            severity=Severity.HIGH,
+            priority="P1",
+            category="sec.secrets",
+            file="b.swift",
+            line=1,
+            title="Secret handling",
+            explanation="bad",
+            impact="leak",
+            recommendedFix="keychain",
+            codeExample="fix()",
+        ),
+    ]
+    metrics = compute_audit_metrics(
+        pass_confidences={"p1": 95, "p2": 90, "p3": 90},
+        coverage=coverage,
+        scanner_runs=[
+            ScannerRun(tool="gitleaks", status="ran"),
+            ScannerRun(tool="semgrep", status="ran"),
+            ScannerRun(tool="osv", status="ran"),
+        ],
+        issues=issues,
+    )
+    # base 95 + scanner 5 − 2×HIGH(10) = 100 − 20 = 80 (clamped via steps)
+    assert metrics.security_audit_confidence == 80
+    assert metrics.security_audit_confidence < 100
+
+
 def test_finding_report_optional_audit_confidence_fields() -> None:
     report = FindingReport(
         confidence=80,

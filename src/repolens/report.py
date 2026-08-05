@@ -155,7 +155,8 @@ def _render_metrics_section(report: FindingReport) -> list[str]:
     if report.securityAuditConfidence is not None:
         lines.append(
             f"| Security audit confidence | {report.securityAuditConfidence}% | "
-            "Honesty/completeness of P1 / `sec.*` checklist + scanners |"
+            "Checklist honesty for P1 / `sec.*` **minus** open Critical/High "
+            "security findings — **not** a vibes-style posture score |"
         )
     if report.reliabilityAuditConfidence is not None:
         lines.append(

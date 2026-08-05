@@ -158,6 +158,7 @@ def _apply_coverage_metrics(
         pass_confidences=pass_confidences,
         coverage=coverage,
         scanner_runs=runs,
+        issues=report.issues,
     )
     report.confidence = metrics.gate_confidence
     report.securityAuditConfidence = metrics.security_audit_confidence
