@@ -95,7 +95,7 @@ def test_missing_path_exit_2(tmp_path: Path) -> None:
 
 def test_init_writes_config(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
-    with patch("repolens.llm.list_ollama_models", return_value=["qwen2.5:7b"]):
+    with patch("repolens.llm.setup.list_ollama_models", return_value=["qwen2.5:7b"]):
         result = runner.invoke(app, ["init", "--provider", "ollama", "--force"])
     assert result.exit_code == 0, result.output
     cfg = tmp_path / "xdg" / "repolens" / "config.toml"
@@ -108,7 +108,7 @@ def test_init_writes_config(tmp_path: Path, monkeypatch) -> None:
 
 def test_init_ollama_respects_explicit_model(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
-    with patch("repolens.llm.list_ollama_models", return_value=["qwen2.5:7b"]):
+    with patch("repolens.llm.setup.list_ollama_models", return_value=["qwen2.5:7b"]):
         result = runner.invoke(
             app,
             ["init", "--provider", "ollama", "--model", "mistral", "--force"],
@@ -121,7 +121,7 @@ def test_init_ollama_respects_explicit_model(tmp_path: Path, monkeypatch) -> Non
 def test_review_no_provider_prints_init_hints(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     (tmp_path / "app.py").write_text("print(1)\n", encoding="utf-8")
-    with patch("repolens.llm.detect_ollama", return_value=True):
+    with patch("repolens.llm.setup.detect_ollama", return_value=True):
         result = runner.invoke(
             app,
             ["review", "--path", str(tmp_path), "--out", str(tmp_path / "out")],
@@ -164,8 +164,8 @@ def test_github_dry_run_mocked(tmp_path: Path, monkeypatch) -> None:
     (tmp_path / "a.py").write_text("x=1\n", encoding="utf-8")
     out = tmp_path / "reports-out"
     with (
-        patch("repolens.cli.resolve_source", return_value=fake),
-        patch("repolens.cli.cleanup_source") as cleanup,
+        patch("repolens.cli.commands_review.resolve_source", return_value=fake),
+        patch("repolens.cli.commands_review.cleanup_source") as cleanup,
     ):
         result = runner.invoke(
             app,

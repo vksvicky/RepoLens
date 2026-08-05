@@ -74,7 +74,7 @@ def test_stream_enforces_wall_clock_timeout_even_when_chunks_keep_arriving(
         except StopIteration:
             return 999.0
 
-    monkeypatch.setattr("repolens.llm.time.monotonic", fake_mono)
+    monkeypatch.setattr("repolens.llm.transport.time.monotonic", fake_mono)
 
     with pytest.raises(LlmError, match="timed out after 10"):
         _stream_openai_compatible(
@@ -93,7 +93,7 @@ def test_init_writes_ollama_timeout(tmp_path, monkeypatch) -> None:
     from repolens.config import write_user_config
 
     path = tmp_path / "config.toml"
-    with patch("repolens.llm.list_ollama_models", return_value=["qwen2.5:7b"]):
+    with patch("repolens.llm.setup.list_ollama_models", return_value=["qwen2.5:7b"]):
         write_user_config(
             provider="ollama",
             model="qwen2.5:7b",

@@ -284,7 +284,7 @@ def test_has_cli_flag_deep_not_confused_with_no_deep() -> None:
 
 
 def test_probe_review_cli_caps_full_audit_does_not_enable_full() -> None:
-    with patch("repolens_guided.subprocess.run") as run:
+    with patch("guided.caps.subprocess.run") as run:
         run.return_value = MagicMock(
             returncode=0,
             stdout="Usage\n  --full-audit\n  --verbose\n",
@@ -298,7 +298,7 @@ def test_probe_review_cli_caps_full_audit_does_not_enable_full() -> None:
 
 
 def test_probe_review_cli_caps_parses_help() -> None:
-    with patch("repolens_guided.subprocess.run") as run:
+    with patch("guided.caps.subprocess.run") as run:
         run.return_value = MagicMock(
             returncode=0,
             stdout=(
@@ -317,7 +317,7 @@ def test_probe_review_cli_caps_parses_help() -> None:
 
 def test_probe_review_cli_caps_empty_on_error() -> None:
     with patch(
-        "repolens_guided.subprocess.run",
+        "guided.caps.subprocess.run",
         side_effect=OSError("missing"),
     ):
         caps = probe_review_cli_caps()
@@ -330,7 +330,7 @@ def test_probe_review_cli_caps_empty_on_error() -> None:
 
 def test_probe_review_cli_caps_empty_on_unexpected_error() -> None:
     with patch(
-        "repolens_guided.subprocess.run",
+        "guided.caps.subprocess.run",
         side_effect=RuntimeError("boom"),
     ):
         caps = probe_review_cli_caps()
@@ -339,7 +339,7 @@ def test_probe_review_cli_caps_empty_on_unexpected_error() -> None:
 
 def test_run_capture_returns_empty_on_failure() -> None:
     with patch(
-        "repolens_guided.subprocess.run",
+        "guided.caps.subprocess.run",
         side_effect=TimeoutError("slow"),
     ):
         assert run_capture(["repolens", "review", "--help"], timeout=1) == ""
@@ -487,21 +487,21 @@ def test_build_argv_scanners_only_drops_deep() -> None:
 
 
 def test_list_installed_models_prefers_ollama_list() -> None:
-    with patch("repolens_guided.subprocess.run") as run:
+    with patch("guided.caps.subprocess.run") as run:
         run.return_value = MagicMock(
             returncode=0,
             stdout="NAME\nqwen2.5:7b\n",
             stderr="",
         )
-        with patch("repolens_guided.urllib.request.urlopen") as urlopen:
+        with patch("guided.caps.urllib.request.urlopen") as urlopen:
             assert list_installed_models() == ["qwen2.5:7b"]
             urlopen.assert_not_called()
 
 
 def test_list_installed_models_falls_back_to_tags_api() -> None:
-    with patch("repolens_guided.subprocess.run") as run:
+    with patch("guided.caps.subprocess.run") as run:
         run.return_value = MagicMock(returncode=1, stdout="", stderr="")
-        with patch("repolens_guided.urllib.request.urlopen") as urlopen:
+        with patch("guided.caps.urllib.request.urlopen") as urlopen:
             resp = MagicMock()
             resp.read.return_value = b'{"models":[{"name":"fallback:1b"}]}'
             resp.__enter__.return_value = resp
