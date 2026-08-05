@@ -27,13 +27,23 @@ On each review RepoLens can maintain `.repolens/repolens.sqlite` (local): file f
 | Flag / config | Effect |
 |---------------|--------|
 | *(default)* `adaptive.mode=auto` | Warm re-review: smaller LLM pack (changed + hot paths) |
-| `--changed` | LLM pack = added/changed only (skip LLM if none) |
+| `--changed` | LLM pack = added/changed only; if none, **reuse last successful LLM** snapshot from `.repolens/` (merge fresh scanners) — not newest `reports/*` |
 | `--full` | Force full LLM pack (ignore adaptive selection) |
 | `--timeout N` / `REPOLENS_TIMEOUT` / `[model].timeout_seconds` | Explicit timeout — **always wins** over the recommendation |
 | `repolens adaptive status --path .` | Fingerprints, pending diff, recommended timeout |
 | `[adaptive] enabled = false` | Disable fingerprint cache / pack selection |
 
-**Timeout resolution order:** CLI `--timeout` → `REPOLENS_TIMEOUT` → explicit `[model].timeout_seconds` → `meta.recommended_timeout_seconds` (from prior runs) → provider default (Ollama 900s, cloud 120s).
+**Timeout resolution order:** CLI `--timeout` → `REPOLENS_TIMEOUT` → explicit `[model].timeout_seconds` → `meta.recommended_timeout_seconds` (from prior runs) → provider default (Ollama 900s, cloud 120s). Timeout is a **wall-clock** limit for the LLM stream (not only idle-between-chunks).
+
+**Important:** with `adaptive.mode=auto`, if fingerprints show **no added/changed files**, RepoLens still takes a **full LLM pack** (avoids under-reviewing). That is why a “warm” PatternSorcerer run can still be ~1h on a local 32B. For a true smoke:
+
+| Goal | Command |
+|------|---------|
+| Unit only (seconds) | `python -m pytest tests/test_themes.py tests/test_report.py -q` |
+| Scanners only (minutes) | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only` |
+| LLM only if files changed (else reuse last AI findings) | `repolens review --path "$TARGET" --out "$TARGET/reports" --changed --deep --timeout 900` |
+| Force full pack (slow) | `repolens review --path "$TARGET" --out "$TARGET/reports" --full --deep --timeout 3600` |
+| Full audit + Extended themes | add `--full-audit` (slowest) |
 
 Fingerprints never store file contents. FTS content learning stays opt-in (`repolens learn` + consent). Design: [phase-5-adaptive-cache-and-recommendations.md](./design/phase-5-adaptive-cache-and-recommendations.md).
 
@@ -60,11 +70,21 @@ Fingerprints never store file contents. FTS content learning stays opt-in (`repo
 | **Architecture audit confidence** | Honesty/completeness of the P3 / `arch.*` checklist | The 1–10 architecture `scores` block |
 | **Critical / High / Medium / Low** | Finding severity counts | Confidence % |
 | **Coverage** covered / N/A / missed | Checklist accountability | “N/A = ignored forever” — lazy N/A are rejected in 5.1 |
+| **Theme breakdown** | Per-theme covered / N/A / missed + finding counts | “% clean” per theme |
 | **Duration** | Wall-clock for the whole command | Per-pass LLM time alone |
 
-**Mode scope:** `repolens sentinel` scores the **security** band only — architecture / reliability audit % are omitted (N/A), not `0%`. Gate confidence reflects that sentinel package. Reports are named `gate_review_report_{mode}_YYYY-MM-DD_HHMM.*` so modes do not overwrite each other.
+### Core vs Extended themes (Phase 5.2)
 
-Design: [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md). Config: `[deep]` (`enabled`, `chars_per_pass`, `mega_file_lines`, `mega_file_exclude_globs`).
+Deep reports include a **Theme breakdown** section:
+
+| Pack | When shown | Examples |
+|------|------------|----------|
+| **Core** (18) | Every deep `review`; `sentinel` shows Core **P1 / `sec.*`** only | Structure & size, duplication, secrets hygiene, injection, auth, TLS, `rel.*` reliability themes |
+| **Extended** (~19) | `--full-audit` (else omitted from the table; honest N/A when out of scope) | Database, a11y, observability, IaC, privacy/PII, build/release integrity |
+
+Heuristics (mega-files, sibling duplication, gitignore/secrets, CI gaps, …) map into theme finding counts. Deprecated ids such as `sec.secrets` / `sec.deps_config` alias to the new theme ids so older N/A notes still resolve. Themes are **not** a substitute for Semgrep/OSV/gitleaks/CodeQL.
+
+Design: [phase-5.2-theme-coverage-and-report-breakdown.md](./design/phase-5.2-theme-coverage-and-report-breakdown.md) · [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md). Config: `[deep]` (`enabled`, `chars_per_pass`, `mega_file_lines`, `mega_file_exclude_globs`).
 
 **Rules** load by **id** from a registry (project `.repolens/rules/` → user config → packaged defaults)—not hard-coded Markdown paths on the author’s machine. Override a rule with `.repolens/rules/<id>.md`.
 
@@ -425,3 +445,19 @@ See **[ADR-01: Analysis runtime architecture](./adr/01_analysis_runtime_architec
 ## Where is the roadmap?
 
 [phases.md](./phases.md).
+
+---
+
+## Disclaimer (AI / LLM output)
+
+**Short answer:** RepoLens may use AI/LLMs (plus heuristics and optional scanners). Treat every finding and suggested fix as **unverified**. The authors do **not** take responsibility for decisions or damage resulting from AI/LLM or tool-assisted output.
+
+Every Markdown gate report ends with a **Disclaimer** section. In plain terms:
+
+- Output can be incomplete, incorrect, outdated, or unsuitable for your environment.
+- Software and reports are provided **as is**, without warranty.
+- **You** remain solely responsible for review, validation, risk assessment, and what you ship.
+- Authors accept **no liability** for loss, security incidents, or other consequences from reliance on that output.
+- A RepoLens report is **not** a certification, penetration test, legal opinion, or paid professional audit.
+
+This sits alongside the [MIT licence](../LICENSE) “AS IS” terms.

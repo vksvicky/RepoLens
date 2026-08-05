@@ -799,7 +799,8 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     table = Table(title="RepoLens summary")
     table.add_column("Metric")
     table.add_column("Value")
-    table.add_row("Dry run", "yes" if dry_run else "no")
+    if dry_run:
+        table.add_row("Dry run", "yes")
     table.add_row("Files scanned", str(files))
     table.add_row("Gate confidence", f"{confidence}%")
     if report.securityAuditConfidence is not None:
@@ -809,6 +810,10 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     duration = format_duration(report.durationSeconds)
     if duration is not None:
         table.add_row("Duration", duration)
+    if report.llmReusedFrom:
+        table.add_row("LLM", f"reused from {report.llmReusedFrom}")
+    elif report.llmSkipped:
+        table.add_row("LLM", "skipped (no file delta; no prior snapshot)")
     table.add_row("Critical", str(report.summary.critical))
     table.add_row("High", str(report.summary.high))
     table.add_row("Medium", str(report.summary.medium))

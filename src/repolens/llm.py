@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -353,8 +354,14 @@ def _stream_openai_compatible(
     timeout: float,
     on_delta: Callable[[str], None] | None,
 ) -> str:
-    """Accumulate streamed chat.completion chunks; invoke ``on_delta`` per piece."""
+    """Accumulate streamed chat.completion chunks; invoke ``on_delta`` per piece.
+
+    Enforces a **wall-clock** deadline of ``timeout`` seconds. httpx read
+    timeouts alone are insufficient: they reset whenever a chunk arrives, so a
+    slow but continuous stream can run far past ``--timeout``.
+    """
     parts: list[str] = []
+    deadline = time.monotonic() + max(0.0, float(timeout))
     try:
         with client.stream(
             "POST",
@@ -375,6 +382,8 @@ def _stream_openai_compatible(
                     )
                 )
             for line in response.iter_lines():
+                if time.monotonic() >= deadline:
+                    raise _timeout_error(timeout, model, provider)
                 if not line:
                     continue
                 piece = _parse_sse_chat_chunk(line)
@@ -383,6 +392,8 @@ def _stream_openai_compatible(
                 parts.append(piece)
                 if on_delta is not None:
                     on_delta(piece)
+                if time.monotonic() >= deadline:
+                    raise _timeout_error(timeout, model, provider)
     except httpx.TimeoutException as exc:
         raise _timeout_error(timeout, model, provider) from exc
     content = "".join(parts)
@@ -471,6 +482,7 @@ def _stream_anthropic(
 ) -> str:
     """Accumulate Anthropic Messages SSE ``text_delta`` chunks."""
     parts: list[str] = []
+    deadline = time.monotonic() + max(0.0, float(timeout))
     try:
         with client.stream(
             "POST",
@@ -489,6 +501,12 @@ def _stream_anthropic(
                     + (f": {detail}" if detail else "")
                 )
             for line in response.iter_lines():
+                if time.monotonic() >= deadline:
+                    raise LlmError(
+                        f"Anthropic timed out after {timeout:g}s. "
+                        f"Try `--timeout {int(timeout * 2)}` or set "
+                        "timeout_seconds in config."
+                    )
                 if not line:
                     continue
                 piece = _parse_anthropic_sse_text_delta(line)
@@ -497,6 +515,12 @@ def _stream_anthropic(
                 parts.append(piece)
                 if on_delta is not None:
                     on_delta(piece)
+                if time.monotonic() >= deadline:
+                    raise LlmError(
+                        f"Anthropic timed out after {timeout:g}s. "
+                        f"Try `--timeout {int(timeout * 2)}` or set "
+                        "timeout_seconds in config."
+                    )
     except httpx.TimeoutException as exc:
         raise LlmError(
             f"Anthropic timed out after {timeout:g}s. "

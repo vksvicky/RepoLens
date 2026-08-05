@@ -24,6 +24,12 @@ from repolens.coverage import (
 from repolens.deep import build_deep_prompt, merge_reports, plan_deep_passes
 from repolens.heuristics import run_heuristics
 from repolens.inventory import FileEntry, list_files, read_excerpt
+from repolens.last_llm import (
+    bootstrap_from_out_dir,
+    load_last_llm_report,
+    merge_reused_report,
+    save_last_llm_report,
+)
 from repolens.llm import default_model, resolve_llm_timeout
 from repolens.metrics import compute_audit_metrics
 from repolens.playbooks import playbooks_for_mode
@@ -308,6 +314,14 @@ def _analyze_deep_passes(
         na=dict(coverage.na),
         missed=list(coverage.missed),
     )
+    from repolens.themes import build_theme_breakdown
+
+    report.themes = build_theme_breakdown(
+        coverage,
+        report.issues,
+        mode=mode,
+        full_audit=full_audit,
+    )
     pass_confidences: dict[str, int] = {}
     for deep_pass, part in zip(passes, parts, strict=False):
         pass_confidences[deep_pass.name] = part.confidence
@@ -469,26 +483,80 @@ def run_review(
             llm_files = files
             if store is not None and diff is not None and cfg.adaptive.enabled:
                 llm_files = select_pack_paths(files, diff, mode=pack_mode)
+                delta_n = len(diff.added) + len(diff.changed)
+                note = ""
+                if (
+                    pack_mode == "auto"
+                    and delta_n == 0
+                    and len(llm_files) == len(files)
+                    and files
+                ):
+                    note = (
+                        " — no fingerprint delta → full pack "
+                        "(use --changed for delta-only smoke)"
+                    )
                 prog.phase(
                     f"LLM pack: {len(llm_files)}/{len(files)} file(s) "
-                    f"(adaptive mode={pack_mode})"
+                    f"(adaptive mode={pack_mode}){note}"
                 )
 
             if not llm_files:
-                gap = (
-                    "Adaptive mode=changed: no added/changed files since last "
-                    "fingerprint sync; skipped LLM. Edit files or use --full / "
-                    "adaptive auto for a full pass."
-                )
-                prog.phase("LLM: skipped (empty pack)")
-                report = FindingReport(
-                    confidence=80,
-                    summary=Summary(),
-                    issues=list(scanner_issues),
-                    durabilityGaps=[gap] + list(scanner_gaps),
-                    scannerRuns=list(scanner_runs),
-                )
-                report.summary = report.recount_summary()
+                prior_bundle = None
+                if store is not None:
+                    prior_bundle = load_last_llm_report(store)
+                if prior_bundle is None:
+                    prior_bundle = bootstrap_from_out_dir(out)
+                if prior_bundle is not None:
+                    prior, saved_at, prior_model = prior_bundle
+                    report = merge_reused_report(
+                        prior,
+                        scanner_issues=list(scanner_issues),
+                        scanner_runs=list(scanner_runs),
+                        scanner_gaps=list(scanner_gaps),
+                        saved_at=saved_at,
+                        model=prior_model,
+                    )
+                    prog.phase(
+                        f"LLM: reused last successful findings "
+                        f"({report.llmReusedFrom})"
+                    )
+                    prog.detail(
+                        "No fingerprint delta — carried forward prior AI issues; "
+                        "scanners refreshed this run. Use --full to re-run the model."
+                    )
+                    if store is not None and store.get_meta("last_llm_report_json") is None:
+                        # Persist bootstrap so later skips do not re-scan out/.
+                        save_last_llm_report(
+                            store,
+                            prior.model_copy(update={"llmCompleted": True}),
+                            model=prior_model or None,
+                            mode=mode,
+                        )
+                else:
+                    gap = (
+                        "LLM skipped: --changed / adaptive mode=changed found no "
+                        "added or changed files since the last fingerprint sync, "
+                        "and no prior successful LLM snapshot is available to reuse. "
+                        "Run once without --changed (or with --full), then --changed "
+                        "will carry findings forward. Or use --scanners-only."
+                    )
+                    prog.phase(
+                        "LLM: skipped — no fingerprint delta and no prior LLM "
+                        "snapshot to reuse"
+                    )
+                    prog.detail(
+                        "Tip: run a full/auto LLM pass once to seed .repolens/; "
+                        "or --scanners-only for a fast no-AI check"
+                    )
+                    report = FindingReport(
+                        confidence=55,
+                        summary=Summary(),
+                        issues=list(scanner_issues),
+                        durabilityGaps=[gap] + list(scanner_gaps),
+                        scannerRuns=list(scanner_runs),
+                        llmSkipped=True,
+                    )
+                    report.summary = report.recount_summary()
             else:
                 if store is not None:
                     history = store.successful_llm_seconds()
@@ -628,6 +696,17 @@ def run_review(
                         scanner_gaps
                     )
                     report.summary = report.recount_summary()
+
+                report.llmCompleted = True
+                report.llmSkipped = False
+                report.llmReusedFrom = None
+                if store is not None:
+                    save_last_llm_report(
+                        store,
+                        report,
+                        model=model_name,
+                        mode=mode,
+                    )
 
         report.durationSeconds = round(time.time() - run_started, 1)
         prog.phase(f"Writing report → {out}")

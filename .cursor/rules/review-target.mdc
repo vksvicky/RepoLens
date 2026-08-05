@@ -1,0 +1,28 @@
+---
+description: Use TARGET env var for RepoLens review validation paths
+alwaysApply: true
+---
+
+# Review target (`TARGET`)
+
+When suggesting or running live `repolens review` / `sentinel` validation against a dogfood repo (e.g. PatternSorcerer):
+
+- Use **`$TARGET`** for `--path` and **`$TARGET/reports`** for `--out`
+- Do not hard-code `/Users/vivek/Development/PatternSorcerer` unless the user explicitly asks
+- Confirm `TARGET` is set before running (`echo "$TARGET"`); if unset, ask the user rather than guessing a path
+
+**Speed (do not call these “fast” unless they really are):**
+
+| Intent | Command |
+|--------|---------|
+| Unit (seconds) | `python -m pytest tests/test_themes.py tests/test_report.py -q` |
+| Scanners only | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only` |
+| LLM only on delta | `repolens review --path "$TARGET" --out "$TARGET/reports" --changed --deep --timeout 900` |
+| Full warm pack (slow on 32B) | omit `--changed` — `auto` with **no fingerprint delta still packs all files** |
+| Full audit | `--full-audit` (slowest) |
+
+Typical full-audit:
+
+```bash
+repolens review --path "$TARGET" --out "$TARGET/reports" --full-audit --model qwen2.5-coder:32b --verbose --timeout 3600
+```

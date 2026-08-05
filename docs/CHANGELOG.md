@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Standard **AI / LLM disclaimer** on every Markdown gate report; FAQ + README pointers (no liability for reliance on AI/tool-assisted output)
+
+### Added (Phase 5.2 theme coverage & report breakdown)
+
+- **Core + Extended** theme registry in `coverage.json` (`pack: core|extended|meta`)
+- Report **Theme breakdown** (Markdown + JSON `themes[]`): Core on every deep review; Extended on `--full-audit`; sentinel = Core P1 only
+- Heuristic → theme mapping (mega-file, siblings, gitignore/secrets, scripts/TODO, CI gaps)
+- Coverage id aliases (`sec.secrets` → `sec.repo_hygiene_secrets`, `sec.deps_config` → `sec.deps_supply_chain`)
+- FAQ: Core vs Extended themes; design doc updated
+
 ### Added (Phase 5.1 deep hardening)
 
 - **Gate confidence** recalibrated from coverage (lazy N/A → missed); separate **security / architecture / reliability audit confidence**

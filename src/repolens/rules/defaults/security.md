@@ -111,4 +111,26 @@ For RepoLens dual reviews, prefer the combined export name `gate_review_report_Y
 
 ---
 
+---
+
+# Theme checklist (Phase 5.2)
+
+When emitting findings or coverage N/A notes, address these themes (use the theme id in `category` when possible):
+
+* Theme: Injection & unsafe code (`sec.injection`)
+* Theme: XSS / CSRF / web surface (`sec.xss_csrf`)
+* Theme: Auth & access control (`sec.authn_authz`)
+* Theme: Repo hygiene, secrets & credentials (`sec.repo_hygiene_secrets`)
+* Theme: Data exposure (`sec.data_exposure`)
+* Theme: Dependencies & supply chain (`sec.deps_supply_chain`)
+* Theme: Transport & TLS (`sec.transport_tls`)
+* Theme: Crypto & deserialization (`sec.crypto_deser`)
+* Theme: Input validation (`sec.input_validation`)
+* Theme: Config & environment safety (`sec.config_env`) — full audit
+* Theme: Privacy & PII handling (`sec.privacy_pii`) — full audit
+* Theme: File upload & path traversal (`sec.upload_path`) — full audit
+* Theme: Session & cookie security (`sec.session_cookies`) — full audit
+* Theme: Rate limiting & abuse (`sec.rate_abuse`) — full audit
+* Theme: Build & release integrity (`sec.build_release`) — full audit
+
 **End of Analysis Instructions**
