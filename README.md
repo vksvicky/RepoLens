@@ -210,6 +210,12 @@ Tracker: **[docs/phases.md](./docs/phases.md)** · Design: **[docs/design/](./do
 
 ---
 
+## Disclaimer (AI / LLM output)
+
+RepoLens findings and suggestions may be produced or assisted by AI/LLMs, heuristics, and optional scanners. They can be wrong or incomplete. **You** are responsible for verifying results before you act. Authors accept **no liability** for harm from reliance on AI/LLM or tool-assisted output. Reports are not a certification or professional audit engagement. Full text appears in every Markdown report under **Disclaimer**, and in the [FAQ](./docs/faq.md#disclaimer-ai--llm-output).
+
+---
+
 ## License
 
-[MIT](./LICENSE) — use it, fork it, adapt the playbooks for your org.
+[MIT](./LICENSE) — use it, fork it, adapt the playbooks for your org. Software is provided **as is** (see the licence).

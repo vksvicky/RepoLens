@@ -2,11 +2,25 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from pathlib import Path
 
 from repolens.coverage import parse_coverage_notes
+from repolens.disclaimer import disclaimer_markdown_lines
 from repolens.schema import FindingReport, Issue, Severity
+
+_FENCED_BLOCK_RE = re.compile(
+    r"^\s*```[^\n]*\n(?P<body>.*?)\n```\s*$",
+    re.DOTALL,
+)
+
+# Coverage N/A / missed notes travel in durabilityGaps for evaluation, but are not
+# actionable "durability" todos — keep them out of the checkbox section.
+_COVERAGE_TRANSPORT_GAP_RE = re.compile(
+    r"^coverage:\S+\s*:\s*(N/A|missed)\b",
+    re.IGNORECASE,
+)
 
 
 def report_timestamp(when: datetime | None = None) -> datetime:
@@ -113,9 +127,19 @@ def render_markdown(
                 f"High {report.summary.high} · Medium {report.summary.medium} · "
                 f"Low {report.summary.low}"
             ),
-            "",
         ]
     )
+    if getattr(report, "llmReusedFrom", None):
+        lines.append(
+            f"- **LLM:** reused from last successful AI pass "
+            f"(`{report.llmReusedFrom}`) — not a fresh deep review"
+        )
+    elif getattr(report, "llmSkipped", False):
+        lines.append(
+            "- **LLM:** skipped (no fingerprint delta under `--changed` and "
+            "no prior LLM snapshot to reuse)"
+        )
+    lines.append("")
     lines.extend(_render_metrics_section(report))
 
     bands = (
@@ -160,15 +184,10 @@ def render_markdown(
         lines.append("_No immediate-priority findings._")
     lines.append("")
 
-    lines.extend(["## Durability gaps", ""])
-    if report.durabilityGaps:
-        for gap in report.durabilityGaps:
-            lines.append(f"- [ ] {gap}")
-    else:
-        lines.append("_None called out._")
-    lines.append("")
+    lines.extend(_render_durability_gaps_section(report))
 
     lines.extend(_render_coverage_section(report))
+    lines.extend(_render_theme_breakdown(report))
 
     if report.scores is not None:
         s = report.scores
@@ -188,7 +207,28 @@ def render_markdown(
             ]
         )
 
+    lines.extend(disclaimer_markdown_lines())
     return "\n".join(lines)
+
+
+def is_coverage_transport_gap(gap: str) -> bool:
+    """True when a gap is a coverage N/A or missed note (not a real durability todo)."""
+    return bool(_COVERAGE_TRANSPORT_GAP_RE.match(gap.strip()))
+
+
+def _render_durability_gaps_section(report: FindingReport) -> list[str]:
+    """Render actionable durability gaps as checkboxes; omit coverage transport notes."""
+    real_gaps = [
+        g for g in report.durabilityGaps if not is_coverage_transport_gap(g)
+    ]
+    lines: list[str] = ["## Durability gaps", ""]
+    if real_gaps:
+        for gap in real_gaps:
+            lines.append(f"- [ ] {gap}")
+    else:
+        lines.append("_None called out._")
+    lines.append("")
+    return lines
 
 
 def _render_metrics_section(report: FindingReport) -> list[str]:
@@ -285,6 +325,74 @@ def _render_coverage_section(report: FindingReport) -> list[str]:
     return lines
 
 
+def _render_theme_breakdown(report: FindingReport) -> list[str]:
+    """Render Core / Extended theme table when themes are present (Phase 5.2)."""
+    themes = report.themes
+    if not themes:
+        return []
+
+    core = [t for t in themes if t.pack == "core"]
+    extended = [t for t in themes if t.pack == "extended"]
+    lines: list[str] = ["## Theme breakdown", ""]
+
+    def _table(rows: list) -> list[str]:
+        out = [
+            "| Theme | Coverage | Findings | Notes |",
+            "|-------|----------|----------|-------|",
+        ]
+        for t in rows:
+            notes = (t.notes or "").replace("|", "\\|")
+            out.append(
+                f"| {t.title} | {t.status} | {t.findingCount} | {notes} |"
+            )
+        out.append("")
+        return out
+
+    if core:
+        lines.append("### Core")
+        lines.append("")
+        lines.extend(_table(core))
+    if extended:
+        lines.append("### Extended")
+        lines.append("")
+        lines.extend(_table(extended))
+    return lines
+
+
+def render_code_example_fenced(code_example: str) -> list[str]:
+    """Return Markdown lines for a code example without nested fence breakage.
+
+    LLMs often return examples already wrapped in `` ```lang … ``` ``. Wrapping
+    those again with `` ``` `` breaks CommonMark. Strip a single outer fence,
+    then wrap with a fence longer than any run of backticks in the body.
+    """
+    text = code_example.strip("\n")
+    match = _FENCED_BLOCK_RE.match(text)
+    if match:
+        body = match.group("body").rstrip("\n")
+    else:
+        body = text.rstrip("\n")
+        # Defensive: drop a lone leading/trailing fence line if present.
+        lines = body.splitlines()
+        if lines and lines[0].lstrip().startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        body = "\n".join(lines).rstrip("\n")
+
+    longest = 0
+    for line in body.splitlines():
+        run = 0
+        for ch in line:
+            if ch == "`":
+                run += 1
+                longest = max(longest, run)
+            else:
+                run = 0
+    fence = "`" * max(3, longest + 1)
+    return [fence, body, fence] if body else [fence, fence]
+
+
 def _render_issue(issue: Issue) -> list[str]:
     block = [
         f"### [{issue.severity.value}] {issue.title}",
@@ -304,9 +412,7 @@ def _render_issue(issue: Issue) -> list[str]:
     if issue.codeExample.strip():
         block.append("- **Code example:**")
         block.append("")
-        block.append("```")
-        block.append(issue.codeExample.rstrip())
-        block.append("```")
+        block.extend(render_code_example_fenced(issue.codeExample))
     elif issue.severity in {Severity.CRITICAL, Severity.HIGH}:
         block.append("- **Code example:** _MISSING (invalid for Critical/High)_")
     return block

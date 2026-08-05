@@ -91,18 +91,19 @@ def test_parse_coverage_notes_and_evaluate() -> None:
         Issue(
             severity=Severity.MEDIUM,
             priority="P1",
-            category="Injection",
+            category="sec.repo_hygiene_secrets",
             file="a.py",
             line=1,
-            title="Possible command injection",
+            title="Hardcoded token in config",
             explanation="e",
             impact="i",
             recommendedFix="f",
             codeExample="",
         )
     ]
+    # Evidence beats a conflicting N/A for the same theme.
     result = evaluate_coverage(
-        ["sec.injection", "sec.secrets", "arch.testing"],
+        ["sec.injection", "sec.repo_hygiene_secrets", "arch.testing"],
         issues,
         [
             "coverage:sec.injection: N/A — no SQL layer in pack",
@@ -111,5 +112,4 @@ def test_parse_coverage_notes_and_evaluate() -> None:
     )
     assert "sec.injection" in result.na
     assert "arch.testing" in result.na
-    # secrets neither N/A nor clearly covered by title alone may be missed
-    assert "sec.secrets" in result.missed or "sec.secrets" in result.covered
+    assert "sec.repo_hygiene_secrets" in result.covered

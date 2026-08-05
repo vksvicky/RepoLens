@@ -35,6 +35,7 @@ class CoverageEntry:
     full_audit_only: bool
     title: str
     playbook_anchor: str | None = None
+    pack: str = "core"  # core | extended | meta
 
 
 @dataclass(frozen=True)
@@ -134,6 +135,9 @@ def load_coverage_matrix() -> CoverageMatrix:
         band = str(item.get("band", "p3")).lower()
         title = str(item.get("title", cov_id))
         full_audit_only = bool(item.get("full_audit_only", False))
+        pack = str(item.get("pack", "core")).lower()
+        if pack not in {"core", "extended", "meta"}:
+            raise ValueError(f"coverage {cov_id}: pack must be core|extended|meta")
         anchor = item.get("playbook_anchor")
         if anchor is not None and not isinstance(anchor, str):
             raise ValueError(f"coverage {cov_id}: playbook_anchor must be string or null")
@@ -145,6 +149,7 @@ def load_coverage_matrix() -> CoverageMatrix:
                 full_audit_only=full_audit_only,
                 title=title,
                 playbook_anchor=anchor,
+                pack=pack,
             )
         )
     return CoverageMatrix(entries=entries)
@@ -185,10 +190,16 @@ def parse_coverage_notes(gaps: Iterable[str]) -> dict[str, str]:
 
 
 def _issue_addresses(cov_id: str, issues: Iterable[Issue]) -> bool:
-    """Best-effort link: coverage id or trailing token appears in issue text."""
-    token = cov_id.split(".")[-1].lower()
-    needle = cov_id.lower()
+    """Best-effort link: theme/heuristic map, coverage id, or token in issue text."""
+    from repolens.themes import canonicalize_coverage_id, theme_id_for_category
+
+    canon = canonicalize_coverage_id(cov_id)
+    token = canon.split(".")[-1].lower()
+    needle = canon.lower()
     for issue in issues:
+        mapped = theme_id_for_category(issue.category)
+        if mapped == canon:
+            return True
         hay = " ".join(
             [
                 issue.title,
@@ -208,8 +219,21 @@ def evaluate_coverage(
     issues: Iterable[Issue],
     gaps: Iterable[str],
 ) -> CoverageResult:
-    wanted = list(ids)
-    na = parse_coverage_notes(gaps)
+    from repolens.themes import canonicalize_coverage_id
+
+    wanted: list[str] = []
+    seen: set[str] = set()
+    for raw_id in ids:
+        cov_id = canonicalize_coverage_id(raw_id)
+        if cov_id in seen:
+            continue
+        seen.add(cov_id)
+        wanted.append(cov_id)
+
+    na_raw = parse_coverage_notes(gaps)
+    na = {
+        canonicalize_coverage_id(cid): reason for cid, reason in na_raw.items()
+    }
     issue_list = list(issues)
     covered: list[str] = []
     missed: list[str] = []
@@ -217,6 +241,10 @@ def evaluate_coverage(
     invalid_na: dict[str, str] = {}
 
     for cov_id in wanted:
+        # Issues win over N/A when evidence exists (alias notes must not hide findings).
+        if _issue_addresses(cov_id, issue_list):
+            covered.append(cov_id)
+            continue
         if cov_id in na:
             reason = na[cov_id]
             if is_lazy_na_reason(reason):
@@ -225,10 +253,7 @@ def evaluate_coverage(
             else:
                 result_na[cov_id] = reason
             continue
-        if _issue_addresses(cov_id, issue_list):
-            covered.append(cov_id)
-        else:
-            missed.append(cov_id)
+        missed.append(cov_id)
 
     return CoverageResult(
         covered=covered, na=result_na, missed=missed, invalid_na=invalid_na

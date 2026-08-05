@@ -12,6 +12,7 @@ from repolens.llm import (
     DEFAULT_LLM_TIMEOUT,
     DEFAULT_OLLAMA_TIMEOUT,
     LlmError,
+    _stream_openai_compatible,
     analyze,
     resolve_llm_timeout,
 )
@@ -40,6 +41,52 @@ def test_env_timeout_override(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("REPOLENS_TIMEOUT", "1800")
     cfg = load_config(tmp_path)
     assert cfg.model.timeout_seconds == 1800.0
+
+
+def test_stream_enforces_wall_clock_timeout_even_when_chunks_keep_arriving(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """httpx read timeout resets per chunk; RepoLens must enforce total wall clock."""
+
+    class _FakeResponse:
+        status_code = 200
+
+        def __enter__(self) -> _FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def iter_lines(self):
+            # Keep streaming forever unless wall-clock deadline aborts.
+            while True:
+                yield 'data: {"choices":[{"delta":{"content":"x"}}]}'
+
+    client = MagicMock()
+    client.stream.return_value = _FakeResponse()
+
+    # Start at 0; after first chunk jump past deadline.
+    ticks = iter([100.0, 100.1, 120.0])
+
+    def fake_mono() -> float:
+        try:
+            return next(ticks)
+        except StopIteration:
+            return 999.0
+
+    monkeypatch.setattr("repolens.llm.time.monotonic", fake_mono)
+
+    with pytest.raises(LlmError, match="timed out after 10"):
+        _stream_openai_compatible(
+            client,
+            base="http://example.test/v1",
+            headers={},
+            payload={"model": "m", "messages": []},
+            model="m",
+            provider="ollama",
+            timeout=10.0,
+            on_delta=None,
+        )
 
 
 def test_init_writes_ollama_timeout(tmp_path, monkeypatch) -> None:

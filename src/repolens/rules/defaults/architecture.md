@@ -296,3 +296,33 @@ Then provide:
 Optional export: `gate_review_report_YYYY-MM-DD.md` (Markdown source of truth; PDF only via existing tools or Print → PDF).
 
 Do not sugarcoat the results. Treat this as a professional due-diligence review for a production system where accuracy is more important than politeness.
+
+---
+
+# Theme checklist (Phase 5.2)
+
+Core:
+
+* Theme: Structure & size (`arch.structure_size`)
+* Theme: Readability & complexity (`arch.readability_complexity`)
+* Theme: Duplication (`arch.duplication`)
+* Theme: Dead code & leftovers (`arch.dead_code`)
+* Theme: Consistency & style (`arch.consistency_style`)
+
+Extended (full audit or N/A when out of scope):
+
+* Theme: API design & consistency (`arch.api`)
+* Theme: Testing strategy (`arch.testing`)
+* Theme: CI/CD & release durability (`arch.ci_durability`)
+* Theme: Database & data integrity (`arch.database`)
+* Theme: Frontend patterns (`arch.frontend`)
+* Theme: Accessibility (a11y) (`arch.a11y`)
+* Theme: Observability (`arch.observability`)
+* Theme: IaC / cloud misconfig (`arch.iac_cloud`)
+* Theme: Internationalisation (i18n) (`arch.i18n`)
+* Theme: PWA / offline / service worker (`arch.pwa`)
+* Theme: Licensing & compliance (`arch.licensing`)
+* Theme: Scalability & capacity (`arch.scalability`)
+* Theme: Documentation & onboarding (`arch.documentation`)
+
+Prefer these theme ids in `category` when a finding maps cleanly.

@@ -75,6 +75,18 @@ class CoverageBlock(BaseModel):
     missed: list[str] = Field(default_factory=list)
 
 
+class ThemeEntry(BaseModel):
+    """One Core/Extended theme row for report Theme breakdown (Phase 5.2)."""
+
+    id: str
+    pack: Literal["core", "extended"]
+    title: str
+    status: Literal["covered", "na", "missed"]
+    findingCount: int = Field(ge=0, default=0)
+    notes: str = ""
+    issueRefs: list[str] = Field(default_factory=list)
+
+
 class FindingReport(BaseModel):
     schemaVersion: str = "1.0"
     confidence: int = Field(ge=0, le=100)
@@ -84,12 +96,19 @@ class FindingReport(BaseModel):
     scores: ArchitectureScores | None = None
     scannerRuns: list[ScannerRun] = Field(default_factory=list)
     coverage: CoverageBlock | None = None
+    themes: list[ThemeEntry] | None = None
     # Phase 5.1 audit metrics (optional for backward compatibility with older reports).
     securityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
     architectureAuditConfidence: int | None = Field(default=None, ge=0, le=100)
     reliabilityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
     # Wall-clock seconds for the full review command (inventory → report write).
     durationSeconds: float | None = Field(default=None, ge=0)
+    # True when this report came from a fresh successful LLM call (not reuse).
+    llmCompleted: bool = False
+    # True when adaptive --changed (or equivalent) produced an empty LLM pack.
+    llmSkipped: bool = False
+    # When set, AI findings were carried forward from this prior pass label.
+    llmReusedFrom: str | None = None
 
     @field_validator("confidence")
     @classmethod

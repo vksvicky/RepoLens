@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **2–5.1 complete**; **next** Phase 6 explain/diagrams → Phase 7 enterprise CI → Phase 8 provider aliases → Phase 9 native SDKs  
+**Current phase:** Phases **2–5.2 complete**; **next** Phase 6 explain/diagrams → Phase 7 enterprise CI → Phase 8 provider aliases → Phase 9 native SDKs  
 
 **CLI language:** Python 3.11+
 
@@ -184,6 +184,24 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
+## Phase 5.2 — Theme coverage & report breakdown (design)
+
+**Goal:** First-class **Core + Extended** themes with honest coverage ids and a **Theme breakdown** section (Core always on deep review; Extended on `--full-audit` / N/A when irrelevant) — so product claims match the report shape.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design approved (Core + Extended) | [x] | [phase-5.2-theme-coverage-and-report-breakdown.md](./design/phase-5.2-theme-coverage-and-report-breakdown.md) |
+| Core theme ids (18) + deprecations/aliases | [x] | Replaced coarse `arch.code_quality` / `arch.structure` |
+| Extended theme ids (~19) | [x] | full-audit in Theme breakdown; N/A when out of scope |
+| Heuristic → theme mapping | [x] | mega_file, siblings, gitignore_secrets, … |
+| Report/JSON Theme breakdown (Core / Extended) | [x] | covered / N/A / missed + finding counts |
+| Optional light heuristics (complexity / TLS hints) | [ ] | Deferred (deterministic only; no heavy clone graph) |
+| FAQ + product honesty | [x] | FAQ Core vs Extended; product page can cite Theme breakdown |
+
+**Phase 5.2 exit criteria:** Deep full-audit report lists Core + Extended themes with coverage and finding counts; non-full-audit deep shows Core only; sentinel shows Core P1 only; heuristics map into themes; no double-count of deprecated parents. → **Met (2026-08-05)** (optional light heuristics deferred)
+
+---
+
 ## Phase 6 — Issue explain + foolproof diagrams (design)
 
 **Goal:** UUID per issue (`stableId` + `runId`); explain toggle; deep-dive command with solutions + Mermaid/textual diagrams that never abort on render failure.
@@ -290,6 +308,9 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-04 | Confidence is multi-metric | Gate confidence ≠ security audit confidence ≠ architecture scores |
 | 2026-08-05 | Provider expansion = Phase 8 + 9, not Phase 7 | Phase 7 = enterprise CI only; Phase 8 = aliases + recipes (opts 1–2); Phase 9 = native SDKs (opt 3) |
 | 2026-08-05 | Phases 5 + 5.1 + deep coverage (incl. Phase A docs) complete | Adaptive user docs finished; metrics/stream/sentinel polish landed |
+| 2026-08-05 | Phase 5.2 theme coverage & report breakdown (design) | Product themes need first-class coverage ids + Theme breakdown; not only P1/P2/P3 prose |
+| 2026-08-05 | Phase 5.2 packing = Core (18) + Extended (~19) | Core every deep review; Extended on full-audit / N/A when irrelevant |
+| 2026-08-05 | Phase 5.2 implemented | Theme breakdown in reports; coverage v2 packs; heuristic→theme map; FAQ |
 
 ---
 

@@ -8,7 +8,7 @@ from unittest.mock import patch
 from repolens.config import AdaptiveConfig, ModelConfig, RepoLensConfig
 from repolens.learning.store import ProjectStore, store_db_path
 from repolens.pipeline import run_review
-from repolens.schema import FindingReport, Summary
+from repolens.schema import FindingReport, Issue, Severity, Summary
 
 
 def test_dry_run_syncs_fingerprints(tmp_path: Path) -> None:
@@ -84,7 +84,7 @@ def test_llm_pack_shrinks_on_second_run(tmp_path: Path) -> None:
         assert "util.py" not in second_prompt
 
 
-def test_force_changed_skips_llm_when_unchanged(tmp_path: Path) -> None:
+def test_force_changed_reuses_last_llm_when_unchanged(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "a.py").write_text("print(1)\n", encoding="utf-8")
@@ -95,7 +95,18 @@ def test_force_changed_skips_llm_when_unchanged(tmp_path: Path) -> None:
         adaptive=AdaptiveConfig(enabled=True, mode="auto"),
     )
     from repolens.llm_structured import StructuredLlmResult
-    fake = FindingReport(confidence=50, summary=Summary(), issues=[])
+
+    issue = Issue(
+        severity=Severity.MEDIUM,
+        priority="P2",
+        category="quality",
+        file="a.py",
+        line=1,
+        title="Print debugging",
+        explanation="left over print",
+        recommendedFix="remove",
+    )
+    fake = FindingReport(confidence=80, summary=Summary(medium=1), issues=[issue])
     fake_result = StructuredLlmResult(report=fake, raw_text="", layer="coerced", error=None)
     with patch("repolens.llm_structured.analyze_structured", return_value=fake_result) as mocked:
         run_review(
@@ -117,8 +128,52 @@ def test_force_changed_skips_llm_when_unchanged(tmp_path: Path) -> None:
             deep=False,
         )
         assert mocked.call_count == 1  # no second LLM call
-        assert result.report.confidence == 80
-        assert any("skipped LLM" in g for g in result.report.durabilityGaps)
+        assert result.report.llmSkipped is True
+        assert result.report.llmReusedFrom is not None
+        assert result.report.confidence == 75  # 80 - 5
+        assert any(i.title == "Print debugging" for i in result.report.issues)
+        assert any("reused" in g.lower() for g in result.report.durabilityGaps)
+
+
+def test_force_changed_skips_when_no_prior_snapshot(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "a.py").write_text("print(1)\n", encoding="utf-8")
+    # Seed fingerprints without an LLM snapshot (dry-run).
+    cfg = RepoLensConfig(
+        model=ModelConfig(provider=None),
+        adaptive=AdaptiveConfig(enabled=True, mode="changed"),
+    )
+    run_review(
+        path=repo,
+        mode="review",
+        config=cfg,
+        out_dir=tmp_path / "dry",
+        dry_run=True,
+    )
+    cfg2 = RepoLensConfig(
+        model=ModelConfig(provider="ollama", model="x", timeout_seconds=30),
+        adaptive=AdaptiveConfig(enabled=True, mode="auto"),
+    )
+    from repolens.llm_structured import StructuredLlmResult
+
+    fake = FindingReport(confidence=50, summary=Summary(), issues=[])
+    fake_result = StructuredLlmResult(report=fake, raw_text="", layer="coerced", error=None)
+    with patch("repolens.llm_structured.analyze_structured", return_value=fake_result) as mocked:
+        result = run_review(
+            path=repo,
+            mode="review",
+            config=cfg2,
+            out_dir=tmp_path / "out",
+            scanners="off",
+            force_changed=True,
+            deep=False,
+        )
+        assert mocked.call_count == 0
+        assert result.report.llmSkipped is True
+        assert result.report.llmReusedFrom is None
+        assert result.report.confidence == 55
+        assert any("no prior" in g.lower() for g in result.report.durabilityGaps)
 
 
 
