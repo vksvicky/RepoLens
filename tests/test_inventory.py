@@ -34,6 +34,17 @@ def test_max_files_boundary(tmp_path: Path) -> None:
     assert len(files) == 3
 
 
+def test_ignores_superpowers_scratch(tmp_path: Path) -> None:
+    (tmp_path / "ok.py").write_text("x=1\n", encoding="utf-8")
+    sdd = tmp_path / ".superpowers" / "sdd"
+    sdd.mkdir(parents=True)
+    (sdd / "huge.diff").write_text("diff --git a/x b/x\n" * 100, encoding="utf-8")
+    files = list_files(tmp_path)
+    rels = [f.relative for f in files]
+    assert "ok.py" in rels
+    assert all(".superpowers" not in r for r in rels)
+
+
 def test_skips_symlinks_outside_root(tmp_path: Path) -> None:
     outside = tmp_path / "secret.txt"
     outside.write_text("top-secret\n", encoding="utf-8")

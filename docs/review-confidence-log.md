@@ -11,6 +11,7 @@ Durable record of dual-review gate confidence over time.
 | 2026-08-05 | WIP→commit | 88% | 0/0/1/1 | Streamed LLM wait + report stamps/mode/duration; sentinel metrics; Phase 8/9 designs | chat |
 | 2026-08-05 | WIP→commit | 88% | 0/0/1/1 | Phase 5.2 themes; reuse last LLM (+ MD bootstrap); CRC About; wall-clock timeout | chat |
 | 2026-08-05 | WIP→push | 92% | 0/0/0/0 | FAQ + report Metrics/Coverage formula glossary (docs/UX only) | chat |
+| 2026-08-05 | WIP→commit | 90% | 0/0/0/0 | PR1 self-review noise + British English report prose | chat |
 
 ## How to use
 

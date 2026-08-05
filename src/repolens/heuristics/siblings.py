@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from pathlib import Path
 
+from repolens.heuristics.paths import is_test_fixture
 from repolens.inventory import FileEntry
 from repolens.schema import Issue, Severity
 
@@ -52,6 +53,8 @@ def find_sibling_pairs(entries: list[FileEntry]) -> list[Issue]:
     buckets: dict[tuple[str, str, str, str, str], dict[str, str]] = defaultdict(dict)
 
     for entry in entries:
+        if is_test_fixture(entry.relative):
+            continue
         directory, stem, ext = _stem_parts(entry.relative)
         for left, right, suffix in _pair_key(stem):
             if stem.startswith(left):
@@ -87,7 +90,7 @@ def find_sibling_pairs(entries: list[FileEntry]) -> list[Issue]:
                     "Confirm whether logic can be unified behind a shared abstraction."
                 ),
                 recommendedFix=(
-                    "Extract shared behavior into a common type/helper and keep "
+                    "Extract shared behaviour into a common type/helper and keep "
                     "only the verb-specific differences in thin wrappers."
                 ),
                 fixTiming="before launch",

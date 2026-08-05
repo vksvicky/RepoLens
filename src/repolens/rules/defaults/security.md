@@ -19,7 +19,7 @@ This document is the **P1** authority for RepoLens (`repolens sentinel` and the 
 
 # Steps for Analysis:
 
-Analyze and report in priority order when the change set is large:
+Analyse and report in priority order when the change set is large:
 
 **P1 (this document — do first):** Security  
 **P2:** Bugs, reliability, performance (RepoLens `review` reliability band)  
@@ -35,7 +35,7 @@ Analyze and report in priority order when the change set is large:
    - Insecure file uploads
    - Improper error handling / verbose error messages
    - Use of outdated or vulnerable dependencies
-   - Unvalidated or unsanitized input handling
+   - Unvalidated or unsanitised input handling
    - Missing security headers (for web apps)
    - Improper use of cryptographic functions (weak algorithms, incorrect usage)
    - Excessive permissions (least privilege violations)
@@ -45,7 +45,7 @@ Analyze and report in priority order when the change set is large:
    - Check for lack of input/output validation
    - Review logging practices (ensure no sensitive data is logged)
    - Review session management and token expiry
-   - Analyze access control at critical operation points
+   - Analyse access control at critical operation points
    - Check for open redirect vulnerabilities
 
 3. **Dependency & Configuration Review:**
@@ -93,13 +93,14 @@ For each issue:
 ---
 
 # Important Notes:
-- Prioritize Critical and High severity issues for immediate attention.
+- Prioritise Critical and High severity issues for immediate attention.
 - **Do not mark Critical/High complete without a code example fix.**
 - Medium severity issues should be included in upcoming development cycles.
 - Low severity and best practices can be progressively addressed.
-- Use CVSS (Common Vulnerability Scoring System) scores to prioritize where possible.
+- Use CVSS (Common Vulnerability Scoring System) scores to prioritise where possible.
 - Highlight any systemic patterns that increase risk (e.g., recurring lack of input validation).
 - Prefer evidence from actual code paths; avoid speculative findings.
+- Note gaps in **mature automated scanning** (Dependabot/Renovate, Snyk or equivalent SCA, CodeQL/Semgrep, secret scanning). LLM review does not replace these in CI.
 
 ---
 
