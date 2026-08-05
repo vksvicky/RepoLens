@@ -65,13 +65,46 @@ Fingerprints never store file contents. FTS content learning stays opt-in (`repo
 
 | Metric | Means | Does **not** mean |
 |--------|--------|-------------------|
-| **Gate confidence** | Adequacy of the overall review package | App is 95% secure / well-architected |
-| **Security audit confidence** | Honesty/completeness of the **P1 / `sec.*`** checklist + scanners, **reduced** when Critical/High security findings remain | A CleanVibes-style “% secure” posture score, or CVE completeness |
-| **Architecture audit confidence** | Honesty/completeness of the P3 / `arch.*` checklist | The 1–10 architecture `scores` block |
-| **Critical / High / Medium / Low** | Finding severity counts | Confidence % |
-| **Coverage** covered / N/A / missed | Checklist accountability | “N/A = ignored forever” — lazy N/A are rejected in 5.1 |
+| **Gate confidence** | Adequacy of the overall review package (weakest scored band, then coverage penalties) | App is 47% / 95% “secure” or well-architected |
+| **Security audit confidence** | Honesty/completeness of the **P1 / `sec.*`** checklist + scanners, **reduced** when Critical/High **security** findings remain (P1 or `sec.*` / scanner cats) | A CleanVibes-style “% secure” posture score, or CVE completeness |
+| **Reliability audit confidence** | Honesty/completeness of the **P2 / `rel.*`** checklist, minus open Critical/High in that band | “App is X% reliable” |
+| **Architecture audit confidence** | Honesty/completeness of the **P3 / `arch.*`** checklist, minus open Critical/High in that band | The 1–10 architecture `scores` block |
+| **Critical / High / Medium / Low** | Finding severity counts (all bands) | Confidence % |
+| **Coverage** covered / N/A / missed | Checklist accountability for deep-mode rule ids | “N/A = ignored forever” — lazy N/A are rejected in 5.1 |
 | **Theme breakdown** | Per-theme covered / N/A / missed + finding counts | “% clean” per theme |
 | **Duration** | Wall-clock for the whole command | Per-pass LLM time alone |
+
+### Coverage: covered vs N/A vs missed
+
+Deep mode asks the model (plus heuristics) to account for each checklist id in the rules registry (`sec.*`, `rel.*`, `arch.*`, …). Progress lines like `Coverage: 11 covered · 9 N/A · 2 missed` mean:
+
+| Status | Meaning | Example from a CLI-tool dogfood |
+|--------|---------|----------------------------------|
+| **Covered** | The id was addressed (issue filed and/or explicit coverage note) | `sec.injection`, `arch.structure_size` |
+| **N/A** | Honestly out of scope for *this* codebase, with a reason | `sec.xss_csrf` — no web request/response surface |
+| **Missed** | In scope for the pass, but neither covered nor a valid N/A | `arch.consistency_style`, `arch.blast_radius` |
+
+N/A is **good** when true (don’t invent web XSS findings for a pure CLI). Missed **lowers** gate / band confidence. Full lists appear under **## Coverage** in the Markdown report (and Theme breakdown maps the same ideas to product themes).
+
+### How the % numbers are calculated (Phase 5.1)
+
+Implementation: `src/repolens/metrics.py`.
+
+1. Each deep pass returns a **base confidence** (model self-score for that pass).  
+2. **Band audit %** (security / reliability / architecture) starts from that pass’s base, then:
+   - **−4** per **missed** coverage id in that band (`sec.` / `rel.` / `arch.`), capped at −40  
+   - **−3** per **invalid/lazy N/A** remapped to missed in that band, capped at −30  
+   - Security only: **+5** if every requested scanner status is `ran`  
+   - **−20** per open Critical and **−10** per open High attributed to that band (caps −60 / −50)  
+3. **Gate confidence** = **minimum** of (ran pass bases + scored band audits), then apply the same missed / invalid-N/A penalties **globally** (only for ids in scored bands), clamp 0–100.
+
+Worked sketch (numbers like a local deep `review` on RepoLens itself):
+
+- Security audit **100%** — P1/`sec.*` checklist looked complete, scanners all ran (+5), and **no** Critical/High counted as *security* (P1 or `sec.*`). High findings tagged `rel.*` or `arch.security` with priority P2 do **not** reduce the security band.  
+- Reliability **55%** / architecture **67%** — lower because of missed ids and/or Critical/High in those bands (e.g. High `rel.error_recovery`).  
+- Gate **47%** — pulled down by the **weakest** of those scores, then any global missed-id penalty (here: 2 missed → up to −8).
+
+So: **high security audit + low gate** is normal when reliability/architecture (or coverage misses) are the weak link — gate is deliberately the “can I trust this package?” floor, not a security grade.
 
 ### Core vs Extended themes (Phase 5.2)
 

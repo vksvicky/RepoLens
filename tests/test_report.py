@@ -119,6 +119,31 @@ def test_write_markdown_report_includes_sections(tmp_path: Path) -> None:
     assert text.index("## About") < text.index("## Disclaimer")
 
 
+def test_metrics_and_coverage_explain_formulas(tmp_path: Path) -> None:
+    report = FindingReport(
+        confidence=47,
+        summary=Summary(),
+        issues=[],
+        securityAuditConfidence=100,
+        reliabilityAuditConfidence=55,
+        architectureAuditConfidence=67,
+        coverage=CoverageBlock(
+            covered=["sec.injection"],
+            na={"sec.xss_csrf": "No web surface"},
+            missed=["arch.blast_radius"],
+        ),
+    )
+    text = write_markdown_report(report, tmp_path, mode="review").read_text(
+        encoding="utf-8"
+    )
+    assert "How these % are calculated" in text
+    assert "Weakest scored pass/band" in text
+    assert "honestly out of scope" in text
+    assert "`sec.injection`" in text
+    assert "`sec.xss_csrf`" in text
+    assert "`arch.blast_radius`" in text
+
+
 def test_markdown_notes_llm_skipped_but_keeps_counts(tmp_path: Path) -> None:
     report = FindingReport(
         confidence=55,
