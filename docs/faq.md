@@ -494,6 +494,10 @@ No. Use RepoLens as a due-diligence layer **plus** tests, CI, and mature scanner
 
 Yes (`--sarif`, Phase 6.4). Export is **anchored**: scanner locations are trusted; LLM/heuristic findings need a resolvable `anchorQuote` in the cited file. Unverified locations stay in Markdown/JSON only — never in SARIF — so GHAS highlighting is not fed hallucinated lines. See [ci.md](./ci.md#anchored-sarif--sbom-phase-64--62).
 
+## Do you publish detection F1 / “beats Semgrep” numbers?
+
+No as a marketing lead. Phase 6.6 pre-registers a methodology that leads with **remediation rate**, **MTTR**, and **suggested-fix apply %** — not synthetic F1 alone. See [benchmarks/methodology.md](./benchmarks/methodology.md) and the honest MVP table ([results](./benchmarks/results/mvp-2026-08-06.md)). Supporting readiness metrics: `repolens score-report path/to/report.json`.
+
 ## How does `--ci` triage routing work?
 
 On PRs, prefer **`repolens review --ci --fail-on HIGH`** (Action `ci: true` by default):

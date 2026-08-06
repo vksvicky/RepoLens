@@ -1,0 +1,16 @@
+{
+  "$comment": "One row per participant × arm × finding (or batch). Copy into your study sheet.",
+  "studyId": "repolens-remediation-YYYY-MM-DD",
+  "participantId": "P01",
+  "arm": "repolens-combined | repolens-triage-ci | repolens-scanners-only | repolens-llm-only | semgrep-ce | codeql",
+  "toolVersion": "",
+  "corpusId": "",
+  "findingId": "",
+  "adjudication": "TP | FP | unknown",
+  "windowSeconds": 1800,
+  "elapsedSeconds": null,
+  "outcome": "fixed | correct_plan | timeout | gave_up | wrong_fix",
+  "suggestedFixOffered": true,
+  "suggestedFixApplied": false,
+  "notes": ""
+}
