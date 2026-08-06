@@ -8,12 +8,13 @@ Only emits results with verified locations:
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from repolens import __version__
 from repolens.anchor import AnchorLocation, resolve_anchor
+from repolens.report import report_basename
 from repolens.schema import FindingReport, Issue, Severity
 
 _LEVEL = {
@@ -175,11 +176,14 @@ def write_sarif_report(
     *,
     out_dir: Path,
     mode: str = "review",
+    when: datetime | None = None,
 ) -> Path | None:
-    """Write anchored SARIF next to other reports. Returns path written."""
+    """Write anchored SARIF next to other reports. Returns path written.
+
+    Filename stamp matches Markdown/JSON via :func:`report_basename` (UTC).
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
-    dest = out_dir / f"gate_review_report_{mode}_{stamp}.sarif.json"
+    dest = out_dir / f"{report_basename(mode, when)}.sarif.json"
     log = build_sarif_log(report, root)
     dest.write_text(json.dumps(log, indent=2) + "\n", encoding="utf-8")
     return dest

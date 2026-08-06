@@ -29,7 +29,14 @@ from repolens.schema import (
 def test_report_stamp_includes_date_and_time() -> None:
     when = datetime(2026, 8, 5, 14, 30, 45, tzinfo=ZoneInfo("UTC"))
     assert report_stamp(when) == "2026-08-05_1430"
-    assert report_heading_time(when) == "2026-08-05 14:30"
+    assert report_heading_time(when) == "2026-08-05 14:30 UTC"
+
+
+def test_report_stamp_converts_non_utc_to_utc() -> None:
+    when = datetime(2026, 8, 5, 15, 30, 0, tzinfo=ZoneInfo("Europe/London"))
+    # BST = UTC+1 → 14:30 UTC
+    assert report_stamp(when) == "2026-08-05_1430"
+    assert report_heading_time(when) == "2026-08-05 14:30 UTC"
 
 
 def test_format_duration() -> None:

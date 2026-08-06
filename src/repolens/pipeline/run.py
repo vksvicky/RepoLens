@@ -139,6 +139,8 @@ def run_review(
 
     try:
         if dry_run:
+            from datetime import datetime, timezone
+
             prog.phase("Dry-run: writing inventory report (no scanners / LLM)…")
             empty = FindingReport(
                 confidence=0,
@@ -147,9 +149,14 @@ def run_review(
                 durabilityGaps=["dry-run: no LLM call"],
                 durationSeconds=round(time.time() - run_started, 1),
             )
-            md = write_markdown_report(empty, out, mode=mode) if fmt in {"md", "both"} else None
+            report_when = datetime.now(timezone.utc)
+            md = (
+                write_markdown_report(empty, out, mode=mode, when=report_when)
+                if fmt in {"md", "both"}
+                else None
+            )
             js = (
-                write_json_report(empty, out, mode=mode)
+                write_json_report(empty, out, mode=mode, when=report_when)
                 if fmt in {"json", "both"}
                 else None
             )
@@ -571,10 +578,17 @@ def run_review(
         for issue in report.issues:
             verify_issue_location(root, issue)
 
+        from datetime import datetime, timezone
+
+        report_when = datetime.now(timezone.utc)
         prog.phase(f"Writing report → {out}")
-        md = write_markdown_report(report, out, mode=mode) if fmt in {"md", "both"} else None
+        md = (
+            write_markdown_report(report, out, mode=mode, when=report_when)
+            if fmt in {"md", "both"}
+            else None
+        )
         js = (
-            write_json_report(report, out, mode=mode)
+            write_json_report(report, out, mode=mode, when=report_when)
             if fmt in {"json", "both"}
             else None
         )
@@ -584,13 +598,15 @@ def run_review(
             write_last_report_pointer(root, js)
         elif md is not None and fmt == "md":
             # Prefer JSON for explain; when md-only, still write JSON sidecar for lookup.
-            js = write_json_report(report, out, mode=mode)
+            js = write_json_report(report, out, mode=mode, when=report_when)
             from repolens.explain import write_last_report_pointer
 
             write_last_report_pointer(root, js)
         sarif_path = None
         if sarif:
-            sarif_path = write_sarif_report(report, root, out_dir=out, mode=mode)
+            sarif_path = write_sarif_report(
+                report, root, out_dir=out, mode=mode, when=report_when
+            )
             if sarif_path is not None:
                 n = sum(1 for i in report.issues if i.locationVerified)
                 prog.detail(

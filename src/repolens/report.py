@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from repolens.coverage import parse_coverage_notes
@@ -24,18 +24,22 @@ _COVERAGE_TRANSPORT_GAP_RE = re.compile(
 
 
 def report_timestamp(when: datetime | None = None) -> datetime:
-    """Local clock used for report filenames and headings."""
-    return when or datetime.now().astimezone()
+    """UTC clock used for report filenames and headings (all formats share this)."""
+    if when is None:
+        return datetime.now(timezone.utc)
+    if when.tzinfo is None:
+        return when.replace(tzinfo=timezone.utc)
+    return when.astimezone(timezone.utc)
 
 
 def report_stamp(when: datetime | None = None) -> str:
-    """Filesystem-safe stamp: ``YYYY-MM-DD_HHMM`` (avoids same-day overwrites)."""
+    """Filesystem-safe UTC stamp: ``YYYY-MM-DD_HHMM`` (avoids same-day overwrites)."""
     return report_timestamp(when).strftime("%Y-%m-%d_%H%M")
 
 
 def report_heading_time(when: datetime | None = None) -> str:
-    """Human-readable local time for the report title: ``YYYY-MM-DD HH:MM``."""
-    return report_timestamp(when).strftime("%Y-%m-%d %H:%M")
+    """Human-readable UTC time for the report title: ``YYYY-MM-DD HH:MM UTC``."""
+    return report_timestamp(when).strftime("%Y-%m-%d %H:%M UTC")
 
 
 def format_duration(seconds: float | None) -> str | None:
