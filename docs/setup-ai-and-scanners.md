@@ -15,7 +15,8 @@ RepoLens itself is the **review process**. To actually run a review you pick **o
 > - Options **A** and **B** work via the CLI **or** **[playbooks + any LLM chat](./using-playbooks.md)**.  
 > - Option **C** scanners: `repolens plugins install` · [scanners.md](./scanners.md).  
 > - CI: [ci.md](./ci.md) · Local learning: [local-learning.md](./local-learning.md).  
-> - Test on any local folder: [try-on-your-repo.md](./try-on-your-repo.md).
+> - Test on any local folder: [try-on-your-repo.md](./try-on-your-repo.md).  
+> - Full command atlas: [command-atlas.md](./command-atlas.md).
 
 ---
 

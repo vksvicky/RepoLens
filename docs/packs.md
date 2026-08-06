@@ -4,7 +4,8 @@ Domain packs add niche playbook guidance and light deterministic heuristics for
 workflows where generic AST SAST is weak. **They are off by default** and never
 replace Checkov, ARM-TTK, or your cloud policy tools.
 
-**Quick check (commands → expected output + timings):** [packs-quickcheck.md](./packs-quickcheck.md)
+**All CLI commands (holy grail):** [command-atlas.md](./command-atlas.md)  
+**Pack-only quick check:** [packs-quickcheck.md](./packs-quickcheck.md)
 
 ## List packs
 
