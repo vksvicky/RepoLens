@@ -14,8 +14,15 @@ def format_scanner_evidence_for_prompt(issues: list[Issue]) -> str:
         return ""
     lines = [
         "## Scanner evidence (deterministic — prefer these facts over speculation)",
-        "Do not invent dependency graphs or CVE reachability beyond this list.",
         "Use these findings as ground truth; explain impact and remediation in context.",
+        "SCA / dependencies (mandatory):",
+        "- Vulnerable packages and CVE/GHSA IDs come only from scanner rows below "
+        "(OSV/Trivy). Do not invent a dependency graph.",
+        "- Do not reason over lockfiles (`package-lock.json`, `poetry.lock`, "
+        "`Cargo.lock`, etc.) to invent edges or prod vs dev exposure.",
+        "- Do not claim reachability or “hits production” unless a scanner field "
+        "explicitly states it. If unsure, say reachability was not assessed.",
+        "- Your job for SCA is remediation advice from the listed facts — not discovery.",
         "",
     ]
     for issue in issues[:_MAX_ITEMS]:

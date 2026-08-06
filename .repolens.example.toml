@@ -27,6 +27,8 @@
 # Also available (Phase 6.1): "trivy", "checkov" — install via `repolens plugins install`
 # enabled = ["gitleaks", "semgrep", "osv", "trivy", "checkov"]
 # require = false                             # if true, exit 2 when a scanner is missing
+# sbom = true                                 # CycloneDX via Trivy when available (Phase 6.2)
+# licenses = true                             # license summary from SBOM when available
 
 [local_learning]
 # enabled = false           # opt-in; data stays on disk (see docs/local-learning.md)

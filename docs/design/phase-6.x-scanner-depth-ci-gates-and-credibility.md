@@ -1,6 +1,6 @@
 # Phase 6.x — Scanner depth, CI gates & credibility (design)
 
-**Status:** Design sketch (not implemented)  
+**Status:** In progress (6.1–6.2 implemented; 6.3+ remaining)  
 **Date:** 2026-08-06  
 **Depends on:** Phase 6 (issue explain + diagrams — complete), Phase 3 scanners, Phase 5.1 metrics  
 **Inserts before:** Phase 7 (enterprise CI/CD & report delivery)  
@@ -73,21 +73,24 @@ Ship in order. Each phase has its own exit criteria and can land as one or more 
 
 ### Phase 6.2 — SBOM, licenses & SCA enrichment
 
+**Status:** Implemented (2026-08-06) — CycloneDX via Trivy; SPDX still out of scope  
+**Plan:** [2026-08-06-phase-6.2-sbom-licenses-sca.md](../superpowers/plans/2026-08-06-phase-6.2-sbom-licenses-sca.md)
+
 **Goal:** Procurement-friendly inventory without claiming enterprise reachability SCA — and **without LLM dependency-graph hallucinations**.
 
 | Item | Notes |
 |------|--------|
-| SBOM export | CycloneDX and/or SPDX from Trivy/OSV pipeline (prefer reuse of tool output) |
-| License summary | High-level license risk notes where tools provide them |
-| OSV + Trivy SCA | Clarify overlap; avoid double-count in report (dedupe by package+CVE) |
-| **Scanner owns the graph** | Vulnerable package / CVE / (dev vs prod) facts come **only** from Trivy/OSV JSON. LLM must **not** reason over `package-lock.json` / `poetry.lock` resolution trees |
-| **LLM role for SCA** | Write remediation advice and impact prose **from the scanner JSON only**; never invent reachability or “this jest CVE hits production” |
-| Prompt / schema guardrails | Explicit forbid: LLM-invented dependency edges, lockfile parsing claims, prod-exposure without a scanner field |
-| Reachability | Only if a **scanner field** provides it; otherwise omit. Do not market as Snyk-class reachability |
+| SBOM export | CycloneDX from Trivy (`sbom.cdx.json` beside report) |
+| License summary | `supplyChain.licenses` + notes; Markdown **Supply chain** |
+| OSV + Trivy SCA | Dedupe by advisory+package hint; prefer `osv` |
+| **Scanner owns the graph** | Vulnerable package / CVE facts come **only** from Trivy/OSV JSON. LLM must **not** reason over lockfile resolution trees |
+| **LLM role for SCA** | Remediation advice from scanner facts only; never invent reachability |
+| Prompt / schema guardrails | Evidence prefix + `SupplyChainBlock`; playbook/FAQ |
+| Reachability | Only if a **scanner field** provides it; otherwise omit |
 
-**Exit:** SBOM + license section available; SCA findings in the report are traceable to scanner JSON; FAQ + playbook state LLM does not determine dep reachability.
+**Exit:** SBOM + license section available; SCA findings in the report are traceable to scanner JSON; FAQ + playbook state LLM does not determine dep reachability. → **Met**
 
-**Out of 6.2:** Auto-open Dependabot-style bump PRs; proprietary vuln intel feeds; LLM-as-SCA-engine.
+**Out of 6.2:** Auto-open Dependabot-style bump PRs; proprietary vuln intel feeds; LLM-as-SCA-engine; SPDX export.
 
 ---
 

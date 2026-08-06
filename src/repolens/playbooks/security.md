@@ -49,8 +49,8 @@ Analyse and report in priority order when the change set is large:
    - Check for open redirect vulnerabilities
 
 3. **Dependency & Configuration Review:**
-   - Flag outdated libraries
-   - Flag libraries known to have CVEs (Common Vulnerabilities and Exposures)
+   - Flag outdated libraries **only when scanner evidence lists them** (OSV/Trivy). Do **not** invent CVE IDs, dependency-graph edges, or reachability (“hits production”) by reading lockfiles.
+   - For SCA: remediate from scanner facts; if reachability was not assessed by a scanner, say so.
    - Check configuration files for misconfigurations (e.g., debug mode on, unrestricted CORS)
    - Note gaps in **mature automated scanning** (Dependabot/Renovate, Snyk or equivalent SCA, CodeQL/Semgrep, secret scanning). LLM review does not replace these in CI.
 

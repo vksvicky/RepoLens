@@ -41,6 +41,9 @@ class GeneralConfig(BaseModel):
 class ScannersConfig(BaseModel):
     enabled: list[str] = Field(default_factory=lambda: ["gitleaks", "semgrep", "osv"])
     require: bool = False
+    # Phase 6.2: emit CycloneDX + license notes when Trivy is available
+    sbom: bool = True
+    licenses: bool = True
 
 
 class LocalLearningConfig(BaseModel):

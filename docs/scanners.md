@@ -61,7 +61,13 @@ repolens plugins install trivy checkov --yes
 enabled = ["gitleaks", "semgrep", "osv"]
 # enabled = ["gitleaks", "semgrep", "osv", "trivy", "checkov"]
 require = false
+sbom = true       # CycloneDX (`sbom.cdx.json`) when Trivy is installed
+licenses = true   # license IDs + notes from the SBOM
 ```
+
+### SBOM / licenses (Phase 6.2)
+
+When Trivy is on `PATH` or in the plugin cache (or requested via `--scanners …,trivy`), RepoLens writes a CycloneDX SBOM next to the report and adds a **Supply chain** section (Markdown + JSON `supplyChain`). OSV and Trivy CVE rows for the same advisory are deduped (OSV preferred). The LLM must not invent dependency graphs or reachability — see [FAQ](./faq.md#how-do-owasp--cve--security-audits-work).
 
 ## CLI flags
 

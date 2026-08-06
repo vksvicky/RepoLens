@@ -26,8 +26,9 @@ def test_parse_scanners_flag_auto_and_off() -> None:
 
 def test_parse_scanners_flag_list_and_unknown() -> None:
     assert parse_scanners_flag("gitleaks, osv", config_enabled=[]) == ["gitleaks", "osv"]
+    assert parse_scanners_flag("gitleaks,trivy", config_enabled=[]) == ["gitleaks", "trivy"]
     with pytest.raises(ValueError, match="Unknown"):
-        parse_scanners_flag("gitleaks,trivy", config_enabled=[])
+        parse_scanners_flag("gitleaks,not-a-scanner", config_enabled=[])
 
 
 def test_missing_required() -> None:
