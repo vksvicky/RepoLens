@@ -7,6 +7,7 @@ Deep guides stay linked; this page is the map.
 |------|---------|
 | Paths / OS install detail | [try-on-your-repo.md](./try-on-your-repo.md) |
 | Cloud vs Ollama vs scanners-only | [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) |
+| **Fast Brain vs Slow Brain** (which flags, what to expect) | [§ Fast Brain vs Slow Brain](#fast-brain-vs-slow-brain-commands--examples) |
 | Scanner plugins | [scanners.md](./scanners.md) |
 | CI / GitHub Action | [ci.md](./ci.md) |
 | Domain packs detail | [packs.md](./packs.md) · [packs-quickcheck.md](./packs-quickcheck.md) |
@@ -165,7 +166,9 @@ Pack-only smoke + if/then: [packs-quickcheck.md](./packs-quickcheck.md).
 | Observation | Meaning | Next step / example |
 |-------------|---------|---------------------|
 | Summary all zeros after `--scanners-only` | Clean scanners (and packs if any) | Normal — e.g. `repolens review --path "$TARGET" --scanners-only` |
-| `LLM bypassed (scanners clean…)` | Triage/`--ci` skipped the model on purpose | Expected; for narrative drop `--ci`: `repolens review --path "$TARGET" --full --timeout 1800` |
+| `LLM bypassed (scanners clean…)` | Triage/`--ci` skipped the model on purpose | Expected; for narrative drop `--ci` or force pack: `repolens review --path "$TARGET" --full --deep --timeout 3600` |
+| Many **Medium** findings but Slow Brain bypassed | Floor is **HIGH** — Medium heuristics do not wake LLM | Expected under `--ci`; see [Fast Brain vs Slow Brain](#fast-brain-vs-slow-brain-commands--examples) |
+| Report under wrong repo’s `reports/` | Relative `--out reports` follows **shell cwd**, not `--path` | Always use `"$TARGET/reports"` (absolute) |
 | `LLM pack: N/200` then bypass | Pack planned, then triage short-circuited | Cosmetic order; still correct |
 | Gate confidence 75% / scanners-only | Heuristic confidence without LLM | Normal for `--scanners-only` |
 | Exit code **1** with `--fail-on HIGH` | Finding at/above threshold (CI: usually **scanner** rows) | Open report; or `repolens feedback down <fingerprint> --reason false_positive --path "$TARGET"` |
@@ -182,31 +185,70 @@ Pack-only smoke + if/then: [packs-quickcheck.md](./packs-quickcheck.md).
 
 ---
 
-## Fair Two-Lane dogfood (PatternSorcerer-class)
+## Fast Brain vs Slow Brain (commands & examples)
 
-Use this when dogfooding or comparing to other review tools — **not** `--full` unless you intentionally want a forced full Slow Brain pack.
+RepoLens is a **Two-Lane** product. The CLI summary and Markdown report open with a **`Two-Lane:`** headline so you can see which lane ran.
+
+| Lane | What it is | Default scope | Typical time |
+|------|------------|---------------|--------------|
+| **Fast Brain** | Deterministic heuristics (+ domain packs) | Matched tree up to **10k** files | **Seconds** |
+| **Scanners** | gitleaks / Semgrep / OSV / … | **Full** tree | Seconds–minutes (warm) |
+| **Slow Brain** | LLM narrative (`--deep` multi-pass by default) | Triage hits, adaptive pack, or forced full (≤ **200** by default) | **Minutes–hours** (local 32B) |
+
+**Rule of thumb:** Fast Brain + scanners answer “what lights up quickly?” Slow Brain answers “explain and plan fixes on a prioritised slice.” They are not the same cost.
+
+### Which command runs which lane?
+
+Set once: `TARGET=/Users/[username]/Development/[your-project]`  
+Always prefer **absolute** `--out "$TARGET/reports"` (relative `reports` follows the shell cwd, not `--path`).
+
+| Goal | Flags | Fast Brain | Slow Brain | Expect |
+|------|-------|------------|------------|--------|
+| Inventory only | `--dry-run` | no | no | Tree/stats only |
+| Fast lane only (no LLM) | `--scanners-only` | yes | no | Heuristics + scanners in seconds |
+| **Fair PR / CI Two-Lane** | `--ci --deep --fail-on HIGH` | yes | only if hits ≥ floor | Often **`Slow Brain: bypassed (triage clean)`** in ~1s when scanners (and heuristic hits at floor) are clean |
+| Adaptive deep (no force) | `--deep` (omit `--full`) | yes | adaptive pack | Warm runs may still take a full pack — check headline |
+| Force full Slow Brain | `--full --deep` | yes | full LLM pack (≤200) | Often **≥1 h** on local 32B — audit, not a speed demo |
+| Changed files only | `--changed` (+ optional `--deep`) | yes | added/changed only | Empty pack if nothing changed |
+| Thin LLM | `--no-deep` | yes | single-shot sample | Faster, thinner coverage |
+
+### Copy-paste recipes
 
 ```bash
-TARGET=/Users/[username]/Development/[your-project]   # e.g. PatternSorcerer-scale tree
+TARGET=/Users/[username]/Development/[your-project]
 
-# Fair speed + scope demo (PR-style triage)
+# 1) Fast Brain + scanners only (seconds) — CQ / hygiene signal without LLM
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only -v
+
+# 2) Fair Two-Lane / PR-style CI (preferred dogfood for *speed*)
 repolens review --path "$TARGET" --out "$TARGET/reports" \
   --ci --deep --fail-on HIGH --verbose --timeout 3600
 
-# Adaptive deep without forcing full pack (still slow on local 32B if LLM runs)
+# 3) Adaptive deep without forcing full pack (LLM may still run a large pack)
 repolens review --path "$TARGET" --out "$TARGET/reports" \
   --deep --verbose --timeout 3600
+
+# 4) Forced full Slow Brain (release / quality audit — budget an hour+ on local 32B)
+repolens review --path "$TARGET" --out "$TARGET/reports" \
+  --full --deep --verbose --timeout 3600 --model qwen2.5-coder:32b
 ```
 
-**What to expect**
+### Reading the headline (real-shaped examples)
 
-| Lane | Typical scope | Typical wall time (order-of-magnitude) |
-|------|---------------|----------------------------------------|
-| **Fast Brain** | Most matched source files (cap 10k) | **Seconds** |
-| **Scanners** | Full tree | **Seconds–minutes** warm |
-| **Slow Brain** | Triage hits only (`--ci`) or adaptive pack — **not** whole tree | **Minutes–hours** (local 32B often **≫** cloud Haiku on same pack) |
+| You ran | Typical `Two-Lane:` / progress | Meaning |
+|---------|--------------------------------|---------|
+| `--ci --deep` on a clean tree | `Fast Brain: 184 file(s) in 0.1s · Slow Brain: bypassed (triage clean)` · `LLM pack: 0/…` | Correct CI behaviour — **not** a bug |
+| `--ci` with only **Medium** heuristics | Same bypass; report still lists Medium/Low Fast Brain rows | Default severity floor is **HIGH** — Medium does **not** wake Slow Brain |
+| `--ci` with High/Critical scanner (or floor) hits | `Slow Brain: N file(s)…` · LLM pack = hit files | Expensive lane only where triage pointed |
+| `--full --deep` | `LLM pack: 184/184` (or up to max_files) · long wait | You asked for the full Slow Brain sample |
 
-Read the **Two-Lane** line at the top of the Markdown report: **M ≪ N** when triage is sparse. **Do not** use `--full` to “show off” Two-Lane speed. Positioning: [faq.md](./faq.md#what-is-a-fair-dogfood-recipe-for-two-lane-speed) · explain **moves/diffs** vs prompt-paste tools · no percentile grades · [gitignore vs scanners](./faq.md#do-scanners-catch-missing-gitignore-rules).
+**“Triage clean”** means *clean at the severity floor* (default **HIGH**), not *zero findings*. Fast Brain can still report dozens of Medium nesting / mega-file / hygiene issues while Slow Brain stays off.
+
+### Fair dogfood (PatternSorcerer-class)
+
+Use **recipe 2** (`--ci --deep`) when comparing speed or PR cost to other tools. Use **recipe 4** (`--full --deep`) only when you intentionally want a forced Slow Brain pack for quality. Do **not** use `--full` to “show off” Two-Lane speed.
+
+More context: [faq.md — fair dogfood](./faq.md#what-is-a-fair-dogfood-recipe-for-two-lane-speed) · [Two-Lane inventory](./faq.md#how-does-the-200-file-inventory-cap-work-are-the-other-files-at-risk) · [gitignore vs scanners](./faq.md#do-scanners-catch-missing-gitignore-rules) · [ci.md](./ci.md).
 
 ---
 
