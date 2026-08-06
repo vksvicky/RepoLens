@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from repolens.heuristics.ci_gaps import find_ci_gaps
+from repolens.heuristics.deep_nesting import find_deep_nesting
 from repolens.heuristics.gitignore_secrets import find_gitignore_secret_gaps
 from repolens.heuristics.mega_files import DEFAULT_MEGA_FILE_EXCLUDES, find_mega_files
 from repolens.heuristics.scripts_hygiene import find_script_credential_hygiene, find_todo_density
@@ -89,6 +90,12 @@ def run_heuristics(
     sibling_issues = find_sibling_pairs(entries)
     issues.extend(sibling_issues)
     for issue in sibling_issues:
+        if issue.file not in hot_paths:
+            hot_paths.append(issue.file)
+
+    nesting_issues = _map_entry_issues(entries, find_deep_nesting, workers=workers)
+    issues.extend(nesting_issues)
+    for issue in nesting_issues:
         if issue.file not in hot_paths:
             hot_paths.append(issue.file)
 
