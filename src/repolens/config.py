@@ -106,6 +106,12 @@ class CiConfig(BaseModel):
     fail_on_scanner_only: bool = True
 
 
+class PacksConfig(BaseModel):
+    """Phase 6.10 optional domain packs (off by default)."""
+
+    enabled: list[str] = Field(default_factory=list)
+
+
 class RepoLensConfig(BaseModel):
     general: GeneralConfig = Field(default_factory=GeneralConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
@@ -115,6 +121,7 @@ class RepoLensConfig(BaseModel):
     deep: DeepConfig = Field(default_factory=DeepConfig)
     explain: ExplainConfig = Field(default_factory=ExplainConfig)
     ci: CiConfig = Field(default_factory=CiConfig)
+    packs: PacksConfig = Field(default_factory=PacksConfig)
 
 
 def user_config_path() -> Path:

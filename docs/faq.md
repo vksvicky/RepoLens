@@ -377,6 +377,10 @@ Turn hints/clustering off with `[deep] usage_hints = false` / `cluster_duplicate
 
 **Named checklist themes (Phase 6.5)** include SSRF, path traversal / Zip Slip, XXE, NoSQL injection, ReDoS, log injection, weak PRNG, JWT pitfalls, rate limiting, and supply-chain integrity — in addition to classic injection/XSS/secrets. Naming them does **not** claim CodeQL/Checkmarx rule parity.
 
+### Domain packs (Phase 6.10)
+
+Optional niche packs (e.g. `azure-sentinel` for Logic Apps / SOAR) are **off by default**. Enable with `--pack <id>` or `[packs] enabled = […]`. They add a playbook slice plus light heuristics; they do **not** replace Checkov/ARM-TTK and do **not** change core `repolens sentinel` when disabled. See [packs.md](./packs.md).
+
 ---
 
 ## Can RepoLens learn from my repo with ML? Is that local?

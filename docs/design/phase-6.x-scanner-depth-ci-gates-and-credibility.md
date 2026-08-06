@@ -1,6 +1,6 @@
 # Phase 6.x — Scanner depth, CI gates & credibility (design)
 
-**Status:** In progress (6.1–6.9 implemented; 6.10 remaining)  
+**Status:** Complete for Approach 1 slices (6.1–6.10 implemented 2026-08-06)  
 **Date:** 2026-08-06  
 **Depends on:** Phase 6 (issue explain + diagrams — complete), Phase 3 scanners, Phase 5.1 metrics  
 **Inserts before:** Phase 7 (enterprise CI/CD & report delivery)  
@@ -294,15 +294,18 @@ Also:
 
 ### Phase 6.10 — Optional domain packs (starting point: Azure Sentinel / SOAR)
 
+**Status:** Implemented (2026-08-06) — scope B: registry + azure-sentinel playbook/heuristics  
+**Spec:** [2026-08-06-phase-6.10-domain-packs.md](../superpowers/specs/2026-08-06-phase-6.10-domain-packs.md)
+
 **Goal:** Niche declarative/workflow packs where AST SAST is weak; not core default path.
 
 | Item | Notes |
 |------|--------|
 | Azure Sentinel / Logic Apps pack | Hardcoded tenant IDs, connector pollution, MSI/RBAC, SOAR loops — LLM + light deterministic checks |
-| Pack packaging | Same rules/playbook registry pattern; opt-in |
+| Pack packaging | `repolens.packs` registry; opt-in `[packs]` / `--pack` |
 | Future packs | Mobile, etc. — same mechanism |
 
-**Exit:** At least one opt-in domain pack installable/documented; core `sentinel` unchanged when pack off.
+**Exit:** At least one opt-in domain pack installable/documented; core `sentinel` unchanged when pack off. → **Met for scope B**
 
 **Out of 6.10:** Replacing Checkov/ARM-TTK; Azure-only product pivot.
 

@@ -140,6 +140,10 @@ def _analyze_deep_passes(
     from repolens.llm_structured import analyze_structured
 
     prog.phase("→ Deep: heuristics…")
+    from repolens.packs.registry import resolve_enabled_packs
+
+    # Pack heuristics are pre-run in pipeline/run.py (avoid double-count).
+    pack_ids = resolve_enabled_packs(list(cfg.packs.enabled))
     heur = run_heuristics(
         root,
         files,
@@ -172,7 +176,9 @@ def _analyze_deep_passes(
     timeout = resolve_llm_timeout(cfg.model)
     for idx, deep_pass in enumerate(passes, start=1):
         prog.phase(f"→ Deep pass {idx}/{n} ({deep_pass.name})…")
-        prompt = build_deep_prompt(deep_pass, rules, deep_pass.coverage_ids)
+        prompt = build_deep_prompt(
+            deep_pass, rules, deep_pass.coverage_ids, pack_ids=pack_ids
+        )
         prompt = _append_source_files(prompt, deep_pass.files)
         if prompt_prefix:
             prompt = prompt_prefix + "\n\n" + prompt

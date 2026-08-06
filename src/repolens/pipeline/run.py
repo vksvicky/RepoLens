@@ -93,6 +93,7 @@ def run_review(
     ci: bool = False,
     sarif: bool = False,
     verify_findings: bool | None = None,
+    packs: list[str] | None = None,
 ) -> ReviewResult:
     if force_full and force_changed:
         raise ValueError("--full and --changed cannot be combined")
@@ -110,6 +111,10 @@ def run_review(
         cfg.deep.verify_findings = True
     elif verify_findings is False:
         cfg.deep.verify_findings = False
+    from repolens.packs.registry import resolve_enabled_packs, run_pack_heuristics
+
+    pack_ids = resolve_enabled_packs([*cfg.packs.enabled, *(packs or [])])
+    cfg.packs.enabled = list(pack_ids)
 
     # Phase 6.3: --ci enables triage routing + changed pack + single-shot LLM
     if ci:
@@ -244,12 +249,20 @@ def run_review(
                     "`repolens plugins install trivy`)"
                 )
 
+        pack_issues: list = []
+        if pack_ids:
+            pack_issues = run_pack_heuristics(root, files, pack_ids)
+            prog.detail(
+                f"Domain packs: {', '.join(pack_ids)} "
+                f"({len(pack_issues)} heuristic finding(s))"
+            )
+
         if scanners_only:
             all_ran = bool(scanner_runs) and all(r.status == "ran" for r in scanner_runs)
             report = FindingReport(
                 confidence=75 if all_ran else 55,
                 summary=Summary(),
-                issues=list(scanner_issues),
+                issues=list(scanner_issues) + list(pack_issues),
                 durabilityGaps=list(scanner_gaps)
                 or (["scanners-only: no scanners selected"] if not tools else []),
                 scannerRuns=list(scanner_runs),
@@ -260,7 +273,7 @@ def run_review(
             report = FindingReport(
                 confidence=90,
                 summary=Summary(),
-                issues=list(scanner_issues),
+                issues=list(scanner_issues) + list(pack_issues),
                 durabilityGaps=["No reviewable files found (check ignores / --mode diff)"]
                 + scanner_gaps,
                 scannerRuns=list(scanner_runs),
@@ -315,7 +328,7 @@ def run_review(
                     report = FindingReport(
                         confidence=80 if scanner_runs else 60,
                         summary=Summary(),
-                        issues=list(scanner_issues),
+                        issues=list(scanner_issues) + list(pack_issues),
                         durabilityGaps=list(scanner_gaps) + list(triage_plan.notes),
                         scannerRuns=list(scanner_runs),
                         supplyChain=supply_chain,
@@ -346,7 +359,7 @@ def run_review(
                     prior, saved_at, prior_model = prior_bundle
                     report = merge_reused_report(
                         prior,
-                        scanner_issues=list(scanner_issues),
+                        scanner_issues=list(scanner_issues) + list(pack_issues),
                         scanner_runs=list(scanner_runs),
                         scanner_gaps=list(scanner_gaps),
                         saved_at=saved_at,
@@ -387,7 +400,7 @@ def run_review(
                     report = FindingReport(
                         confidence=55,
                         summary=Summary(),
-                        issues=list(scanner_issues),
+                        issues=list(scanner_issues) + list(pack_issues),
                         durabilityGaps=[gap] + list(scanner_gaps),
                         scannerRuns=list(scanner_runs),
                         llmSkipped=True,
@@ -489,7 +502,11 @@ def run_review(
                         ):
                             prog.phase("Building LLM prompt…")
                             prompt = build_prompt(
-                                mode, root, llm_files, full_audit=full_audit
+                                mode,
+                                root,
+                                llm_files,
+                                full_audit=full_audit,
+                                pack_ids=pack_ids,
                             )
                             if prompt_prefix:
                                 prompt = prompt_prefix + "\n\n" + prompt
@@ -548,8 +565,10 @@ def run_review(
                         )
                         store.set_meta("recommended_timeout_seconds", f"{rec:g}")
 
-                if scanner_issues or scanner_runs or scanner_gaps:
-                    report.issues = list(report.issues) + list(scanner_issues)
+                if scanner_issues or scanner_runs or scanner_gaps or pack_issues:
+                    report.issues = (
+                        list(report.issues) + list(scanner_issues) + list(pack_issues)
+                    )
                     report.scannerRuns = list(scanner_runs)
                     report.durabilityGaps = list(report.durabilityGaps) + list(
                         scanner_gaps

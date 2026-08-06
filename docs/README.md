@@ -26,6 +26,8 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [polycode-polycoach-loop.md](./polycode-polycoach-loop.md) | PolyCode PolyCoach classroom loop (sibling guide) |
 | [remote-sources.md](./remote-sources.md) | Remote commands + auth: `--github`, `--bitbucket`, `--hf`, `--git-url` |
 | [scanners.md](./scanners.md) | Optional scanners: plugins install, flags, cache |
+| [packs.md](./packs.md) | Optional domain packs (Azure Sentinel / SOAR, …) |
+| [packs-quickcheck.md](./packs-quickcheck.md) | Packs: expected CLI output + rough timings |
 | [ci.md](./ci.md) | GitHub Action + Bitbucket CI + PR suggested-fix summary |
 | [publishing.md](./publishing.md) | PyPI Trusted Publisher UI + pre-publish dogfood |
 | [local-learning.md](./local-learning.md) | Opt-in on-disk index + memory |

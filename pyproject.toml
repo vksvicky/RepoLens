@@ -63,6 +63,7 @@ repolens = [
   "playbooks/*.md",
   "rules/defaults/*.md",
   "rules/defaults/*.json",
+  "packs/**/*.md",
   "py.typed",
 ]
 

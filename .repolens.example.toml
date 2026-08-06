@@ -39,6 +39,11 @@
 # severity_floor = "HIGH"                     # scanner severities that count as triage hits
 # fail_on_scanner_only = true                 # --fail-on ignores LLM/heuristic rows when triage on
 
+[packs]
+# enabled = []                                # Phase 6.10 — off by default
+# enabled = ["azure-sentinel"]                # or: repolens review --pack azure-sentinel
+# See docs/packs.md — does not replace Checkov/ARM-TTK
+
 [local_learning]
 # enabled = false           # opt-in; data stays on disk (see docs/local-learning.md)
 # cache_dir = ".repolens"   # also requires: repolens learn build --accept-local-learning
