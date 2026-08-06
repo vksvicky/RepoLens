@@ -91,6 +91,7 @@ def run_review(
     progress: ReviewProgress | None = None,
     deep: bool | None = None,
     ci: bool = False,
+    sarif: bool = False,
 ) -> ReviewResult:
     if force_full and force_changed:
         raise ValueError("--full and --changed cannot be combined")
@@ -564,6 +565,12 @@ def run_review(
             ),
             notes=list(triage_plan.notes) if triage_plan is not None else [],
         )
+        # Phase 6.4: stamp locationVerified before Markdown/SARIF write
+        from repolens.sarif import verify_issue_location, write_sarif_report
+
+        for issue in report.issues:
+            verify_issue_location(root, issue)
+
         prog.phase(f"Writing report → {out}")
         md = write_markdown_report(report, out, mode=mode) if fmt in {"md", "both"} else None
         js = (
@@ -581,6 +588,15 @@ def run_review(
             from repolens.explain import write_last_report_pointer
 
             write_last_report_pointer(root, js)
+        sarif_path = None
+        if sarif:
+            sarif_path = write_sarif_report(report, root, out_dir=out, mode=mode)
+            if sarif_path is not None:
+                n = sum(1 for i in report.issues if i.locationVerified)
+                prog.detail(
+                    f"SARIF: {sarif_path.name} "
+                    f"({n}/{len(report.issues)} location-verified result(s))"
+                )
         prog.phase("Done")
         return ReviewResult(
             report=report,
@@ -588,6 +604,7 @@ def run_review(
             json_path=js,
             files_scanned=len(files),
             dry_run=False,
+            sarif_path=sarif_path,
         )
     finally:
         if store is not None:

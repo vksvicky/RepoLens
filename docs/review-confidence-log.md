@@ -25,3 +25,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-08-06 | WIP→commit | 92% | 0/0/0/1 | Phase 6.2 SBOM/licenses/SCA dedupe + LLM guardrails; 38 related pytest | chat |
 | 2026-08-06 | WIP→commit | 91% | 0/0/1/1 | Phase 6.3 CI triage routing, provenance, parallel scanners; 58 related pytest | chat |
 | 2026-08-06 | WIP→commit | 96% | 0/0/0/0 | UX: LLM summary label for triage bypass; 3 focused tests | chat |
+| 2026-08-06 | WIP→commit | 92% | 0/0/0/1 | Phase 6.4 anchored SARIF + GHAS recipe; 7 SARIF tests | chat |

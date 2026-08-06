@@ -1,6 +1,6 @@
 # Phase 6.x — Scanner depth, CI gates & credibility (design)
 
-**Status:** In progress (6.1–6.3 implemented; 6.4+ remaining)  
+**Status:** In progress (6.1–6.4 implemented; 6.5+ remaining)  
 **Date:** 2026-08-06  
 **Depends on:** Phase 6 (issue explain + diagrams — complete), Phase 3 scanners, Phase 5.1 metrics  
 **Inserts before:** Phase 7 (enterprise CI/CD & report delivery)  
@@ -135,6 +135,9 @@ diff → scanners on changed paths (Semgrep / Trivy / gitleaks / OSV / …)
 
 ### Phase 6.4 — Thin ASPM handoff (anchored SARIF + recipes)
 
+**Status:** Implemented (2026-08-06) — `--sarif` + anchor resolve; import still stretch  
+**Plan:** [2026-08-06-phase-6.4-anchored-sarif.md](../superpowers/plans/2026-08-06-phase-6.4-anchored-sarif.md)
+
 **Goal:** Drop findings into GitHub Security tab / Sonar / other ingest **without breaking UIs** via hallucinated locations.
 
 #### SARIF hallucination trap (must fix before export)
@@ -157,9 +160,9 @@ SARIF consumers (GHAS, Sonar) expect **exact** path + line (+ column). LLMs rout
 | Recipes | GHAS code scanning upload, Sonar external issues, generic ASPM ingest |
 | Optional SARIF **import** | Ingest CodeQL/Semgrep SARIF (locations already trusted) — stretch |
 
-**Exit:** SARIF export never includes unverified LLM line numbers; GHAS recipe documented; Markdown may still show unverified LLM locations with a clear flag.
+**Exit:** SARIF export never includes unverified LLM line numbers; GHAS recipe documented; Markdown may still show unverified LLM locations with a clear flag. → **Met**
 
-**Out of 6.4:** ASPM product, compliance dashboards, org SSO; “best effort” SARIF without anchoring.
+**Out of 6.4:** ASPM product, compliance dashboards, org SSO; “best effort” SARIF without anchoring; SARIF import.
 
 ---
 

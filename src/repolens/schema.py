@@ -41,6 +41,10 @@ class Issue(BaseModel):
     runId: str | None = None
     # Phase 6.3: provenance for CI gates (scanner vs heuristic vs llm).
     source: IssueSource | None = None
+    # Phase 6.4: Verification & Anchor for SARIF (optional).
+    anchorQuote: str | None = None
+    anchorContext: str | None = None
+    locationVerified: bool | None = None
 
     @model_validator(mode="after")
     def require_impact_and_example_for_high(self) -> Issue:
