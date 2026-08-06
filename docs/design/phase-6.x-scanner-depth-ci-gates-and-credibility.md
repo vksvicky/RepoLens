@@ -52,17 +52,20 @@ Ship in order. Each phase has its own exit criteria and can land as one or more 
 
 ### Phase 6.1 — Trivy + Checkov plugins
 
+**Status:** Implemented (2026-08-06) — FS/IaC adapters; opt-in enabled list  
+**Plan:** [2026-08-06-phase-6.1-trivy-checkov-plugins.md](../superpowers/plans/2026-08-06-phase-6.1-trivy-checkov-plugins.md)
+
 **Goal:** Deterministic containers, filesystem/deps (via Trivy), and IaC policy evidence in the same report as Semgrep/gitleaks/OSV.
 
 | Item | Notes |
 |------|--------|
-| `trivy` plugin | Image / FS / config modes as practical for a local path; pin + SHA verify like existing plugins |
-| `checkov` plugin | Terraform / K8s / CloudFormation (and similar) policy findings |
-| Report merge | Same Issue schema; theme map into `sec.deps_supply_chain` / IaC-related themes where applicable |
-| LLM pack | Feed structured scanner JSON into deep passes (hybrid orchestration) |
-| Docs | Update scanners companion stack; P3 architecture can **cite** IaC/container evidence |
+| `trivy` plugin | Pinned `trivy fs` (vuln + misconfig + secret); SHA-256 archives |
+| `checkov` plugin | Pip pin in `checkov-venv`; failed_checks → Issues |
+| Report merge | Categories `trivy` / `checkov`; soft-skip if missing |
+| LLM pack | `format_scanner_evidence_for_prompt` prefix on deep/single-shot |
+| Docs | scanners.md + example.toml opt-in |
 
-**Exit:** `repolens plugins install trivy checkov` (or `all`) works on supported platforms; findings appear in Markdown/JSON; missing tools never break LLM review unless `--require-scanners`.
+**Exit:** `repolens plugins install trivy checkov` (or `all`) works on supported platforms; findings appear in Markdown/JSON; missing tools never break LLM review unless `--require-scanners`. → **Met** (image registry auth matrix still out of scope)
 
 **Out of 6.1:** Full image registry auth matrix; paid Trivy/Checkov cloud features.
 

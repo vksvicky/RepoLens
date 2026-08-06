@@ -53,8 +53,8 @@ RepoLens is **not** a peer replacement for Checkmarx, Veracode, Fortify, Snyk, o
 | First-party code vulns (injection, XSS, …) | Strong (Checkmarx/Veracode/Fortify/CodeQL) | Strong (Semgrep OSS, CodeQL public) | AI themes + Semgrep plugin — not CodeQL-depth |
 | Dependency CVEs / SBOM / licenses | Strong (Snyk, Checkmarx SCA, Veracode) | Strong (Trivy, OSV, Dependabot) | OSV plugin only — no licenses/SBOM/reachability yet |
 | Secrets in git | Yes (GHAS, vendor packs) | Gitleaks / GH secret scanning | Gitleaks plugin (merged into report) |
-| Containers / image CVEs | Snyk / Checkmarx / Trivy commercial | Trivy (best free) | Not yet |
-| IaC misconfig | Snyk IaC / Checkmarx / Prisma | Checkov, Trivy | LLM comments only — no Checkov/Trivy yet |
+| Containers / image CVEs | Snyk / Checkmarx / Trivy commercial | Trivy (best free) | Trivy plugin (`fs`; full registry matrix later) |
+| IaC misconfig | Snyk IaC / Checkmarx / Prisma | Checkov, Trivy | Checkov + Trivy misconfig plugins (opt-in) |
 | Runtime / DAST | Vendor DAST add-ons | OWASP ZAP | Out of scope |
 | Architecture / maintainability narrative | Weak / separate (Sonar partial) | Weak (Sonar Community partial) | **Core differentiator** (P3 + playbooks) |
 | Remediation prose + code examples | Improving (AI add-ons); uneven | Thin (rule messages) | **Core** (Critical/High examples + explain) |

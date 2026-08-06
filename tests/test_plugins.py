@@ -15,13 +15,15 @@ runner = CliRunner()
 
 def test_catalog_has_mvp_tools() -> None:
     cat = catalog()
-    assert set(cat) == {"gitleaks", "semgrep", "osv"}
+    assert set(cat) == {"gitleaks", "semgrep", "osv", "trivy", "checkov"}
     for tool in cat:
         assert "darwin-arm64" in cat[tool]
         assert "linux-amd64" in cat[tool]
     for plat, spec in cat["gitleaks"].items():
         assert spec.sha256 and len(spec.sha256) == 64, plat
     for plat, spec in cat["osv"].items():
+        assert spec.sha256 and len(spec.sha256) == 64, plat
+    for plat, spec in cat["trivy"].items():
         assert spec.sha256 and len(spec.sha256) == 64, plat
 
 
@@ -61,7 +63,7 @@ def test_download_rejects_checksum_mismatch(tmp_path: Path) -> None:
 def test_plugin_status_rows() -> None:
     with patch("repolens.plugins.resolve_binary", return_value=None):
         rows = plugin_status()
-    assert len(rows) == 3
+    assert len(rows) == 5
     assert all(state == "missing" for _, state, _ in rows)
 
 

@@ -24,6 +24,8 @@
 
 [scanners]
 # enabled = ["gitleaks", "semgrep", "osv"]   # detect if on PATH or cache
+# Also available (Phase 6.1): "trivy", "checkov" — install via `repolens plugins install`
+# enabled = ["gitleaks", "semgrep", "osv", "trivy", "checkov"]
 # require = false                             # if true, exit 2 when a scanner is missing
 
 [local_learning]

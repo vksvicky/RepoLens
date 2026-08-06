@@ -44,12 +44,22 @@ Cross-OS CLI walkthrough: [try-on-your-repo.md](./try-on-your-repo.md).
 | `gitleaks` | Secrets | `gitleaks` |
 | `semgrep` | SAST / pattern rules | `semgrep` (pip or cache venv) |
 | `osv` | Dependency CVEs | `osv-scanner` |
+| `trivy` | FS vulns + misconfig (+ secrets) | `trivy` (pinned archive) |
+| `checkov` | IaC policy (Terraform/K8s/…) | `checkov` (pip cache venv) |
+
+Default `enabled` remains gitleaks/semgrep/osv so missing Trivy/Checkov do not add noise. Opt in after install:
+
+```bash
+repolens plugins install trivy checkov --yes
+# then set enabled = […, "trivy", "checkov"] or: --scanners gitleaks,semgrep,osv,trivy,checkov
+```
 
 ## Config (`.repolens.toml` or user config)
 
 ```toml
 [scanners]
 enabled = ["gitleaks", "semgrep", "osv"]
+# enabled = ["gitleaks", "semgrep", "osv", "trivy", "checkov"]
 require = false
 ```
 

@@ -206,7 +206,9 @@ def review(
         help="Allow project .repolens.toml to set provider/base_url/api_key_env",
     ),
     scanners: str = typer.Option(
-        "auto", "--scanners", help="auto | off | comma list (gitleaks,semgrep,osv)"
+        "auto",
+        "--scanners",
+        help="auto | off | comma list (gitleaks,semgrep,osv,trivy,checkov)",
     ),
     require_scanners: bool = typer.Option(
         False, "--require-scanners", help="Exit 2 if a requested scanner is missing"
@@ -308,7 +310,9 @@ def sentinel(
         help="Allow project .repolens.toml to set provider/base_url/api_key_env",
     ),
     scanners: str = typer.Option(
-        "auto", "--scanners", help="auto | off | comma list (gitleaks,semgrep,osv)"
+        "auto",
+        "--scanners",
+        help="auto | off | comma list (gitleaks,semgrep,osv,trivy,checkov)",
     ),
     require_scanners: bool = typer.Option(
         False, "--require-scanners", help="Exit 2 if a requested scanner is missing"
@@ -404,7 +408,9 @@ def architecture(
         help="Allow project .repolens.toml to set provider/base_url/api_key_env",
     ),
     scanners: str = typer.Option(
-        "auto", "--scanners", help="auto | off | comma list (gitleaks,semgrep,osv)"
+        "auto",
+        "--scanners",
+        help="auto | off | comma list (gitleaks,semgrep,osv,trivy,checkov)",
     ),
     require_scanners: bool = typer.Option(
         False, "--require-scanners", help="Exit 2 if a requested scanner is missing"

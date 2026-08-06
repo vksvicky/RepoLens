@@ -226,7 +226,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Slice | Scope | Status |
 |-------|--------|--------|
-| **6.1** | Trivy + Checkov plugins; merge + feed LLM pack | [ ] Design sketch in umbrella |
+| **6.1** | Trivy + Checkov plugins; merge + feed LLM pack | [x] Implemented 2026-08-06 |
 | **6.2** | SBOM + licenses; scanner-owned dep graph; LLM remediation-only for SCA | [ ] |
 | **6.3** | Scanners-as-gate; **triage routing** (LLM only on diff hits); provenance; source tags | [ ] |
 | **6.4** | **Anchored** SARIF (+ SBOM); GHAS/Sonar recipes (no hosted UI) | [ ] |
@@ -246,13 +246,13 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design | [x] | Umbrella §3 / 6.1 |
-| `trivy` plugin (pin + merge) | [ ] | Containers / FS / config as practical |
-| `checkov` plugin (pin + merge) | [ ] | IaC policy |
-| Structured results → LLM pack | [ ] | Hybrid orchestration |
-| Docs (`scanners.md`, companion stack) | [ ] | |
+| Design | [x] | Umbrella §3 / 6.1 · [plan](./superpowers/plans/2026-08-06-phase-6.1-trivy-checkov-plugins.md) |
+| `trivy` plugin (pin + merge) | [x] | `trivy fs` JSON → Issues (vuln + misconfig) |
+| `checkov` plugin (pin + merge) | [x] | pip pin → JSON failed_checks |
+| Structured results → LLM pack | [x] | `format_scanner_evidence_for_prompt` |
+| Docs (`scanners.md`, companion stack) | [x] | Opt-in enabled list |
 
-**Exit:** Installable plugins; findings in report; missing tools soft-fail unless `--require-scanners`.
+**Exit:** Installable plugins; findings in report; missing tools soft-fail unless `--require-scanners`. → **Met (2026-08-06)** for FS/IaC adapters (full image-registry matrix still out of scope)
 
 ---
 

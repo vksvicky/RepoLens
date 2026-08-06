@@ -5,15 +5,19 @@ from __future__ import annotations
 from pathlib import Path
 
 from repolens.scanners.base import MANUAL_HINTS, ScannerResult
+from repolens.scanners.checkov import run_checkov
 from repolens.scanners.gitleaks import run_gitleaks
 from repolens.scanners.osv import run_osv
 from repolens.scanners.semgrep import run_semgrep
+from repolens.scanners.trivy import run_trivy
 from repolens.schema import Issue, ScannerRun
 
 _RUNNERS = {
     "gitleaks": run_gitleaks,
     "semgrep": run_semgrep,
     "osv": run_osv,
+    "trivy": run_trivy,
+    "checkov": run_checkov,
 }
 
 

@@ -273,6 +273,17 @@ def run_review(
                         if local_ctx:
                             prog.detail("attached local-learning context")
 
+                from repolens.scanners.evidence import format_scanner_evidence_for_prompt
+
+                scanner_ctx = format_scanner_evidence_for_prompt(scanner_issues)
+                if scanner_ctx:
+                    prog.detail(
+                        f"attached scanner evidence ({len(scanner_issues)} finding(s))"
+                    )
+                prompt_prefix = "\n\n".join(
+                    part for part in (scanner_ctx, local_ctx) if part
+                )
+
                 provider = cfg.model.provider or "unknown"
                 model_name = cfg.model.model or default_model(cfg.model.provider)
                 timeout = resolve_llm_timeout(cfg.model)
@@ -292,7 +303,7 @@ def run_review(
                             llm_files=llm_files,
                             cfg=cfg,
                             prog=prog,
-                            prompt_prefix=local_ctx,
+                            prompt_prefix=prompt_prefix,
                             scanner_runs=scanner_runs,
                         )
                     else:
@@ -326,8 +337,8 @@ def run_review(
                             prompt = build_prompt(
                                 mode, root, llm_files, full_audit=full_audit
                             )
-                            if local_ctx:
-                                prompt = local_ctx + "\n\n" + prompt
+                            if prompt_prefix:
+                                prompt = prompt_prefix + "\n\n" + prompt
                             prog.detail(f"prompt size ≈ {len(prompt):,} characters")
                             report = _analyze_with_repair(
                                 prompt,
