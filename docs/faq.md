@@ -356,10 +356,11 @@ RepoLens uses **layers** — different tools for different jobs:
 | **LLM + `sentinel` / security playbook** | “What OWASP-*style* issues appear in *this* code, with fixes?” | Heuristic review; tags CWE/OWASP categories when possible |
 | **Secret scanner** | “Are live credentials in the tree?” | gitleaks (`--scanners` / plugins) |
 | **SAST** | “Do known bad patterns match?” | Semgrep (`--scanners` / plugins) |
-| **CVE / SCA** | “Are dependencies known-vulnerable?” | OSV-Scanner (`--scanners` / plugins) |
+| **CVE / SCA** | “Are dependencies known-vulnerable?” | OSV-Scanner and/or Trivy (`--scanners` / plugins) |
+| **SBOM / licenses** | “What is in the inventory?” | Trivy CycloneDX (`[scanners] sbom` / `licenses`) when Trivy is installed |
 | **Your CI** | “Is this enforced on every PR?” | Dependabot, CodeQL, Snyk, etc. — we *call out gaps*, we don’t replace them |
 
-**Important:** The LLM layer is **not** a CVE database. For audit-grade **CVE** lists, enable the dependency scanner plugin (or your existing SCA in CI). “OWASP compliant” is not a certification we stamp; we **align findings** to OWASP Top 10 / CWE and recommend deterministic scanners for evidence packs.
+**Important:** The LLM layer is **not** a CVE database and **must not** invent a dependency graph or claim reachability from lockfile reading. Vulnerable package / CVE facts come only from scanner JSON (OSV/Trivy). For audit-grade **CVE** lists and SBOM artifacts, enable those scanners (or your existing SCA in CI). “OWASP compliant” is not a certification we stamp; we **align findings** to OWASP Top 10 / CWE and recommend deterministic scanners for evidence packs.
 
 ---
 

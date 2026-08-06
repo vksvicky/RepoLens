@@ -227,7 +227,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Slice | Scope | Status |
 |-------|--------|--------|
 | **6.1** | Trivy + Checkov plugins; merge + feed LLM pack | [x] Implemented 2026-08-06 |
-| **6.2** | SBOM + licenses; scanner-owned dep graph; LLM remediation-only for SCA | [ ] |
+| **6.2** | SBOM + licenses; scanner-owned dep graph; LLM remediation-only for SCA | [x] |
 | **6.3** | Scanners-as-gate; **triage routing** (LLM only on diff hits); provenance; source tags | [ ] |
 | **6.4** | **Anchored** SARIF (+ SBOM); GHAS/Sonar recipes (no hosted UI) | [ ] |
 | **6.5** | Sentinel checklist gaps (SSRF, path traversal, XXE, …); evidence-first; more FP calibrations | [ ] |
@@ -261,14 +261,14 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Item | Status | Notes |
 |------|--------|-------|
 | Design | [x] | Umbrella §3 / 6.2 |
-| SBOM artifact (CycloneDX and/or SPDX) | [ ] | Prefer tool-native output |
-| License summary in report | [ ] | Where tools provide data |
-| OSV ↔ Trivy dedupe | [ ] | Avoid double-count |
-| Scanner-owned dep/CVE facts; LLM remediation-only | [ ] | No LLM lockfile/graph reasoning |
-| Prompt/schema guardrails for SCA | [ ] | |
-| FAQ honesty on reachability | [ ] | Scanner fields only |
+| SBOM artifact (CycloneDX and/or SPDX) | [x] | Trivy `fs --format cyclonedx` → `sbom.cdx.json` |
+| License summary in report | [x] | `supplyChain` + Markdown **Supply chain** |
+| OSV ↔ Trivy dedupe | [x] | Prefer `osv` per advisory+package hint |
+| Scanner-owned dep/CVE facts; LLM remediation-only | [x] | Evidence prompt + security playbook |
+| Prompt/schema guardrails for SCA | [x] | `SupplyChainBlock`; evidence forbid lockfile/reachability |
+| FAQ honesty on reachability | [x] | FAQ OWASP/CVE section |
 
-**Exit:** SBOM + license section; SCA findings traceable to scanner JSON; no LLM-invented reachability.
+**Exit:** SBOM + license section; SCA findings traceable to scanner JSON; no LLM-invented reachability. → **Met (2026-08-06)** (SPDX export still out of scope; CycloneDX via Trivy)
 
 ---
 

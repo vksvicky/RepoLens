@@ -172,6 +172,8 @@ def render_markdown(
         lines.append("_No scanners requested or configured._")
         lines.append("")
 
+    lines.extend(_render_supply_chain_section(report))
+
     lines.extend(["## Plan to fix", ""])
     immediate = [i for i in report.issues if i.fixTiming == "immediately"]
     if immediate:
@@ -214,6 +216,27 @@ def render_markdown(
 def is_coverage_transport_gap(gap: str) -> bool:
     """True when a gap is a coverage N/A or missed note (not a real durability todo)."""
     return bool(_COVERAGE_TRANSPORT_GAP_RE.match(gap.strip()))
+
+
+def _render_supply_chain_section(report: FindingReport) -> list[str]:
+    """Phase 6.2 SBOM / license inventory (scanner-owned)."""
+    sc = report.supplyChain
+    if sc is None:
+        return []
+    lines: list[str] = ["## Supply chain", ""]
+    if sc.sbomPath:
+        fmt = f" ({sc.sbomFormat})" if sc.sbomFormat else ""
+        lines.append(f"- **SBOM**{fmt}: `{sc.sbomPath}`")
+    if sc.licenses:
+        preview = ", ".join(sc.licenses[:40])
+        more = f" (+{len(sc.licenses) - 40} more)" if len(sc.licenses) > 40 else ""
+        lines.append(f"- **Licenses observed**: {preview}{more}")
+    for note in sc.notes:
+        lines.append(f"- {note}")
+    if len(lines) == 2:
+        lines.append("_No SBOM or license summary produced._")
+    lines.append("")
+    return lines
 
 
 def _render_durability_gaps_section(report: FindingReport) -> list[str]:

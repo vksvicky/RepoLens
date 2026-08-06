@@ -30,7 +30,8 @@ from repolens.pipeline.types import ReviewResult, ScannerRequirementError
 from repolens.progress import LlmGenerateProgress, ReviewProgress, null_progress
 from repolens.report import write_json_report, write_markdown_report
 from repolens.scanners.runner import missing_required, parse_scanners_flag, run_scanners
-from repolens.schema import FindingReport, Summary
+from repolens.scanners.sca import build_supply_chain, dedupe_sca_issues
+from repolens.schema import FindingReport, Summary, SupplyChainBlock
 
 
 def run_review(
@@ -115,12 +116,20 @@ def run_review(
         scanner_runs = []
         scanner_issues = []
         scanner_gaps: list[str] = []
+        supply_chain: SupplyChainBlock | None = None
         if tools:
             prog.phase(f"Scanners: running {', '.join(tools)}…")
             scanner_runs, scanner_issues, scanner_gaps = run_scanners(root, tools)
             for run in scanner_runs:
                 prog.detail(
                     f"{run.tool}: {run.status}" + (f" — {run.detail}" if run.detail else "")
+                )
+            before_dedupe = len(scanner_issues)
+            scanner_issues = dedupe_sca_issues(scanner_issues)
+            if len(scanner_issues) < before_dedupe:
+                prog.detail(
+                    f"SCA: deduped {before_dedupe - len(scanner_issues)} "
+                    "duplicate OSV/Trivy advisory row(s)"
                 )
             prog.phase(
                 f"Scanners: finished ({len(scanner_issues)} finding(s), "
@@ -134,6 +143,31 @@ def run_review(
         else:
             prog.detail("Scanners: skipped (off / none selected)")
 
+        want_supply = cfg.scanners.sbom or cfg.scanners.licenses
+        trivy_requested = bool(tools) and "trivy" in tools
+        if want_supply:
+            from repolens.scanners.base import resolve_binary
+
+            trivy_available = resolve_binary("trivy") is not None
+            if trivy_available or trivy_requested:
+                prog.phase("Supply chain: SBOM / licenses…")
+                supply_chain, sc_gaps = build_supply_chain(
+                    root,
+                    out,
+                    sbom=cfg.scanners.sbom,
+                    licenses=cfg.scanners.licenses,
+                )
+                scanner_gaps.extend(sc_gaps)
+                if supply_chain and supply_chain.sbomPath:
+                    prog.detail(f"SBOM: {supply_chain.sbomPath}")
+                elif sc_gaps:
+                    prog.detail(sc_gaps[0])
+            else:
+                prog.detail(
+                    "Supply chain: skipped (install Trivy for SBOM/licenses — "
+                    "`repolens plugins install trivy`)"
+                )
+
         if scanners_only:
             all_ran = bool(scanner_runs) and all(r.status == "ran" for r in scanner_runs)
             report = FindingReport(
@@ -143,6 +177,7 @@ def run_review(
                 durabilityGaps=list(scanner_gaps)
                 or (["scanners-only: no scanners selected"] if not tools else []),
                 scannerRuns=list(scanner_runs),
+                supplyChain=supply_chain,
             )
             report.summary = report.recount_summary()
         elif not files:
@@ -153,6 +188,7 @@ def run_review(
                 durabilityGaps=["No reviewable files found (check ignores / --mode diff)"]
                 + scanner_gaps,
                 scannerRuns=list(scanner_runs),
+                supplyChain=supply_chain,
             )
             report.summary = report.recount_summary()
         else:
@@ -408,6 +444,8 @@ def run_review(
                     )
 
         report.durationSeconds = round(time.time() - run_started, 1)
+        if supply_chain is not None:
+            report.supplyChain = supply_chain
         from repolens.issue_ids import stamp_issue_ids
 
         report.issues = stamp_issue_ids(report.issues)

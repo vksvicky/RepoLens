@@ -90,6 +90,15 @@ class ThemeEntry(BaseModel):
     issueRefs: list[str] = Field(default_factory=list)
 
 
+class SupplyChainBlock(BaseModel):
+    """Phase 6.2 SBOM / license inventory (scanner-owned; optional)."""
+
+    sbomPath: str | None = None
+    sbomFormat: str | None = None  # e.g. cyclonedx
+    licenses: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
 class FindingReport(BaseModel):
     schemaVersion: str = "1.0"
     confidence: int = Field(ge=0, le=100)
@@ -100,6 +109,7 @@ class FindingReport(BaseModel):
     scannerRuns: list[ScannerRun] = Field(default_factory=list)
     coverage: CoverageBlock | None = None
     themes: list[ThemeEntry] | None = None
+    supplyChain: SupplyChainBlock | None = None
     # Phase 5.1 audit metrics (optional for backward compatibility with older reports).
     securityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
     architectureAuditConfidence: int | None = Field(default=None, ge=0, le=100)

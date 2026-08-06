@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scanner evidence block fed into deep / single-shot LLM prompts
 - Opt-in via `[scanners].enabled` or `--scanners …,trivy,checkov` (defaults unchanged)
 
+### Added (Phase 6.2 SBOM / licenses / SCA)
+
+- CycloneDX SBOM via Trivy when available (`sbom.cdx.json` beside the report)
+- License IDs + notes in JSON `supplyChain` and Markdown **Supply chain**
+- OSV ↔ Trivy CVE dedupe (prefer OSV); `[scanners] sbom` / `licenses` knobs (default on)
+- LLM SCA guardrails: no invented dependency graphs or reachability from lockfiles (prompt + FAQ + security playbook)
+
 ### Added (Phase 6.x design — remaining slices)
 
 - Roadmap for CI triage / anchored SARIF / suppressions before Phase 7 ([design](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md))
