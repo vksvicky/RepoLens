@@ -185,3 +185,9 @@ def test_ci_clean_diff_does_not_call_llm(tmp_path: Path) -> None:
     assert result.report.llmBypassed is True
     assert result.report.llmSkipped is True
     llm_mock.assert_not_called()
+
+    from repolens.cli.export import llm_status_label
+
+    assert llm_status_label(result.report) == (
+        "bypassed (scanners clean at triage floor)"
+    )

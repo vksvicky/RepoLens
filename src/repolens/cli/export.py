@@ -35,6 +35,17 @@ def export(
     console.print(f"[green]PDF:[/green] {out}")
 
 
+def llm_status_label(report: FindingReport) -> str | None:
+    """Short LLM row for the CLI summary table (Phase 6.3 triage-aware)."""
+    if report.llmReusedFrom:
+        return f"reused from {report.llmReusedFrom}"
+    if report.llmBypassed:
+        return "bypassed (scanners clean at triage floor)"
+    if report.llmSkipped:
+        return "skipped (no file delta; no prior snapshot)"
+    return None
+
+
 def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_run: bool) -> None:
     from repolens.report import format_duration
 
@@ -52,10 +63,9 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     duration = format_duration(report.durationSeconds)
     if duration is not None:
         table.add_row("Duration", duration)
-    if report.llmReusedFrom:
-        table.add_row("LLM", f"reused from {report.llmReusedFrom}")
-    elif report.llmSkipped:
-        table.add_row("LLM", "skipped (no file delta; no prior snapshot)")
+    llm_label = llm_status_label(report)
+    if llm_label is not None:
+        table.add_row("LLM", llm_label)
     table.add_row("Critical", str(report.summary.critical))
     table.add_row("High", str(report.summary.high))
     table.add_row("Medium", str(report.summary.medium))

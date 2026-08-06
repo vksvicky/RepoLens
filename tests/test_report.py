@@ -159,6 +159,21 @@ def test_markdown_notes_llm_skipped_but_keeps_counts(tmp_path: Path) -> None:
     assert "**LLM:** skipped" in text
 
 
+def test_markdown_notes_llm_bypassed_triage_over_skipped(tmp_path: Path) -> None:
+    report = FindingReport(
+        confidence=80,
+        summary=Summary(),
+        issues=[],
+        llmSkipped=True,
+        llmBypassed=True,
+    )
+    text = write_markdown_report(report, tmp_path, mode="review").read_text(
+        encoding="utf-8"
+    )
+    assert "**LLM:** bypassed (scanners clean at triage floor)" in text
+    assert "no fingerprint delta" not in text
+
+
 def test_markdown_notes_llm_reused(tmp_path: Path) -> None:
     report = FindingReport(
         confidence=75,
