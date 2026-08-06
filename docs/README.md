@@ -23,6 +23,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) | Step-by-step: cloud key, local Ollama, scanners only |
 | [install-extras.md](./install-extras.md) | What `[dev]` / `[scanners]` / `[local-ml]` install (RepoLens `pyproject.toml`) |
 | [try-on-your-repo.md](./try-on-your-repo.md) | Install + review local / GitHub / Bitbucket / HF / git URL (macOS, Linux, Windows) |
+| [polycode-polycoach-loop.md](./polycode-polycoach-loop.md) | PolyCode PolyCoach classroom loop (sibling guide) |
 | [remote-sources.md](./remote-sources.md) | Remote commands + auth: `--github`, `--bitbucket`, `--hf`, `--git-url` |
 | [scanners.md](./scanners.md) | Optional scanners: plugins install, flags, cache |
 | [ci.md](./ci.md) | GitHub Action + Bitbucket CI script |
