@@ -105,6 +105,28 @@ Also: `// repolens:disable-next-line` (JS/TS/Go), and `# repolens:disable` … `
 
 **Important:** inline disable does **not** silence **scanner** Critical/High hits. Put those in `.repolens-ignore` (or the scanner’s own config) explicitly.
 
+### Feedback calibrations
+
+`feedback down` also appends a local event under `.repolens/feedback.jsonl` (gitignored with `.repolens/`). On later reviews, matching **LLM/heuristic** false positives may be soft-demoted (same style as FP calibrations). Scanner findings are never auto-demoted this way. Turn off with:
+
+```toml
+[deep]
+feedback_calibrations = false
+```
+
+### Critical self-consistency (optional, cost-aware)
+
+```toml
+[deep]
+critical_consistency = "heuristic"  # off | heuristic | llm
+# critical_consistency_include_high = true
+```
+
+- **heuristic:** demotes unverified Critical (optional High) LLM/heuristic locations one severity band  
+- **llm:** extra confirm pass, then the same heuristic check  
+
+Default is `off` so PR CI stays cheap.
+
 ## Related switches (not the same as rules)
 
 These live in config (see [`.repolens.example.toml`](../.repolens.example.toml)):

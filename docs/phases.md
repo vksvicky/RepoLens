@@ -232,7 +232,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **6.4** | **Anchored** SARIF (+ SBOM); GHAS/Sonar recipes (no hosted UI) | [x] |
 | **6.5** | Sentinel checklist gaps (SSRF, path traversal, XXE, …); evidence-first; more FP calibrations | [x] |
 | **6.6** | Benchmark: **remediation rate / MTTR** lead + P/R support | [x] Methodology + MVP (formal study TBD) |
-| **6.7** | **`.repolens-ignore`** / disable comments + feedback + Critical consistency | [x] Scope B (ignore/disable/feedback); Critical consistency deferred |
+| **6.7** | **`.repolens-ignore`** / disable comments + feedback + Critical consistency | [x] |
 | **6.8** | PR suggested-fix UX (annotations / job summary) | [ ] Extended (needs 6.4) |
 | **6.9** | Best-effort reachability + optional finding verify | [ ] Extended (needs 6.2) |
 | **6.10** | Optional domain packs (Azure Sentinel/SOAR first) | [ ] Extended / niche |
@@ -343,10 +343,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | `# repolens:disable-next-line` (and block form) | [x] | LLM/heuristic only |
 | Suppressions honored in fail-on + SARIF | [x] | Markdown **Suppressed** section |
 | Local thumbs up/down + reason | [x] | `repolens feedback down|list` |
-| Optional Critical/High self-consistency pass | [ ] | Deferred (out of scope B) |
-| Feed calibrations from feedback schema | [ ] | Deferred |
+| Optional Critical/High self-consistency pass | [x] | `[deep].critical_consistency` off\|heuristic\|llm |
+| Feed calibrations from feedback schema | [x] | `.repolens/feedback.jsonl` → soft demote |
 
-**Exit:** Ignore/disable stick across commits; feedback opt-in; self-consistency optional. → **Met for scope B (2026-08-06)**; Critical consistency + calibration feed remain open
+**Exit:** Ignore/disable stick across commits; feedback opt-in; self-consistency optional. → **Met (2026-08-06)**
 
 ---
 
@@ -492,6 +492,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-06 | 6.x design corrections | SARIF Verification & Anchor; CI triage routing; `.repolens-ignore`; remediation-rate/MTTR headline; SCA graph = scanners only (no LLM lockfile reasoning) |
 | 2026-08-06 | Phase 6.6 methodology + MVP | Remediation-led benchmark docs; `score-report`; formal Semgrep/CodeQL study still TBD |
 | 2026-08-06 | Phase 6.7 scope B suppressions | `.repolens-ignore`, disable comments, feedback CLI; Critical consistency deferred |
+| 2026-08-06 | Phase 6.7 complete | Critical consistency + feedback→calibrations |
 
 ---
 

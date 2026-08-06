@@ -7,6 +7,7 @@ from pathlib import Path
 import typer
 
 from repolens.cli.app import app, console
+from repolens.feedback_store import lookup_issue_meta, record_feedback
 from repolens.suppressions import IGNORE_FILENAME, append_ignore_entry, load_ignore_file
 
 feedback_app = typer.Typer(
@@ -41,6 +42,7 @@ def feedback_down(
         console.print(f"[red]Unknown reason:[/red] {reason}. Choose from {_REASONS}")
         raise typer.Exit(code=2)
     root = path.resolve()
+    meta = lookup_issue_meta(root, stable_id.strip())
     try:
         written = append_ignore_entry(
             root,
@@ -52,7 +54,22 @@ def feedback_down(
     except ValueError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=2) from exc
+    fb_path = record_feedback(
+        root,
+        stable_id=stable_id.strip(),
+        reason=reason,
+        category=meta.get("category", ""),
+        file=meta.get("file", ""),
+        title=meta.get("title", ""),
+        note=note.strip(),
+    )
     console.print(f"[green]Wrote[/green] ignore entry → {written}")
+    console.print(f"[green]Logged[/green] feedback event → {fb_path}")
+    if reason == "false_positive" and meta.get("category"):
+        console.print(
+            "[dim]Future reviews may soft-demote matching LLM/heuristic findings "
+            f"(category `{meta['category']}`). Scanners still need an ignore entry.[/dim]"
+        )
     console.print(
         "[dim]Suppressed findings are excluded from fail-on and SARIF on the next review. "
         "No data is uploaded.[/dim]"

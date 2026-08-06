@@ -72,6 +72,11 @@ class DeepConfig(BaseModel):
     # Empty map → packaged FP-calibration defaults (see repolens.fp_calibrations).
     # Set an id to false to disable; unknown ids are ignored.
     fp_calibrations: dict[str, bool] = Field(default_factory=dict)
+    # Phase 6.7: Critical(/High) self-consistency — off | heuristic | llm
+    critical_consistency: str = "off"
+    critical_consistency_include_high: bool = False
+    # Soft-demote LLM/heuristic issues from local feedback.jsonl false_positives
+    feedback_calibrations: bool = True
 
 
 class ExplainConfig(BaseModel):
