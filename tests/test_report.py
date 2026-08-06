@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from repolens.report import (
     format_duration,
+    format_two_lane_headline,
     is_coverage_transport_gap,
     render_code_example_fenced,
     report_heading_time,
@@ -38,6 +39,20 @@ def test_report_stamp_converts_non_utc_to_utc() -> None:
     # BST = UTC+1 → 14:30 UTC
     assert report_stamp(when) == "2026-08-05_1430"
     assert report_heading_time(when) == "2026-08-05 14:30 UTC"
+
+
+def test_two_lane_headline_includes_counts() -> None:
+    report = FindingReport(
+        confidence=59,
+        summary=Summary(critical=0, high=4, medium=28, low=8),
+        issues=[],
+        provenance=ProvenanceBlock(fastBrainFiles=184, llmPackFiles=26, triageRouting=True),
+        durationSeconds=120.0,
+    )
+    line = format_two_lane_headline(report)
+    assert "Fast Brain: 184" in line
+    assert "Slow Brain: 26" in line
+    assert "4 high" in line.lower() or "High 4" in line
 
 
 def test_format_duration() -> None:

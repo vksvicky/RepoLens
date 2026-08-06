@@ -56,6 +56,31 @@ def format_duration(seconds: float | None) -> str | None:
     return f"{secs}s"
 
 
+def format_two_lane_headline(report: FindingReport) -> str:
+    """Punchy SecureVibes-style opener — provenance-honest."""
+    prov = report.provenance
+    fb = prov.fastBrainFiles if prov else None
+    llm = prov.llmPackFiles if prov else None
+    s = report.summary
+    counts = (
+        f"{s.critical} critical · {s.high} high · "
+        f"{s.medium} medium · {s.low} low"
+    )
+    dur = format_duration(report.durationSeconds)
+    parts: list[str] = []
+    if fb is not None:
+        parts.append(f"Fast Brain: {fb} file(s)")
+    if llm is not None:
+        if prov and prov.llmBypassed:
+            parts.append("Slow Brain: bypassed (triage clean)")
+        else:
+            parts.append(f"Slow Brain: {llm} file(s)")
+    if dur:
+        parts.append(dur)
+    parts.append(counts)
+    return " · ".join(parts)
+
+
 def report_basename(mode: str, when: datetime | None = None) -> str:
     """Report stem including mode so sentinel/review/architecture do not collide.
 
@@ -121,6 +146,13 @@ def render_markdown(
             f"**Gate confidence:** {report.confidence}%",
             f"**Commit go/no-go:** {commit_go}",
             f"**Push go/no-go:** {push_go}",
+        ]
+    )
+    headline = format_two_lane_headline(report)
+    if headline:
+        lines.extend(["", f"**Two-Lane:** {headline}", ""])
+    lines.extend(
+        [
             "",
             "## Gate verdict",
             "",

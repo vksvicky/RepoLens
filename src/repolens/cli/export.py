@@ -47,7 +47,7 @@ def llm_status_label(report: FindingReport) -> str | None:
 
 
 def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_run: bool) -> None:
-    from repolens.report import format_duration
+    from repolens.report import format_duration, format_two_lane_headline
 
     table = Table(title="RepoLens summary")
     table.add_column("Metric")
@@ -81,4 +81,7 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     if report.scannerRuns:
         ran = sum(1 for r in report.scannerRuns if r.status == "ran")
         table.add_row("Scanners ran", f"{ran}/{len(report.scannerRuns)}")
+    headline = format_two_lane_headline(report)
+    if headline:
+        console.print(f"[bold]Two-Lane[/bold]: {headline}")
     console.print(table)
