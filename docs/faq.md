@@ -510,6 +510,10 @@ Suppressed rows leave fail-on and SARIF, but stay listed under **Suppressed** in
 
 No as a marketing lead. Phase 6.6 pre-registers a methodology that leads with **remediation rate**, **MTTR**, and **suggested-fix apply %** — not synthetic F1 alone. See [benchmarks/methodology.md](./benchmarks/methodology.md) and the honest MVP table ([results](./benchmarks/results/mvp-2026-08-06.md)). Supporting readiness metrics: `repolens score-report path/to/report.json`.
 
+## How do Critical/High suggested fixes show up on a PR?
+
+On GitHub Actions (Phase 6.8), the RepoLens Action appends a **PR summary** to the job summary and emits `::error` / `::warning` annotations for Critical/High (with code examples in the summary). Locally: `repolens pr-summary --reports-dir reports`. RepoLens does **not** auto-commit fixes or post review comments via the GitHub API. See [ci.md](./ci.md#pr-suggested-fix-summary-phase-68).
+
 ## How does `--ci` triage routing work?
 
 On PRs, prefer **`repolens review --ci --fail-on HIGH`** (Action `ci: true` by default):

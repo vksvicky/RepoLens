@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 6.8 PR suggested-fix UX)
+
+- `repolens pr-summary` — Critical/High suggested fixes for `$GITHUB_STEP_SUMMARY`
+- GitHub Actions: `--annotate` emits `::error` / `::warning` (no PR review-comment API)
+- Action inputs: `pr-summary`, `sarif`, `reports-dir` (defaults on for summary/SARIF)
+
 ### Added (Phase 6.7 suppressions & local feedback)
 
 - `.repolens-ignore` (stableId or file+category, required reason, optional expiry)

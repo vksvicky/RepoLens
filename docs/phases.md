@@ -233,7 +233,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **6.5** | Sentinel checklist gaps (SSRF, path traversal, XXE, …); evidence-first; more FP calibrations | [x] |
 | **6.6** | Benchmark: **remediation rate / MTTR** lead + P/R support | [x] Methodology + MVP (formal study TBD) |
 | **6.7** | **`.repolens-ignore`** / disable comments + feedback + Critical consistency | [x] |
-| **6.8** | PR suggested-fix UX (annotations / job summary) | [ ] Extended (needs 6.4) |
+| **6.8** | PR suggested-fix UX (annotations / job summary) | [x] Job summary + annotations; no PR-comment API |
 | **6.9** | Best-effort reachability + optional finding verify | [ ] Extended (needs 6.2) |
 | **6.10** | Optional domain packs (Azure Sentinel/SOAR first) | [ ] Extended / niche |
 
@@ -354,12 +354,13 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design | [x] | Umbrella §3 / 6.8 |
-| PR / job-summary presentation | [ ] | GitHub first |
-| Surface Critical/High code examples as suggestions | [ ] | No auto-commit |
-| Docs recipe | [ ] | |
+| Design | [x] | Umbrella §3 / 6.8 · [spec](./superpowers/specs/2026-08-06-phase-6.8-pr-suggested-fix-ux.md) |
+| PR / job-summary presentation | [x] | `repolens pr-summary` + Action `$GITHUB_STEP_SUMMARY` |
+| Surface Critical/High code examples as suggestions | [x] | Plus `::error`/`::warning` annotations |
+| Docs recipe | [x] | [ci.md](./ci.md#pr-suggested-fix-summary-phase-68) |
+| PR review comments via gh/API | [ ] | Explicitly out of this slice |
 
-**Exit:** Action/docs show PR-oriented summary + suggested-fix presentation.
+**Exit:** Action/docs show PR-oriented summary + suggested-fix presentation. → **Met (2026-08-06)** (no PR-comment bot)
 
 ---
 
@@ -493,6 +494,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-06 | Phase 6.6 methodology + MVP | Remediation-led benchmark docs; `score-report`; formal Semgrep/CodeQL study still TBD |
 | 2026-08-06 | Phase 6.7 scope B suppressions | `.repolens-ignore`, disable comments, feedback CLI; Critical consistency deferred |
 | 2026-08-06 | Phase 6.7 complete | Critical consistency + feedback→calibrations |
+| 2026-08-06 | Phase 6.8 PR suggested-fix UX | Job summary + annotations; no gh PR comments |
 
 ---
 
