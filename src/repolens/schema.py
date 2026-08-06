@@ -45,6 +45,14 @@ class Issue(BaseModel):
     anchorQuote: str | None = None
     anchorContext: str | None = None
     locationVerified: bool | None = None
+    # Phase 6.9: scanner-owned SCA facts + best-effort usage hint (not reachability).
+    packageName: str | None = None
+    installedVersion: str | None = None
+    fixedVersion: str | None = None
+    advisoryId: str | None = None
+    usageHint: Literal["referenced_in_source", "no_reference_found"] | None = None
+    usageHintDetail: str = ""
+    clusteredCount: int | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
     def require_impact_and_example_for_high(self) -> Issue:

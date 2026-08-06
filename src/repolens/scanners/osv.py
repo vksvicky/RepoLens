@@ -68,6 +68,8 @@ def run_osv(root: Path) -> ScannerResult:
                         ),
                         fixTiming="before launch",
                         cwe=None,
+                        packageName=pkg_name,
+                        advisoryId=vuln_id,
                     )
                 )
     return ScannerResult(

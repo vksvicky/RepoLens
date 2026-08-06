@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 6.9 best-effort reachability & verify)
+
+- Scanner-owned SCA metadata on Issues (package / versions / advisory) from Trivy & OSV
+- Deterministic **usage hints** (import/require/text match) — not reachability claims
+- Near-duplicate finding clustering (keep highest severity)
+- Opt-in `--verify-findings` / `[deep].verify_findings` for Critical location re-check (non-fatal)
+- FAQ honesty: no proprietary reachability graphs
+
 ### Added (Phase 6.8 PR suggested-fix UX)
 
 - `repolens pr-summary` — Critical/High suggested fixes for `$GITHUB_STEP_SUMMARY`

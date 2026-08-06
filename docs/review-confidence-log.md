@@ -32,3 +32,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-08-06 | WIP→commit | 91% | 0/0/1/1 | Phase 6.7 suppressions; fixed path escape in disable read; 11 pytest | chat |
 | 2026-08-06 | WIP→commit | 92% | 0/0/1/1 | Phase 6.7 consistency + feedback calibrations; 8 focused pytest | chat |
 | 2026-08-06 | WIP→commit | 93% | 0/0/0/1 | Phase 6.8 pr-summary + annotations; SARIF glob fix; 4 pytest | chat |
+| 2026-08-06 | WIP→commit | 91% | 0/0/1/1 | Phase 6.9 usage hints/cluster/verify; 8 pytest; no reachability claims | chat |

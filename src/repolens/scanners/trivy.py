@@ -66,6 +66,10 @@ def parse_trivy_report(data: dict[str, Any]) -> list[Issue]:
                     ),
                     fixTiming="before launch",
                     cwe=None,
+                    packageName=pkg,
+                    installedVersion=installed or None,
+                    fixedVersion=fixed or None,
+                    advisoryId=vuln_id,
                 )
             )
         for mis in result.get("Misconfigurations") or []:

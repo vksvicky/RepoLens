@@ -92,6 +92,7 @@ def run_review(
     deep: bool | None = None,
     ci: bool = False,
     sarif: bool = False,
+    verify_findings: bool | None = None,
 ) -> ReviewResult:
     if force_full and force_changed:
         raise ValueError("--full and --changed cannot be combined")
@@ -105,6 +106,10 @@ def run_review(
         if timeout_override <= 0:
             raise ValueError("--timeout must be a positive number of seconds")
         cfg.model.timeout_seconds = timeout_override
+    if verify_findings is True:
+        cfg.deep.verify_findings = True
+    elif verify_findings is False:
+        cfg.deep.verify_findings = False
 
     # Phase 6.3: --ci enables triage routing + changed pack + single-shot LLM
     if ci:
@@ -192,6 +197,16 @@ def run_review(
                     f"SCA: deduped {before_dedupe - len(scanner_issues)} "
                     "duplicate OSV/Trivy advisory row(s)"
                 )
+            if cfg.deep.usage_hints:
+                from repolens.scanners.usage_hints import apply_usage_hints
+
+                scanner_issues = apply_usage_hints(root, scanner_issues)
+                hinted = sum(1 for i in scanner_issues if i.usageHint)
+                if hinted:
+                    prog.detail(
+                        f"SCA usage hints: {hinted} package finding(s) "
+                        "(not reachability)"
+                    )
             prog.phase(
                 f"Scanners: finished ({len(scanner_issues)} finding(s), "
                 f"{sum(1 for r in scanner_runs if r.status == 'ran')}/{len(scanner_runs)} ran)"
@@ -563,10 +578,19 @@ def run_review(
         from repolens.issue_ids import stamp_issue_ids
 
         report.issues = stamp_issue_ids(stamp_issue_sources(report.issues))
+        from repolens.cluster import cluster_near_duplicates
         from repolens.feedback_store import apply_feedback_calibrations
         from repolens.suppressions import apply_suppressions
 
         report.issues = apply_feedback_calibrations(report.issues, root, cfg.deep)
+        if cfg.deep.cluster_duplicates:
+            before_cluster = len(report.issues)
+            report.issues = cluster_near_duplicates(report.issues)
+            if len(report.issues) < before_cluster:
+                prog.detail(
+                    f"Clustered {before_cluster - len(report.issues)} "
+                    "near-duplicate finding(s)"
+                )
         active, suppressed = apply_suppressions(root, report.issues)
         report.issues = active
         report.suppressedIssues = suppressed
@@ -599,6 +623,12 @@ def run_review(
 
         if (cfg.deep.critical_consistency or "").lower() in {"heuristic", "llm"}:
             report.issues = apply_heuristic_consistency(report.issues, cfg.deep)
+            report.summary = report.recount_summary()
+        from repolens.verify_findings import apply_verify_findings
+
+        if cfg.deep.verify_findings:
+            prog.detail("Verify findings: re-checking Critical locations (non-fatal)…")
+            report.issues = apply_verify_findings(root, report.issues, cfg.deep)
             report.summary = report.recount_summary()
 
         from datetime import datetime, timezone
