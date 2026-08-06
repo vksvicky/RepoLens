@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 6 issue explain + diagrams)
+
+- Hybrid issue IDs: `stableId` (UUID v5) + `runId` (UUID v4) on every finding; shown in Markdown reports
+- `[explain]` config + `repolens explain <uuid>` + `review --explain uuid[,…]`
+- Foolproof diagram spine: Mermaid validate → one repair → textual fallback; optional `mmdc` image never blocks exit 0
+- `.repolens/last_report.json` pointer (and JSON sidecar when `--format md`) for explain lookup
+
+### Added (Phase 6.x design — not implemented yet)
+
+- Roadmap for scanner depth / CI triage / anchored SARIF / suppressions before Phase 7 ([design](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md))
+- Implementation plan for enterprise CI triage routing ([plan](./superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md))
+- Blog draft: enterprise scale vs full-LLM PR checks ([blog](./blog-ideas/enterprise-scale-llm-review-ci.md))
+- End-user [rules.md](./rules.md) + AppSec comparison note
+
 ### Added
 
 - Standard **AI / LLM disclaimer** on every Markdown gate report; FAQ + README pointers (no liability for reliance on AI/tool-assisted output)

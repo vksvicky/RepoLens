@@ -4,10 +4,10 @@
 
 RepoLens is an open-source CLI that runs structured code reviews against projects you care about: on your machine, or cloned from GitHub, Bitbucket, Hugging Face, or any Git URL. It follows a clear **P1 → P2 → P3** pass (security → bugs/reliability/performance → architecture/quality) and writes audit-friendly reports with impact, remediation steps, and code-example fixes for Critical/High findings.
 
-> **Status:** Alpha `0.1.0a1` — **Phases 0–4 complete**  
-> Local CLI · remotes (GitHub / Bitbucket / HF / git URL) · optional scanners · GitHub Action · opt-in local learning · PyPI Trusted Publishing workflow (upload after one-time PyPI setup)  
+> **Status:** Alpha `0.1.0a1` — **Phases 0–6 complete**; **6.x** (enterprise scanner depth / CI triage) next  
+> Local CLI · remotes · optional scanners · explain + diagrams · GitHub Action · opt-in local learning · PyPI Trusted Publishing workflow  
 > Install: `pip install -e .` from a clone, or `pip install "repolens @ git+https://github.com/vksvicky/RepoLens.git"`  
-> Docs: [phases](./docs/phases.md) · [FAQ](./docs/faq.md) · [install extras](./docs/install-extras.md) · [CI / Action](./docs/ci.md) · [remotes](./docs/remote-sources.md) · [scanners](./docs/scanners.md) · [local learning](./docs/local-learning.md) · [publishing](./docs/publishing.md)
+> Docs: [phases](./docs/phases.md) · [FAQ](./docs/faq.md) · [rules](./docs/rules.md) · [install extras](./docs/install-extras.md) · [CI / Action](./docs/ci.md) · [remotes](./docs/remote-sources.md) · [scanners](./docs/scanners.md) · [local learning](./docs/local-learning.md) · [publishing](./docs/publishing.md)
 
 ---
 
@@ -35,8 +35,11 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 | `repolens plugins` | Optional scanners: `status` / `list` / `install` |
 | `repolens learn` | Opt-in local index: `build` / `status` / `clear` |
 | `repolens init` | Write user config (cloud key, Ollama, or none) |
+| `repolens explain` | Deep-dive one finding by ID (solutions + diagram) |
 | `repolens export` | Export / convert a report (e.g. Markdown → PDF via pandoc) |
 | `repolens version` | Print package version |
+
+**What gets checked?** See **[docs/rules.md](./docs/rules.md)** — plain guide to rules, why they exist, and how to turn them on/off.
 
 ---
 
@@ -155,14 +158,15 @@ pandoc reports/gate_review_report_review_YYYY-MM-DD_HHMM.md -o reports/gate_revi
 
 ---
 
-## Playbooks
+## Playbooks & rules
 
 | Playbook | File |
 |----------|------|
 | Security (P1 / `sentinel`) | [playbooks/security.md](./playbooks/security.md) |
 | Architecture (release / full audit) | [playbooks/architecture.md](./playbooks/architecture.md) |
 
-More: [playbooks/README.md](./playbooks/README.md). Contributions: [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md).
+**Rules** (what is checked, why, enable/disable): **[docs/rules.md](./docs/rules.md)**.  
+Playbook files: [playbooks/README.md](./playbooks/README.md). Contributions: [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md).
 
 ---
 

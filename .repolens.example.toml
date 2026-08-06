@@ -45,6 +45,11 @@
 # fp_calibrations = { subprocess_list_not_injection = true }  # demote list-form subprocess “injection” FPs (default on)
 # CLI: --deep / --no-deep (None → this config; --no-deep restores single-shot)
 
+[explain]
+# enabled = true              # repolens explain / review --explain (IDs still stamped when false)
+# diagram = "mermaid"         # mermaid | off
+# render_image = "auto"       # auto | always | never (optional mmdc; never blocks exit 0)
+
 [sources]
 # Private remotes: env tokens (also accepts GH_TOKEN for GitHub),
 # then fall back to `gh auth token` if available.

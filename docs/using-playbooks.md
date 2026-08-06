@@ -50,13 +50,13 @@ including all findings and code examples.
 - **Export Markdown:** Ask your LLM tool to write `gate_review_report_YYYY-MM-DD.md`.
 - **PDF:** `pandoc report.md -o report.pdf` or Print → Save as PDF.
 
-## 5. When the CLI arrives
+## 5. With the CLI
 
-The same playbooks will be loaded automatically by:
+The same checklists load automatically:
 
 ```bash
 repolens sentinel --path .
 repolens review --path .
 ```
 
-See [phases.md](./phases.md) for progress.
+What rules are, why they exist, and how to enable/disable them: **[rules.md](./rules.md)**.

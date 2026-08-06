@@ -71,6 +71,14 @@ class DeepConfig(BaseModel):
     fp_calibrations: dict[str, bool] = Field(default_factory=dict)
 
 
+class ExplainConfig(BaseModel):
+    """Phase 6 per-issue deep-dive explain + diagrams."""
+
+    enabled: bool = True
+    diagram: str = "mermaid"  # mermaid | off
+    render_image: str = "auto"  # auto | always | never
+
+
 class RepoLensConfig(BaseModel):
     general: GeneralConfig = Field(default_factory=GeneralConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
@@ -78,6 +86,7 @@ class RepoLensConfig(BaseModel):
     local_learning: LocalLearningConfig = Field(default_factory=LocalLearningConfig)
     adaptive: AdaptiveConfig = Field(default_factory=AdaptiveConfig)
     deep: DeepConfig = Field(default_factory=DeepConfig)
+    explain: ExplainConfig = Field(default_factory=ExplainConfig)
 
 
 def user_config_path() -> Path:

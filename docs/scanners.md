@@ -83,5 +83,6 @@ repolens review --path . --scanners semgrep
 
 - [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) — Option C checklist  
 - [design/phase-3-scanners.md](./design/phase-3-scanners.md)  
+- [design/repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md) — honest comparison vs Checkmarx, Snyk, CodeQL, Trivy, …  
 - [ci.md](./ci.md) — GitHub Action  
 

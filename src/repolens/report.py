@@ -430,11 +430,19 @@ def _render_issue(issue: Issue) -> list[str]:
         f"- **File:** `{issue.file}`",
         f"- **Line:** {issue.line}",
         f"- **Category:** {issue.category}",
-        f"- **Explanation:** {issue.explanation}",
-        f"- **Impact:** {issue.impact or '_n/a_'}",
-        f"- **Recommended fix:** {issue.recommendedFix}",
-        f"- **Fix timing:** {issue.fixTiming}",
     ]
+    if issue.runId:
+        block.append(f"- **Run ID:** `{issue.runId}`")
+    if issue.stableId:
+        block.append(f"- **Stable ID:** `{issue.stableId}`")
+    block.extend(
+        [
+            f"- **Explanation:** {issue.explanation}",
+            f"- **Impact:** {issue.impact or '_n/a_'}",
+            f"- **Recommended fix:** {issue.recommendedFix}",
+            f"- **Fix timing:** {issue.fixTiming}",
+        ]
+    )
     if issue.owasp:
         block.append(f"- **OWASP:** {issue.owasp}")
     if issue.cwe:

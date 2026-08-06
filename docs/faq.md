@@ -67,6 +67,18 @@ Report chrome (Metrics, Coverage, About, Disclaimer) and LLM/heuristic finding p
 
 Self-review on this repo should not drown in agent scratch (`.superpowers/`), heuristic fixtures, or pedagogical “password” mentions in playbooks. Plan: [superpowers/specs/2026-08-05-self-review-hardening-design.md](./superpowers/specs/2026-08-05-self-review-hardening-design.md) · [implementation plan](./superpowers/plans/2026-08-05-self-review-hardening.md).
 
+## How do I deep-dive one finding (Phase 6 explain)?
+
+Every finding gets a **Run ID** and **Stable ID** in the report. After a review:
+
+```bash
+repolens explain <uuid> --path "$TARGET" --out "$TARGET/reports"
+# or during review:
+repolens review --path "$TARGET" --out "$TARGET/reports" --explain <uuid>[,<uuid>…]
+```
+
+Writes `reports/explain_<short>_<stamp>.md` with problem, impact, 2–3 solutions, and a Mermaid diagram (textual fallback if Mermaid is invalid). Toggle: `[explain]` in config. Diagrams never fail the command (exit 0 unless UUID missing / explain disabled).
+
 ## How do we reduce known LLM false positives for everyone?
 
 Post-parse **FP calibrations** (default on) demote patterns such as list-form `subprocess` “command injection”. Toggle under `[deep].fp_calibrations` in config / `.repolens.toml` (e.g. `subprocess_list_not_injection = false` to disable). Design: [superpowers/specs/2026-08-05-fp-calibrations-config-design.md](./superpowers/specs/2026-08-05-fp-calibrations-config-design.md).
@@ -396,6 +408,8 @@ See [scanners.md](./scanners.md).
 ### Explicitly *not* replaced
 
 RepoLens complements—does **not** replace—**pytest/jest/etc.**, **CI**, **Dependabot/Renovate**, **CodeQL**, **Snyk**, or your hosting provider’s secret scanning.
+
+Longer comparison (Checkmarx, Veracode, Fortify, Semgrep, Trivy, Checkov, GHAS, ZAP, …): [design/repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md).
 
 ### Hosting sources (Phase 2)
 
