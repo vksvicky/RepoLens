@@ -36,6 +36,8 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [design/phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md) | Phase 5.1: honest coverage, security audit confidence, quieter deep reports |
 | [design/phase-6-issue-explain-diagrams.md](./design/phase-6-issue-explain-diagrams.md) | Phase 6: UUID explain + foolproof Mermaid diagrams |
 | [design/phase-6.x-scanner-depth-ci-gates-and-credibility.md](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md) | Phase 6.1–6.10: scanners/SBOM/gates/SARIF (core) + feedback/PR UX/reachability/domain packs (extended) |
+| [benchmarks/methodology.md](./benchmarks/methodology.md) | Pre-registered benchmark: remediation rate / MTTR lead (Phase 6.6) |
+| [benchmarks/results/mvp-2026-08-06.md](./benchmarks/results/mvp-2026-08-06.md) | MVP results (partial dogfood; formal study TBD) |
 | [superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md](./superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md) | Plan: CI triage routing (LLM only on scanner hits) for large repos |
 | [blog-ideas/enterprise-scale-llm-review-ci.md](./blog-ideas/enterprise-scale-llm-review-ci.md) | Blog draft: why 10k-file repos cannot full-LLM on every PR |
 | [design/phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md) | Phase 7 design: Jenkins/CircleCI, artifacts, email/dashboard (not SaaS) |

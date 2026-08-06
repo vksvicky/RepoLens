@@ -28,3 +28,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-08-06 | WIP→commit | 92% | 0/0/0/1 | Phase 6.4 anchored SARIF + GHAS recipe; 7 SARIF tests | chat |
 | 2026-08-06 | WIP→commit | 97% | 0/0/0/0 | UTC stamps for MD/JSON/SARIF + shared report_when | chat |
 | 2026-08-06 | WIP→commit | 93% | 0/0/0/0 | Phase 6.5 playbook depth + FP calibrations + themes | chat |
+| 2026-08-06 | WIP→commit | 94% | 0/0/0/1 | Phase 6.6 methodology + MVP + score-report; 2 pytest | chat |

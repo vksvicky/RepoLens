@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 6.6 public benchmark & credibility)
+
+- Pre-registered methodology led by **remediation rate / MTTR / suggested-fix apply %** ([benchmarks/methodology.md](./benchmarks/methodology.md))
+- MVP results table with honest TBD + dogfood latency/triage proxies ([benchmarks/results/mvp-2026-08-06.md](./benchmarks/results/mvp-2026-08-06.md))
+- `repolens score-report` — supporting actionability metrics from FindingReport JSON (not remediation rate)
+
 ### Added (Phase 6 issue explain + diagrams)
 
 - Hybrid issue IDs: `stableId` (UUID v5) + `runId` (UUID v4) on every finding; shown in Markdown reports

@@ -231,13 +231,13 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **6.3** | Scanners-as-gate; **triage routing** (LLM only on diff hits); provenance; source tags | [x] |
 | **6.4** | **Anchored** SARIF (+ SBOM); GHAS/Sonar recipes (no hosted UI) | [x] |
 | **6.5** | Sentinel checklist gaps (SSRF, path traversal, XXE, …); evidence-first; more FP calibrations | [x] |
-| **6.6** | Benchmark: **remediation rate / MTTR** lead + P/R support | [ ] |
+| **6.6** | Benchmark: **remediation rate / MTTR** lead + P/R support | [x] Methodology + MVP (formal study TBD) |
 | **6.7** | **`.repolens-ignore`** / disable comments + feedback + Critical consistency | [ ] Soft gate before wide CI |
 | **6.8** | PR suggested-fix UX (annotations / job summary) | [ ] Extended (needs 6.4) |
 | **6.9** | Best-effort reachability + optional finding verify | [ ] Extended (needs 6.2) |
 | **6.10** | Optional domain packs (Azure Sentinel/SOAR first) | [ ] Extended / niche |
 
-**Core 6.x exit (6.1–6.6):** Companion free stack gates CI; triage routing; **anchored** SARIF; SCA graph = scanners only; playbook gaps named; remediation-led benchmark. → *Not met*  
+**Core 6.x exit (6.1–6.6):** Companion free stack gates CI; triage routing; **anchored** SARIF; SCA graph = scanners only; playbook gaps named; remediation-led benchmark. → **Met (2026-08-06)** for published methodology + MVP; formal Semgrep/CodeQL human study still open follow-up  
 **Extended 6.x (6.7–6.10):** Suppressions (soft gate for production CI), PR fix UX, best-effort reachability/verify, domain packs.
 
 ---
@@ -324,12 +324,13 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Item | Status | Notes |
 |------|--------|-------|
 | Design | [x] | Umbrella §3 / 6.6 |
-| Methodology doc (pre-registered) | [ ] | Corpora, hit def, configs, remediation protocol |
-| Headline: remediation rate + MTTR (+ suggested-fix apply %) | [ ] | P/R/F1 supporting only |
-| MVP run vs Semgrep CE + CodeQL | [ ] | scanners-only / LLM-only / combined / triage CI |
-| Publish results (incl. losses) | [ ] | |
+| Methodology doc (pre-registered) | [x] | [benchmarks/methodology.md](./benchmarks/methodology.md) |
+| Headline: remediation rate + MTTR (+ suggested-fix apply %) | [x] | Defined as primary; P/R supporting |
+| MVP run vs Semgrep CE + CodeQL | [~] | Table + arms published; formal cells TBD |
+| Publish results (incl. losses) | [x] | [mvp-2026-08-06.md](./benchmarks/results/mvp-2026-08-06.md) + dogfood proxies |
+| `repolens score-report` | [x] | Supporting readiness metrics |
 
-**Exit:** Methodology + MVP table led by remediation metrics (not P/R alone).
+**Exit:** Methodology + MVP table led by remediation metrics (not P/R alone). → **Met (2026-08-06)** (partial dogfood; no invented F1)
 
 ---
 
@@ -489,6 +490,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-06 | ASPM in 6.x = thin export only | SARIF/SBOM + recipes; no RepoLens portal/SSO (option B) |
 | 2026-08-06 | Deferred items rehomed | 6.7 feedback/consistency; 6.8 PR fix UX; 6.9 reachability/verify; 6.10 domain packs; push-protection recipes + CI notify → Phase 7; bump PRs / ASPM SaaS / full reachability → beyond or non-goal |
 | 2026-08-06 | 6.x design corrections | SARIF Verification & Anchor; CI triage routing; `.repolens-ignore`; remediation-rate/MTTR headline; SCA graph = scanners only (no LLM lockfile reasoning) |
+| 2026-08-06 | Phase 6.6 methodology + MVP | Remediation-led benchmark docs; `score-report`; formal Semgrep/CodeQL study still TBD |
 
 ---
 
