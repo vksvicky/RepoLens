@@ -504,6 +504,8 @@ Use **Phase 6.7 suppressions**:
 
 Suppressed rows leave fail-on and SARIF, but stay listed under **Suppressed** in Markdown. See [rules.md](./rules.md#suppress-a-finding-so-it-stops-nagging-phase-67).
 
+`feedback down` also logs local events used for soft FP calibrations (LLM/heuristic only). Optional Critical consistency: `[deep].critical_consistency = "heuristic"` or `"llm"` (default off).
+
 ## Do you publish detection F1 / “beats Semgrep” numbers?
 
 No as a marketing lead. Phase 6.6 pre-registers a methodology that leads with **remediation rate**, **MTTR**, and **suggested-fix apply %** — not synthetic F1 alone. See [benchmarks/methodology.md](./benchmarks/methodology.md) and the honest MVP table ([results](./benchmarks/results/mvp-2026-08-06.md)). Supporting readiness metrics: `repolens score-report path/to/report.json`.

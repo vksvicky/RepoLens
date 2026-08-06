@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Inline `#` / `//` `repolens:disable-next-line` and disable/enable blocks (LLM/heuristic only)
 - Suppressed findings excluded from `--fail-on` and SARIF; listed under **Suppressed** in Markdown
 - `repolens feedback down|list` — local-only; writes ignore entries (no cloud upload)
+- Optional Critical(/High) self-consistency: `[deep].critical_consistency = heuristic|llm`
+- Feedback → soft calibrations: `feedback down` logs `.repolens/feedback.jsonl`; matching LLM/heuristic FPs demoted (scanners untouched)
 
 ### Added (Phase 6.6 public benchmark & credibility)
 

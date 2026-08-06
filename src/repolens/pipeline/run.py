@@ -486,11 +486,17 @@ def run_review(
                                 root=root,
                                 on_delta=gen.note_delta,
                             )
+                            from repolens.consistency import apply_llm_consistency
                             from repolens.fp_calibrations import apply_fp_calibrations
 
                             report.issues = apply_fp_calibrations(
                                 report.issues, cfg.deep
                             )
+                            if (cfg.deep.critical_consistency or "").lower() == "llm":
+                                prog.phase("Critical consistency (LLM confirm)…")
+                                report.issues = apply_llm_consistency(
+                                    report.issues, cfg.deep, cfg.model
+                                )
                             report.summary = report.recount_summary()
                         gen.mark_done()
                 except BaseException:
@@ -557,8 +563,10 @@ def run_review(
         from repolens.issue_ids import stamp_issue_ids
 
         report.issues = stamp_issue_ids(stamp_issue_sources(report.issues))
+        from repolens.feedback_store import apply_feedback_calibrations
         from repolens.suppressions import apply_suppressions
 
+        report.issues = apply_feedback_calibrations(report.issues, root, cfg.deep)
         active, suppressed = apply_suppressions(root, report.issues)
         report.issues = active
         report.suppressedIssues = suppressed
@@ -587,6 +595,11 @@ def run_review(
 
         for issue in report.issues:
             verify_issue_location(root, issue)
+        from repolens.consistency import apply_heuristic_consistency
+
+        if (cfg.deep.critical_consistency or "").lower() in {"heuristic", "llm"}:
+            report.issues = apply_heuristic_consistency(report.issues, cfg.deep)
+            report.summary = report.recount_summary()
 
         from datetime import datetime, timezone
 

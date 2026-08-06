@@ -60,6 +60,9 @@
 #   test_fixture_secrets = true,           # demote secrets under tests/fixtures (default on)
 #   intentional_vuln_example = true,       # demote intentional demo vulns in examples/ (default on)
 # }
+# critical_consistency = "off"            # off | heuristic | llm (Phase 6.7; cost-aware)
+# critical_consistency_include_high = false  # when on, also check HIGH (default Critical only)
+# feedback_calibrations = true            # soft-demote LLM noise from local feedback.jsonl
 # CLI: --deep / --no-deep (None → this config; --no-deep restores single-shot)
 
 [explain]
