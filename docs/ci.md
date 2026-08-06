@@ -44,6 +44,8 @@ jobs:
           fail-on: HIGH
           scanners: auto
           ci: "true"            # Phase 6.3 triage (default)
+          sarif: "true"         # Phase 6.4 anchored SARIF (default)
+          pr-summary: "true"    # Phase 6.8 job summary + annotations (default)
           install-from: local   # install the Action’s own checkout (default)
           install-plugins: "true"
         env:
@@ -53,6 +55,26 @@ jobs:
         with:
           name: repolens-reports
           path: reports/
+```
+
+### PR suggested-fix summary (Phase 6.8)
+
+After review, the Action (when `pr-summary: true`) runs:
+
+```bash
+repolens pr-summary --reports-dir reports --github-summary --annotate
+```
+
+- Appends a **Critical/High** suggested-fix section to the job’s `$GITHUB_STEP_SUMMARY` (code examples included; no auto-commit)
+- Emits GitHub workflow commands: `::error` for Critical, `::warning` for High (file/line when the path is safe)
+- Does **not** post PR review comments via the GitHub API
+
+Local / other CI:
+
+```bash
+repolens review --ci --scanners auto --fail-on HIGH --format both --sarif --out reports
+repolens pr-summary --reports-dir reports          # Markdown to stdout
+repolens pr-summary --reports-dir reports --annotate   # also print ::error / ::warning
 ```
 
 ### Enterprise PR recipe (CLI)
@@ -77,6 +99,9 @@ Design: [phase-6.x §6.3](./design/phase-6.x-scanner-depth-ci-gates-and-credibil
 | `scanners` | `auto` | Same as CLI |
 | `require-scanners` | `false` | |
 | `ci` | `true` | Triage routing (`--ci`) |
+| `sarif` | `true` | Write anchored SARIF |
+| `pr-summary` | `true` | Job summary + `::error`/`::warning` annotations |
+| `reports-dir` | `reports` | Output directory under `path` |
 | `install-from` | `local` | `local` (action checkout) \| `pypi` \| `git` |
 | `version` | `0.1.0a1` | Used when `install-from=pypi` |
 | `install-plugins` | `true` | `repolens plugins install all --yes` |

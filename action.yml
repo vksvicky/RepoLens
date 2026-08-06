@@ -34,6 +34,18 @@ inputs:
     description: Enable Phase 6.3 triage routing (--ci); scanners gate, LLM on hits only
     required: false
     default: "true"
+  sarif:
+    description: Write anchored SARIF beside Markdown/JSON reports
+    required: false
+    default: "true"
+  pr-summary:
+    description: Append PR suggested-fix summary to $GITHUB_STEP_SUMMARY + annotations
+    required: false
+    default: "true"
+  reports-dir:
+    description: Report output directory (relative to path)
+    required: false
+    default: "reports"
   version:
     description: PyPI version when install-from=pypi
     required: false
@@ -116,25 +128,52 @@ runs:
         INPUT_SCANNERS: ${{ inputs.scanners }}
         INPUT_REQUIRE_SCANNERS: ${{ inputs.require-scanners }}
         INPUT_CI: ${{ inputs.ci }}
+        INPUT_SARIF: ${{ inputs.sarif }}
+        INPUT_REPORTS_DIR: ${{ inputs.reports-dir }}
       run: |
         set -euo pipefail
         mapfile -t ARGV < <(python - <<'PY'
         import os
+        from pathlib import Path
         from repolens.ci_args import build_review_argv
 
+        path = os.environ.get("INPUT_PATH", ".") or "."
         argv = build_review_argv(
             mode=os.environ["INPUT_MODE"],
-            path=os.environ["INPUT_PATH"],
+            path=path,
             run=os.environ["INPUT_RUN"],
             fail_on=os.environ.get("INPUT_FAIL_ON", ""),
             scanners=os.environ.get("INPUT_SCANNERS", "auto"),
             require_scanners=os.environ["INPUT_REQUIRE_SCANNERS"] == "true",
             ci=os.environ.get("INPUT_CI", "true") == "true",
         )
+        reports = os.environ.get("INPUT_REPORTS_DIR", "reports").strip() or "reports"
+        # Keep reports under the reviewed project root (matches pr-summary cwd).
+        out = str((Path(path) / reports).as_posix())
+        argv.extend(["--out", out])
+        if os.environ.get("INPUT_SARIF", "true") == "true":
+            argv.append("--sarif")
         print("\n".join(argv))
         PY
         )
         printf -v CMD '%q ' "${ARGV[@]}"
         echo "command=${CMD}" >> "$GITHUB_OUTPUT"
         echo "Running: ${ARGV[*]}"
+        # Capture exit code so pr-summary still runs on fail-on
+        set +e
         "${ARGV[@]}"
+        REVIEW_RC=$?
+        set -e
+        echo "review_rc=${REVIEW_RC}" >> "$GITHUB_OUTPUT"
+        exit "${REVIEW_RC}"
+
+    - name: PR suggested-fix summary
+      if: ${{ always() && inputs.pr-summary == 'true' }}
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: |
+        set -euo pipefail
+        REPORTS="${{ inputs.reports-dir }}"
+        if ! repolens pr-summary --reports-dir "$REPORTS" --github-summary --annotate; then
+          echo "pr-summary skipped or failed (no JSON report?)" >&2
+        fi
