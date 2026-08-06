@@ -5,11 +5,19 @@ from __future__ import annotations
 from pathlib import Path
 
 from repolens.inventory import FileEntry, read_excerpt
+from repolens.packs.registry import pack_playbook_sections
 from repolens.playbooks import playbooks_for_mode
 from repolens.prose import BRITISH_ENGLISH_INSTRUCTION
 
 
-def build_prompt(mode: str, root: Path, files: list[FileEntry], *, full_audit: bool) -> str:
+def build_prompt(
+    mode: str,
+    root: Path,
+    files: list[FileEntry],
+    *,
+    full_audit: bool,
+    pack_ids: list[str] | None = None,
+) -> str:
     sections: list[str] = [
         f"Repository root: {root}",
         f"Mode: {mode}",
@@ -17,6 +25,10 @@ def build_prompt(mode: str, root: Path, files: list[FileEntry], *, full_audit: b
         "",
     ]
     for label, content in playbooks_for_mode(mode, full_audit=full_audit):
+        sections.append(f"## Playbook: {label}")
+        sections.append(content)
+        sections.append("")
+    for label, content in pack_playbook_sections(pack_ids or []):
         sections.append(f"## Playbook: {label}")
         sections.append(content)
         sections.append("")

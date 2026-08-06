@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 6.10 optional domain packs)
+
+- Pack registry (`repolens packs list`) with opt-in `[packs] enabled` / `--pack`
+- **azure-sentinel** pack: SOAR/Logic Apps playbook + light heuristics (tenant/subscription IDs, connector secrets)
+- Pack heuristics run on scanners-only / CI triage bypass; core `sentinel` unchanged when packs off
+- [packs-quickcheck.md](./packs-quickcheck.md) — expected CLI output tables + rough machine timings
+
 ### Added (Phase 6.9 best-effort reachability & verify)
 
 - Scanner-owned SCA metadata on Issues (package / versions / advisory) from Trivy & OSV

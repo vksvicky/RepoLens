@@ -202,8 +202,12 @@ def build_deep_prompt(
     deep_pass: DeepPass,
     rules: list[Rule],
     coverage_ids: Iterable[str],
+    *,
+    pack_ids: list[str] | None = None,
 ) -> str:
     """Concatenate enabled rule bodies for the pass plus the coverage contract."""
+    from repolens.packs.registry import pack_playbook_sections
+
     by_id = {r.id: r for r in rules}
     sections: list[str] = [
         f"Deep pass: {deep_pass.name}",
@@ -216,6 +220,10 @@ def build_deep_prompt(
             continue
         sections.append(f"## Rule: {rule.title} ({rule.id})")
         sections.append(rule.body)
+        sections.append("")
+    for label, content in pack_playbook_sections(pack_ids or []):
+        sections.append(f"## Playbook: {label}")
+        sections.append(content)
         sections.append("")
 
     cov_list = list(coverage_ids)

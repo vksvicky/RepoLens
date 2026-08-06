@@ -27,6 +27,7 @@ def run_heuristics(
     *,
     mega_file_lines: int = 500,
     mega_file_exclude_globs: Sequence[str] | None = None,
+    pack_ids: Sequence[str] | None = None,
 ) -> HeuristicResult:
     root = root.resolve()
     issues: list[Issue] = []
@@ -55,6 +56,15 @@ def run_heuristics(
     issues.extend(find_script_credential_hygiene(entries))
     issues.extend(find_todo_density(entries))
     issues.extend(find_ci_gaps(root, entries))
+
+    if pack_ids:
+        from repolens.packs.registry import run_pack_heuristics
+
+        pack_issues = run_pack_heuristics(root, entries, list(pack_ids))
+        issues.extend(pack_issues)
+        for issue in pack_issues:
+            if issue.file not in hot_paths:
+                hot_paths.append(issue.file)
 
     # Stable, de-duplicated hot paths (preserve order).
     seen: set[str] = set()

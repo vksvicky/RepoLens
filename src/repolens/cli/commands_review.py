@@ -13,6 +13,7 @@ from repolens.pipeline import ScannerRequirementError, fail_on_triggered, run_re
 from repolens.progress import ReviewProgress
 from repolens.sources import SourceError, cleanup_source, resolve_source, select_source
 
+
 def _run_mode(
     mode: str,
     path: str | Path | None,
@@ -44,6 +45,7 @@ def _run_mode(
     ci: bool = False,
     sarif: bool = False,
     verify_findings: bool | None = None,
+    packs: list[str] | None = None,
 ) -> None:
     if fmt not in {"md", "json", "both"}:
         console.print("[red]--format must be md | json | both[/red]")
@@ -116,6 +118,7 @@ def _run_mode(
             ci=ci,
             sarif=sarif,
             verify_findings=verify_findings,
+            packs=packs,
         )
     except FileNotFoundError as exc:
         console.print(f"[red]Config/source error:[/red] {exc}")
@@ -279,6 +282,11 @@ def review(
         "--verify-findings/--no-verify-findings",
         help="Re-check Critical locations (non-fatal; default: [deep].verify_findings)",
     ),
+    pack: list[str] | None = typer.Option(
+        None,
+        "--pack",
+        help="Enable a domain pack (repeatable); see `repolens packs list`",
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -312,6 +320,7 @@ def review(
         ci,
         sarif,
         verify_findings,
+        pack,
     )
 
 
@@ -396,6 +405,11 @@ def sentinel(
         "--verify-findings/--no-verify-findings",
         help="Re-check Critical locations (non-fatal; default: [deep].verify_findings)",
     ),
+    pack: list[str] | None = typer.Option(
+        None,
+        "--pack",
+        help="Enable a domain pack (repeatable); see `repolens packs list`",
+    ),
 ) -> None:
     """Security-only review (P1 playbook)."""
     _run_mode(
@@ -429,6 +443,7 @@ def sentinel(
         ci,
         sarif,
         verify_findings,
+        pack,
     )
 
 
@@ -513,6 +528,11 @@ def architecture(
         "--verify-findings/--no-verify-findings",
         help="Re-check Critical locations (non-fatal; default: [deep].verify_findings)",
     ),
+    pack: list[str] | None = typer.Option(
+        None,
+        "--pack",
+        help="Enable a domain pack (repeatable); see `repolens packs list`",
+    ),
 ) -> None:
     """Architecture / production-readiness audit."""
     _run_mode(
@@ -546,4 +566,5 @@ def architecture(
         ci,
         sarif,
         verify_findings,
+        pack,
     )

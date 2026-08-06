@@ -235,7 +235,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **6.7** | **`.repolens-ignore`** / disable comments + feedback + Critical consistency | [x] |
 | **6.8** | PR suggested-fix UX (annotations / job summary) | [x] Job summary + annotations; no PR-comment API |
 | **6.9** | Best-effort reachability + optional finding verify | [x] Scope B (hints/cluster/verify; no call graphs) |
-| **6.10** | Optional domain packs (Azure Sentinel/SOAR first) | [ ] Extended / niche |
+| **6.10** | Optional domain packs (Azure Sentinel/SOAR first) | [x] Extended / niche |
 
 **Core 6.x exit (6.1–6.6):** Companion free stack gates CI; triage routing; **anchored** SARIF; SCA graph = scanners only; playbook gaps named; remediation-led benchmark. → **Met (2026-08-06)** for published methodology + MVP; formal Semgrep/CodeQL human study still open follow-up  
 **Extended 6.x (6.7–6.10):** Suppressions (soft gate for production CI), PR fix UX, best-effort reachability/verify, domain packs.
@@ -381,11 +381,12 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design | [x] | Umbrella §3 / 6.10 |
-| Azure Sentinel / Logic Apps SOAR pack (opt-in) | [ ] | |
-| Pack registry pattern for future domains | [ ] | Mobile etc. later |
+| Design | [x] | Umbrella §3 / 6.10 · [spec](./superpowers/specs/2026-08-06-phase-6.10-domain-packs.md) |
+| Azure Sentinel / Logic Apps SOAR pack (opt-in) | [x] | `--pack azure-sentinel` / `[packs] enabled` |
+| Pack registry pattern for future domains | [x] | `repolens.packs` + `repolens packs list` |
+| Docs | [x] | [packs.md](./packs.md) |
 
-**Exit:** One opt-in domain pack; core `sentinel` unchanged when off.
+**Exit:** One opt-in domain pack; core `sentinel` unchanged when off. → **Met for scope B (2026-08-06)**
 
 ---
 
@@ -496,6 +497,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-06 | Phase 6.7 complete | Critical consistency + feedback→calibrations |
 | 2026-08-06 | Phase 6.8 PR suggested-fix UX | Job summary + annotations; no gh PR comments |
 | 2026-08-06 | Phase 6.9 scope B | SCA meta, usage hints, clustering, opt-in verify |
+| 2026-08-06 | Phase 6.10 scope B | Pack registry + opt-in azure-sentinel; core sentinel unchanged when off |
 
 ---
 
