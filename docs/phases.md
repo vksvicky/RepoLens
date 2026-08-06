@@ -232,7 +232,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **6.4** | **Anchored** SARIF (+ SBOM); GHAS/Sonar recipes (no hosted UI) | [x] |
 | **6.5** | Sentinel checklist gaps (SSRF, path traversal, XXE, …); evidence-first; more FP calibrations | [x] |
 | **6.6** | Benchmark: **remediation rate / MTTR** lead + P/R support | [x] Methodology + MVP (formal study TBD) |
-| **6.7** | **`.repolens-ignore`** / disable comments + feedback + Critical consistency | [ ] Soft gate before wide CI |
+| **6.7** | **`.repolens-ignore`** / disable comments + feedback + Critical consistency | [x] Scope B (ignore/disable/feedback); Critical consistency deferred |
 | **6.8** | PR suggested-fix UX (annotations / job summary) | [ ] Extended (needs 6.4) |
 | **6.9** | Best-effort reachability + optional finding verify | [ ] Extended (needs 6.2) |
 | **6.10** | Optional domain packs (Azure Sentinel/SOAR first) | [ ] Extended / niche |
@@ -338,15 +338,15 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design | [x] | Umbrella §3 / 6.7 |
-| `.repolens-ignore` (stableId / fingerprint + reason) | [ ] | Soft gate before wide CI |
-| `# repolens:disable-next-line` (and block form) | [ ] | |
-| Suppressions honored in fail-on + SARIF | [ ] | Optional “Suppressed” MD section |
-| Local thumbs up/down + reason | [ ] | Opt-in; no cloud upload |
-| Optional Critical/High self-consistency pass | [ ] | Config flag; cost-aware |
-| Feed calibrations from feedback schema | [ ] | |
+| Design | [x] | Umbrella §3 / 6.7 · [spec](./superpowers/specs/2026-08-06-phase-6.7-suppressions-design.md) |
+| `.repolens-ignore` (stableId / fingerprint + reason) | [x] | TOML; expiry optional |
+| `# repolens:disable-next-line` (and block form) | [x] | LLM/heuristic only |
+| Suppressions honored in fail-on + SARIF | [x] | Markdown **Suppressed** section |
+| Local thumbs up/down + reason | [x] | `repolens feedback down|list` |
+| Optional Critical/High self-consistency pass | [ ] | Deferred (out of scope B) |
+| Feed calibrations from feedback schema | [ ] | Deferred |
 
-**Exit:** Ignore/disable stick across commits; feedback opt-in; self-consistency optional.
+**Exit:** Ignore/disable stick across commits; feedback opt-in; self-consistency optional. → **Met for scope B (2026-08-06)**; Critical consistency + calibration feed remain open
 
 ---
 
@@ -491,6 +491,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-06 | Deferred items rehomed | 6.7 feedback/consistency; 6.8 PR fix UX; 6.9 reachability/verify; 6.10 domain packs; push-protection recipes + CI notify → Phase 7; bump PRs / ASPM SaaS / full reachability → beyond or non-goal |
 | 2026-08-06 | 6.x design corrections | SARIF Verification & Anchor; CI triage routing; `.repolens-ignore`; remediation-rate/MTTR headline; SCA graph = scanners only (no LLM lockfile reasoning) |
 | 2026-08-06 | Phase 6.6 methodology + MVP | Remediation-led benchmark docs; `score-report`; formal Semgrep/CodeQL study still TBD |
+| 2026-08-06 | Phase 6.7 scope B suppressions | `.repolens-ignore`, disable comments, feedback CLI; Critical consistency deferred |
 
 ---
 

@@ -182,6 +182,7 @@ def render_markdown(
 
     lines.extend(_render_supply_chain_section(report))
     lines.extend(_render_provenance_section(report))
+    lines.extend(_render_suppressed_section(report))
 
     lines.extend(["## Plan to fix", ""])
     immediate = [i for i in report.issues if i.fixTiming == "immediately"]
@@ -282,6 +283,30 @@ def _render_provenance_section(report: FindingReport) -> list[str]:
         )
     lines.append("")
     return lines
+
+
+def _render_suppressed_section(report: FindingReport) -> list[str]:
+    """Phase 6.7: audit list of findings excluded from gates/SARIF."""
+    rows = report.suppressedIssues
+    if not rows:
+        return []
+    lines: list[str] = [
+        "## Suppressed",
+        "",
+        "_Excluded from fail-on and SARIF; kept here for audit._",
+        "",
+    ]
+    for row in rows:
+        issue = row.issue
+        sid = f" `{issue.stableId}`" if issue.stableId else ""
+        note = f" — {row.note}" if row.note else ""
+        lines.append(
+            f"- **{issue.title}** (`{issue.file}:{issue.line}`){sid} — "
+            f"{row.mechanism} / `{row.reason}`{note}"
+        )
+    lines.append("")
+    return lines
+
 
 
 def _render_durability_gaps_section(report: FindingReport) -> list[str]:

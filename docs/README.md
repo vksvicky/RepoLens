@@ -19,7 +19,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 |-----|---------|
 | [phases.md](./phases.md) | Implementation tracker (what’s done / next) |
 | [faq.md](./faq.md) | Languages, tools, modes, export, production honesty |
-| [rules.md](./rules.md) | What RepoLens checks, why, and how to turn rules on/off (plain language) |
+| [rules.md](./rules.md) | What RepoLens checks, why, on/off, and suppressions (`.repolens-ignore`) |
 | [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) | Step-by-step: cloud key, local Ollama, scanners only |
 | [install-extras.md](./install-extras.md) | What `[dev]` / `[scanners]` / `[local-ml]` install (RepoLens `pyproject.toml`) |
 | [try-on-your-repo.md](./try-on-your-repo.md) | Install + review local / GitHub / Bitbucket / HF / git URL (macOS, Linux, Windows) |

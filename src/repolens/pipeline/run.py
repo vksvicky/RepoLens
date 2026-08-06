@@ -557,6 +557,16 @@ def run_review(
         from repolens.issue_ids import stamp_issue_ids
 
         report.issues = stamp_issue_ids(stamp_issue_sources(report.issues))
+        from repolens.suppressions import apply_suppressions
+
+        active, suppressed = apply_suppressions(root, report.issues)
+        report.issues = active
+        report.suppressedIssues = suppressed
+        if suppressed:
+            prog.detail(
+                f"Suppressions: {len(suppressed)} finding(s) "
+                f"(ignore file / disable comments)"
+            )
         report.summary = report.recount_summary()
         report.provenance = ProvenanceBlock(
             repoLensVersion=__version__,

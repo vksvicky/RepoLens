@@ -1,6 +1,6 @@
 # Phase 6.x — Scanner depth, CI gates & credibility (design)
 
-**Status:** In progress (6.1–6.6 implemented; 6.7+ remaining)  
+**Status:** In progress (6.1–6.7 scope B implemented; Critical consistency + 6.8+ remaining)  
 **Date:** 2026-08-06  
 **Depends on:** Phase 6 (issue explain + diagrams — complete), Phase 3 scanners, Phase 5.1 metrics  
 **Inserts before:** Phase 7 (enterprise CI/CD & report delivery)  

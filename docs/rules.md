@@ -58,6 +58,53 @@ To replace the *wording* of a rule for one project, put a Markdown file at:
 
 (same idea for `reliability.md` / `architecture.md`). Prefer small edits; keep Critical/High findings requiring a clear fix example.
 
+## Suppress a finding so it stops nagging (Phase 6.7)
+
+If a finding is a false positive or accepted risk, **suppress it once** so CI does not re-fail every push.
+
+### Project ignore file
+
+Create `.repolens-ignore` at the project root (commit it with the repo):
+
+```toml
+[[ignore]]
+stableId = "paste-stable-id-from-report"
+reason = "false_positive"   # or wont_fix | accepted_risk | other
+note = "optional audit note"
+# expires = "2027-01-01"    # optional
+```
+
+Or match by file + category:
+
+```toml
+[[ignore]]
+file = "src/legacy.py"
+category = "sec.injection"
+reason = "wont_fix"
+```
+
+Suppressed findings are **excluded from `--fail-on` and SARIF**, and listed under **Suppressed** in the Markdown report for audit.
+
+Helper:
+
+```bash
+repolens feedback down <stableId> --reason false_positive --path .
+repolens feedback list --path .
+```
+
+Nothing is uploaded — local file only.
+
+### Inline disable (LLM / heuristic noise)
+
+```python
+# repolens:disable-next-line
+eval(demo_only)  # intentional teaching example
+```
+
+Also: `// repolens:disable-next-line` (JS/TS/Go), and `# repolens:disable` … `# repolens:enable` blocks.
+
+**Important:** inline disable does **not** silence **scanner** Critical/High hits. Put those in `.repolens-ignore` (or the scanner’s own config) explicitly.
+
 ## Related switches (not the same as rules)
 
 These live in config (see [`.repolens.example.toml`](../.repolens.example.toml)):
