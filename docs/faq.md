@@ -362,6 +362,8 @@ RepoLens uses **layers** — different tools for different jobs:
 
 **Important:** The LLM layer is **not** a CVE database and **must not** invent a dependency graph or claim reachability from lockfile reading. Vulnerable package / CVE facts come only from scanner JSON (OSV/Trivy). For audit-grade **CVE** lists and SBOM artifacts, enable those scanners (or your existing SCA in CI). “OWASP compliant” is not a certification we stamp; we **align findings** to OWASP Top 10 / CWE and recommend deterministic scanners for evidence packs.
 
+**Named checklist themes (Phase 6.5)** include SSRF, path traversal / Zip Slip, XXE, NoSQL injection, ReDoS, log injection, weak PRNG, JWT pitfalls, rate limiting, and supply-chain integrity — in addition to classic injection/XSS/secrets. Naming them does **not** claim CodeQL/Checkmarx rule parity.
+
 ---
 
 ## Can RepoLens learn from my repo with ML? Is that local?

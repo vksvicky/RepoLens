@@ -65,6 +65,8 @@ Look for:
 * caching sensitive data
 * offline security risks
 
+For **IaC, containers, and CI workflow policy**: when Trivy or Checkov findings appear in the review package / scanner evidence, **cite those scanner results** rather than inventing cloud policy IDs. Prefer deterministic scanner evidence for Dockerfile, Terraform/K8s, and GitHub Actions misconfigurations.
+
 Assume an attacker is intentionally trying to break the app.
 
 # 3. Database

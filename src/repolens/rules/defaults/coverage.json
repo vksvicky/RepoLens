@@ -137,6 +137,60 @@
       "playbook_anchor": "Theme: Build & release integrity"
     },
     {
+      "id": "sec.ssrf",
+      "rule_id": "security",
+      "band": "p1",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "SSRF & outbound request abuse",
+      "playbook_anchor": "Theme: SSRF & outbound request abuse"
+    },
+    {
+      "id": "sec.xxe",
+      "rule_id": "security",
+      "band": "p1",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "XXE & unsafe XML",
+      "playbook_anchor": "Theme: XXE & unsafe XML"
+    },
+    {
+      "id": "sec.redos",
+      "rule_id": "security",
+      "band": "p1",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "ReDoS & unsafe regex",
+      "playbook_anchor": "Theme: ReDoS & unsafe regex"
+    },
+    {
+      "id": "sec.log_injection",
+      "rule_id": "security",
+      "band": "p1",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "Log injection & forgery",
+      "playbook_anchor": "Theme: Log injection & forgery"
+    },
+    {
+      "id": "sec.jwt_tokens",
+      "rule_id": "security",
+      "band": "p1",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "JWT & token pitfalls",
+      "playbook_anchor": "Theme: JWT & token pitfalls"
+    },
+    {
+      "id": "sec.weak_prng",
+      "rule_id": "security",
+      "band": "p1",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "Insecure randomness / weak PRNG",
+      "playbook_anchor": "Theme: Insecure randomness / weak PRNG"
+    },
+    {
       "id": "rel.edge_cases",
       "rule_id": "reliability",
       "band": "p2",

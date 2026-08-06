@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scanner evidence block fed into deep / single-shot LLM prompts
 - Opt-in via `[scanners].enabled` or `--scanners …,trivy,checkov` (defaults unchanged)
 
+### Added (Phase 6.5 playbook depth & calibration)
+
+- Security checklist names SSRF, path traversal/Zip Slip, XXE, NoSQL, ReDoS, log injection, weak PRNG, JWT pitfalls, rate limits, supply-chain integrity
+- Evidence-first + optional CWE/OWASP tagging in playbook; architecture cites Trivy/Checkov for IaC
+- FP calibrations: `test_fixture_secrets`, `intentional_vuln_example` (default on)
+- Extended coverage themes for the new checklist items
+
 ### Added (Phase 6.4 anchored SARIF)
 
 - `--sarif` writes SARIF 2.1 with Verification & Anchor (`anchorQuote` resolve)
