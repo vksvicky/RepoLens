@@ -96,8 +96,9 @@ Set once in the shell: `TARGET=/Users/[username]/Development/[your-project]`
 | Dry-run inventory | Inventory only; **no** scanners/LLM | `repolens review --path "$TARGET" --out "$TARGET/reports" --dry-run` |
 | Scanners-only | Summary + MD/JSON; Fast Brain heuristics | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only` |
 | Scanners-only verbose | Extra `·` detail (scanners, SBOM, packs) | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only -v` |
-| CI gate | Triage; often **`LLM bypassed…`** when clean | `repolens review --path "$TARGET" --out "$TARGET/reports" --ci --fail-on HIGH -q` |
-| Full LLM (after `init`) | Scanners → deep multi-pass → report | `repolens review --path "$TARGET" --out "$TARGET/reports" --full --verbose --timeout 1800` |
+| CI gate (**fair Two-Lane demo**) | Triage; **`Two-Lane:`** headline; often **`LLM bypassed…`** when clean | `repolens review --path "$TARGET" --out "$TARGET/reports" --ci --fail-on HIGH -q` |
+| Adaptive deep (no `--full`) | Fast Brain ≈ tree; Slow Brain ≈ adaptive pack — check headline | `repolens review --path "$TARGET" --out "$TARGET/reports" --deep --verbose --timeout 3600` |
+| Force full Slow Brain pack (slow — not a speed demo) | Full LLM inventory; often **≥1 h** on local 32B | `repolens review --path "$TARGET" --out "$TARGET/reports" --full --deep --verbose --timeout 3600` |
 | Single-shot LLM | Faster, thinner coverage | `repolens review --path "$TARGET" --out "$TARGET/reports" --no-deep` |
 | Changed pack only | Smaller adaptive LLM pack | `repolens review --path "$TARGET" --out "$TARGET/reports" --changed` |
 | Domain pack | Pack heuristics in `-v` detail | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only --pack azure-sentinel -v` |
@@ -121,6 +122,7 @@ Set once in the shell: `TARGET=/Users/[username]/Development/[your-project]`
 | Domain packs | Pack heuristics (`-v`) | `· Domain packs enabled: azure-sentinel` |
 | Writing report | Artifacts landing | `→ Writing report → reports` |
 | Summary metrics | Severity / Fast Brain counts | `Files scanned (Fast Brain) │ 286` · `LLM pack files │ 0` |
+| **Two-Lane** headline | Markdown (after metadata) + CLI summary | `**Two-Lane:** Fast Brain: 286 file(s) in 2.1s · Slow Brain: bypassed (triage clean) · …` |
 
 ---
 
@@ -177,6 +179,34 @@ Pack-only smoke + if/then: [packs-quickcheck.md](./packs-quickcheck.md).
 | `explain` cannot find UUID | Wrong report dir or stale Occurrence | Prefer **Fingerprint**; `repolens explain <fingerprint> --path "$TARGET" --out "$TARGET/reports"` after a JSON report exists |
 | `No gate review JSON found` | `--path` / `--out` point at a different cwd/repo | `cd` to the reviewed repo, or pass absolute `--path` / `--out` (error lists dirs searched) |
 | Suppressed findings still in Markdown | Listed under Suppressed; excluded from fail-on/SARIF | Intended — `repolens feedback list --path "$TARGET"` |
+
+---
+
+## Fair Two-Lane dogfood (PatternSorcerer-class)
+
+Use this when dogfooding or comparing to other review tools — **not** `--full` unless you intentionally want a forced full Slow Brain pack.
+
+```bash
+TARGET=/Users/[username]/Development/[your-project]   # e.g. PatternSorcerer-scale tree
+
+# Fair speed + scope demo (PR-style triage)
+repolens review --path "$TARGET" --out "$TARGET/reports" \
+  --ci --deep --fail-on HIGH --verbose --timeout 3600
+
+# Adaptive deep without forcing full pack (still slow on local 32B if LLM runs)
+repolens review --path "$TARGET" --out "$TARGET/reports" \
+  --deep --verbose --timeout 3600
+```
+
+**What to expect**
+
+| Lane | Typical scope | Typical wall time (order-of-magnitude) |
+|------|---------------|----------------------------------------|
+| **Fast Brain** | Most matched source files (cap 10k) | **Seconds** |
+| **Scanners** | Full tree | **Seconds–minutes** warm |
+| **Slow Brain** | Triage hits only (`--ci`) or adaptive pack — **not** whole tree | **Minutes–hours** (local 32B often **≫** cloud Haiku on same pack) |
+
+Read the **Two-Lane** line at the top of the Markdown report: **M ≪ N** when triage is sparse. **Do not** use `--full` to “show off” Two-Lane speed. Positioning: [faq.md](./faq.md#what-is-a-fair-dogfood-recipe-for-two-lane-speed) · explain **moves/diffs** vs prompt-paste tools · no percentile grades · [gitignore vs scanners](./faq.md#do-scanners-catch-missing-gitignore-rules).
 
 ---
 

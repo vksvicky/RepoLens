@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Two-Lane presentation & CQ parity)
+
+- **Two-Lane headline** in Markdown reports and CLI summary (`format_two_lane_headline`) — Fast/Slow Brain file counts, optional lane seconds, bypass wording
+- Provenance: **`fastBrainSeconds`** / **`llmSeconds`** when measurable; metrics table rows for lane timings
+- **Theme-family clustering** — collapse heuristic ↔ LLM twins (e.g. gitignore hygiene, mega-file / structure); severity wins; on ties prefer scanner → **llm** → heuristic
+- Fast Brain **`heuristic.deep_nesting`** (indent-depth, line-based, no AST) → `arch.readability_complexity`
+- Docs: fair dogfood recipe (`--ci` / adaptive, not `--full` for speed demos); positioning vs prompt-paste; no cross-tenant percentiles; scanners vs gitignore heuristics ([faq.md](./faq.md), [command-atlas.md](./command-atlas.md))
+
 ### Changed (explain credibility)
 
 - `repolens explain`: phase lines + LLM heartbeats (`-v` / `-q` / `--heartbeat`)

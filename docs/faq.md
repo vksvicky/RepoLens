@@ -56,7 +56,44 @@ Fast Brain heuristics are **not** AST parsers (that stays Slow Brain or Semgrep)
 
 Do **not** position RepoLens as replacing CodeQL/Semgrep/Dependabot fleet coverage. It adds a structured dual-review layer on a **prioritised slice**, plus optional full-tree scanners.
 
-Related: [command-atlas.md](./command-atlas.md) · [command atlas durations](./command-atlas.md#7-approximate-duration).
+Reports and the CLI summary now open with a **Two-Lane** headline (Fast Brain file count ± lane seconds · Slow Brain pack or “bypassed” · duration · severity counts). Use it to sanity-check that lane scopes match what you intended.
+
+Related: [command-atlas.md](./command-atlas.md) · [command atlas durations](./command-atlas.md#7-approximate-duration) · [fair dogfood recipe](./command-atlas.md#fair-two-lane-dogfood-patternsorcerer-class).
+
+---
+
+## What is a fair dogfood recipe for Two-Lane speed?
+
+When demoing or comparing RepoLens to other tools on a PatternSorcerer-class repo (~200–800 reviewable files), **do not lead with `--full`**. That forces a full Slow Brain pack even when adaptive mode would shrink it — a warm run on local **32B** can still sit around **~1 hour**, which is an unfair “speed” story.
+
+| Goal | Prefer | Expect |
+|------|--------|--------|
+| Show Two-Lane scope honestly | `--ci` triage **or** default adaptive (no `--full`) | **Fast Brain** ≈ whole matched tree (up to cap); **Slow Brain** ≈ triage hit files or pack cap — check the **Two-Lane** headline |
+| PR-style gate | `repolens review --ci --fail-on HIGH …` | Often **Slow Brain bypassed** when scanners are clean at the floor |
+| Release / forced full LLM sample | `--full --deep --timeout 3600` | Slow Brain ≈ `general.max_files`; budget time |
+
+**Latency honesty:** Fast Brain heuristics finish in **seconds** on typical trees. A local **qwen2.5-coder:32b** Slow Brain pass is still usually **much slower** than a cloud **Claude Haiku**-class API on the same pack — model size and prompt eval dominate, not “RepoLens overhead”. For apples-to-apples **quality** demos, compare cloud-to-cloud or local-to-local; for **CI speed**, use `--ci` or `--scanners-only`.
+
+Copy-paste recipes: [command-atlas.md § Fair Two-Lane dogfood](./command-atlas.md#fair-two-lane-dogfood-patternsorcerer-class).
+
+---
+
+## How is RepoLens different from prompt-paste review tools?
+
+| | RepoLens CLI | Prompt-paste / chat workflows |
+|--|--------------|-------------------------------|
+| Output | Structured gate reports, SARIF, CI exit codes | Text in a chat thread |
+| Remediation | **`repolens explain`** — symbol **moves**, import **diffs**, outline evidence, Mermaid (grounded in the repo) | You copy suggestions by hand |
+| Scanners | Optional gitleaks / Semgrep / OSV / Trivy on the **full tree** | Usually none unless you paste scanner output yourself |
+| Grades | **Gate / band confidence** = review-package adequacy — **not** “% secure” and **not** cross-repo percentile ranks | Some SaaS tools show population percentiles — RepoLens does **not** (privacy-first local CLI; no central corpus) |
+
+Playbooks in chat and RepoLens share review *ideas*; they are not the same product surface. See [using-playbooks.md](./using-playbooks.md).
+
+---
+
+## Do scanners catch missing `.gitignore` rules?
+
+**Usually no — and we do not claim they do.** **gitleaks** (and similar) find **secret content** already present in the tree. **Missing `.env` / credential patterns in `.gitignore`** come from **Fast Brain heuristics** (`heuristic.gitignore_secrets`, etc.) — deterministic pattern checks, not a live secret scan. Treat those rows as hygiene hints; confirm with your policy and scanners. Heuristic and LLM twins on the same theme (e.g. gitignore + `sec.repo_hygiene_secrets`) are **clustered** so the report does not list three near-identical `.gitignore` issues.
 
 ---
 
@@ -174,7 +211,7 @@ Post-parse **FP calibrations** (default on) demote patterns such as list-form `s
 
 ## What do report metrics mean? (confidence vs security)
 
-**`Confidence` / gate confidence is not “% secure” and not an architecture grade.** It is how sure RepoLens is that *this review package* (findings + coverage + scanners) is adequate for a gate-style decision. Models often self-report high numbers; Phase **5.1** recalibrates that with coverage penalties and adds band-specific metrics.
+**`Confidence` / gate confidence is not “% secure”, not an architecture grade, and not a cross-tenant percentile** (no “better than 73% of repos”). It is how sure RepoLens is that *this review package* (findings + coverage + scanners) is adequate for a gate-style decision. Models often self-report high numbers; Phase **5.1** recalibrates that with coverage penalties and adds band-specific metrics.
 
 | Metric | Means | Does **not** mean |
 |--------|--------|-------------------|
