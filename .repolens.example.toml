@@ -63,6 +63,9 @@
 # critical_consistency = "off"            # off | heuristic | llm (Phase 6.7; cost-aware)
 # critical_consistency_include_high = false  # when on, also check HIGH (default Critical only)
 # feedback_calibrations = true            # soft-demote LLM noise from local feedback.jsonl
+# usage_hints = true                      # SCA package name appears in source? (not reachability)
+# cluster_duplicates = true               # collapse near-duplicate findings
+# verify_findings = false                 # or --verify-findings: Critical location re-check
 # CLI: --deep / --no-deep (None → this config; --no-deep restores single-shot)
 
 [explain]

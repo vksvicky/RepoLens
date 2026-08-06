@@ -77,6 +77,10 @@ class DeepConfig(BaseModel):
     critical_consistency_include_high: bool = False
     # Soft-demote LLM/heuristic issues from local feedback.jsonl false_positives
     feedback_calibrations: bool = True
+    # Phase 6.9: best-effort SCA usage hints + clustering + opt-in location verify
+    usage_hints: bool = True
+    cluster_duplicates: bool = True
+    verify_findings: bool = False
 
 
 class ExplainConfig(BaseModel):

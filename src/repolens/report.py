@@ -549,6 +549,30 @@ def _render_issue(issue: Issue) -> list[str]:
         block.append(f"- **OWASP:** {issue.owasp}")
     if issue.cwe:
         block.append(f"- **CWE:** {issue.cwe}")
+    if issue.packageName or issue.advisoryId:
+        pkg_bits = []
+        if issue.packageName:
+            pkg_bits.append(f"`{issue.packageName}`")
+        if issue.installedVersion:
+            pkg_bits.append(f"installed `{issue.installedVersion}`")
+        if issue.fixedVersion:
+            pkg_bits.append(f"fixed `{issue.fixedVersion}`")
+        if issue.advisoryId:
+            pkg_bits.append(f"advisory `{issue.advisoryId}`")
+        block.append(f"- **SCA (scanner):** {', '.join(pkg_bits)}")
+    if issue.usageHint:
+        label = {
+            "referenced_in_source": "referenced in source",
+            "no_reference_found": "no reference found in scanned source",
+        }.get(issue.usageHint, issue.usageHint)
+        block.append(
+            f"- **Usage hint (not reachability):** {label}"
+            + (f" — {issue.usageHintDetail}" if issue.usageHintDetail else "")
+        )
+    if issue.clusteredCount and issue.clusteredCount > 1:
+        block.append(
+            f"- **Clustered:** {issue.clusteredCount} near-duplicate finding(s) collapsed"
+        )
     if issue.codeExample.strip():
         block.append("- **Code example:**")
         block.append("")

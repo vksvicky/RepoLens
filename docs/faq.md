@@ -362,6 +362,19 @@ RepoLens uses **layers** — different tools for different jobs:
 
 **Important:** The LLM layer is **not** a CVE database and **must not** invent a dependency graph or claim reachability from lockfile reading. Vulnerable package / CVE facts come only from scanner JSON (OSV/Trivy). For audit-grade **CVE** lists and SBOM artifacts, enable those scanners (or your existing SCA in CI). “OWASP compliant” is not a certification we stamp; we **align findings** to OWASP Top 10 / CWE and recommend deterministic scanners for evidence packs.
 
+### Reachability (Phase 6.9 honesty)
+
+RepoLens does **not** ship Snyk-class call-graph reachability. Free scanners rarely expose a true “hits production” bit; when they do not, we never invent one.
+
+What we do (best-effort):
+
+- Surface **scanner-owned** SCA fields (package, installed/fixed version, advisory id)
+- Optional **usage hint**: does the package name appear in project source (import/require/text)? Labelled explicitly as *not reachability*
+- Near-duplicate **clustering** to reduce noise
+- Opt-in `--verify-findings` / `[deep].verify_findings`: re-check Critical locations; failures only annotate — they never block the report
+
+Turn hints/clustering off with `[deep] usage_hints = false` / `cluster_duplicates = false`.
+
 **Named checklist themes (Phase 6.5)** include SSRF, path traversal / Zip Slip, XXE, NoSQL injection, ReDoS, log injection, weak PRNG, JWT pitfalls, rate limiting, and supply-chain integrity — in addition to classic injection/XSS/secrets. Naming them does **not** claim CodeQL/Checkmarx rule parity.
 
 ---

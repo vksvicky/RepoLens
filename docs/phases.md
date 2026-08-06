@@ -234,7 +234,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **6.6** | Benchmark: **remediation rate / MTTR** lead + P/R support | [x] Methodology + MVP (formal study TBD) |
 | **6.7** | **`.repolens-ignore`** / disable comments + feedback + Critical consistency | [x] |
 | **6.8** | PR suggested-fix UX (annotations / job summary) | [x] Job summary + annotations; no PR-comment API |
-| **6.9** | Best-effort reachability + optional finding verify | [ ] Extended (needs 6.2) |
+| **6.9** | Best-effort reachability + optional finding verify | [x] Scope B (hints/cluster/verify; no call graphs) |
 | **6.10** | Optional domain packs (Azure Sentinel/SOAR first) | [ ] Extended / niche |
 
 **Core 6.x exit (6.1–6.6):** Companion free stack gates CI; triage routing; **anchored** SARIF; SCA graph = scanners only; playbook gaps named; remediation-led benchmark. → **Met (2026-08-06)** for published methodology + MVP; formal Semgrep/CodeQL human study still open follow-up  
@@ -368,12 +368,12 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design | [x] | Umbrella §3 / 6.9 |
-| Best-effort reachability (free signals only) | [ ] | FAQ honesty if unavailable |
-| Optional sandbox/repro verify mode | [ ] | Non-fatal; opt-in |
-| Near-duplicate clustering | [ ] | |
+| Design | [x] | Umbrella §3 / 6.9 · [spec](./superpowers/specs/2026-08-06-phase-6.9-reachability-verify.md) |
+| Best-effort reachability (free signals only) | [x] | SCA meta + usage hints; FAQ: no call graphs |
+| Optional sandbox/repro verify mode | [~] | Location re-verify opt-in (not LLM repro sandbox) |
+| Near-duplicate clustering | [x] | file+category+title/CWE; keep highest severity |
 
-**Exit:** Limits documented; opt-in verify never blocks report write.
+**Exit:** Limits documented; opt-in verify never blocks report write. → **Met for scope B (2026-08-06)**
 
 ---
 
@@ -495,6 +495,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-06 | Phase 6.7 scope B suppressions | `.repolens-ignore`, disable comments, feedback CLI; Critical consistency deferred |
 | 2026-08-06 | Phase 6.7 complete | Critical consistency + feedback→calibrations |
 | 2026-08-06 | Phase 6.8 PR suggested-fix UX | Job summary + annotations; no gh PR comments |
+| 2026-08-06 | Phase 6.9 scope B | SCA meta, usage hints, clustering, opt-in verify |
 
 ---
 

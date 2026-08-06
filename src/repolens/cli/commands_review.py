@@ -43,6 +43,7 @@ def _run_mode(
     explain_uuids: str | None = None,
     ci: bool = False,
     sarif: bool = False,
+    verify_findings: bool | None = None,
 ) -> None:
     if fmt not in {"md", "json", "both"}:
         console.print("[red]--format must be md | json | both[/red]")
@@ -114,6 +115,7 @@ def _run_mode(
             deep=deep,
             ci=ci,
             sarif=sarif,
+            verify_findings=verify_findings,
         )
     except FileNotFoundError as exc:
         console.print(f"[red]Config/source error:[/red] {exc}")
@@ -272,6 +274,11 @@ def review(
         "--sarif",
         help="Write anchored SARIF 2.1 (scanner locations + resolvable anchors only)",
     ),
+    verify_findings: bool | None = typer.Option(
+        None,
+        "--verify-findings/--no-verify-findings",
+        help="Re-check Critical locations (non-fatal; default: [deep].verify_findings)",
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -304,6 +311,7 @@ def review(
         explain,
         ci,
         sarif,
+        verify_findings,
     )
 
 
@@ -383,6 +391,11 @@ def sentinel(
         "--sarif",
         help="Write anchored SARIF 2.1 (scanner locations + resolvable anchors only)",
     ),
+    verify_findings: bool | None = typer.Option(
+        None,
+        "--verify-findings/--no-verify-findings",
+        help="Re-check Critical locations (non-fatal; default: [deep].verify_findings)",
+    ),
 ) -> None:
     """Security-only review (P1 playbook)."""
     _run_mode(
@@ -415,6 +428,7 @@ def sentinel(
         None,
         ci,
         sarif,
+        verify_findings,
     )
 
 
@@ -494,6 +508,11 @@ def architecture(
         "--sarif",
         help="Write anchored SARIF 2.1 (scanner locations + resolvable anchors only)",
     ),
+    verify_findings: bool | None = typer.Option(
+        None,
+        "--verify-findings/--no-verify-findings",
+        help="Re-check Critical locations (non-fatal; default: [deep].verify_findings)",
+    ),
 ) -> None:
     """Architecture / production-readiness audit."""
     _run_mode(
@@ -526,4 +545,5 @@ def architecture(
         None,
         ci,
         sarif,
+        verify_findings,
     )
