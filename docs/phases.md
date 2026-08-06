@@ -6,9 +6,17 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **2–6 complete**; **next** Phase **6.x** (scanner depth / gates / credibility) → Phase 7 enterprise CI → Phase 8 provider aliases → Phase 9 native SDKs  
+**Current phase:** Phases **0–6.x complete**; **next** Phase **7** (enterprise CI/CD & report delivery) → Phase 8 provider aliases → Phase 9 native SDKs. PyPI alpha (#1) can land in parallel.  
+**GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred follow-ups: [#11](https://github.com/vksvicky/RepoLens/issues/11).  
 
 **CLI language:** Python 3.11+
+
+| Phase | GitHub |
+|-------|--------|
+| 5 / 5.1 / 5.2 | [#9](https://github.com/vksvicky/RepoLens/issues/9) / [#10](https://github.com/vksvicky/RepoLens/issues/10) / [#7](https://github.com/vksvicky/RepoLens/issues/7) (closed) |
+| 6 / 6.x | [#2](https://github.com/vksvicky/RepoLens/issues/2) / [#8](https://github.com/vksvicky/RepoLens/issues/8) (closed) |
+| 7 / 8 / 9 | [#3](https://github.com/vksvicky/RepoLens/issues/3) (next) / [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) |
+| PyPI alpha | [#1](https://github.com/vksvicky/RepoLens/issues/1) |
 
 ---
 
@@ -401,7 +409,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Triage includes heuristic hits | [x] | `[fast_brain].triage_include_heuristics` |
 | Report provenance split | [x] | `fastBrainFiles` / `llmPackFiles` |
 
-**Exit:** Deterministic baseline on Fast Brain inventory; LLM remains sampled / triage-routed; docs honest about lanes. → **Met for implementation (2026-08-06)** — dogfood remaining
+**Exit:** Deterministic baseline on Fast Brain inventory; LLM remains sampled / triage-routed; docs honest about lanes. → **Met for implementation (2026-08-06)** (dogfood deep run completed)
 
 ---
 
