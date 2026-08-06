@@ -42,6 +42,12 @@ def test_build_auto_with_key_runs_full_review() -> None:
     assert "--dry-run" not in argv
     assert "--scanners" in argv and "gitleaks" in argv
     assert "--fail-on" in argv and "CRITICAL" in argv
+    assert "--ci" in argv
+
+
+def test_build_ci_can_be_disabled() -> None:
+    argv = build_review_argv(run="scanners-only", fail_on="HIGH", ci=False)
+    assert "--ci" not in argv
 
 
 def test_build_llm_without_key_raises() -> None:

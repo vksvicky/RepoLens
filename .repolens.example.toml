@@ -30,6 +30,15 @@
 # sbom = true                                 # CycloneDX via Trivy when available (Phase 6.2)
 # licenses = true                             # license summary from SBOM when available
 
+[ci]
+# triage_routing = false                      # or pass --ci (enables routing + changed pack)
+# llm_on_clean_diff = false                   # keep false in PR CI
+# max_triage_files = 8
+# max_snippet_chars = 8000
+# max_llm_passes_in_ci = 1
+# severity_floor = "HIGH"                     # scanner severities that count as triage hits
+# fail_on_scanner_only = true                 # --fail-on ignores LLM/heuristic rows when triage on
+
 [local_learning]
 # enabled = false           # opt-in; data stays on disk (see docs/local-learning.md)
 # cache_dir = ".repolens"   # also requires: repolens learn build --accept-local-learning

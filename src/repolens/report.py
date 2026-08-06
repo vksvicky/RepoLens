@@ -173,6 +173,7 @@ def render_markdown(
         lines.append("")
 
     lines.extend(_render_supply_chain_section(report))
+    lines.extend(_render_provenance_section(report))
 
     lines.extend(["## Plan to fix", ""])
     immediate = [i for i in report.issues if i.fixTiming == "immediately"]
@@ -235,6 +236,42 @@ def _render_supply_chain_section(report: FindingReport) -> list[str]:
         lines.append(f"- {note}")
     if len(lines) == 2:
         lines.append("_No SBOM or license summary produced._")
+    lines.append("")
+    return lines
+
+
+def _render_provenance_section(report: FindingReport) -> list[str]:
+    """Phase 6.3 CI provenance / triage outcome."""
+    prov = report.provenance
+    if prov is None and not report.llmBypassed and report.triageHits is None:
+        return []
+    lines: list[str] = ["## Provenance", ""]
+    if prov is not None:
+        if prov.repoLensVersion:
+            lines.append(f"- **RepoLens**: `{prov.repoLensVersion}`")
+        if prov.gitSha:
+            lines.append(f"- **Git SHA**: `{prov.gitSha}`")
+        if prov.provider or prov.model:
+            lines.append(
+                f"- **Model**: `{prov.provider or 'n/a'}` / `{prov.model or 'n/a'}`"
+            )
+        if prov.scannerTools:
+            lines.append(f"- **Scanners**: {', '.join(prov.scannerTools)}")
+        lines.append(
+            f"- **Triage routing**: {'on' if prov.triageRouting else 'off'}"
+        )
+        lines.append(
+            f"- **LLM bypassed**: {'yes' if prov.llmBypassed else 'no'}"
+            + (f" (hits: {prov.triageHits})" if prov.triageRouting else "")
+        )
+        if prov.failOnScannerOnly:
+            lines.append("- **Fail-on gate**: scanner findings only")
+        for note in prov.notes:
+            lines.append(f"- {note}")
+    else:
+        lines.append(
+            f"- **LLM bypassed**: {'yes' if report.llmBypassed else 'no'}"
+        )
     lines.append("")
     return lines
 

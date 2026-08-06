@@ -30,6 +30,10 @@ inputs:
     description: Fail if a requested scanner is missing
     required: false
     default: "false"
+  ci:
+    description: Enable Phase 6.3 triage routing (--ci); scanners gate, LLM on hits only
+    required: false
+    default: "true"
   version:
     description: PyPI version when install-from=pypi
     required: false
@@ -111,6 +115,7 @@ runs:
         INPUT_FAIL_ON: ${{ inputs.fail-on }}
         INPUT_SCANNERS: ${{ inputs.scanners }}
         INPUT_REQUIRE_SCANNERS: ${{ inputs.require-scanners }}
+        INPUT_CI: ${{ inputs.ci }}
       run: |
         set -euo pipefail
         mapfile -t ARGV < <(python - <<'PY'
@@ -124,6 +129,7 @@ runs:
             fail_on=os.environ.get("INPUT_FAIL_ON", ""),
             scanners=os.environ.get("INPUT_SCANNERS", "auto"),
             require_scanners=os.environ["INPUT_REQUIRE_SCANNERS"] == "true",
+            ci=os.environ.get("INPUT_CI", "true") == "true",
         )
         print("\n".join(argv))
         PY

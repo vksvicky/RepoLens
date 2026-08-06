@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from repolens.schema import Issue
 
-_SCANNER_MARKERS = ("gitleaks", "semgrep", "osv")
+_SCANNER_MARKERS = ("gitleaks", "semgrep", "osv", "trivy", "checkov")
 
 
 def _is_security_category(category: str) -> bool:

@@ -37,14 +37,10 @@
 
 **Files:** `tests/test_triage.py`, `src/repolens/triage.py`
 
-- [ ] **Step 1:** Write failing tests:
-  - No scanner issues on changed paths → `should_invoke_llm is False`
-  - Scanner High on `a.py:42` → LLM pack contains only that file (or snippet window), not full tree
-  - Suppressed / empty severity below floor → bypass
-  - Explicit override `llm_on_clean_diff=True` → LLM may still run (document as non-CI)
-- [ ] **Step 2:** Implement `triage_llm_plan(scanner_issues, changed_files, config) -> TriagePlan`
-- [ ] **Step 3:** Run `pytest tests/test_triage.py -q` — pass
-- [ ] **Step 4:** Commit when user asks
+- [x] **Step 1:** Write failing tests
+- [x] **Step 2:** Implement `triage_llm_plan(scanner_issues, changed_files, config) -> TriagePlan`
+- [x] **Step 3:** Run `pytest tests/test_triage.py -q` — pass
+- [x] **Step 4:** Commit when user asks
 
 ---
 
@@ -52,13 +48,11 @@
 
 **Files:** `src/repolens/pipeline/run.py`, `src/repolens/cli/commands_review.py`, `src/repolens/config.py`, `src/repolens/schema.py`
 
-- [ ] **Step 1:** Add config defaults: triage on when `--ci` or `[ci].triage_routing = true`
-- [ ] **Step 2:** After scanners, before LLM/deep: apply `TriagePlan`
-  - Bypass → skip LLM; still write report (scanners + heuristics); set meta flags
-  - Hits → build minimal pack (snippets); prefer single-shot or one explain-style pass over full p1/p2/p3 deep unless configured
-- [ ] **Step 3:** `--fail-on` documentation: CI recipe fails on **scanner** High/Critical; LLM narrative optional
-- [ ] **Step 4:** Tests: integration with mocked scanners + mocked LLM (assert LLM not called when clean)
-- [ ] **Step 5:** Commit when user asks
+- [x] **Step 1:** Add config defaults: triage on when `--ci` or `[ci].triage_routing = true`
+- [x] **Step 2:** After scanners, before LLM/deep: apply `TriagePlan`
+- [x] **Step 3:** `--fail-on` documentation: CI recipe fails on **scanner** High/Critical
+- [x] **Step 4:** Tests: integration with mocked scanners + mocked LLM
+- [x] **Step 5:** Commit when user asks
 
 ---
 
@@ -66,22 +60,22 @@
 
 **Files:** `src/repolens/triage.py`, `config.py`, docs
 
-- [ ] **Step 1:** Caps: `max_triage_files`, `max_snippet_chars`, `max_llm_passes_in_ci` (default 1)
-- [ ] **Step 2:** If caps exceeded → truncate with report note; never silently expand to full deep
-- [ ] **Step 3:** Progress UX: print “LLM bypassed (scanners clean)” or “LLM triage: N hit(s)”
-- [ ] **Step 4:** Tests for caps
-- [ ] **Step 5:** Commit when user asks
+- [x] **Step 1:** Caps: `max_triage_files`, `max_snippet_chars`, `max_llm_passes_in_ci` (default 1)
+- [x] **Step 2:** If caps exceeded → truncate with report note
+- [x] **Step 3:** Progress UX: “LLM bypassed…” / “LLM triage: N hit(s)”
+- [x] **Step 4:** Tests for caps
+- [x] **Step 5:** Commit when user asks
 
 ---
 
 ### Task 4: Docs & Action recipe
 
-**Files:** `docs/ci.md`, `docs/faq.md`, `docs/try-on-your-repo.md` (short pointer), `.repolens.example.toml`, `action.yml` if needed
+**Files:** `docs/ci.md`, `docs/faq.md`, `.repolens.example.toml`, `action.yml`
 
-- [ ] **Step 1:** Document enterprise PR recipe: `repolens review --ci --changed --scanners auto --fail-on HIGH`
-- [ ] **Step 2:** Explicit: full `--deep` is for scheduled/release audits, not default CI
-- [ ] **Step 3:** Link blog idea + Phase 6.x design
-- [ ] **Step 4:** Commit when user asks
+- [x] **Step 1:** Document enterprise PR recipe
+- [x] **Step 2:** Explicit: full `--deep` is for scheduled/release audits
+- [x] **Step 3:** Link blog idea + Phase 6.x design
+- [x] **Step 4:** Commit when user asks
 
 ---
 
@@ -91,10 +85,10 @@
 |-------------------|------|
 | Triage routing architecture | 1–2 |
 | LLM bypass when scanners clean | 1–2 |
-| Snippet-scoped LLM on hits | 1–2 |
+| Snippet-scoped LLM on hits | 1–2 (file-scoped pack + caps) |
 | Scanners-as-gate / fail-on | 2, 4 |
 | Budget honesty (no fake &lt;5m SLA) | 3–4 |
-| Provenance / source tags | Follow-up if not already present; minimal: meta `llmBypassed` |
+| Provenance / source tags | `provenance` + `Issue.source` |
 
 ## Out of scope (next plans)
 

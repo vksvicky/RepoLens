@@ -82,6 +82,21 @@ class ExplainConfig(BaseModel):
     render_image: str = "auto"  # auto | always | never
 
 
+class CiConfig(BaseModel):
+    """Phase 6.3 CI / PR triage routing (also enabled by ``--ci``)."""
+
+    triage_routing: bool = False
+    # When True, LLM may still run even if scanners are clean (non-CI / audit).
+    llm_on_clean_diff: bool = False
+    max_triage_files: int = 8
+    max_snippet_chars: int = 8_000
+    max_llm_passes_in_ci: int = 1
+    # Minimum scanner severity that counts as a triage hit.
+    severity_floor: str = "HIGH"
+    # ``--fail-on`` considers scanner-sourced findings only when triage/CI is on.
+    fail_on_scanner_only: bool = True
+
+
 class RepoLensConfig(BaseModel):
     general: GeneralConfig = Field(default_factory=GeneralConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
@@ -90,6 +105,7 @@ class RepoLensConfig(BaseModel):
     adaptive: AdaptiveConfig = Field(default_factory=AdaptiveConfig)
     deep: DeepConfig = Field(default_factory=DeepConfig)
     explain: ExplainConfig = Field(default_factory=ExplainConfig)
+    ci: CiConfig = Field(default_factory=CiConfig)
 
 
 def user_config_path() -> Path:

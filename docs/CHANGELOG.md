@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scanner evidence block fed into deep / single-shot LLM prompts
 - Opt-in via `[scanners].enabled` or `--scanners …,trivy,checkov` (defaults unchanged)
 
+### Added (Phase 6.3 CI triage routing)
+
+- `--ci` / `[ci]` triage: LLM bypassed when scanners clean; hit-file pack otherwise
+- Parallel scanner runs; Issue `source` tags; report `provenance` (version, git SHA, triage flags)
+- `--fail-on` can gate on scanner findings only; Action `ci: true` by default
+- Docs: enterprise PR recipe in [ci.md](./ci.md) / FAQ
+
 ### Added (Phase 6.2 SBOM / licenses / SCA)
 
 - CycloneDX SBOM via Trivy when available (`sbom.cdx.json` beside the report)

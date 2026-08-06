@@ -19,6 +19,9 @@ Priority = Literal["P1", "P2", "P3"]
 FixTiming = Literal["immediately", "before launch", "after launch", "if time permits"]
 
 
+IssueSource = Literal["scanner", "heuristic", "llm"]
+
+
 class Issue(BaseModel):
     severity: Severity
     priority: Priority
@@ -36,6 +39,8 @@ class Issue(BaseModel):
     # Phase 6: hybrid identity for explain lookup (optional for older reports).
     stableId: str | None = None
     runId: str | None = None
+    # Phase 6.3: provenance for CI gates (scanner vs heuristic vs llm).
+    source: IssueSource | None = None
 
     @model_validator(mode="after")
     def require_impact_and_example_for_high(self) -> Issue:
@@ -99,6 +104,21 @@ class SupplyChainBlock(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class ProvenanceBlock(BaseModel):
+    """Phase 6.3 report provenance for CI / audit trails."""
+
+    repoLensVersion: str | None = None
+    gitSha: str | None = None
+    model: str | None = None
+    provider: str | None = None
+    scannerTools: list[str] = Field(default_factory=list)
+    triageRouting: bool = False
+    llmBypassed: bool = False
+    triageHits: int = 0
+    failOnScannerOnly: bool = False
+    notes: list[str] = Field(default_factory=list)
+
+
 class FindingReport(BaseModel):
     schemaVersion: str = "1.0"
     confidence: int = Field(ge=0, le=100)
@@ -110,6 +130,7 @@ class FindingReport(BaseModel):
     coverage: CoverageBlock | None = None
     themes: list[ThemeEntry] | None = None
     supplyChain: SupplyChainBlock | None = None
+    provenance: ProvenanceBlock | None = None
     # Phase 5.1 audit metrics (optional for backward compatibility with older reports).
     securityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
     architectureAuditConfidence: int | None = Field(default=None, ge=0, le=100)
@@ -122,6 +143,9 @@ class FindingReport(BaseModel):
     llmSkipped: bool = False
     # When set, AI findings were carried forward from this prior pass label.
     llmReusedFrom: str | None = None
+    # Phase 6.3: triage decided the LLM should not run (scanners clean).
+    llmBypassed: bool = False
+    triageHits: int | None = None
 
     @field_validator("confidence")
     @classmethod

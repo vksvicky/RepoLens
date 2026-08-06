@@ -488,9 +488,20 @@ or Print → Save as PDF from a Markdown preview.
 
 No. Use RepoLens as a due-diligence layer **plus** tests, CI, and mature scanners (CVE/SAST/secrets). See [phases.md](./phases.md) Phase 3 and the design note above.
 
+## How does `--ci` triage routing work?
+
+On PRs, prefer **`repolens review --ci --fail-on HIGH`** (Action `ci: true` by default):
+
+1. Scanners run first (in parallel when multiple).  
+2. If no scanner findings at the severity floor → **LLM is bypassed** (report still written).  
+3. If there are hits → LLM runs on **hit files only** (not a full-repo deep).  
+4. `--fail-on` gates on **scanner** findings; LLM/heuristic rows do not sole-fail the build.
+
+Use full `--deep` for scheduled/release audits. See [ci.md](./ci.md) and [phase-6.x §6.3](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md).
+
 ## Can we use this in corporate CI/CD (Jenkins, email, dashboards)?
 
-**Local + GitHub Actions / Bitbucket artifacts:** documented and usable now ([ci.md](./ci.md)).
+**Local + GitHub Actions / Bitbucket artifacts:** documented and usable now with `--ci` triage ([ci.md](./ci.md)).
 
 **Jenkins, CircleCI, email, internal dashboards:** planned as **Phase 7** — design sketch in [design/phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md). Pattern: run on the CI agent → archive `reports/**` → notify or ingest JSON into *your* tools. RepoLens does not ship a hosted dashboard.
 

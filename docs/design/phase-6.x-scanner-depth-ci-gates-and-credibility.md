@@ -1,6 +1,6 @@
 # Phase 6.x — Scanner depth, CI gates & credibility (design)
 
-**Status:** In progress (6.1–6.2 implemented; 6.3+ remaining)  
+**Status:** In progress (6.1–6.3 implemented; 6.4+ remaining)  
 **Date:** 2026-08-06  
 **Depends on:** Phase 6 (issue explain + diagrams — complete), Phase 3 scanners, Phase 5.1 metrics  
 **Inserts before:** Phase 7 (enterprise CI/CD & report delivery)  
@@ -96,6 +96,7 @@ Ship in order. Each phase has its own exit criteria and can land as one or more 
 
 ### Phase 6.3 — Deterministic CI gates, triage routing & provenance
 
+**Status:** Implemented (2026-08-06) — `--ci` triage, parallel scanners, provenance/source tags  
 **Implementation plan:** [2026-08-06-enterprise-ci-triage-routing.md](../superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md) · **Blog:** [enterprise-scale-llm-review-ci.md](../blog-ideas/enterprise-scale-llm-review-ci.md)
 
 **Goal:** CI hard-gates on **scanner** evidence; LLM is never the sole production gate; PR runs stay affordable via **triage routing** (not “stuff the whole repo into the model”).
@@ -126,7 +127,7 @@ diff → scanners on changed paths (Semgrep / Trivy / gitleaks / OSV / …)
 | Budget honesty | Aim for practical PR latency; do **not** claim a hard “&lt;5 minutes” SLA — document typical path: scanners-only when clean |
 | Policy-lite config | Paths, required scanners, severity floor — not full enterprise policy engine |
 
-**Exit:** Action/docs show required check failing on scanner High; clean PR → no LLM call; hit → LLM only on snippet(s); provenance + source tags in report.
+**Exit:** Action/docs show required check failing on scanner High; clean PR → no LLM call; hit → LLM only on snippet(s); provenance + source tags in report. → **Met** (hit pack is file-scoped with caps; line-window polish deferred)
 
 **Out of 6.3:** Push protection; SSO; Jenkins/CircleCI deep recipes → Phase 7; full-repo LLM on every PR.
 
