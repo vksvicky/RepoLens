@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 6.11 Fast Brain / Two-Lane)
+
+- **Fast Brain:** whole-tree (default 10k) parallel heuristics + packs; fingerprints on that set
+- **Slow Brain:** LLM sample still `[general].max_files` (default 200); `--ci` triage can include heuristic High+ hits
+- Provenance: `fastBrainFiles` / `llmPackFiles`; reject AST-heavy work in Fast Brain (regex/line/stat/hash only)
+- Summary + Markdown Metrics show Fast Brain / LLM pack file counts (not just LLM-cap `max_files`)
+- Inventory honesty: removed-from-tree vs dropped-from-pack; FAQ Two-Lane guidance
+
+### Changed (inventory honesty)
+
+- Progress shows Fast/Slow brain inventory caps; adaptive cache labels **removed from tree** vs **dropped from inventory pack**
+
 ### Added (Phase 6.10 optional domain packs)
 
 - Pack registry (`repolens packs list`) with opt-in `[packs] enabled` / `--pack`

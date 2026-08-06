@@ -20,6 +20,7 @@ from repolens.schema import (
     CoverageBlock,
     FindingReport,
     Issue,
+    ProvenanceBlock,
     ScannerRun,
     Severity,
     Summary,
@@ -124,6 +125,22 @@ def test_write_markdown_report_includes_sections(tmp_path: Path) -> None:
     assert "as is" in text.lower() or "AS IS" in text
     assert "solely responsible" in text.lower() or "your own risk" in text.lower()
     assert text.index("## About") < text.index("## Disclaimer")
+
+
+def test_metrics_includes_fast_brain_without_band_audits(tmp_path: Path) -> None:
+    report = FindingReport(
+        confidence=80,
+        summary=Summary(),
+        issues=[],
+        provenance=ProvenanceBlock(fastBrainFiles=286, llmPackFiles=0),
+    )
+    text = write_markdown_report(report, tmp_path, mode="review").read_text(
+        encoding="utf-8"
+    )
+    assert "## Metrics" in text
+    assert "| Fast Brain files | 286 |" in text
+    assert "| LLM pack files | 0 |" in text
+    assert "### How these % are calculated" not in text
 
 
 def test_metrics_and_coverage_explain_formulas(tmp_path: Path) -> None:

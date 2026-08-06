@@ -57,7 +57,7 @@ def infer_issue_source(issue: Issue) -> IssueSource:
     cat = (issue.category or "").strip().lower()
     if cat in _SCANNER_CATEGORIES or any(m in cat for m in _SCANNER_CATEGORIES):
         return "scanner"
-    if cat.startswith("heuristic."):
+    if cat.startswith("heuristic.") or cat.startswith("pack."):
         return "heuristic"
     return "llm"
 
@@ -76,7 +76,7 @@ def stamp_issue_sources(
         cat = (issue.category or "").strip().lower()
         if cat in _SCANNER_CATEGORIES or any(m in cat for m in _SCANNER_CATEGORIES):
             out.append(issue.model_copy(update={"source": "scanner"}))
-        elif cat.startswith("heuristic."):
+        elif cat.startswith("heuristic.") or cat.startswith("pack."):
             out.append(issue.model_copy(update={"source": "heuristic"}))
         elif default_llm:
             out.append(issue.model_copy(update={"source": "llm"}))
@@ -91,11 +91,16 @@ def triage_llm_plan(
     available_files: list[str],
     config: CiConfig,
     changed_files: list[str] | None = None,
+    heuristic_issues: list[Issue] | None = None,
+    include_heuristics: bool = False,
 ) -> TriagePlan:
     """Decide whether to invoke the LLM and which files enter the pack.
 
     When ``triage_routing`` is off, the full ``available_files`` pack is kept
     and the LLM may run (caller still applies dry-run / scanners-only).
+
+    Phase 6.11: optional Fast Brain heuristic hits can join scanner hits when
+    ``include_heuristics`` is True (fail-on remains scanner-preferring in CI).
     """
     available = [_norm_path(p) for p in available_files]
     available_set = set(available)
@@ -112,9 +117,16 @@ def triage_llm_plan(
     changed_set = (
         {_norm_path(p) for p in changed_files} if changed_files is not None else None
     )
-    for issue in scanner_issues:
-        # Only scanner evidence drives triage hits
-        if infer_issue_source(issue) != "scanner":
+    pool: list[Issue] = list(scanner_issues)
+    if include_heuristics and heuristic_issues:
+        pool.extend(heuristic_issues)
+    for issue in pool:
+        src = infer_issue_source(issue)
+        if src == "scanner":
+            pass
+        elif include_heuristics and src == "heuristic":
+            pass
+        else:
             continue
         if not _meets_floor(issue, config.severity_floor):
             continue
@@ -132,12 +144,15 @@ def triage_llm_plan(
                 triage_hits=0,
                 notes=["triage: llm_on_clean_diff — LLM allowed despite clean scanners"],
             )
+        clean_what = (
+            "scanners/heuristics" if include_heuristics else "scanners"
+        )
         return TriagePlan(
             should_invoke_llm=False,
             llm_bypassed=True,
             pack_files=[],
             triage_hits=0,
-            notes=["triage: scanners clean at severity floor — LLM bypassed"],
+            notes=[f"triage: {clean_what} clean at severity floor — LLM bypassed"],
         )
 
     # Preserve first-seen file order from hits, then intersect available pack
@@ -183,7 +198,11 @@ def select_pack_entries(files: list, pack_files: list[str]) -> list:
     if selected:
         return selected
     # Fall back: keep original order filtered loosely by suffix match
-    return [f for f in files if any(_norm_path(getattr(f, "relative", "")) == p for p in pack_files)]
+    return [
+        f
+        for f in files
+        if any(_norm_path(getattr(f, "relative", "")) == p for p in pack_files)
+    ]
 
 
 def fail_on_triggered(

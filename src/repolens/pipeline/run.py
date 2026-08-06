@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from datetime import UTC
 from pathlib import Path
 
 from repolens.adaptive import (
@@ -12,7 +13,6 @@ from repolens.adaptive import (
     select_pack_paths,
 )
 from repolens.config import ModelConfig, RepoLensConfig, load_config, resolve_report_dir
-from repolens.inventory import list_files
 from repolens.last_llm import (
     bootstrap_from_out_dir,
     load_last_llm_report,
@@ -34,6 +34,8 @@ from repolens.scanners.sca import build_supply_chain, dedupe_sca_issues
 from repolens.schema import FindingReport, ProvenanceBlock, Summary, SupplyChainBlock
 from repolens.triage import (
     fail_on_triggered as _fail_on_triggered,
+)
+from repolens.triage import (
     select_pack_entries,
     stamp_issue_sources,
     triage_llm_plan,
@@ -111,7 +113,9 @@ def run_review(
         cfg.deep.verify_findings = True
     elif verify_findings is False:
         cfg.deep.verify_findings = False
-    from repolens.packs.registry import resolve_enabled_packs, run_pack_heuristics
+    from repolens.heuristics import run_heuristics
+    from repolens.inventory import scan_inventory
+    from repolens.packs.registry import resolve_enabled_packs
 
     pack_ids = resolve_enabled_packs([*cfg.packs.enabled, *(packs or [])])
     cfg.packs.enabled = list(pack_ids)
@@ -125,7 +129,7 @@ def run_review(
             deep = False
         prog.detail(
             "CI mode: triage routing on "
-            "(LLM bypass when scanners clean; snippet pack on hits)"
+            "(LLM bypass when scanners/heuristics clean; snippet pack on hits)"
         )
 
     # Sentinel prefers scanners evidence; keep enabled list (opt-out via --scanners off)
@@ -133,14 +137,54 @@ def run_review(
         scanners = "auto"
 
     prog.phase("Inventory: scanning files…")
-    files = list_files(root, mode=review_mode, since=since)
-    prog.phase(f"Inventory: {len(files)} reviewable file(s)")
-    if prog.verbose and files:
-        sample = ", ".join(f.relative for f in files[:8])
-        more = f" (+{len(files) - 8} more)" if len(files) > 8 else ""
+    fast_max = cfg.fast_brain.max_files
+    fast_inv = scan_inventory(
+        root, mode=review_mode, since=since, max_files=fast_max
+    )
+    fast_files = fast_inv.files
+    llm_cap = cfg.general.max_files
+    if llm_cap <= 0:
+        files = list(fast_files)
+    else:
+        files = list(fast_files[:llm_cap])
+
+    if fast_inv.truncated:
+        prog.phase(
+            f"Fast brain inventory: {len(fast_files)} of {fast_inv.total_matched} "
+            f"matched (cap max_files={fast_inv.max_files})"
+        )
+    else:
+        prog.phase(f"Fast brain inventory: {len(fast_files)} matched file(s)")
+    if len(files) < len(fast_files):
+        prog.detail(
+            f"Slow brain LLM pool: top {len(files)} by priority "
+            f"(general.max_files={llm_cap}); Fast Brain heuristics use all "
+            f"{len(fast_files)}"
+        )
+        inventory_notes = [
+            (
+                f"Two-Lane: Fast Brain sees {len(fast_files)} file(s); "
+                f"LLM sample pool is {len(files)} "
+                f"(general.max_files={llm_cap}). "
+                "Deterministic scanners still cover the full tree."
+            )
+        ]
+    else:
+        inventory_notes = []
+        note = fast_inv.truncation_note()
+        if note:
+            inventory_notes.append(note)
+    if prog.verbose and fast_files:
+        sample = ", ".join(f.relative for f in fast_files[:8])
+        more = f" (+{len(fast_files) - 8} more)" if len(fast_files) > 8 else ""
         prog.detail(f"sample: {sample}{more}")
 
-    store, diff = _sync_adaptive_cache(root, files, cfg=cfg, prog=prog)
+    # Fingerprints track Fast Brain set (not LLM slice alone).
+    store, diff = _sync_adaptive_cache(root, fast_files, cfg=cfg, prog=prog)
+
+    fast_brain_file_count = len(fast_files)
+    llm_pack_file_count = 0
+    heur_result = None
 
     if out_dir is not None:
         out = out_dir
@@ -149,17 +193,25 @@ def run_review(
 
     try:
         if dry_run:
-            from datetime import datetime, timezone
+            from datetime import datetime
+
+            from repolens import __version__
 
             prog.phase("Dry-run: writing inventory report (no scanners / LLM)…")
             empty = FindingReport(
                 confidence=0,
                 summary=Summary(),
                 issues=[],
-                durabilityGaps=["dry-run: no LLM call"],
+                durabilityGaps=["dry-run: no LLM call"] + list(inventory_notes),
                 durationSeconds=round(time.time() - run_started, 1),
+                provenance=ProvenanceBlock(
+                    repoLensVersion=__version__,
+                    gitSha=_git_sha(root),
+                    fastBrainFiles=fast_brain_file_count,
+                    llmPackFiles=0,
+                ),
             )
-            report_when = datetime.now(timezone.utc)
+            report_when = datetime.now(UTC)
             md = (
                 write_markdown_report(empty, out, mode=mode, when=report_when)
                 if fmt in {"md", "both"}
@@ -175,7 +227,7 @@ def run_review(
                 report=empty,
                 markdown_path=md,
                 json_path=js,
-                files_scanned=len(files),
+                files_scanned=fast_brain_file_count,
                 dry_run=True,
             )
 
@@ -249,31 +301,43 @@ def run_review(
                     "`repolens plugins install trivy`)"
                 )
 
-        pack_issues: list = []
+        prog.phase(
+            f"Fast brain: heuristics on {len(fast_files)} file(s) "
+            f"(workers={cfg.fast_brain.parallel_workers})…"
+        )
+        heur_result = run_heuristics(
+            root,
+            fast_files,
+            mega_file_lines=cfg.deep.mega_file_lines,
+            mega_file_exclude_globs=cfg.deep.mega_file_exclude_globs or None,
+            pack_ids=pack_ids or None,
+            workers=cfg.fast_brain.parallel_workers,
+        )
+        heur_issues = list(heur_result.issues)
+        prog.detail(
+            f"Fast brain: {len(heur_issues)} heuristic finding(s), "
+            f"{len(heur_result.hot_paths)} hot path(s)"
+        )
         if pack_ids:
-            pack_issues = run_pack_heuristics(root, files, pack_ids)
-            prog.detail(
-                f"Domain packs: {', '.join(pack_ids)} "
-                f"({len(pack_issues)} heuristic finding(s))"
-            )
+            prog.detail(f"Domain packs enabled: {', '.join(pack_ids)}")
 
         if scanners_only:
             all_ran = bool(scanner_runs) and all(r.status == "ran" for r in scanner_runs)
             report = FindingReport(
                 confidence=75 if all_ran else 55,
                 summary=Summary(),
-                issues=list(scanner_issues) + list(pack_issues),
+                issues=list(scanner_issues) + heur_issues,
                 durabilityGaps=list(scanner_gaps)
                 or (["scanners-only: no scanners selected"] if not tools else []),
                 scannerRuns=list(scanner_runs),
                 supplyChain=supply_chain,
             )
             report.summary = report.recount_summary()
-        elif not files:
+        elif not files and not fast_files:
             report = FindingReport(
                 confidence=90,
                 summary=Summary(),
-                issues=list(scanner_issues) + list(pack_issues),
+                issues=list(scanner_issues) + heur_issues,
                 durabilityGaps=["No reviewable files found (check ignores / --mode diff)"]
                 + scanner_gaps,
                 scannerRuns=list(scanner_runs),
@@ -319,16 +383,18 @@ def run_review(
                     available_files=avail,
                     config=cfg.ci,
                     changed_files=changed_paths,
+                    heuristic_issues=heur_issues,
+                    include_heuristics=cfg.fast_brain.triage_include_heuristics,
                 )
                 for note in triage_plan.notes:
                     prog.detail(note)
                 if triage_plan.llm_bypassed:
                     triage_bypassed = True
-                    prog.phase("LLM bypassed (scanners clean at triage floor)")
+                    prog.phase("LLM bypassed (scanners/heuristics clean at triage floor)")
                     report = FindingReport(
                         confidence=80 if scanner_runs else 60,
                         summary=Summary(),
-                        issues=list(scanner_issues) + list(pack_issues),
+                        issues=list(scanner_issues) + heur_issues,
                         durabilityGaps=list(scanner_gaps) + list(triage_plan.notes),
                         scannerRuns=list(scanner_runs),
                         supplyChain=supply_chain,
@@ -342,7 +408,15 @@ def run_review(
                         f"LLM triage: {triage_plan.triage_hits} hit(s) → "
                         f"{len(triage_plan.pack_files)} file(s)"
                     )
-                    llm_files = select_pack_entries(files, triage_plan.pack_files)
+                    # Prefer Fast Brain inventory so heuristic hits outside the
+                    # Slow Brain top-N sample can still enter the LLM pack.
+                    llm_files = select_pack_entries(
+                        fast_files, triage_plan.pack_files
+                    )
+                    if not llm_files:
+                        llm_files = select_pack_entries(
+                            files, triage_plan.pack_files
+                        )
                     scanner_gaps.extend(
                         n for n in triage_plan.notes if n not in scanner_gaps
                     )
@@ -359,7 +433,7 @@ def run_review(
                     prior, saved_at, prior_model = prior_bundle
                     report = merge_reused_report(
                         prior,
-                        scanner_issues=list(scanner_issues) + list(pack_issues),
+                        scanner_issues=list(scanner_issues) + heur_issues,
                         scanner_runs=list(scanner_runs),
                         scanner_gaps=list(scanner_gaps),
                         saved_at=saved_at,
@@ -400,7 +474,7 @@ def run_review(
                     report = FindingReport(
                         confidence=55,
                         summary=Summary(),
-                        issues=list(scanner_issues) + list(pack_issues),
+                        issues=list(scanner_issues) + heur_issues,
                         durabilityGaps=[gap] + list(scanner_gaps),
                         scannerRuns=list(scanner_runs),
                         llmSkipped=True,
@@ -424,9 +498,10 @@ def run_review(
                         f"timeout: {resolve_llm_timeout(cfg.model):g}s "
                         f"(recommended {recommended:g}s)"
                     )
-                    _maybe_sync_fts(store, root, files, diff)
+                    _maybe_sync_fts(store, root, fast_files, diff)
 
                 use_deep = cfg.deep.enabled if deep is None else deep
+                llm_pack_file_count = len(llm_files)
                 local_ctx = ""
                 if cfg.local_learning.enabled:
                     from repolens.learning.consent import has_consent
@@ -447,8 +522,18 @@ def run_review(
                     prog.detail(
                         f"attached scanner evidence ({len(scanner_issues)} finding(s))"
                     )
+                heur_ctx = ""
+                if heur_issues:
+                    lines = [
+                        "### Fast Brain heuristic hits (context only)",
+                        *[
+                            f"- [{i.severity}] {i.file}:{i.line} {i.title}"
+                            for i in heur_issues[:40]
+                        ],
+                    ]
+                    heur_ctx = "\n".join(lines)
                 prompt_prefix = "\n\n".join(
-                    part for part in (scanner_ctx, local_ctx) if part
+                    part for part in (scanner_ctx, heur_ctx, local_ctx) if part
                 )
 
                 provider = cfg.model.provider or "unknown"
@@ -466,12 +551,13 @@ def run_review(
                             root=root,
                             mode=mode,
                             full_audit=full_audit,
-                            files=files,
+                            files=fast_files,
                             llm_files=llm_files,
                             cfg=cfg,
                             prog=prog,
                             prompt_prefix=prompt_prefix,
                             scanner_runs=scanner_runs,
+                            heur_result=heur_result,
                         )
                     else:
                         gen = LlmGenerateProgress()
@@ -565,10 +651,12 @@ def run_review(
                         )
                         store.set_meta("recommended_timeout_seconds", f"{rec:g}")
 
-                if scanner_issues or scanner_runs or scanner_gaps or pack_issues:
-                    report.issues = (
-                        list(report.issues) + list(scanner_issues) + list(pack_issues)
-                    )
+                extra_issues = list(scanner_issues)
+                if not use_deep:
+                    # Deep path already merged Fast Brain heuristics.
+                    extra_issues.extend(heur_issues)
+                if extra_issues or scanner_runs or scanner_gaps:
+                    report.issues = list(report.issues) + extra_issues
                     report.scannerRuns = list(scanner_runs)
                     report.durabilityGaps = list(report.durabilityGaps) + list(
                         scanner_gaps
@@ -593,6 +681,10 @@ def run_review(
         report.durationSeconds = round(time.time() - run_started, 1)
         if supply_chain is not None:
             report.supplyChain = supply_chain
+        if inventory_notes:
+            report.durabilityGaps = list(report.durabilityGaps) + [
+                n for n in inventory_notes if n not in report.durabilityGaps
+            ]
         from repolens import __version__
         from repolens.issue_ids import stamp_issue_ids
 
@@ -631,6 +723,8 @@ def run_review(
             failOnScannerOnly=bool(
                 cfg.ci.triage_routing and cfg.ci.fail_on_scanner_only
             ),
+            fastBrainFiles=fast_brain_file_count,
+            llmPackFiles=llm_pack_file_count,
             notes=list(triage_plan.notes) if triage_plan is not None else [],
         )
         # Phase 6.4: stamp locationVerified before Markdown/SARIF write
@@ -650,9 +744,9 @@ def run_review(
             report.issues = apply_verify_findings(root, report.issues, cfg.deep)
             report.summary = report.recount_summary()
 
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        report_when = datetime.now(timezone.utc)
+        report_when = datetime.now(UTC)
         prog.phase(f"Writing report → {out}")
         md = (
             write_markdown_report(report, out, mode=mode, when=report_when)
@@ -690,7 +784,7 @@ def run_review(
             report=report,
             markdown_path=md,
             json_path=js,
-            files_scanned=len(files),
+            files_scanned=fast_brain_file_count,
             dry_run=False,
             sarif_path=sarif_path,
         )

@@ -14,7 +14,7 @@ from repolens.coverage import (
     parse_coverage_notes,
 )
 from repolens.deep import build_deep_prompt, merge_reports, plan_deep_passes
-from repolens.heuristics import run_heuristics
+from repolens.heuristics import HeuristicResult, run_heuristics
 from repolens.inventory import FileEntry
 from repolens.llm import default_model, resolve_llm_timeout
 from repolens.metrics import compute_audit_metrics
@@ -37,20 +37,35 @@ def _sync_adaptive_cache(
     from repolens.learning.store import ProjectStore
 
     try:
+        from repolens.inventory import classify_fingerprint_deletions
+
         store = ProjectStore(root)
         store.open()
         diff = sync_project_fingerprints(store, files)
-        prog.phase(
-            f"Cache: +{len(diff.added)} added, ~{len(diff.changed)} changed, "
-            f"-{len(diff.deleted)} deleted"
-        )
-        if prog.verbose and (diff.added or diff.changed or diff.deleted):
+        removed, dropped = classify_fingerprint_deletions(root, list(diff.deleted))
+        bits = [
+            f"+{len(diff.added)} added",
+            f"~{len(diff.changed)} changed",
+        ]
+        if removed:
+            bits.append(f"-{len(removed)} removed from tree")
+        if dropped:
+            bits.append(f"{len(dropped)} dropped from inventory pack")
+        if not removed and not dropped:
+            bits.append("-0 removed from tree")
+        prog.phase("Cache: " + ", ".join(bits))
+        if prog.verbose and (diff.added or diff.changed or removed or dropped):
             if diff.added:
                 prog.detail("added: " + ", ".join(diff.added[:8]))
             if diff.changed:
                 prog.detail("changed: " + ", ".join(diff.changed[:8]))
-            if diff.deleted:
-                prog.detail("deleted: " + ", ".join(diff.deleted[:8]))
+            if removed:
+                prog.detail("removed from tree: " + ", ".join(removed[:8]))
+            if dropped:
+                prog.detail(
+                    "dropped from inventory pack (still on disk; over max_files): "
+                    + ", ".join(dropped[:8])
+                )
         return store, diff
     except OSError as exc:
         prog.phase(f"Cache: skipped ({exc})")
@@ -135,21 +150,25 @@ def _analyze_deep_passes(
     prog: ReviewProgress,
     prompt_prefix: str = "",
     scanner_runs: list | None = None,
+    heur_result: HeuristicResult | None = None,
 ) -> FindingReport:
     """Heuristics → plan passes → structured LLM per pass → merge + coverage."""
     from repolens.llm_structured import analyze_structured
 
-    prog.phase("→ Deep: heuristics…")
-    from repolens.packs.registry import resolve_enabled_packs
-
-    # Pack heuristics are pre-run in pipeline/run.py (avoid double-count).
-    pack_ids = resolve_enabled_packs(list(cfg.packs.enabled))
-    heur = run_heuristics(
-        root,
-        files,
-        mega_file_lines=cfg.deep.mega_file_lines,
-        mega_file_exclude_globs=cfg.deep.mega_file_exclude_globs or None,
-    )
+    pack_ids = list(cfg.packs.enabled)
+    if heur_result is not None:
+        heur = heur_result
+        prog.phase("→ Deep: using Fast Brain heuristics…")
+    else:
+        prog.phase("→ Deep: heuristics…")
+        heur = run_heuristics(
+            root,
+            files,
+            mega_file_lines=cfg.deep.mega_file_lines,
+            mega_file_exclude_globs=cfg.deep.mega_file_exclude_globs or None,
+            pack_ids=pack_ids or None,
+            workers=cfg.fast_brain.parallel_workers,
+        )
     if prog.verbose:
         prog.detail(
             f"heuristics: {len(heur.issues)} issue(s), "
@@ -157,10 +176,11 @@ def _analyze_deep_passes(
         )
 
     rules: list[Rule] = load_enabled_rules(project_root=root)
+    # Deep passes pack from LLM slice; hot paths may point outside that slice.
     passes = plan_deep_passes(
         mode,
         full_audit=full_audit,
-        entries=files,
+        entries=llm_files or files,
         hot_paths=heur.hot_paths,
         adaptive_paths=[e.relative for e in llm_files],
         chars_per_pass=cfg.deep.chars_per_pass,

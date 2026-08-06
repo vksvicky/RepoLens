@@ -236,9 +236,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **6.8** | PR suggested-fix UX (annotations / job summary) | [x] Job summary + annotations; no PR-comment API |
 | **6.9** | Best-effort reachability + optional finding verify | [x] Scope B (hints/cluster/verify; no call graphs) |
 | **6.10** | Optional domain packs (Azure Sentinel/SOAR first) | [x] Extended / niche |
+| **6.11** | Fast Brain: whole-tree parallel heuristics (Two-Lane) | [x] Implemented |
 
 **Core 6.x exit (6.1–6.6):** Companion free stack gates CI; triage routing; **anchored** SARIF; SCA graph = scanners only; playbook gaps named; remediation-led benchmark. → **Met (2026-08-06)** for published methodology + MVP; formal Semgrep/CodeQL human study still open follow-up  
-**Extended 6.x (6.7–6.10):** Suppressions (soft gate for production CI), PR fix UX, best-effort reachability/verify, domain packs.
+**Extended 6.x (6.7–6.11):** Suppressions, PR fix UX, reachability/verify, domain packs, Fast/Slow brain split.
 
 ---
 
@@ -387,6 +388,20 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Docs | [x] | [packs.md](./packs.md) |
 
 **Exit:** One opt-in domain pack; core `sentinel` unchanged when off. → **Met for scope B (2026-08-06)**
+
+---
+
+### Phase 6.11 — Fast Brain (Two-Lane product)
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design | [x] | [spec](./superpowers/specs/2026-08-06-phase-6.11-fast-brain-whole-tree-heuristics.md) · [plan](./superpowers/plans/2026-08-06-phase-6.11-fast-brain.md) |
+| Whole-tree heuristics ∥ scanners | [x] | Fast inventory default 10k; LLM pool 200 |
+| Parallel heuristic workers | [x] | `ThreadPoolExecutor` for I/O chunks |
+| Triage includes heuristic hits | [x] | `[fast_brain].triage_include_heuristics` |
+| Report provenance split | [x] | `fastBrainFiles` / `llmPackFiles` |
+
+**Exit:** Deterministic baseline on Fast Brain inventory; LLM remains sampled / triage-routed; docs honest about lanes. → **Met for implementation (2026-08-06)** — dogfood remaining
 
 ---
 

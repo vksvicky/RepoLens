@@ -9,6 +9,7 @@ from rich.table import Table
 
 from repolens.cli.app import adaptive_app, console, learn_app
 
+
 @learn_app.command("build")
 def learn_build(
     path: Path = typer.Option(Path("."), "--path", help="Project root"),
@@ -94,7 +95,10 @@ def adaptive_status(
         table.add_row("Recent LLM seconds", ", ".join(f"{x:.1f}" for x in runs) or "(none)")
         table.add_row(
             "Pending changes",
-            f"+{len(diff.added)} ~{len(diff.changed)} -{len(diff.deleted)}",
+            (
+                f"+{len(diff.added)} ~{len(diff.changed)} "
+                f"-{len(diff.deleted)} (removed or dropped from pack)"
+            ),
         )
     console.print(table)
 

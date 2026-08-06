@@ -106,7 +106,11 @@ Shared flags unless noted (`--full-audit` is mainly on `review`).
 
 | Line | Meaning |
 |------|---------|
-| `Inventory: N reviewable file(s)` | Files after ignores |
+| `Fast brain inventory: K of N matched…` | Lane 1 file set for heuristics (default cap 10k) |
+| `Slow brain LLM pool: top 200…` | Lane 2 sample (when Fast &gt; LLM cap) |
+| `Fast brain: heuristics on K file(s)…` | Parallel deterministic lane |
+| `… dropped from inventory pack` | Still on disk; fell out of fingerprint/LLM view |
+| `… removed from tree` | Path gone / not a file anymore |
 | `Scanners: finished (K finding(s), X/Y ran)` | Deterministic tools done |
 | `LLM bypassed (scanners clean…)` | `--ci` / triage: no LLM spend |
 | `LLM pack: A/B file(s)` | Adaptive / triage file selection |

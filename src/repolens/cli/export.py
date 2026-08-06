@@ -54,7 +54,15 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     table.add_column("Value")
     if dry_run:
         table.add_row("Dry run", "yes")
-    table.add_row("Files scanned", str(files))
+    prov = report.provenance
+    fb = prov.fastBrainFiles if prov is not None else None
+    llm = prov.llmPackFiles if prov is not None else None
+    if fb is not None:
+        table.add_row("Files scanned (Fast Brain)", str(fb))
+        if llm is not None:
+            table.add_row("LLM pack files", str(llm))
+    else:
+        table.add_row("Files scanned", str(files))
     table.add_row("Gate confidence", f"{confidence}%")
     if report.securityAuditConfidence is not None:
         table.add_row("Security audit", f"{report.securityAuditConfidence}%")
