@@ -18,6 +18,7 @@ COVERAGE_ID_ALIASES: dict[str, str] = {
 HEURISTIC_TO_THEME: dict[str, str] = {
     "heuristic.mega_file": "arch.structure_size",
     "heuristic.sibling_duplication": "arch.duplication",
+    "heuristic.deep_nesting": "arch.readability_complexity",
     "heuristic.gitignore_secrets": "sec.repo_hygiene_secrets",
     "heuristic.scripts_hygiene": "arch.dead_code",
     "heuristic.todo_density": "arch.dead_code",
