@@ -240,8 +240,12 @@ def _theme_family(category: str) -> str:
 def _cluster_key(issue: Issue) -> tuple[str, str, str]:
     identity = (issue.cwe or "").strip().lower()
     if not identity:
-        # Same file + theme family collapses heuristic/LLM twins even if titles differ slightly
-        identity = _theme_family(issue.category) or _norm_title(issue.title)
+        category = (issue.category or "").strip().lower()
+        # Only mapped twin families use family-as-identity; else keep title differentiation
+        if category in _THEME_FAMILY:
+            identity = _THEME_FAMILY[category]
+        else:
+            identity = _norm_title(issue.title)
     return (_norm_file(issue.file), _theme_family(issue.category), identity)
 ```
 
