@@ -123,6 +123,39 @@ Set repository variables / secured variables for API keys the same way as other 
 | 3 | Source/clone error |
 | 4 | LLM/provider error |
 
+## Anchored SARIF + SBOM (Phase 6.4 / 6.2)
+
+```bash
+repolens review --ci --scanners auto --fail-on HIGH --format both --sarif
+# writes reports/*.sarif.json (verified locations only) + sbom.cdx.json when Trivy is available
+```
+
+**SARIF rule:** scanner findings use trusted file/line; LLM/heuristic findings are included **only** when `anchorQuote` resolves in the cited file. Unresolved locations stay in Markdown/JSON with a “location unverified” note — they are **never** emitted to SARIF.
+
+### Upload to GitHub code scanning (GHAS)
+
+```yaml
+      - uses: vksvicky/RepoLens@main
+        with:
+          path: .
+          run: auto
+          fail-on: HIGH
+          ci: "true"
+      - name: RepoLens SARIF (optional local CLI)
+        if: always()
+        run: |
+          repolens review --path . --ci --scanners-only --sarif --fail-on "" || true
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: reports/
+          # or a single reports/*.sarif.json path
+```
+
+Sonar / other ASPM: ingest the same SARIF as an external issues file, or archive `reports/**` (JSON + SARIF + `sbom.cdx.json`) as CI artifacts. RepoLens does **not** host an ASPM portal.
+
+Design: [phase-6.x §6.4](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md)
+
 ## Adaptive cache in CI
 
 Ephemeral agents usually start cold. Prefer `[adaptive] enabled = false` in CI, or restore/save `.repolens/repolens.sqlite` with your CI cache if you want warm packs. Details: [design/phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md).

@@ -229,7 +229,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **6.1** | Trivy + Checkov plugins; merge + feed LLM pack | [x] Implemented 2026-08-06 |
 | **6.2** | SBOM + licenses; scanner-owned dep graph; LLM remediation-only for SCA | [x] |
 | **6.3** | Scanners-as-gate; **triage routing** (LLM only on diff hits); provenance; source tags | [x] |
-| **6.4** | **Anchored** SARIF (+ SBOM); GHAS/Sonar recipes (no hosted UI) | [ ] |
+| **6.4** | **Anchored** SARIF (+ SBOM); GHAS/Sonar recipes (no hosted UI) | [x] |
 | **6.5** | Sentinel checklist gaps (SSRF, path traversal, XXE, …); evidence-first; more FP calibrations | [ ] |
 | **6.6** | Benchmark: **remediation rate / MTTR** lead + P/R support | [ ] |
 | **6.7** | **`.repolens-ignore`** / disable comments + feedback + Critical consistency | [ ] Soft gate before wide CI |
@@ -294,13 +294,13 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Item | Status | Notes |
 |------|--------|-------|
 | Design | [x] | Umbrella §3 / 6.4 · ASPM = export only (option B) |
-| Verification & Anchor (quote → literal/AST line resolve) | [ ] | Hard gate before SARIF write |
-| Prefer scanner locations when `source=scanner` | [ ] | |
-| Unresolved anchors omitted from SARIF (kept in MD flagged) | [ ] | |
-| SARIF export + CI recipes (GHAS / Sonar / external) | [ ] | |
-| Optional SARIF import (CodeQL/Semgrep) | [ ] | Stretch |
+| Verification & Anchor (quote → literal line resolve) | [x] | `repolens.anchor` |
+| Prefer scanner locations when `source=scanner` | [x] | Trusted without quote |
+| Unresolved anchors omitted from SARIF (kept in MD flagged) | [x] | `locationVerified` |
+| SARIF export + CI recipes (GHAS / Sonar / external) | [x] | `--sarif` · [ci.md](./ci.md) |
+| Optional SARIF import (CodeQL/Semgrep) | [ ] | Stretch — out of 6.4 ship |
 
-**Exit:** SARIF never emits unverified LLM line numbers; GHAS recipe documented.
+**Exit:** SARIF never emits unverified LLM line numbers; GHAS recipe documented. → **Met (2026-08-06)**
 
 ---
 

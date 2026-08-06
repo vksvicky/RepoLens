@@ -42,6 +42,7 @@ def _run_mode(
     deep: bool | None = None,
     explain_uuids: str | None = None,
     ci: bool = False,
+    sarif: bool = False,
 ) -> None:
     if fmt not in {"md", "json", "both"}:
         console.print("[red]--format must be md | json | both[/red]")
@@ -112,6 +113,7 @@ def _run_mode(
             progress=progress,
             deep=deep,
             ci=ci,
+            sarif=sarif,
         )
     except FileNotFoundError as exc:
         console.print(f"[red]Config/source error:[/red] {exc}")
@@ -161,6 +163,8 @@ def _run_mode(
         console.print(f"[green]Markdown report:[/green] {result.markdown_path}")
     if result.json_path:
         console.print(f"[green]JSON report:[/green] {result.json_path}")
+    if result.sarif_path:
+        console.print(f"[green]SARIF report:[/green] {result.sarif_path}")
 
     if explain_uuids and not result.dry_run:
         from repolens.cli.commands_explain import run_post_review_explains
@@ -263,6 +267,11 @@ def review(
         "--ci",
         help="PR/CI recipe: triage routing, --changed pack, single-shot LLM on scanner hits only",
     ),
+    sarif: bool = typer.Option(
+        False,
+        "--sarif",
+        help="Write anchored SARIF 2.1 (scanner locations + resolvable anchors only)",
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -294,6 +303,7 @@ def review(
         deep,
         explain,
         ci,
+        sarif,
     )
 
 
@@ -368,6 +378,11 @@ def sentinel(
         "--ci",
         help="PR/CI recipe: triage routing, --changed pack, single-shot LLM on scanner hits only",
     ),
+    sarif: bool = typer.Option(
+        False,
+        "--sarif",
+        help="Write anchored SARIF 2.1 (scanner locations + resolvable anchors only)",
+    ),
 ) -> None:
     """Security-only review (P1 playbook)."""
     _run_mode(
@@ -399,6 +414,7 @@ def sentinel(
         deep,
         None,
         ci,
+        sarif,
     )
 
 
@@ -473,6 +489,11 @@ def architecture(
         "--ci",
         help="PR/CI recipe: triage routing, --changed pack, single-shot LLM on scanner hits only",
     ),
+    sarif: bool = typer.Option(
+        False,
+        "--sarif",
+        help="Write anchored SARIF 2.1 (scanner locations + resolvable anchors only)",
+    ),
 ) -> None:
     """Architecture / production-readiness audit."""
     _run_mode(
@@ -504,4 +525,5 @@ def architecture(
         deep,
         None,
         ci,
+        sarif,
     )

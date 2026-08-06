@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scanner evidence block fed into deep / single-shot LLM prompts
 - Opt-in via `[scanners].enabled` or `--scanners …,trivy,checkov` (defaults unchanged)
 
+### Added (Phase 6.4 anchored SARIF)
+
+- `--sarif` writes SARIF 2.1 with Verification & Anchor (`anchorQuote` resolve)
+- Scanner findings trusted by location; unverified LLM/heuristic rows omitted from SARIF and flagged in Markdown
+- GHAS / artifact upload recipes in [ci.md](./ci.md)
+
 ### Added (Phase 6.3 CI triage routing)
 
 - `--ci` / `[ci]` triage: LLM bypassed when scanners clean; hit-file pack otherwise

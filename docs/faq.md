@@ -488,6 +488,10 @@ or Print → Save as PDF from a Markdown preview.
 
 No. Use RepoLens as a due-diligence layer **plus** tests, CI, and mature scanners (CVE/SAST/secrets). See [phases.md](./phases.md) Phase 3 and the design note above.
 
+## Does RepoLens export SARIF for GitHub / Sonar?
+
+Yes (`--sarif`, Phase 6.4). Export is **anchored**: scanner locations are trusted; LLM/heuristic findings need a resolvable `anchorQuote` in the cited file. Unverified locations stay in Markdown/JSON only — never in SARIF — so GHAS highlighting is not fed hallucinated lines. See [ci.md](./ci.md#anchored-sarif--sbom-phase-64--62).
+
 ## How does `--ci` triage routing work?
 
 On PRs, prefer **`repolens review --ci --fail-on HIGH`** (Action `ci: true` by default):

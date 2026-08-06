@@ -499,6 +499,15 @@ def _render_issue(issue: Issue) -> list[str]:
         block.append(f"- **Run ID:** `{issue.runId}`")
     if issue.stableId:
         block.append(f"- **Stable ID:** `{issue.stableId}`")
+    if issue.source:
+        block.append(f"- **Source:** {issue.source}")
+    if issue.locationVerified is False:
+        block.append(
+            "- **Location:** unverified — omitted from SARIF "
+            "(provide a resolvable `anchorQuote` or use scanner evidence)"
+        )
+    elif issue.locationVerified is True:
+        block.append("- **Location:** verified (SARIF-eligible)")
     block.extend(
         [
             f"- **Explanation:** {issue.explanation}",

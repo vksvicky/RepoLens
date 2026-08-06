@@ -24,3 +24,4 @@ class ReviewResult:
     json_path: Path | None
     files_scanned: int
     dry_run: bool
+    sarif_path: Path | None = None
