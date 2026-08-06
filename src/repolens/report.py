@@ -134,6 +134,10 @@ def render_markdown(
             f"- **LLM:** reused from last successful AI pass "
             f"(`{report.llmReusedFrom}`) — not a fresh deep review"
         )
+    elif getattr(report, "llmBypassed", False):
+        lines.append(
+            "- **LLM:** bypassed (scanners clean at triage floor)"
+        )
     elif getattr(report, "llmSkipped", False):
         lines.append(
             "- **LLM:** skipped (no fingerprint delta under `--changed` and "
