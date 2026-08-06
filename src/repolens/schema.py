@@ -123,11 +123,21 @@ class ProvenanceBlock(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class SuppressedIssue(BaseModel):
+    """Phase 6.7: finding kept for audit but excluded from gates/SARIF."""
+
+    issue: Issue
+    reason: str
+    mechanism: Literal["ignore_file", "disable_comment"]
+    note: str = ""
+
+
 class FindingReport(BaseModel):
     schemaVersion: str = "1.0"
     confidence: int = Field(ge=0, le=100)
     summary: Summary
     issues: list[Issue] = Field(default_factory=list)
+    suppressedIssues: list[SuppressedIssue] = Field(default_factory=list)
     durabilityGaps: list[str] = Field(default_factory=list)
     scores: ArchitectureScores | None = None
     scannerRuns: list[ScannerRun] = Field(default_factory=list)

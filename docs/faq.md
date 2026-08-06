@@ -494,6 +494,16 @@ No. Use RepoLens as a due-diligence layer **plus** tests, CI, and mature scanner
 
 Yes (`--sarif`, Phase 6.4). Export is **anchored**: scanner locations are trusted; LLM/heuristic findings need a resolvable `anchorQuote` in the cited file. Unverified locations stay in Markdown/JSON only — never in SARIF — so GHAS highlighting is not fed hallucinated lines. See [ci.md](./ci.md#anchored-sarif--sbom-phase-64--62).
 
+## How do I stop the same finding failing every PR?
+
+Use **Phase 6.7 suppressions**:
+
+1. Copy the finding’s **Stable ID** from the report.  
+2. `repolens feedback down <stableId> --reason false_positive --path .` (writes `.repolens-ignore`), **or** add an `[[ignore]]` table by hand.  
+3. For LLM/heuristic line noise only: `# repolens:disable-next-line` above the line (scanners still need an ignore entry).
+
+Suppressed rows leave fail-on and SARIF, but stay listed under **Suppressed** in Markdown. See [rules.md](./rules.md#suppress-a-finding-so-it-stops-nagging-phase-67).
+
 ## Do you publish detection F1 / “beats Semgrep” numbers?
 
 No as a marketing lead. Phase 6.6 pre-registers a methodology that leads with **remediation rate**, **MTTR**, and **suggested-fix apply %** — not synthetic F1 alone. See [benchmarks/methodology.md](./benchmarks/methodology.md) and the honest MVP table ([results](./benchmarks/results/mvp-2026-08-06.md)). Supporting readiness metrics: `repolens score-report path/to/report.json`.

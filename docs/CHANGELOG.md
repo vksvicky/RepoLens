@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 6.7 suppressions & local feedback)
+
+- `.repolens-ignore` (stableId or file+category, required reason, optional expiry)
+- Inline `#` / `//` `repolens:disable-next-line` and disable/enable blocks (LLM/heuristic only)
+- Suppressed findings excluded from `--fail-on` and SARIF; listed under **Suppressed** in Markdown
+- `repolens feedback down|list` — local-only; writes ignore entries (no cloud upload)
+
 ### Added (Phase 6.6 public benchmark & credibility)
 
 - Pre-registered methodology led by **remediation rate / MTTR / suggested-fix apply %** ([benchmarks/methodology.md](./benchmarks/methodology.md))
