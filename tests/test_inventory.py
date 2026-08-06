@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from repolens.inventory import list_files
+from repolens.inventory import (
+    classify_fingerprint_deletions,
+    list_files,
+    scan_inventory,
+)
 
 
 def test_ignores_venv_and_orders_p1_first(tmp_path: Path) -> None:
@@ -32,6 +36,28 @@ def test_max_files_boundary(tmp_path: Path) -> None:
         (tmp_path / f"f{i}.py").write_text("x=1\n", encoding="utf-8")
     files = list_files(tmp_path, max_files=3)
     assert len(files) == 3
+
+
+def test_scan_inventory_reports_truncation(tmp_path: Path) -> None:
+    for i in range(5):
+        (tmp_path / f"f{i}.py").write_text("x=1\n", encoding="utf-8")
+    inv = scan_inventory(tmp_path, max_files=3)
+    assert inv.truncated
+    assert inv.total_matched == 5
+    assert len(inv.files) == 3
+    note = inv.truncation_note()
+    assert note is not None
+    assert "3 of 5" in note
+    assert "scanners" in note.lower()
+
+
+def test_classify_fingerprint_deletions_splits_dropped(tmp_path: Path) -> None:
+    (tmp_path / "kept.py").write_text("x=1\n", encoding="utf-8")
+    removed, dropped = classify_fingerprint_deletions(
+        tmp_path, ["kept.py", "gone.py"]
+    )
+    assert dropped == ["kept.py"]
+    assert removed == ["gone.py"]
 
 
 def test_ignores_superpowers_scratch(tmp_path: Path) -> None:

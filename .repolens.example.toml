@@ -13,6 +13,7 @@
 [general]
 # default_mode = "review"   # review | sentinel | architecture
 # report_dir = "reports"
+# max_files = 200           # Slow Brain LLM sample pool (priority-sorted)
 
 [model]
 # provider = "openai"       # or anthropic | deepseek | ollama | ...
@@ -43,6 +44,12 @@
 # enabled = []                                # Phase 6.10 — off by default
 # enabled = ["azure-sentinel"]                # or: repolens review --pack azure-sentinel
 # See docs/packs.md — does not replace Checkov/ARM-TTK
+
+[fast_brain]
+# max_files = 10000                           # Fast Brain heuristics (0 = uncapped matched)
+# parallel_workers = 8                        # I/O thread pool for line/regex heuristics
+# triage_include_heuristics = true            # --ci: heuristic High+ can wake LLM
+# No AST in Fast Brain — regex/line/stat/hash only (Phase 6.11)
 
 [local_learning]
 # enabled = false           # opt-in; data stays on disk (see docs/local-learning.md)

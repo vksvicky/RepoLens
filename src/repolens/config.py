@@ -36,6 +36,18 @@ class ModelConfig(BaseModel):
 class GeneralConfig(BaseModel):
     default_mode: str = "review"
     report_dir: str = "reports"
+    # LLM / deep sample inventory (Slow Brain). Fast Brain uses [fast_brain].max_files.
+    max_files: int = 200
+
+
+class FastBrainConfig(BaseModel):
+    """Phase 6.11 Lane 1: whole-tree deterministic heuristics (not the LLM pack)."""
+
+    # 0 = no cap beyond ignores / per-file size.
+    max_files: int = 10_000
+    parallel_workers: int = 8
+    # When True, heuristic hits at severity_floor can wake --ci LLM triage.
+    triage_include_heuristics: bool = True
 
 
 class ScannersConfig(BaseModel):
@@ -122,6 +134,7 @@ class RepoLensConfig(BaseModel):
     explain: ExplainConfig = Field(default_factory=ExplainConfig)
     ci: CiConfig = Field(default_factory=CiConfig)
     packs: PacksConfig = Field(default_factory=PacksConfig)
+    fast_brain: FastBrainConfig = Field(default_factory=FastBrainConfig)
 
 
 def user_config_path() -> Path:

@@ -77,6 +77,30 @@ class FileEntry:
     priority_band: int  # 1 = P1-first
 
 
+@dataclass(frozen=True)
+class InventoryResult:
+    """Inventory after ignores/size filter, then optional ``max_files`` truncation."""
+
+    files: list[FileEntry]
+    total_matched: int
+    max_files: int
+    max_bytes: int
+
+    @property
+    def truncated(self) -> bool:
+        return self.total_matched > len(self.files)
+
+    def truncation_note(self) -> str | None:
+        if not self.truncated:
+            return None
+        cap = "uncapped" if self.max_files <= 0 else str(self.max_files)
+        return (
+            f"Inventory truncated: using {len(self.files)} of {self.total_matched} "
+            f"matched files (max_files={cap}). "
+            "Selection order: priority_band (security-name hints first), then path. "
+            "Deterministic scanners still scan the full tree."
+        )
+
 
 def _is_under_root(path: Path, root: Path) -> bool:
     try:
@@ -111,6 +135,38 @@ def _band_for(relative: str) -> int:
     return 3
 
 
+def scan_inventory(
+    root: Path,
+    *,
+    mode: str = "full",
+    since: str | None = None,
+    max_files: int = 200,
+    max_bytes: int = 200_000,
+) -> InventoryResult:
+    """Walk (or diff) the tree, then keep the top ``max_files`` by priority."""
+    root = root.resolve()
+    if not root.is_dir():
+        raise FileNotFoundError(f"Path is not a directory: {root}")
+
+    if mode == "diff":
+        matched = _collect_diff_entries(root, since=since, max_bytes=max_bytes)
+    else:
+        matched = _collect_full_entries(root, max_bytes=max_bytes)
+
+    matched.sort(key=lambda e: (e.priority_band, e.relative))
+    total = len(matched)
+    if max_files <= 0:
+        kept = matched
+    else:
+        kept = matched[:max_files]
+    return InventoryResult(
+        files=kept,
+        total_matched=total,
+        max_files=max_files,
+        max_bytes=max_bytes,
+    )
+
+
 def list_files(
     root: Path,
     *,
@@ -119,13 +175,12 @@ def list_files(
     max_files: int = 200,
     max_bytes: int = 200_000,
 ) -> list[FileEntry]:
-    root = root.resolve()
-    if not root.is_dir():
-        raise FileNotFoundError(f"Path is not a directory: {root}")
+    return scan_inventory(
+        root, mode=mode, since=since, max_files=max_files, max_bytes=max_bytes
+    ).files
 
-    if mode == "diff":
-        return _list_diff_files(root, since=since, max_files=max_files, max_bytes=max_bytes)
 
+def _collect_full_entries(root: Path, *, max_bytes: int) -> list[FileEntry]:
     entries: list[FileEntry] = []
     for path in root.rglob("*"):
         if path.is_symlink() or not path.is_file():
@@ -144,16 +199,13 @@ def list_files(
         entries.append(
             FileEntry(path=path, relative=rel, size=size, priority_band=_band_for(rel))
         )
-
-    entries.sort(key=lambda e: (e.priority_band, e.relative))
-    return entries[:max_files]
+    return entries
 
 
-def _list_diff_files(
+def _collect_diff_entries(
     root: Path,
     *,
     since: str | None,
-    max_files: int,
     max_bytes: int,
 ) -> list[FileEntry]:
     base = since or "HEAD"
@@ -205,8 +257,30 @@ def _list_diff_files(
         entries.append(
             FileEntry(path=path, relative=name, size=size, priority_band=_band_for(name))
         )
-    entries.sort(key=lambda e: (e.priority_band, e.relative))
-    return entries[:max_files]
+    return entries
+
+
+def classify_fingerprint_deletions(
+    root: Path, deleted_paths: list[str]
+) -> tuple[list[str], list[str]]:
+    """Split cache 'deleted' into removed-from-tree vs dropped-from-inventory-pack.
+
+    Paths still present on disk were almost always truncated out of ``max_files``,
+    not actually deleted.
+    """
+    removed: list[str] = []
+    dropped: list[str] = []
+    root = root.resolve()
+    for rel in deleted_paths:
+        path = root / rel
+        try:
+            if path.is_file() and not path.is_symlink():
+                dropped.append(rel)
+            else:
+                removed.append(rel)
+        except OSError:
+            removed.append(rel)
+    return removed, dropped
 
 
 def read_excerpt(entry: FileEntry, *, max_chars: int = 12_000) -> str:

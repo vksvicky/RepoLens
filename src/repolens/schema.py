@@ -128,6 +128,9 @@ class ProvenanceBlock(BaseModel):
     llmBypassed: bool = False
     triageHits: int = 0
     failOnScannerOnly: bool = False
+    # Phase 6.11 Two-Lane honesty
+    fastBrainFiles: int | None = None
+    llmPackFiles: int | None = None
     notes: list[str] = Field(default_factory=list)
 
 

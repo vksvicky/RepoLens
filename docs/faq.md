@@ -13,10 +13,49 @@ If you only read one section, read this.
 | **Does it learn from my repo?** | **Yes (opt-in):** on your machine only, off by default, and we tell you before it starts (`repolens learn`). We don’t upload your project to train a central RepoLens model. If you use cloud AI, that provider may still see code excerpts you send for the review. |
 | **What is `.[dev]` / `.[scanners]`?** | Optional **pip extras when installing RepoLens** (listed in RepoLens’s `pyproject.toml`). They are **not** part of the project you review. See [install-extras.md](./install-extras.md). |
 | **I have Ollama — why does review fail?** | RepoLens needs a one-time `repolens init --provider ollama` (writes `~/.config/repolens/config.toml`). `init` uses a model from `ollama list` when `--model` is omitted. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md#option-b--local-ai-on-your-computer-eg-ollama). |
+| **Does AI review every file?** | **No (Slow Brain).** LLM sample defaults to top **200** files. **Fast Brain** heuristics run on a much larger matched set (default 10k). Scanners walk the **full** tree. See [Two-Lane / inventory](#how-does-the-200-file-inventory-cap-work-are-the-other-files-at-risk). |
 
 Longer narrative: [design/ai-keys-scanners-and-local-learning.md §5](./design/ai-keys-scanners-and-local-learning.md#5-decision-summary-plain-language).  
 
 **Setup steps for all three options:** [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) (cloud key · local Ollama · scanners only).
+
+---
+
+## How does the 200-file inventory cap work? Are the other files “at risk”?
+
+**Two-Lane product (Phase 6.11):**
+
+| Lane | Default scope | Role |
+|------|---------------|------|
+| **Fast Brain** | Up to **10 000** matched files (`[fast_brain].max_files`; `0` = uncapped) | Parallel regex/line/stat heuristics + domain packs; fingerprints |
+| **Slow Brain** | Top **200** (`[general].max_files`) | LLM deep / single-shot sample; `--ci` triage often fewer (hit files only) |
+| **Scanners** | **Full tree** | gitleaks / Semgrep / OSV / Trivy / Checkov |
+
+**Yes — for the LLM narrative** the rest of the tree is unreviewed by the model. **No — for Fast Brain + scanners** on typical repos under the Fast Brain cap.
+
+**How priority order is chosen** (both lanes share the same sort, then different caps):
+
+1. Walk the tree (skip `.git`, `node_modules`, `reports`, binaries, etc.).
+2. Drop files over ~200 KB.
+3. Assign a **priority band** from path/name hints (`security`, `auth`, `jwt`, `secret`, … → band 1; controllers/services → band 2; else band 3).
+4. Sort by `(priority_band, path)`; Fast Brain keeps up to its cap; LLM pool is the first `general.max_files`.
+
+Fast Brain heuristics are **not** AST parsers (that stays Slow Brain or Semgrep). Progress shows Fast vs Slow counts; provenance has `fastBrainFiles` / `llmPackFiles`.
+
+### Org / multi-project reality
+
+| Concern | Honest answer |
+|---------|----------------|
+| 5k–50k file monorepo | LLM pack is a **sample** (often &lt;1%), not enterprise “we reviewed everything” |
+| Remaining files “at risk”? | **For AI narrative — yes, unreviewed.** For secrets/CVE/SAST — scanners still cover the full tree when enabled |
+| Many repos to check | Deep local LLM is often **≥1 h per ~200-file pack** (hours on larger packs). That does not scale as “run full deep on every project tonight” |
+| What to run day-to-day | `--scanners-only` or `--ci --fail-on HIGH` (LLM bypass when scanners clean) |
+| When to run deep LLM | Scheduled / release audits, or hot-path packs (`--changed`, triage hits) — not every PR |
+| Raise `max_files` alone? | Makes deep runs **longer**; does not by itself create safe full-repo AI coverage |
+
+Do **not** position RepoLens as replacing CodeQL/Semgrep/Dependabot fleet coverage. It adds a structured dual-review layer on a **prioritised slice**, plus optional full-tree scanners.
+
+Related: [command-atlas.md](./command-atlas.md) · [command atlas durations](./command-atlas.md#7-approximate-duration).
 
 ---
 

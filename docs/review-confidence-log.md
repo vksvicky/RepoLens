@@ -35,3 +35,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-08-06 | WIP→commit | 91% | 0/0/1/1 | Phase 6.9 usage hints/cluster/verify; 8 pytest; no reachability claims | chat |
 | 2026-08-06 | WIP→commit | 92% | 0/0/0/1 | Phase 6.10 packs + azure-sentinel + quickcheck doc; 8 pytest | chat |
 | 2026-08-06 | WIP→commit | 96% | 0/0/0/0 | Docs: command-atlas + honest LLM hour-scale timings | chat |
+| 2026-08-06 | WIP→commit | 90% | 0/0/1/1 | Phase 6.11 Fast Brain Two-Lane + summary Metrics polish; fixed triage pack from fast inventory | chat |

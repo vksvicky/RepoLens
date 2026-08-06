@@ -325,12 +325,15 @@ def _render_durability_gaps_section(report: FindingReport) -> list[str]:
 
 
 def _render_metrics_section(report: FindingReport) -> list[str]:
-    """Glossary + band audit confidences (Phase 5.1)."""
-    if (
-        report.securityAuditConfidence is None
-        and report.architectureAuditConfidence is None
-        and report.reliabilityAuditConfidence is None
-    ):
+    """Glossary + band audit confidences (Phase 5.1) + Two-Lane counts (6.11)."""
+    has_bands = (
+        report.securityAuditConfidence is not None
+        or report.architectureAuditConfidence is not None
+        or report.reliabilityAuditConfidence is not None
+    )
+    prov = report.provenance
+    has_fast_brain = prov is not None and prov.fastBrainFiles is not None
+    if not has_bands and not has_fast_brain:
         return []
     lines = [
         "## Metrics",
@@ -351,6 +354,16 @@ def _render_metrics_section(report: FindingReport) -> list[str]:
             "“% secure” |"
         ),
     ]
+    if prov is not None and prov.fastBrainFiles is not None:
+        lines.append(
+            f"| Fast Brain files | {prov.fastBrainFiles} | Inventory used for "
+            "whole-tree heuristics (Phase 6.11 Two-Lane) |"
+        )
+        if prov.llmPackFiles is not None:
+            lines.append(
+                f"| LLM pack files | {prov.llmPackFiles} | Files sent to the model "
+                "(0 if bypassed / scanners-only) |"
+            )
     if report.securityAuditConfidence is not None:
         lines.append(
             f"| Security audit confidence | {report.securityAuditConfidence}% | "
@@ -367,26 +380,31 @@ def _render_metrics_section(report: FindingReport) -> list[str]:
             f"| Architecture audit confidence | {report.architectureAuditConfidence}% | "
             "P3/`arch.*` base − missed/invalid N/A − Critical/High in that band |"
         )
-    lines.extend(
-        [
-            "| Severity counts | (above) | Finding tallies — independent of confidence % |",
-            "| Coverage | (below) | Checklist ids: covered / honest N/A / missed |",
-            "",
-            "### How these % are calculated",
-            "",
-            "1. Each deep pass supplies a **base** confidence.",
-            "2. Band % = base − **4×missed** ids in band (cap −40) − **3×invalid N/A** "
-            "(cap −30); security also **+5** if all scanners `ran`; then "
-            "−**20**/Critical and −**10**/High attributed to that band.",
-            "3. **Gate** = min(ran pass bases + scored band %) − the same missed / "
-            "invalid-N/A penalties across scored bands (clamp 0–100).",
-            "",
-            "High security audit + lower gate usually means reliability/architecture "
-            "or **missed** checklist ids are the weak link — not that security is "
-            "perfect in absolute terms.",
-            "",
-        ]
+    lines.append(
+        "| Severity counts | (above) | Finding tallies — independent of confidence % |"
     )
+    if has_bands:
+        lines.extend(
+            [
+                "| Coverage | (below) | Checklist ids: covered / honest N/A / missed |",
+                "",
+                "### How these % are calculated",
+                "",
+                "1. Each deep pass supplies a **base** confidence.",
+                "2. Band % = base − **4×missed** ids in band (cap −40) − **3×invalid N/A** "
+                "(cap −30); security also **+5** if all scanners `ran`; then "
+                "−**20**/Critical and −**10**/High attributed to that band.",
+                "3. **Gate** = min(ran pass bases + scored band %) − the same missed / "
+                "invalid-N/A penalties across scored bands (clamp 0–100).",
+                "",
+                "High security audit + lower gate usually means reliability/architecture "
+                "or **missed** checklist ids are the weak link — not that security is "
+                "perfect in absolute terms.",
+                "",
+            ]
+        )
+    else:
+        lines.append("")
     return lines
 
 
