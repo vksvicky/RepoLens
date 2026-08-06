@@ -411,6 +411,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 **Exit:** Deterministic baseline on Fast Brain inventory; LLM remains sampled / triage-routed; docs honest about lanes. → **Met for implementation (2026-08-06)** (dogfood deep run completed)
 
+**Follow-up (2026-08-06):** Two-Lane headline + lane timings, theme-family clustering, indent nesting heuristic, fair dogfood docs — [plan](./superpowers/plans/2026-08-06-two-lane-presentation-and-cq-parity.md).
+
 ---
 
 ## Phase 7 — Enterprise CI/CD & report delivery (design)
