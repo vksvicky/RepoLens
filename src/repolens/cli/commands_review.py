@@ -265,7 +265,10 @@ def review(
     explain: str | None = typer.Option(
         None,
         "--explain",
-        help="After review, deep-dive these issue UUID(s) (comma-separated runId/stableId)",
+        help=(
+            "After review, deep-dive these UUID(s) "
+            "(Fingerprint or Occurrence, comma-separated)"
+        ),
     ),
     ci: bool = typer.Option(
         False,

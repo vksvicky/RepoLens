@@ -41,6 +41,83 @@ def extract_mermaid(raw: str) -> str:
     return text
 
 
+def _has_bare_dotted_edge_nodes(text: str) -> bool:
+    """True when an edge uses bare ``file.py`` tokens (Mermaid syntax error)."""
+    edge_re = re.compile(
+        r"^\s*(\S+)\s*(?:-->|---|==>|-\.->)\s*(\S+)\s*$"
+    )
+    for line in text.splitlines():
+        m = edge_re.match(line)
+        if not m:
+            continue
+        for tok in m.groups():
+            if tok[0] in {"[", "(", '"', "'"}:
+                continue
+            if re.match(r'^[A-Za-z_][\w]*(\["|\(|\[)', tok):
+                continue
+            if "." in tok:
+                return True
+    return False
+
+
+def _mermaid_bare_id(token: str) -> str:
+    """Map any node token to a Markdown/Mermaid-safe bare id (no labels)."""
+    n = token.strip()
+    if not n:
+        return "n"
+    # id(label) / id[label] / id["label"] → id
+    m = re.match(r"^([A-Za-z_][\w]*)\s*[\(\[\"]", n)
+    if m:
+        return m.group(1)
+    if re.fullmatch(r"[A-Za-z_][\w]*", n):
+        return n
+    safe = re.sub(r"[^A-Za-z0-9_]", "_", n)
+    safe = re.sub(r"_+", "_", safe).strip("_")
+    if not safe or safe[0].isdigit():
+        safe = "n_" + safe
+    return safe or "n"
+
+
+def normalize_mermaid_node_ids(body: str) -> str:
+    """Force bulletproof Mermaid edges for IDE Markdown previews.
+
+    Cursor/VS Code often break Mermaid by:
+    - treating ``id[label]`` as Markdown links
+    - treating ``>`` in ``-->`` as a blockquote (leaves ``host--``)
+    - smart-typography turning `` --> `` into `` → `` / `` →> ``
+
+    So we emit only bare ids and tight undirected edges: ``host---run_mode``
+    (no ``>``). Human labels belong in Markdown prose next to the fence.
+    """
+    text = (body or "").strip()
+    if not text:
+        return text
+
+    # Allow spaces inside id(label with spaces) on either side of the arrow.
+    # Prefer longer operators first so ``---`` is not split as ``--`` + ``-``.
+    edge_re = re.compile(
+        r"^\s*(.+?)\s*(-->|---|==>|-\.->|→>|→)\s*(.+?)\s*$"
+    )
+    out: list[str] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.lower().startswith(("flowchart", "graph", "sequencediagram")):
+            out.append(stripped)
+            continue
+        m = edge_re.match(stripped)
+        if not m:
+            # Keep simple bare-id only lines; drop labelled declarations.
+            if re.fullmatch(r"[A-Za-z_][\w]*", stripped):
+                out.append(stripped)
+            continue
+        left, _op, right = m.groups()
+        # ``---`` avoids ``>`` (Cursor preview blockquote-eats ``-->``).
+        out.append(f"{_mermaid_bare_id(left)}---{_mermaid_bare_id(right)}")
+    return "\n".join(out)
+
+
 def validate_mermaid(body: str) -> bool:
     """Structural checks only — no external renderer required."""
     text = (body or "").strip()
@@ -62,6 +139,8 @@ def validate_mermaid(body: str) -> bool:
     # Need at least one connector or message arrow for a usable diagram
     if not re.search(r"(-->|--|==>|-\.->|->>|-->>)", text):
         return False
+    if _has_bare_dotted_edge_nodes(text):
+        return False
     return True
 
 
@@ -82,7 +161,7 @@ def repair_mermaid(body: str) -> str:
         for h in ("flowchart", "graph", "sequencediagram")
     ):
         text = "flowchart LR\n" + text
-    return text
+    return normalize_mermaid_node_ids(text)
 
 
 def textual_fallback(body: str, *, reason: str) -> str:
@@ -128,9 +207,12 @@ def process_diagram(
 ) -> DiagramResult:
     """Validate Mermaid → one repair → textual fallback; optional image best-effort."""
     notes: list[str] = []
-    body = extract_mermaid(raw)
+    raw_body = extract_mermaid(raw)
+    body = normalize_mermaid_node_ids(raw_body)
     if validate_mermaid(body):
         mermaid = body.strip()
+        if body.strip() != raw_body.strip():
+            notes.append("diagram.mermaid_normalized")
     else:
         repaired = repair_mermaid(raw).strip()
         if validate_mermaid(repaired):

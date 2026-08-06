@@ -108,7 +108,7 @@ def render_pr_summary(report: FindingReport) -> str:
         lines.append(f"#### [{issue.severity.value}] {issue.title}")
         lines.append(f"- **Where:** `{issue.file}:{issue.line}`")
         if issue.stableId:
-            lines.append(f"- **Stable ID:** `{issue.stableId}`")
+            lines.append(f"- **Fingerprint:** `{issue.stableId}`")
         lines.append(f"- **Fix:** {issue.recommendedFix}")
         example = (issue.codeExample or "").strip()
         if example:

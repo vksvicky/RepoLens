@@ -90,7 +90,8 @@ Playbooks loaded from package data / repo `playbooks/`:
 
 ## Finding schema (canonical)
 
-JSON shape produced by the model and normalized by the CLI:
+JSON shape produced by the model / scanners / heuristics and normalized by the CLI.
+Plain-language field glossary: [FAQ — What do finding fields mean?](../faq.md#what-do-finding-fields-mean).
 
 ```json
 {
@@ -114,7 +115,11 @@ JSON shape produced by the model and normalized by the CLI:
       "impact": "Any authenticated user can call admin actions.",
       "recommendedFix": "Step-by-step remediation.",
       "codeExample": "def admin():\n    require_role('admin')\n    ...",
-      "fixTiming": "immediately"
+      "fixTiming": "immediately",
+      "stableId": "a08697ac-a881-53ca-a8a0-92d86ca3da5b",
+      "runId": "caf11d8b-559f-4fd7-a936-16d4681783b6",
+      "source": "llm",
+      "locationVerified": false
     }
   ],
   "durabilityGaps": ["tests", "ci", "secret-scanning"],
@@ -122,19 +127,30 @@ JSON shape produced by the model and normalized by the CLI:
 }
 ```
 
+### Identity fields (Phase 6)
+
+| JSON field | Markdown label | Kind | Behaviour |
+|------------|----------------|------|-----------|
+| `stableId` | **Fingerprint** | UUID v5 | Hash of normalized `(category, file, title)` — identity across runs |
+| `runId` | **Occurrence** | UUID v4 | Fresh per report row — this appearance only |
+| `source` | Source | enum | `scanner` \| `heuristic` \| `llm` |
+| `locationVerified` | Location | bool | When false, finding is kept in MD/JSON but omitted from SARIF |
+
+CLI: `repolens explain <fingerprint|occurrence>` (either UUID). Prefer **Fingerprint** for explain and for `feedback down` / `.repolens-ignore`.
+
 ### Validation rules
 
 - `severity` ∈ `CRITICAL|HIGH|MEDIUM|LOW`
-- `priority` ∈ `P1|P2|P3`
+- `priority` ∈ `P1|P2|P3` (P1 security · P2 reliability · P3 architecture)
 - Critical/High **must** have non-empty `codeExample` and `impact` (reject or re-prompt once)
 - `confidence` integer 0–100
 - `scores` object only for full architecture audits (1–10 dimensions)
 
 ### Markdown report
 
-Filename: `gate_review_report_{mode}_YYYY-MM-DD_HHMM.md` (mode = `review` \| `sentinel` \| `architecture`; local time; avoids same-day / cross-mode overwrite)
+Filename: `gate_review_report_{mode}_YYYY-MM-DD_HHMM.md` (mode = `review` \| `sentinel` \| `architecture`; UTC stamp)
 
-Sections: Gate verdict → P1 → P2 → P3 → Plan to fix → Durability gaps → (optional) Architecture scores.
+Sections: Gate verdict → Metrics → P1 → P2 → P3 → Plan to fix → Durability gaps → Coverage → (optional) Architecture scores.
 
 ---
 

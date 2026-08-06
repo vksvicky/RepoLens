@@ -111,6 +111,9 @@ def test_write_markdown_report_includes_sections(tmp_path: Path) -> None:
     assert "**Generated:**" in text
     assert "**Duration:** 18m 14s (1094s)" in text
     assert "## Gate verdict" in text
+    assert "## Finding fields" in text
+    assert "Fingerprint" in text
+    assert "Occurrence" in text
     assert "Gate confidence:** 70%" in text or "**Gate confidence:** 70%" in text
     assert "Hardcoded API key" in text
     assert "key = os.environ" in text

@@ -11,10 +11,11 @@ Deep guides stay linked; this page is the map.
 | CI / GitHub Action | [ci.md](./ci.md) |
 | Domain packs detail | [packs.md](./packs.md) · [packs-quickcheck.md](./packs-quickcheck.md) |
 | Suppressions / rules | [rules.md](./rules.md) |
-| FAQ | [faq.md](./faq.md) |
+| FAQ | [faq.md](./faq.md) · [finding fields](./faq.md#what-do-finding-fields-mean) |
 
 **How to read this page**
 
+- Tables are **Command / Recipe → Expect → Example**. Copy the **Example** column; swap `TARGET` for your repo path.
 - Progress lines (`→ …`) show by default; **`-v`** adds detail; **`-q`** is quiet (CI).
 - Exit codes (typical): **0** ok · **1** `--fail-on` threshold hit · **2** usage/config/missing required scanner · **3** clone/source failure.
 - Durations are **order-of-magnitude**, not SLAs (disk, cold Semgrep cache, network, model size all move the needle).
@@ -35,25 +36,26 @@ Optional Semgrep via pip: `pip install -e ".[dev,scanners]"`. What extras mean: 
 
 ### First checks
 
-| Command | Expect |
-|---------|--------|
-| `repolens version` | Version string (e.g. `0.1.0a1`) |
-| `repolens --help` | Command list including `review`, `sentinel`, `plugins`, `packs`, … |
+| Command | Expect | Example |
+|---------|--------|---------|
+| `repolens version` | Version string (e.g. `0.1.0a1`) | `repolens version` |
+| `repolens --help` | Command list including `review`, `sentinel`, `plugins`, `packs`, … | `repolens --help` |
 
 ### Configure once (only if you want LLM narrative)
 
-| Goal | Command | Expect |
-|------|---------|--------|
-| Local Ollama | `repolens init --provider ollama` (or `--model qwen2.5:7b --force`) | Writes `~/.config/repolens/config.toml` |
-| Cloud BYOK | `repolens init --provider openai` (or `anthropic` / `deepseek`) + set the API key env var | Same config file; key stays in env, not in git |
-| Scanners / dry-run only | Skip `init` | `--scanners-only` / `--dry-run` need no model |
+| Goal | Expect | Example |
+|------|--------|---------|
+| Local Ollama | Writes `~/.config/repolens/config.toml` | `repolens init --provider ollama` |
+| Pin a model | Same config; overwrites with `--force` | `repolens init --provider ollama --model qwen2.5-coder:32b --force` |
+| Cloud BYOK | Config file; key stays in env, not in git | `repolens init --provider openai` then `export OPENAI_API_KEY=…` |
+| Scanners / dry-run only | No model required | Skip `init`; use `--scanners-only` / `--dry-run` |
 
 ### Install scanner plugins (once per machine)
 
-| Command | Expect |
-|---------|--------|
-| `repolens plugins install all --yes` | Downloads pinned tools under `~/.cache/repolens/tools/` (consent with `--yes` in CI) |
-| `repolens plugins status` | Table: tool → available / missing |
+| Command | Expect | Example |
+|---------|--------|---------|
+| `repolens plugins install all --yes` | Downloads pinned tools under `~/.cache/repolens/tools/` | `repolens plugins install all --yes` |
+| `repolens plugins status` | Table: tool → available / missing | `repolens plugins status` |
 
 Platform notes: [scanners.md](./scanners.md). Windows plugin matrix is thinner — dry-run + LLM still work.
 
@@ -71,12 +73,12 @@ Remotes: `--github OWNER/REPO`, `--bitbucket WORKSPACE/REPO`, `--hf …`, `--git
 
 ## 2) Start here (setup commands)
 
-| Command | Expect |
-|---------|--------|
-| `repolens version` | Prints version |
-| `repolens init --provider ollama \| openai \| …` | Creates/updates user config (`--force` to overwrite) |
-| `repolens plugins status` / `list` | Availability table |
-| `repolens plugins install [all\|gitleaks\|…]` | Install messages; re-run `status` |
+| Command | Expect | Example |
+|---------|--------|---------|
+| `repolens version` | Prints version | `repolens version` |
+| `repolens init --provider …` | Creates/updates user config | `repolens init --provider ollama --force` |
+| `repolens plugins status` / `list` | Availability table | `repolens plugins status` |
+| `repolens plugins install …` | Install messages; re-run `status` | `repolens plugins install gitleaks --yes` |
 
 ---
 
@@ -85,67 +87,71 @@ Remotes: `--github OWNER/REPO`, `--bitbucket WORKSPACE/REPO`, `--hf …`, `--git
 `review` = full P1→P2→P3 · `sentinel` = security P1 · `architecture` = architecture / readiness.  
 Shared flags unless noted (`--full-audit` is mainly on `review`).
 
+Set once in the shell: `TARGET=/Users/[username]/Development/[your-project]`
+
 ### Recipes → what you should see
 
-| Recipe | Expect |
-|--------|--------|
-| `repolens review --path "$TARGET" --dry-run` | Inventory only; report notes dry-run; **no** scanners/LLM |
-| `… --scanners-only` | Scanners run; summary table; Markdown/JSON under `--out` / `reports/` |
-| `… --scanners-only -v` | Extra `·` detail (per-scanner status, SBOM path, packs line if enabled) |
-| `… --ci --fail-on HIGH` | Triage routing; often **`LLM bypassed (scanners clean at triage floor)`** when scanners clean |
-| `…` (full LLM, after `init`) | Inventory → scanners → LLM wait/heartbeats → report; deep multi-pass **on** by default |
-| `… --no-deep` | Single-shot LLM (faster, thinner coverage) |
-| `… --changed` / `--full` | Smaller or forced-full LLM pack (adaptive) |
-| `… --pack azure-sentinel -v` | `Domain packs: azure-sentinel (N heuristic finding(s))` |
-| `… --sarif` | Also writes anchored SARIF under reports |
-| `… --verify-findings` | Critical location re-check notes (non-fatal); no-op if no Criticals |
-| `repolens sentinel --path "$TARGET"` | Security-focused report (does not overwrite a full `review` report name pattern the same way — check `reports/`) |
-| `repolens architecture --path "$TARGET"` | Architecture playbook path |
+| Recipe | Expect | Example |
+|--------|--------|---------|
+| Dry-run inventory | Inventory only; **no** scanners/LLM | `repolens review --path "$TARGET" --out "$TARGET/reports" --dry-run` |
+| Scanners-only | Summary + MD/JSON; Fast Brain heuristics | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only` |
+| Scanners-only verbose | Extra `·` detail (scanners, SBOM, packs) | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only -v` |
+| CI gate | Triage; often **`LLM bypassed…`** when clean | `repolens review --path "$TARGET" --out "$TARGET/reports" --ci --fail-on HIGH -q` |
+| Full LLM (after `init`) | Scanners → deep multi-pass → report | `repolens review --path "$TARGET" --out "$TARGET/reports" --full --verbose --timeout 1800` |
+| Single-shot LLM | Faster, thinner coverage | `repolens review --path "$TARGET" --out "$TARGET/reports" --no-deep` |
+| Changed pack only | Smaller adaptive LLM pack | `repolens review --path "$TARGET" --out "$TARGET/reports" --changed` |
+| Domain pack | Pack heuristics in `-v` detail | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only --pack azure-sentinel -v` |
+| SARIF | Also writes anchored SARIF | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only --sarif` |
+| Verify Criticals | Location re-check (non-fatal) | `repolens review --path "$TARGET" --out "$TARGET/reports" --verify-findings` |
+| Sentinel (P1) | Security-focused report name | `repolens sentinel --path "$TARGET" --out "$TARGET/reports" --scanners-only` |
+| Architecture | Architecture playbook path | `repolens architecture --path "$TARGET" --out "$TARGET/reports" --dry-run` |
 
 ### Review progress lines (common)
 
-| Line | Meaning |
-|------|---------|
-| `Fast brain inventory: K of N matched…` | Lane 1 file set for heuristics (default cap 10k) |
-| `Slow brain LLM pool: top 200…` | Lane 2 sample (when Fast &gt; LLM cap) |
-| `Fast brain: heuristics on K file(s)…` | Parallel deterministic lane |
-| `… dropped from inventory pack` | Still on disk; fell out of fingerprint/LLM view |
-| `… removed from tree` | Path gone / not a file anymore |
-| `Scanners: finished (K finding(s), X/Y ran)` | Deterministic tools done |
-| `LLM bypassed (scanners clean…)` | `--ci` / triage: no LLM spend |
-| `LLM pack: A/B file(s)` | Adaptive / triage file selection |
-| `Domain packs: …` | Pack heuristics ran (`-v` detail) |
-| `Writing report → …` | Artifacts landing |
-| Summary table Critical/High/… | Severity counts for this run |
+| Line pattern | Meaning | Example (from a real run) |
+|--------------|---------|---------------------------|
+| Fast brain inventory | Lane 1 file set for heuristics (default cap 10k) | `→ Fast brain inventory: 286 matched file(s)` |
+| Slow brain LLM pool | Lane 2 sample when Fast &gt; LLM cap | `· Slow brain LLM pool: top 200 by priority (general.max_files=200)…` |
+| Fast brain heuristics | Parallel deterministic lane | `→ Fast brain: heuristics on 286 file(s) (workers=8)…` |
+| Dropped from pack | Still on disk; out of fingerprint/LLM view | `· 12 dropped from inventory pack` |
+| Removed from tree | Path gone / not a file anymore | `Cache: +0 added, ~2 changed, -1 removed from tree` |
+| Scanners finished | Deterministic tools done | `→ Scanners: finished (0 finding(s), 3/3 ran)` |
+| LLM bypassed | `--ci` / triage: no LLM spend | `→ LLM bypassed (scanners/heuristics clean at triage floor)` |
+| LLM pack | Adaptive / triage file selection | `→ LLM pack: 200/200 file(s) (adaptive mode=full)` |
+| Domain packs | Pack heuristics (`-v`) | `· Domain packs enabled: azure-sentinel` |
+| Writing report | Artifacts landing | `→ Writing report → reports` |
+| Summary metrics | Severity / Fast Brain counts | `Files scanned (Fast Brain) │ 286` · `LLM pack files │ 0` |
 
 ---
 
 ## 4) After a report
 
-| Command | Expect |
-|---------|--------|
-| `repolens explain <runId\|stableId> --path "$TARGET"` | Writes `reports/explain_*.md` (diagram best-effort; rarely fails the command) |
-| `repolens review … --explain uuid[,uuid]` | Review then explain those IDs |
-| `repolens pr-summary` / `… reports/foo.json` | Markdown of Critical/High suggested fixes |
-| `repolens pr-summary --github-summary` | Appends to `$GITHUB_STEP_SUMMARY` when set |
-| `repolens pr-summary --annotate` | Prints `::error` / `::warning` for Actions |
-| `repolens score-report reports/gate_….json` | Actionability metrics table (not remediation rate/MTTR) |
-| `repolens score-report … --json` | Same metrics as JSON |
-| `repolens export reports/gate_….md` | Echo/convert; `--pdf` if `pandoc` available |
-| `repolens feedback down <stableId> --reason "…"` | Appends `.repolens-ignore` (local only) |
-| `repolens feedback list` | Lists active ignore entries |
+Copy **Fingerprint** from the gate report (Occurrence also works) — [which UUID?](./faq.md#fingerprint-vs-occurrence--which-uuid-for-explain).
+
+| Command | Expect | Example |
+|---------|--------|---------|
+| `repolens explain <fingerprint\|occurrence>` | Progress + heartbeats; actionable explain MD (outline for mega-files) | `repolens explain a08697ac-a881-53ca-a8a0-92d86ca3da5b --path "$TARGET" --out "$TARGET/reports" -v` |
+| `review … --explain …` | Review then deep-dive those UUIDs | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only --explain a08697ac-a881-53ca-a8a0-92d86ca3da5b` |
+| `repolens pr-summary` | Critical/High suggested-fix Markdown | `repolens pr-summary "$TARGET/reports/gate_review_report_review_2026-08-06_1928.json"` |
+| `… --github-summary` | Appends to `$GITHUB_STEP_SUMMARY` | `repolens pr-summary --github-summary` |
+| `… --annotate` | `::error` / `::warning` for Actions | `repolens pr-summary --annotate` |
+| `repolens score-report …` | Actionability metrics table | `repolens score-report "$TARGET/reports/gate_review_report_review_2026-08-06_1928.json"` |
+| `… --json` | Same metrics as JSON | `repolens score-report "$TARGET/reports/….json" --json` |
+| `repolens export …` | Echo/convert; `--pdf` if `pandoc` | `repolens export "$TARGET/reports/gate_review_report_review_2026-08-06_1928.md"` |
+| `repolens feedback down <fingerprint>` | Appends `.repolens-ignore` (local) | `repolens feedback down a08697ac-a881-53ca-a8a0-92d86ca3da5b --reason false_positive --path "$TARGET"` |
+| `repolens feedback list` | Lists active ignore entries | `repolens feedback list --path "$TARGET"` |
 
 ---
 
 ## 5) Project state & packs
 
-| Command | Expect |
-|---------|--------|
-| `repolens adaptive status --path "$TARGET"` | Fingerprint cache stats + recommended timeout |
-| `repolens learn status --path "$TARGET"` | Consent / index status (opt-in) |
-| `repolens learn build --path "$TARGET" --accept-local-learning` | Builds local index under `.repolens/` |
-| `repolens learn clear --path "$TARGET"` | Deletes index DB (consent kept) |
-| `repolens packs list` | Domain pack table (`azure-sentinel` today) |
+| Command | Expect | Example |
+|---------|--------|---------|
+| `repolens adaptive status` | Fingerprint cache + recommended timeout | `repolens adaptive status --path "$TARGET"` |
+| `repolens learn status` | Consent / index status (opt-in) | `repolens learn status --path "$TARGET"` |
+| `repolens learn build` | Builds local index under `.repolens/` | `repolens learn build --path "$TARGET" --accept-local-learning` |
+| `repolens learn clear` | Deletes index DB (consent kept) | `repolens learn clear --path "$TARGET"` |
+| `repolens packs list` | Domain pack table (`azure-sentinel` today) | `repolens packs list` |
 
 Packs are **off by default**. Enable with `--pack <id>` or `[packs] enabled = […]`.  
 Pack-only smoke + if/then: [packs-quickcheck.md](./packs-quickcheck.md).
@@ -154,22 +160,23 @@ Pack-only smoke + if/then: [packs-quickcheck.md](./packs-quickcheck.md).
 
 ## 6) If you see this → it means
 
-| Observation | Meaning | Next step |
-|-------------|---------|-----------|
-| Summary all zeros after `--scanners-only` | Clean scanners (and packs if any) | Normal for a tidy repo |
-| `LLM bypassed (scanners clean…)` | Triage/`--ci` skipped the model on purpose | Expected; use full review without `--ci` for narrative |
+| Observation | Meaning | Next step / example |
+|-------------|---------|---------------------|
+| Summary all zeros after `--scanners-only` | Clean scanners (and packs if any) | Normal — e.g. `repolens review --path "$TARGET" --scanners-only` |
+| `LLM bypassed (scanners clean…)` | Triage/`--ci` skipped the model on purpose | Expected; for narrative drop `--ci`: `repolens review --path "$TARGET" --full --timeout 1800` |
 | `LLM pack: N/200` then bypass | Pack planned, then triage short-circuited | Cosmetic order; still correct |
 | Gate confidence 75% / scanners-only | Heuristic confidence without LLM | Normal for `--scanners-only` |
-| Exit code **1** with `--fail-on HIGH` | Finding at/above threshold (in CI: usually **scanner** rows) | Open report; fix or suppress ([rules.md](./rules.md)) |
-| Exit code **2** / `ScannerRequirementError` | `--require-scanners` and a tool missing | `repolens plugins install …` |
-| `command not found: repolens` | Venv not activated / not installed | Activate `.venv` or reinstall editable |
+| Exit code **1** with `--fail-on HIGH` | Finding at/above threshold (CI: usually **scanner** rows) | Open report; or `repolens feedback down <fingerprint> --reason false_positive --path "$TARGET"` |
+| Exit code **2** / `ScannerRequirementError` | `--require-scanners` and a tool missing | `repolens plugins install all --yes` |
+| `command not found: repolens` | Venv not activated / not installed | `source .venv/bin/activate` then `repolens version` |
 | Unknown command (`packs`, `pr-summary`, …) | Old install | `pip install -e ".[dev]"` from latest clone |
-| `Source error` / exit **3** | Clone or remote auth failed | Check token env / `gh auth` — [remote-sources.md](./remote-sources.md) |
-| Empty `--path` weirdness | Shell `set TARGET = …` mistake | Assign `TARGET=/path` with no spaces — [try-on-your-repo.md](./try-on-your-repo.md) |
-| No `Domain packs:` with `--pack` | Detail is verbose-only | Add `-v` |
-| Ollama timeout / hung LLM | Model slow or not running | `ollama list` / raise `--timeout`; see setup guide |
-| `explain` cannot find UUID | Wrong report dir or stale ID | Pass `--out` / run after a JSON report exists |
-| Suppressed findings still in Markdown | Listed under Suppressed; excluded from fail-on/SARIF | Intended |
+| `Source error` / exit **3** | Clone or remote auth failed | Prefer local `--path`; else [remote-sources.md](./remote-sources.md) |
+| Empty `--path` weirdness | Shell `TARGET = …` with spaces | `TARGET=/Users/you/proj` (no spaces around `=`) |
+| No `Domain packs:` with `--pack` | Detail is verbose-only | Add `-v`: `… --pack azure-sentinel -v` |
+| Ollama timeout / hung LLM | Model slow or not running | `ollama list`; `repolens review … --timeout 1800 -v` |
+| `explain` cannot find UUID | Wrong report dir or stale Occurrence | Prefer **Fingerprint**; `repolens explain <fingerprint> --path "$TARGET" --out "$TARGET/reports"` after a JSON report exists |
+| `No gate review JSON found` | `--path` / `--out` point at a different cwd/repo | `cd` to the reviewed repo, or pass absolute `--path` / `--out` (error lists dirs searched) |
+| Suppressed findings still in Markdown | Listed under Suppressed; excluded from fail-on/SARIF | Intended — `repolens feedback list --path "$TARGET"` |
 
 ---
 
@@ -256,8 +263,8 @@ Work top-down. Most “broken” first runs are install, PATH, or provider setup
 ### F. Packs / explain / feedback
 
 1. Packs: `repolens packs list` → `--pack azure-sentinel -v` — [packs-quickcheck.md](./packs-quickcheck.md).
-2. Explain: copy `runId` or `stableId` from the latest JSON; pass `--path` / `--out` if reports are not under `./reports`.
-3. Feedback: `feedback down` only writes local ignore — nothing uploads.
+2. Explain: copy **Fingerprint** (`stableId` in JSON); **Occurrence** (`runId`) also works. Pass `--path` / `--out` if needed.
+3. Feedback: `feedback down <fingerprint>` only writes local ignore — nothing uploads.
 
 ### G. Still stuck
 
