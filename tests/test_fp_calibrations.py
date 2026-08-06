@@ -6,7 +6,9 @@ from pathlib import Path
 
 from repolens.config import DeepConfig, load_config
 from repolens.fp_calibrations import (
+    CALIBRATION_INTENTIONAL_VULN,
     CALIBRATION_SUBPROCESS_LIST,
+    CALIBRATION_TEST_FIXTURE_SECRETS,
     apply_fp_calibrations,
     effective_fp_calibrations,
 )
@@ -76,3 +78,57 @@ def test_load_fp_calibrations_from_toml(tmp_path: Path, monkeypatch) -> None:
     cfg = load_config(project)
     assert cfg.deep.fp_calibrations[CALIBRATION_SUBPROCESS_LIST] is False
     assert effective_fp_calibrations(cfg.deep)[CALIBRATION_SUBPROCESS_LIST] is False
+
+
+def test_test_fixture_secrets_demoted() -> None:
+    issue = Issue(
+        severity=Severity.HIGH,
+        priority="P1",
+        category="sec.repo_hygiene_secrets",
+        file="tests/fixtures/fake_secrets.env",
+        line=1,
+        title="Hardcoded API key in fixture",
+        explanation="Found sk-test in env file",
+        impact="Credential exposure if shipped.",
+        recommendedFix="Use placeholders",
+        codeExample="API_KEY=sk-test",
+    )
+    out = apply_fp_calibrations([issue], DeepConfig())
+    assert out[0].severity == Severity.LOW
+    assert "[calibrated: test_fixture_secrets]" in out[0].explanation
+
+
+def test_production_secret_path_not_demoted() -> None:
+    issue = Issue(
+        severity=Severity.HIGH,
+        priority="P1",
+        category="gitleaks",
+        file="src/app/config.py",
+        line=10,
+        title="Hardcoded secret",
+        explanation="Live key in source",
+        impact="Credential exposure.",
+        recommendedFix="Use env var",
+        codeExample='KEY = "sk-live"',
+        source="scanner",
+    )
+    out = apply_fp_calibrations([issue], DeepConfig())
+    assert out[0].severity == Severity.HIGH
+
+
+def test_intentional_vuln_example_demoted() -> None:
+    issue = Issue(
+        severity=Severity.CRITICAL,
+        priority="P1",
+        category="sec.injection",
+        file="examples/vuln_demo/app.py",
+        line=3,
+        title="SQL injection (intentional demo)",
+        explanation="This is an intentional vulnerable example for training.",
+        impact="Demo only.",
+        recommendedFix="Do not ship",
+        codeExample="cursor.execute('SELECT ' + user)",
+    )
+    out = apply_fp_calibrations([issue], DeepConfig())
+    assert out[0].severity == Severity.LOW
+    assert "[calibrated: intentional_vuln_example]" in out[0].explanation

@@ -230,7 +230,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **6.2** | SBOM + licenses; scanner-owned dep graph; LLM remediation-only for SCA | [x] |
 | **6.3** | Scanners-as-gate; **triage routing** (LLM only on diff hits); provenance; source tags | [x] |
 | **6.4** | **Anchored** SARIF (+ SBOM); GHAS/Sonar recipes (no hosted UI) | [x] |
-| **6.5** | Sentinel checklist gaps (SSRF, path traversal, XXE, …); evidence-first; more FP calibrations | [ ] |
+| **6.5** | Sentinel checklist gaps (SSRF, path traversal, XXE, …); evidence-first; more FP calibrations | [x] |
 | **6.6** | Benchmark: **remediation rate / MTTR** lead + P/R support | [ ] |
 | **6.7** | **`.repolens-ignore`** / disable comments + feedback + Critical consistency | [ ] Soft gate before wide CI |
 | **6.8** | PR suggested-fix UX (annotations / job summary) | [ ] Extended (needs 6.4) |
@@ -309,13 +309,13 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Item | Status | Notes |
 |------|--------|-------|
 | Design | [x] | Umbrella §3 / 6.5 |
-| Checklist: SSRF, path traversal, XXE, NoSQL, ReDoS, log injection, weak PRNG, JWT, rate limits, supply-chain integrity | [ ] | `security.md` + rules defaults |
-| Evidence-first prompt language | [ ] | |
-| Additional FP calibrations | [ ] | |
-| Optional CWE/OWASP fields on findings | [ ] | |
-| Architecture playbook cites Trivy/Checkov when present | [ ] | After 6.1 |
+| Checklist: SSRF, path traversal, XXE, NoSQL, ReDoS, log injection, weak PRNG, JWT, rate limits, supply-chain integrity | [x] | `security.md` + extended coverage themes |
+| Evidence-first prompt language | [x] | Playbook header + SCA/IaC notes |
+| Additional FP calibrations | [x] | `test_fixture_secrets`, `intentional_vuln_example` |
+| Optional CWE/OWASP fields on findings | [x] | Prompted in playbook output format (schema already has fields) |
+| Architecture playbook cites Trivy/Checkov when present | [x] | After 6.1 |
 
-**Exit:** Named gaps closed in checklists; calibrations tested; no CodeQL-parity claims.
+**Exit:** Named gaps closed in checklists; calibrations tested; no CodeQL-parity claims. → **Met (2026-08-06)**
 
 ---
 

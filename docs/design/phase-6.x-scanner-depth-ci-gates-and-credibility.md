@@ -1,6 +1,6 @@
 # Phase 6.x — Scanner depth, CI gates & credibility (design)
 
-**Status:** In progress (6.1–6.4 implemented; 6.5+ remaining)  
+**Status:** In progress (6.1–6.5 implemented; 6.6+ remaining)  
 **Date:** 2026-08-06  
 **Depends on:** Phase 6 (issue explain + diagrams — complete), Phase 3 scanners, Phase 5.1 metrics  
 **Inserts before:** Phase 7 (enterprise CI/CD & report delivery)  
@@ -168,6 +168,9 @@ SARIF consumers (GHAS, Sonar) expect **exact** path + line (+ column). LLMs rout
 
 ### Phase 6.5 — Playbook depth & calibration
 
+**Status:** Implemented (2026-08-06) — playbooks + calibrations + extended themes  
+**Plan:** [2026-08-06-phase-6.5-playbook-depth.md](../superpowers/plans/2026-08-06-phase-6.5-playbook-depth.md)
+
 **Goal:** Close cheap, high-value **checklist** gaps vs CodeQL/Checkmarx defaults; strengthen evidence-first behaviour. Not a new SAST engine.
 
 | Add / expand in `security.md` (and rules defaults) | Why |
@@ -192,7 +195,7 @@ Also:
 | More FP calibrations | Test-only secrets, intentional vuln examples, etc. |
 | Architecture playbook | Explicit “cite Trivy/Checkov when present” for IaC/containers |
 
-**Exit:** Playbooks/rules updated; at least one new calibration + tests; FAQ lists expanded categories without claiming CodeQL parity.
+**Exit:** Playbooks/rules updated; at least one new calibration + tests; FAQ lists expanded categories without claiming CodeQL parity. → **Met**
 
 **Out of 6.5:** Mobile-only packs (optional later domain pack). Azure Sentinel/SOAR → **6.10**.
 
