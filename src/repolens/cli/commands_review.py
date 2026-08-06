@@ -41,6 +41,7 @@ def _run_mode(
     force_changed: bool = False,
     deep: bool | None = None,
     explain_uuids: str | None = None,
+    ci: bool = False,
 ) -> None:
     if fmt not in {"md", "json", "both"}:
         console.print("[red]--format must be md | json | both[/red]")
@@ -110,6 +111,7 @@ def _run_mode(
             scanners_only=scanners_only,
             progress=progress,
             deep=deep,
+            ci=ci,
         )
     except FileNotFoundError as exc:
         console.print(f"[red]Config/source error:[/red] {exc}")
@@ -166,7 +168,13 @@ def _run_mode(
         run_post_review_explains(explain_uuids, path=path, result=result)
 
     try:
-        triggered = fail_on_triggered(result.report, fail_on)
+        scanner_only = bool(
+            result.report.provenance is not None
+            and result.report.provenance.failOnScannerOnly
+        )
+        triggered = fail_on_triggered(
+            result.report, fail_on, scanner_only=scanner_only
+        )
     except ValueError as exc:
         console.print(f"[red]Usage error:[/red] {exc}")
         raise typer.Exit(code=2) from exc
@@ -250,6 +258,11 @@ def review(
         "--explain",
         help="After review, deep-dive these issue UUID(s) (comma-separated runId/stableId)",
     ),
+    ci: bool = typer.Option(
+        False,
+        "--ci",
+        help="PR/CI recipe: triage routing, --changed pack, single-shot LLM on scanner hits only",
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -280,6 +293,7 @@ def review(
         force_changed,
         deep,
         explain,
+        ci,
     )
 
 
@@ -349,6 +363,11 @@ def sentinel(
         "--deep/--no-deep",
         help="Multi-pass deep coverage (default: on; --no-deep = single-shot)",
     ),
+    ci: bool = typer.Option(
+        False,
+        "--ci",
+        help="PR/CI recipe: triage routing, --changed pack, single-shot LLM on scanner hits only",
+    ),
 ) -> None:
     """Security-only review (P1 playbook)."""
     _run_mode(
@@ -378,6 +397,8 @@ def sentinel(
         force_full,
         force_changed,
         deep,
+        None,
+        ci,
     )
 
 
@@ -447,6 +468,11 @@ def architecture(
         "--deep/--no-deep",
         help="Multi-pass deep coverage (default: on; --no-deep = single-shot)",
     ),
+    ci: bool = typer.Option(
+        False,
+        "--ci",
+        help="PR/CI recipe: triage routing, --changed pack, single-shot LLM on scanner hits only",
+    ),
 ) -> None:
     """Architecture / production-readiness audit."""
     _run_mode(
@@ -476,4 +502,6 @@ def architecture(
         force_full,
         force_changed,
         deep,
+        None,
+        ci,
     )

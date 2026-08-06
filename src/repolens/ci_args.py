@@ -30,8 +30,12 @@ def build_review_argv(
     scanners: str = "auto",
     require_scanners: bool = False,
     has_key: bool | None = None,
+    ci: bool = True,
 ) -> list[str]:
-    """Return argv starting with ``repolens`` for subprocess / shell use."""
+    """Return argv starting with ``repolens`` for subprocess / shell use.
+
+    Default ``ci=True`` matches the enterprise PR recipe (triage routing).
+    """
     mode_norm = mode.strip().lower()
     run_norm = run.strip().lower()
     if mode_norm not in VALID_MODES:
@@ -57,6 +61,8 @@ def build_review_argv(
         argv.append("--require-scanners")
     if fail_on.strip():
         argv.extend(["--fail-on", fail_on.strip()])
+    if ci and effective != "dry-run":
+        argv.append("--ci")
 
     if effective == "dry-run":
         argv.append("--dry-run")

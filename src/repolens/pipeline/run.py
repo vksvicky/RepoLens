@@ -31,7 +31,42 @@ from repolens.progress import LlmGenerateProgress, ReviewProgress, null_progress
 from repolens.report import write_json_report, write_markdown_report
 from repolens.scanners.runner import missing_required, parse_scanners_flag, run_scanners
 from repolens.scanners.sca import build_supply_chain, dedupe_sca_issues
-from repolens.schema import FindingReport, Summary, SupplyChainBlock
+from repolens.schema import FindingReport, ProvenanceBlock, Summary, SupplyChainBlock
+from repolens.triage import (
+    fail_on_triggered as _fail_on_triggered,
+    select_pack_entries,
+    stamp_issue_sources,
+    triage_llm_plan,
+)
+
+
+def fail_on_triggered(
+    report: FindingReport,
+    fail_on: str | None,
+    *,
+    scanner_only: bool = False,
+) -> bool:
+    """Re-export with Phase 6.3 scanner-only gate support."""
+    return _fail_on_triggered(report, fail_on, scanner_only=scanner_only)
+
+
+def _git_sha(root: Path) -> str | None:
+    import subprocess
+
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError:
+        return None
+    if completed.returncode != 0:
+        return None
+    sha = (completed.stdout or "").strip()
+    return sha or None
 
 
 def run_review(
@@ -55,6 +90,7 @@ def run_review(
     scanners_only: bool = False,
     progress: ReviewProgress | None = None,
     deep: bool | None = None,
+    ci: bool = False,
 ) -> ReviewResult:
     if force_full and force_changed:
         raise ValueError("--full and --changed cannot be combined")
@@ -68,6 +104,22 @@ def run_review(
         if timeout_override <= 0:
             raise ValueError("--timeout must be a positive number of seconds")
         cfg.model.timeout_seconds = timeout_override
+
+    # Phase 6.3: --ci enables triage routing + changed pack + single-shot LLM
+    if ci:
+        cfg.ci.triage_routing = True
+        if not force_full and not force_changed:
+            force_changed = True
+        if deep is None and cfg.ci.max_llm_passes_in_ci <= 1:
+            deep = False
+        prog.detail(
+            "CI mode: triage routing on "
+            "(LLM bypass when scanners clean; snippet pack on hits)"
+        )
+
+    # Sentinel prefers scanners evidence; keep enabled list (opt-out via --scanners off)
+    if mode == "sentinel" and scanners is None:
+        scanners = "auto"
 
     prog.phase("Inventory: scanning files…")
     files = list_files(root, mode=review_mode, since=since)
@@ -117,6 +169,7 @@ def run_review(
         scanner_issues = []
         scanner_gaps: list[str] = []
         supply_chain: SupplyChainBlock | None = None
+        triage_plan = None
         if tools:
             prog.phase(f"Scanners: running {', '.join(tools)}…")
             scanner_runs, scanner_issues, scanner_gaps = run_scanners(root, tools)
@@ -218,7 +271,49 @@ def run_review(
                     f"(adaptive mode={pack_mode}){note}"
                 )
 
-            if not llm_files:
+            triage_bypassed = False
+            triage_plan = None
+            if cfg.ci.triage_routing:
+                avail = [f.relative for f in (llm_files or files)]
+                changed_paths = None
+                if pack_mode == "changed" and diff is not None:
+                    changed_paths = sorted(set(diff.added) | set(diff.changed))
+                triage_plan = triage_llm_plan(
+                    scanner_issues,
+                    available_files=avail,
+                    config=cfg.ci,
+                    changed_files=changed_paths,
+                )
+                for note in triage_plan.notes:
+                    prog.detail(note)
+                if triage_plan.llm_bypassed:
+                    triage_bypassed = True
+                    prog.phase("LLM bypassed (scanners clean at triage floor)")
+                    report = FindingReport(
+                        confidence=80 if scanner_runs else 60,
+                        summary=Summary(),
+                        issues=list(scanner_issues),
+                        durabilityGaps=list(scanner_gaps) + list(triage_plan.notes),
+                        scannerRuns=list(scanner_runs),
+                        supplyChain=supply_chain,
+                        llmSkipped=True,
+                        llmBypassed=True,
+                        triageHits=0,
+                    )
+                    report.summary = report.recount_summary()
+                elif triage_plan.pack_files:
+                    prog.phase(
+                        f"LLM triage: {triage_plan.triage_hits} hit(s) → "
+                        f"{len(triage_plan.pack_files)} file(s)"
+                    )
+                    llm_files = select_pack_entries(files, triage_plan.pack_files)
+                    scanner_gaps.extend(
+                        n for n in triage_plan.notes if n not in scanner_gaps
+                    )
+
+            if triage_bypassed:
+                pass
+            elif not llm_files:
                 prior_bundle = None
                 if store is not None:
                     prior_bundle = load_last_llm_report(store)
@@ -432,9 +527,13 @@ def run_review(
                     )
                     report.summary = report.recount_summary()
 
+                report.issues = stamp_issue_sources(report.issues, default_llm=True)
                 report.llmCompleted = True
                 report.llmSkipped = False
                 report.llmReusedFrom = None
+                if triage_plan is not None:
+                    report.triageHits = triage_plan.triage_hits
+                    report.llmBypassed = False
                 if store is not None:
                     save_last_llm_report(
                         store,
@@ -446,10 +545,25 @@ def run_review(
         report.durationSeconds = round(time.time() - run_started, 1)
         if supply_chain is not None:
             report.supplyChain = supply_chain
+        from repolens import __version__
         from repolens.issue_ids import stamp_issue_ids
 
-        report.issues = stamp_issue_ids(report.issues)
+        report.issues = stamp_issue_ids(stamp_issue_sources(report.issues))
         report.summary = report.recount_summary()
+        report.provenance = ProvenanceBlock(
+            repoLensVersion=__version__,
+            gitSha=_git_sha(root),
+            model=cfg.model.model,
+            provider=cfg.model.provider,
+            scannerTools=[r.tool for r in report.scannerRuns],
+            triageRouting=cfg.ci.triage_routing,
+            llmBypassed=bool(report.llmBypassed),
+            triageHits=int(report.triageHits or 0),
+            failOnScannerOnly=bool(
+                cfg.ci.triage_routing and cfg.ci.fail_on_scanner_only
+            ),
+            notes=list(triage_plan.notes) if triage_plan is not None else [],
+        )
         prog.phase(f"Writing report → {out}")
         md = write_markdown_report(report, out, mode=mode) if fmt in {"md", "both"} else None
         js = (
@@ -514,18 +628,4 @@ def _analyze_with_repair(
     return result.report
 
 
-def fail_on_triggered(report: FindingReport, fail_on: str | None) -> bool:
-    if not fail_on:
-        return False
-    order = {"LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}
-    key = fail_on.upper()
-    if key not in order:
-        raise ValueError(
-            f"Invalid --fail-on severity {fail_on!r}; use CRITICAL|HIGH|MEDIUM|LOW"
-        )
-    threshold = order[key]
-    for issue in report.issues:
-        if order[issue.severity.value] >= threshold:
-            return True
-    return False
 

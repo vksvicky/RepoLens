@@ -39,7 +39,7 @@ _CRITICAL_CAP = 60
 _HIGH_PENALTY = 10
 _HIGH_CAP = 50
 
-_SCANNER_CAT_MARKERS = ("gitleaks", "semgrep", "osv")
+_SCANNER_CAT_MARKERS = ("gitleaks", "semgrep", "osv", "trivy", "checkov")
 
 
 @dataclass(frozen=True)

@@ -228,7 +228,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 |-------|--------|--------|
 | **6.1** | Trivy + Checkov plugins; merge + feed LLM pack | [x] Implemented 2026-08-06 |
 | **6.2** | SBOM + licenses; scanner-owned dep graph; LLM remediation-only for SCA | [x] |
-| **6.3** | Scanners-as-gate; **triage routing** (LLM only on diff hits); provenance; source tags | [ ] |
+| **6.3** | Scanners-as-gate; **triage routing** (LLM only on diff hits); provenance; source tags | [x] |
 | **6.4** | **Anchored** SARIF (+ SBOM); GHAS/Sonar recipes (no hosted UI) | [ ] |
 | **6.5** | Sentinel checklist gaps (SSRF, path traversal, XXE, …); evidence-first; more FP calibrations | [ ] |
 | **6.6** | Benchmark: **remediation rate / MTTR** lead + P/R support | [ ] |
@@ -277,15 +277,15 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Item | Status | Notes |
 |------|--------|-------|
 | Design | [x] | Umbrella §3 / 6.3 |
-| Scanners default-on for `sentinel` (opt-out) | [ ] | Align with playbook evidence preference |
-| **Triage routing** (LLM bypass if scanners clean; else snippet-only) | [ ] | Plan: [2026-08-06-enterprise-ci-triage-routing.md](./superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md) |
-| Harden `--fail-on` / Action + scanners-as-gate docs | [ ] | LLM never sole production gate |
-| Parallel scanner runs on diff | [ ] | |
-| Finding `source` (scanner / heuristic / llm) | [ ] | |
-| Report provenance (model, scanner, ruleset, versions, git SHA) | [ ] | |
-| Policy-lite paths / required scanners / severity floor | [ ] | |
+| Scanners default-on for `sentinel` (opt-out) | [x] | Same enabled list; `--scanners off` to opt out |
+| **Triage routing** (LLM bypass if scanners clean; else hit-file pack) | [x] | `--ci` / `[ci].triage_routing` |
+| Harden `--fail-on` / Action + scanners-as-gate docs | [x] | `fail_on_scanner_only` when triage on |
+| Parallel scanner runs on diff | [x] | ThreadPool in `run_scanners` |
+| Finding `source` (scanner / heuristic / llm) | [x] | Issue.source + stamp helpers |
+| Report provenance (model, scanner, versions, git SHA) | [x] | `provenance` + Markdown section |
+| Policy-lite paths / required scanners / severity floor | [x] | `[ci].severity_floor`, max files |
 
-**Exit:** Required CI check fails on scanner High; clean PR → no LLM; hit → LLM on snippets only; provenance + source tags.
+**Exit:** Required CI check fails on scanner High; clean PR → no LLM; hit → LLM on hit files; provenance + source tags. → **Met (2026-08-06)**
 
 ---
 

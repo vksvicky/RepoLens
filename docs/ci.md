@@ -22,11 +22,13 @@ jobs:
           install-plugins: "false"
 ```
 
-### Recommended default (`run: auto`)
+### Recommended default (`run: auto` + triage)
 
 - Always runs enabled scanners when tools resolve  
-- Runs the LLM review **only** if a key secret is present (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, or `REPOLENS_API_KEY`)  
-- Without a key → `--scanners-only`
+- **`--ci` (Action default):** triage routing — LLM **bypassed** when scanners are clean at the severity floor; on hits, LLM runs on hit files only (not a full-repo deep)  
+- Runs the LLM path **only** if a key secret is present (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, or `REPOLENS_API_KEY`)  
+- Without a key → `--scanners-only` (still gated by `--fail-on`)  
+- **`--fail-on` in CI** prefers **scanner-sourced** findings (LLM narrative does not sole-gate the build)
 
 ```yaml
 jobs:
@@ -41,6 +43,7 @@ jobs:
           run: auto             # dry-run | scanners-only | llm | auto
           fail-on: HIGH
           scanners: auto
+          ci: "true"            # Phase 6.3 triage (default)
           install-from: local   # install the Action’s own checkout (default)
           install-plugins: "true"
         env:
@@ -52,6 +55,17 @@ jobs:
           path: reports/
 ```
 
+### Enterprise PR recipe (CLI)
+
+```bash
+repolens review --ci --scanners auto --fail-on HIGH --format both
+# equivalent intent: scanners gate; LLM explains hit snippets only; no full-tree deep
+```
+
+Full `--deep` reviews are for **scheduled / release audits**, not every PR. Budget honesty: clean PRs are typically scanners-only (seconds–minutes); do not assume a hard “&lt;5 minutes” SLA when the model runs.
+
+Design: [phase-6.x §6.3](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md) · plan: [enterprise-ci-triage-routing](./superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md) · blog: [enterprise-scale-llm-review-ci](./blog-ideas/enterprise-scale-llm-review-ci.md)
+
 ### Inputs
 
 | Input | Default | Notes |
@@ -59,9 +73,10 @@ jobs:
 | `path` | `.` | Consumer workspace path |
 | `mode` | `review` | `review` \| `sentinel` \| `architecture` |
 | `run` | `auto` | See above |
-| `fail-on` | `HIGH` | Empty string disables |
+| `fail-on` | `HIGH` | Empty string disables; with `ci`, scanner findings only |
 | `scanners` | `auto` | Same as CLI |
 | `require-scanners` | `false` | |
+| `ci` | `true` | Triage routing (`--ci`) |
 | `install-from` | `local` | `local` (action checkout) \| `pypi` \| `git` |
 | `version` | `0.1.0a1` | Used when `install-from=pypi` |
 | `install-plugins` | `true` | `repolens plugins install all --yes` |

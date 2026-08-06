@@ -300,6 +300,7 @@ repolens review --path . --out .\reports-dogfood
 | Force full LLM pack | `--full` |
 | Cloud BYOK same pipeline | `repolens init --provider openai\|anthropic\|deepseek` (Phase A) |
 | Fail CI-style on High+ | `--fail-on HIGH` |
+| PR / CI triage (no full-tree LLM) | `--ci --fail-on HIGH` (see [ci.md](./ci.md)) |
 | One source only | Exactly one of `--path`, `--github`, `--bitbucket`, `--hf`, `--git-url` |
 | Remotes deep dive | [remote-sources.md](./remote-sources.md) |
 
