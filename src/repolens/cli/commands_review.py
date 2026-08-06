@@ -40,6 +40,7 @@ def _run_mode(
     force_full: bool = False,
     force_changed: bool = False,
     deep: bool | None = None,
+    explain_uuids: str | None = None,
 ) -> None:
     if fmt not in {"md", "json", "both"}:
         console.print("[red]--format must be md | json | both[/red]")
@@ -159,6 +160,11 @@ def _run_mode(
     if result.json_path:
         console.print(f"[green]JSON report:[/green] {result.json_path}")
 
+    if explain_uuids and not result.dry_run:
+        from repolens.cli.commands_explain import run_post_review_explains
+
+        run_post_review_explains(explain_uuids, path=path, result=result)
+
     try:
         triggered = fail_on_triggered(result.report, fail_on)
     except ValueError as exc:
@@ -237,6 +243,11 @@ def review(
         "--deep/--no-deep",
         help="Multi-pass deep coverage (default: on; --no-deep = single-shot)",
     ),
+    explain: str | None = typer.Option(
+        None,
+        "--explain",
+        help="After review, deep-dive these issue UUID(s) (comma-separated runId/stableId)",
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -266,6 +277,7 @@ def review(
         force_full,
         force_changed,
         deep,
+        explain,
     )
 
 

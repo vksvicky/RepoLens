@@ -2,8 +2,9 @@
 
 **Status:** Design sketch (not implemented)  
 **Date:** 2026-08-04  
-**Depends on:** Phase 4 Action/CI docs, Phase 5 adaptive cache (local-first)  
-**Not in Phase 7:** Extra LLM providers (Gemini, Azure aliases, Mistral, …) → **Phase 8** (aliases/recipes) and **Phase 9** (native SDKs).
+**Depends on:** Phase 4 Action/CI docs, Phase 5 adaptive cache (local-first); ideally **Phase 6.x core (6.1–6.6)** (scanner gates, SARIF/SBOM) so CI delivery has trustworthy artifacts. Extended 6.7–6.10 may overlap.  
+**In Phase 7 (from deferred rehome):** forge-side **push-protection recipes** (document GH/GitLab; RepoLens stays audit-of-landed-code); wire **SARIF/SBOM** into artifact + email/webhook/dashboard notify.  
+**Not in Phase 7:** Scanner plugins / SBOM / SARIF *export implementation* → **Phase 6.x**. Extra LLM providers → **Phase 8** / **Phase 9**. Hosted ASPM/SSO → non-goal.
 
 ## 1. Problem
 

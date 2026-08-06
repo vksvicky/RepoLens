@@ -33,6 +33,9 @@ class Issue(BaseModel):
     fixTiming: FixTiming = "before launch"
     cwe: str | None = None
     owasp: str | None = None
+    # Phase 6: hybrid identity for explain lookup (optional for older reports).
+    stableId: str | None = None
+    runId: str | None = None
 
     @model_validator(mode="after")
     def require_impact_and_example_for_high(self) -> Issue:

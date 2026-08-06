@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **2–5.2 complete**; **next** Phase 6 explain/diagrams → Phase 7 enterprise CI → Phase 8 provider aliases → Phase 9 native SDKs  
+**Current phase:** Phases **2–6 complete**; **next** Phase **6.x** (scanner depth / gates / credibility) → Phase 7 enterprise CI → Phase 8 provider aliases → Phase 9 native SDKs  
 
 **CLI language:** Python 3.11+
 
@@ -209,18 +209,189 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Item | Status | Notes |
 |------|--------|-------|
 | Design approved | [x] | [phase-6-issue-explain-diagrams.md](./design/phase-6-issue-explain-diagrams.md) · [spec](./superpowers/specs/2026-08-04-phase-6-issue-explain-diagrams-design.md) |
-| Issue IDs on FindingReport | [ ] | |
-| `[explain]` config + `repolens explain` + `review --explain` | [ ] | |
-| Diagram spine (validate → repair → fallback → optional image) | [ ] | Exit 0 |
+| Issue IDs on FindingReport | [x] | `stableId` (v5) + `runId` (v4); stamped before report write |
+| `[explain]` config + `repolens explain` + `review --explain` | [x] | |
+| Diagram spine (validate → repair → fallback → optional image) | [x] | Exit 0 |
 
-**Phase 6 exit criteria:** User can deep-dive any finding by UUID and always get an explain file; invalid Mermaid yields textual fallback.
+**Phase 6 exit criteria:** User can deep-dive any finding by UUID and always get an explain file; invalid Mermaid yields textual fallback. → **Met (2026-08-06)**
+
+---
+
+## Phase 6.x — Scanner depth, CI gates & credibility (before Phase 7)
+
+**Goal:** Close product debt vs free/enterprise AppSec tools: Trivy/Checkov, SBOM/licenses, deterministic scanner gates, thin SARIF/ASPM handoff, playbook gaps, public benchmark — then extended trust/UX packs (6.7–6.10) — without building a RepoLens ASPM/SSO portal.
+
+**Umbrella design:** [phase-6.x-scanner-depth-ci-gates-and-credibility.md](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md)  
+**Does not reopen:** [phase-6-issue-explain-diagrams.md](./design/phase-6-issue-explain-diagrams.md)
+
+| Slice | Scope | Status |
+|-------|--------|--------|
+| **6.1** | Trivy + Checkov plugins; merge + feed LLM pack | [ ] Design sketch in umbrella |
+| **6.2** | SBOM + licenses; scanner-owned dep graph; LLM remediation-only for SCA | [ ] |
+| **6.3** | Scanners-as-gate; **triage routing** (LLM only on diff hits); provenance; source tags | [ ] |
+| **6.4** | **Anchored** SARIF (+ SBOM); GHAS/Sonar recipes (no hosted UI) | [ ] |
+| **6.5** | Sentinel checklist gaps (SSRF, path traversal, XXE, …); evidence-first; more FP calibrations | [ ] |
+| **6.6** | Benchmark: **remediation rate / MTTR** lead + P/R support | [ ] |
+| **6.7** | **`.repolens-ignore`** / disable comments + feedback + Critical consistency | [ ] Soft gate before wide CI |
+| **6.8** | PR suggested-fix UX (annotations / job summary) | [ ] Extended (needs 6.4) |
+| **6.9** | Best-effort reachability + optional finding verify | [ ] Extended (needs 6.2) |
+| **6.10** | Optional domain packs (Azure Sentinel/SOAR first) | [ ] Extended / niche |
+
+**Core 6.x exit (6.1–6.6):** Companion free stack gates CI; triage routing; **anchored** SARIF; SCA graph = scanners only; playbook gaps named; remediation-led benchmark. → *Not met*  
+**Extended 6.x (6.7–6.10):** Suppressions (soft gate for production CI), PR fix UX, best-effort reachability/verify, domain packs.
+
+---
+
+### Phase 6.1 — Trivy + Checkov plugins
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design | [x] | Umbrella §3 / 6.1 |
+| `trivy` plugin (pin + merge) | [ ] | Containers / FS / config as practical |
+| `checkov` plugin (pin + merge) | [ ] | IaC policy |
+| Structured results → LLM pack | [ ] | Hybrid orchestration |
+| Docs (`scanners.md`, companion stack) | [ ] | |
+
+**Exit:** Installable plugins; findings in report; missing tools soft-fail unless `--require-scanners`.
+
+---
+
+### Phase 6.2 — SBOM, licenses & SCA enrichment
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design | [x] | Umbrella §3 / 6.2 |
+| SBOM artifact (CycloneDX and/or SPDX) | [ ] | Prefer tool-native output |
+| License summary in report | [ ] | Where tools provide data |
+| OSV ↔ Trivy dedupe | [ ] | Avoid double-count |
+| Scanner-owned dep/CVE facts; LLM remediation-only | [ ] | No LLM lockfile/graph reasoning |
+| Prompt/schema guardrails for SCA | [ ] | |
+| FAQ honesty on reachability | [ ] | Scanner fields only |
+
+**Exit:** SBOM + license section; SCA findings traceable to scanner JSON; no LLM-invented reachability.
+
+---
+
+### Phase 6.3 — Deterministic CI gates, triage routing & provenance
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design | [x] | Umbrella §3 / 6.3 |
+| Scanners default-on for `sentinel` (opt-out) | [ ] | Align with playbook evidence preference |
+| **Triage routing** (LLM bypass if scanners clean; else snippet-only) | [ ] | Plan: [2026-08-06-enterprise-ci-triage-routing.md](./superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md) |
+| Harden `--fail-on` / Action + scanners-as-gate docs | [ ] | LLM never sole production gate |
+| Parallel scanner runs on diff | [ ] | |
+| Finding `source` (scanner / heuristic / llm) | [ ] | |
+| Report provenance (model, scanner, ruleset, versions, git SHA) | [ ] | |
+| Policy-lite paths / required scanners / severity floor | [ ] | |
+
+**Exit:** Required CI check fails on scanner High; clean PR → no LLM; hit → LLM on snippets only; provenance + source tags.
+
+---
+
+### Phase 6.4 — Thin ASPM handoff (anchored SARIF + recipes)
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design | [x] | Umbrella §3 / 6.4 · ASPM = export only (option B) |
+| Verification & Anchor (quote → literal/AST line resolve) | [ ] | Hard gate before SARIF write |
+| Prefer scanner locations when `source=scanner` | [ ] | |
+| Unresolved anchors omitted from SARIF (kept in MD flagged) | [ ] | |
+| SARIF export + CI recipes (GHAS / Sonar / external) | [ ] | |
+| Optional SARIF import (CodeQL/Semgrep) | [ ] | Stretch |
+
+**Exit:** SARIF never emits unverified LLM line numbers; GHAS recipe documented.
+
+---
+
+### Phase 6.5 — Playbook depth & calibration
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design | [x] | Umbrella §3 / 6.5 |
+| Checklist: SSRF, path traversal, XXE, NoSQL, ReDoS, log injection, weak PRNG, JWT, rate limits, supply-chain integrity | [ ] | `security.md` + rules defaults |
+| Evidence-first prompt language | [ ] | |
+| Additional FP calibrations | [ ] | |
+| Optional CWE/OWASP fields on findings | [ ] | |
+| Architecture playbook cites Trivy/Checkov when present | [ ] | After 6.1 |
+
+**Exit:** Named gaps closed in checklists; calibrations tested; no CodeQL-parity claims.
+
+---
+
+### Phase 6.6 — Public benchmark & credibility
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design | [x] | Umbrella §3 / 6.6 |
+| Methodology doc (pre-registered) | [ ] | Corpora, hit def, configs, remediation protocol |
+| Headline: remediation rate + MTTR (+ suggested-fix apply %) | [ ] | P/R/F1 supporting only |
+| MVP run vs Semgrep CE + CodeQL | [ ] | scanners-only / LLM-only / combined / triage CI |
+| Publish results (incl. losses) | [ ] | |
+
+**Exit:** Methodology + MVP table led by remediation metrics (not P/R alone).
+
+---
+
+### Phase 6.7 — Suppressions, local feedback & Critical self-consistency
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design | [x] | Umbrella §3 / 6.7 |
+| `.repolens-ignore` (stableId / fingerprint + reason) | [ ] | Soft gate before wide CI |
+| `# repolens:disable-next-line` (and block form) | [ ] | |
+| Suppressions honored in fail-on + SARIF | [ ] | Optional “Suppressed” MD section |
+| Local thumbs up/down + reason | [ ] | Opt-in; no cloud upload |
+| Optional Critical/High self-consistency pass | [ ] | Config flag; cost-aware |
+| Feed calibrations from feedback schema | [ ] | |
+
+**Exit:** Ignore/disable stick across commits; feedback opt-in; self-consistency optional.
+
+---
+
+### Phase 6.8 — PR suggested-fix UX
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design | [x] | Umbrella §3 / 6.8 |
+| PR / job-summary presentation | [ ] | GitHub first |
+| Surface Critical/High code examples as suggestions | [ ] | No auto-commit |
+| Docs recipe | [ ] | |
+
+**Exit:** Action/docs show PR-oriented summary + suggested-fix presentation.
+
+---
+
+### Phase 6.9 — Best-effort reachability & optional verify
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design | [x] | Umbrella §3 / 6.9 |
+| Best-effort reachability (free signals only) | [ ] | FAQ honesty if unavailable |
+| Optional sandbox/repro verify mode | [ ] | Non-fatal; opt-in |
+| Near-duplicate clustering | [ ] | |
+
+**Exit:** Limits documented; opt-in verify never blocks report write.
+
+---
+
+### Phase 6.10 — Optional domain packs
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Design | [x] | Umbrella §3 / 6.10 |
+| Azure Sentinel / Logic Apps SOAR pack (opt-in) | [ ] | |
+| Pack registry pattern for future domains | [ ] | Mobile etc. later |
+
+**Exit:** One opt-in domain pack; core `sentinel` unchanged when off.
 
 ---
 
 ## Phase 7 — Enterprise CI/CD & report delivery (design)
 
 **Goal:** Production-minded corporate use: CI agents (Jenkins, CircleCI, GitLab, …), artifact export, email/chat/dashboard handoff — without building a RepoLens SaaS UI.  
-*(Formerly Phase 6 — renumbered 2026-08-04.)*
+*(Formerly Phase 6 — renumbered 2026-08-04.)*  
+**Consumes:** Phase 6.x SARIF/SBOM/gates (ideally 6.1–6.6). Extended 6.7–6.10 may land in parallel.
 
 | Item | Status | Notes |
 |------|--------|-------|
@@ -228,10 +399,12 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Expand [ci.md](./ci.md) (Jenkins / CircleCI / GitLab) | [ ] | |
 | Artifact → email / webhook recipes | [ ] | Customer SMTP / forge plugins |
 | Adaptive cache guidance for ephemeral CI | [ ] | Off by default or restore via CI cache |
-| Dashboard ingest (JSON) recipe | [ ] | External dashboard; no hosted RepoLens UI |
+| Dashboard ingest (JSON / SARIF) recipe | [ ] | External dashboard; no hosted RepoLens UI |
+| Wire 6.4 SARIF/SBOM into CI upload + notify | [ ] | From Phase 6.x |
+| Forge-side push-protection recipes | [ ] | Document GH/GitLab secret push protection; RepoLens remains audit-of-landed-code |
 | FAQ “Corporate CI/CD” | [ ] | |
 
-**Phase 7 exit criteria:** A security/platform engineer can wire RepoLens into Jenkins or CircleCI, archive reports, optionally email/notify, and know when to disable adaptive learning on CI.
+**Phase 7 exit criteria:** A security/platform engineer can wire RepoLens into Jenkins or CircleCI, archive reports (incl. SARIF/SBOM when present), optionally email/notify, know forge push-protection vs RepoLens audit role, and know when to disable adaptive learning on CI.
 
 ---
 
@@ -311,6 +484,11 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-05 | Phase 5.2 theme coverage & report breakdown (design) | Product themes need first-class coverage ids + Theme breakdown; not only P1/P2/P3 prose |
 | 2026-08-05 | Phase 5.2 packing = Core (18) + Extended (~19) | Core every deep review; Extended on full-audit / N/A when irrelevant |
 | 2026-08-05 | Phase 5.2 implemented | Theme breakdown in reports; coverage v2 packs; heuristic→theme map; FAQ |
+| 2026-08-06 | Phase 6 explain/diagrams complete | stableId/runId; `repolens explain`; foolproof Mermaid |
+| 2026-08-06 | Phase 6.x inserted before Phase 7 | Scanner depth (Trivy/Checkov), SBOM, gates, SARIF handoff, playbook gaps, benchmark — from competitive debt analysis |
+| 2026-08-06 | ASPM in 6.x = thin export only | SARIF/SBOM + recipes; no RepoLens portal/SSO (option B) |
+| 2026-08-06 | Deferred items rehomed | 6.7 feedback/consistency; 6.8 PR fix UX; 6.9 reachability/verify; 6.10 domain packs; push-protection recipes + CI notify → Phase 7; bump PRs / ASPM SaaS / full reachability → beyond or non-goal |
+| 2026-08-06 | 6.x design corrections | SARIF Verification & Anchor; CI triage routing; `.repolens-ignore`; remediation-rate/MTTR headline; SCA graph = scanners only (no LLM lockfile reasoning) |
 
 ---
 

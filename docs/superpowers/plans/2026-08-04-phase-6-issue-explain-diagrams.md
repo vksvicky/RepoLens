@@ -34,27 +34,27 @@
 
 ### Task 1: Issue IDs
 
-- [ ] **Step 1:** Failing tests: same (category, file, title) → same `stableId`; each stamp gets unique `runId`.
-- [ ] **Step 2:** UUID v5 with fixed RepoLens namespace for stableId; uuid4 for runId; stamp in merge/pipeline.
-- [ ] **Step 3:** Commit when user asks.
+- [x] **Step 1:** Failing tests: same (category, file, title) → same `stableId`; each stamp gets unique `runId`.
+- [x] **Step 2:** UUID v5 with fixed RepoLens namespace for stableId; uuid4 for runId; stamp in merge/pipeline.
+- [x] **Step 3:** Commit when user asks.
 
 ### Task 2: Diagram spine (no LLM)
 
-- [ ] **Step 1:** Tests: valid mermaid passes; broken mermaid → repair hook mocked → still bad → textual fallback; render failure → keep mermaid + note.
-- [ ] **Step 2:** Implement `process_diagram(raw: str, *, render_image: str) -> DiagramResult`.
-- [ ] **Step 3:** Commit when user asks.
+- [x] **Step 1:** Tests: valid mermaid passes; broken mermaid → repair hook mocked → still bad → textual fallback; render failure → keep mermaid + note.
+- [x] **Step 2:** Implement `process_diagram(raw: str, *, render_image: str) -> DiagramResult`.
+- [x] **Step 3:** Commit when user asks.
 
 ### Task 3: Explain command
 
-- [ ] **Step 1:** Integration test with mocked `analyze_structured` writes `explain_*.md` containing Problem / Solutions / Diagram.
-- [ ] **Step 2:** Typer `repolens explain <uuid>` — lookup latest JSON + last_report pointer; respect `[explain].enabled`. Wire CLI flags from spec §5: `--no-diagram` (skip Mermaid/diagram section generation) and `--render-image` (force/opt into optional PNG/SVG when a renderer is available; honor `[explain].render_image` when flag omitted). Pass both through to `explain.py` / `diagrams.process_diagram`.
-- [ ] **Step 3:** Commit when user asks.
+- [x] **Step 1:** Integration test with mocked `analyze_raw` writes `explain_*.md` containing Problem / Solutions / Diagram.
+- [x] **Step 2:** Typer `repolens explain <uuid>` — lookup latest JSON + last_report pointer; respect `[explain].enabled`. Wire CLI flags from spec §5: `--no-diagram` (skip Mermaid/diagram section generation) and `--render-image` (force/opt into optional PNG/SVG when a renderer is available; honor `[explain].render_image` when flag omitted). Pass both through to `explain.py` / `diagrams.process_diagram`.
+- [x] **Step 3:** Commit when user asks.
 
 ### Task 4: Review `--explain` + config + docs
 
-- [ ] **Step 1:** CLI flag + config; after review, explain listed UUIDs.
-- [ ] **Step 2:** Docs + CHANGELOG + phases checkboxes.
-- [ ] **Step 3:** Commit when user asks.
+- [x] **Step 1:** CLI flag + config; after review, explain listed UUIDs.
+- [x] **Step 2:** Docs + CHANGELOG + phases checkboxes.
+- [x] **Step 3:** Commit when user asks.
 
 ---
 

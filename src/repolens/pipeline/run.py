@@ -397,6 +397,10 @@ def run_review(
                     )
 
         report.durationSeconds = round(time.time() - run_started, 1)
+        from repolens.issue_ids import stamp_issue_ids
+
+        report.issues = stamp_issue_ids(report.issues)
+        report.summary = report.recount_summary()
         prog.phase(f"Writing report → {out}")
         md = write_markdown_report(report, out, mode=mode) if fmt in {"md", "both"} else None
         js = (
@@ -404,6 +408,16 @@ def run_review(
             if fmt in {"json", "both"}
             else None
         )
+        if js is not None:
+            from repolens.explain import write_last_report_pointer
+
+            write_last_report_pointer(root, js)
+        elif md is not None and fmt == "md":
+            # Prefer JSON for explain; when md-only, still write JSON sidecar for lookup.
+            js = write_json_report(report, out, mode=mode)
+            from repolens.explain import write_last_report_pointer
+
+            write_last_report_pointer(root, js)
         prog.phase("Done")
         return ReviewResult(
             report=report,

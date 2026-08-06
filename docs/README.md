@@ -19,6 +19,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 |-----|---------|
 | [phases.md](./phases.md) | Implementation tracker (what’s done / next) |
 | [faq.md](./faq.md) | Languages, tools, modes, export, production honesty |
+| [rules.md](./rules.md) | What RepoLens checks, why, and how to turn rules on/off (plain language) |
 | [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) | Step-by-step: cloud key, local Ollama, scanners only |
 | [install-extras.md](./install-extras.md) | What `[dev]` / `[scanners]` / `[local-ml]` install (RepoLens `pyproject.toml`) |
 | [try-on-your-repo.md](./try-on-your-repo.md) | Install + review local / GitHub / Bitbucket / HF / git URL (macOS, Linux, Windows) |
@@ -34,9 +35,13 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [design/phase-5-adaptive-cache-and-recommendations.md](./design/phase-5-adaptive-cache-and-recommendations.md) | Phase 5 design: fingerprint cache, progressive review, per-project timeout |
 | [design/phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md) | Phase 5.1: honest coverage, security audit confidence, quieter deep reports |
 | [design/phase-6-issue-explain-diagrams.md](./design/phase-6-issue-explain-diagrams.md) | Phase 6: UUID explain + foolproof Mermaid diagrams |
+| [design/phase-6.x-scanner-depth-ci-gates-and-credibility.md](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md) | Phase 6.1–6.10: scanners/SBOM/gates/SARIF (core) + feedback/PR UX/reachability/domain packs (extended) |
+| [superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md](./superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md) | Plan: CI triage routing (LLM only on scanner hits) for large repos |
+| [blog-ideas/enterprise-scale-llm-review-ci.md](./blog-ideas/enterprise-scale-llm-review-ci.md) | Blog draft: why 10k-file repos cannot full-LLM on every PR |
 | [design/phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md) | Phase 7 design: Jenkins/CircleCI, artifacts, email/dashboard (not SaaS) |
 | [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) | CLI UX, exit codes, finding/report schema |
 | [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) | AI keys, OWASP/CVE layers, bundled vs optional scanners, local ML |
+| [design/repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md) | Honest comparison vs Checkmarx, Snyk, Semgrep, CodeQL, Trivy, … (product positioning) |
 | [adr/](./adr/) | ADRs + diagram legend (how analysis works) |
 | [adr/01_analysis_runtime_architecture.md](./adr/01_analysis_runtime_architecture.md) | Pipeline, modes, security zones (diagrams) |
 | [using-playbooks.md](./using-playbooks.md) | Run reviews via playbooks (with or without the CLI) |
