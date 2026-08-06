@@ -14,9 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Foolproof diagram spine: Mermaid validate → one repair → textual fallback; optional `mmdc` image never blocks exit 0
 - `.repolens/last_report.json` pointer (and JSON sidecar when `--format md`) for explain lookup
 
-### Added (Phase 6.x design — not implemented yet)
+### Added (Phase 6.1 Trivy + Checkov plugins)
 
-- Roadmap for scanner depth / CI triage / anchored SARIF / suppressions before Phase 7 ([design](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md))
+- Optional `trivy` plugin (pinned 0.73.0 archives + SHA-256) — `trivy fs` vulns/misconfig → report Issues
+- Optional `checkov` plugin (pip pin in cache venv) — IaC failed_checks → report Issues
+- Scanner evidence block fed into deep / single-shot LLM prompts
+- Opt-in via `[scanners].enabled` or `--scanners …,trivy,checkov` (defaults unchanged)
+
+### Added (Phase 6.x design — remaining slices)
+
+- Roadmap for CI triage / anchored SARIF / suppressions before Phase 7 ([design](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md))
 - Implementation plan for enterprise CI triage routing ([plan](./superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md))
 - Blog draft: enterprise scale vs full-LLM PR checks ([blog](./blog-ideas/enterprise-scale-llm-review-ci.md))
 - End-user [rules.md](./rules.md) + AppSec comparison note

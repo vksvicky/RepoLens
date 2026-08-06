@@ -21,3 +21,4 @@ Durable record of dual-review gate confidence over time.
 
 1. After a pre-commit / pre-push dual review, append a row **and** keep a report under `docs/reviews/` when shipping.  
 2. Do not paste secrets, tokens, or private code into the Note column.
+| 2026-08-06 | WIP→commit | 91% | 0/0/0/1 | Phase 6.1 Trivy+Checkov plugins; evidence→LLM; 17 tests | chat |

@@ -39,10 +39,16 @@ def resolve_binary(name: str, *, candidates: tuple[str, ...] | None = None) -> P
         for match in matches:
             if match.is_file() and os.access(match, os.X_OK):
                 return match
-    # Semgrep may live in a cache venv
-    venv_bin = tools_cache_dir() / "semgrep-venv" / "bin" / "semgrep"
-    if name == "semgrep" and venv_bin.is_file() and os.access(venv_bin, os.X_OK):
-        return venv_bin
+    # Pip-installed tools may live in a cache venv
+    for tool in ("semgrep", "checkov"):
+        if name == tool:
+            for rel in (
+                Path(f"{tool}-venv") / "bin" / tool,
+                Path(f"{tool}-venv") / "Scripts" / f"{tool}.exe",
+            ):
+                venv_bin = tools_cache_dir() / rel
+                if venv_bin.is_file() and os.access(venv_bin, os.X_OK):
+                    return venv_bin
     return None
 
 
@@ -61,5 +67,15 @@ MANUAL_HINTS: dict[str, str] = {
         "Install OSV-Scanner: https://google.github.io/osv-scanner/\n"
         "  brew install osv-scanner\n"
         "  # or: repolens plugins install osv"
+    ),
+    "trivy": (
+        "Install Trivy: https://aquasecurity.github.io/trivy/\n"
+        "  brew install trivy\n"
+        "  # or: repolens plugins install trivy"
+    ),
+    "checkov": (
+        "Install Checkov: https://www.checkov.io/\n"
+        "  pipx install checkov\n"
+        "  # or: repolens plugins install checkov"
     ),
 }

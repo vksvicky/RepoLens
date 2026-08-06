@@ -118,7 +118,8 @@ def catalog() -> dict[str, dict[str, AssetSpec]]:
             sha256="9c6160afb26c79449a1f1b667323b989a57dda8fc19f22936c9ff920fd97ddfa",
         ),
     }
-    # Semgrep via pip (PyPI TLS + pinned version; no native binary checksum).
+    # Semgrep / Checkov via pip (PyPI TLS + pinned version; no native binary checksum).
+    platforms = ("darwin-arm64", "darwin-amd64", "linux-amd64", "linux-arm64")
     semgrep = {
         key: AssetSpec(
             "semgrep",
@@ -127,12 +128,65 @@ def catalog() -> dict[str, dict[str, AssetSpec]]:
             "pip",
             pip_package=f"semgrep=={semgrep_v}",
         )
-        for key in ("darwin-arm64", "darwin-amd64", "linux-amd64", "linux-arm64")
+        for key in platforms
     }
-    return {"gitleaks": gl, "osv": osv, "semgrep": semgrep}
+    trivy_v = "0.73.0"
+    trivy_base = f"https://github.com/aquasecurity/trivy/releases/download/v{trivy_v}/"
+    trivy = {
+        "darwin-arm64": AssetSpec(
+            "trivy",
+            trivy_v,
+            f"{trivy_base}trivy_{trivy_v}_macOS-ARM64.tar.gz",
+            "archive",
+            archive_member="trivy",
+            sha256="80cc25faaf6378e37701202d0b4f9f43d9e413d198d594ba60fdf559fe44a683",
+        ),
+        "darwin-amd64": AssetSpec(
+            "trivy",
+            trivy_v,
+            f"{trivy_base}trivy_{trivy_v}_macOS-64bit.tar.gz",
+            "archive",
+            archive_member="trivy",
+            sha256="d39d1374dd3e35d48621b82df9b6625fe69f9920cc67d2739ed81bb679f16f51",
+        ),
+        "linux-amd64": AssetSpec(
+            "trivy",
+            trivy_v,
+            f"{trivy_base}trivy_{trivy_v}_Linux-64bit.tar.gz",
+            "archive",
+            archive_member="trivy",
+            sha256="2edd39da482bb4e9831962487b68f68e3928ec3137794757f54d00383d79547b",
+        ),
+        "linux-arm64": AssetSpec(
+            "trivy",
+            trivy_v,
+            f"{trivy_base}trivy_{trivy_v}_Linux-ARM64.tar.gz",
+            "archive",
+            archive_member="trivy",
+            sha256="13833d97e8a1a5367471c372a173180157f593bece570e20d5d925fef552f5dd",
+        ),
+    }
+    checkov_v = "3.3.9"
+    checkov = {
+        key: AssetSpec(
+            "checkov",
+            checkov_v,
+            "",
+            "pip",
+            pip_package=f"checkov=={checkov_v}",
+        )
+        for key in platforms
+    }
+    return {
+        "gitleaks": gl,
+        "osv": osv,
+        "semgrep": semgrep,
+        "trivy": trivy,
+        "checkov": checkov,
+    }
 
 
-KNOWN_PLUGINS = ("gitleaks", "semgrep", "osv")
+KNOWN_PLUGINS = ("gitleaks", "semgrep", "osv", "trivy", "checkov")
 
 
 def plugin_status() -> list[tuple[str, str, str]]:
@@ -177,7 +231,7 @@ def install_plugins(
                 continue
         try:
             if spec.kind == "pip":
-                _install_semgrep_pip(spec)
+                _install_pip_tool(spec)
             elif spec.kind == "binary":
                 _install_binary(spec)
             else:
@@ -290,8 +344,9 @@ def _install_archive(spec: AssetSpec) -> None:
     tmp.unlink(missing_ok=True)
 
 
-def _install_semgrep_pip(spec: AssetSpec) -> None:
-    venv = tools_cache_dir() / "semgrep-venv"
+def _install_pip_tool(spec: AssetSpec) -> None:
+    """Install a pinned pip package into ``~/.cache/repolens/tools/<name>-venv``."""
+    venv = tools_cache_dir() / f"{spec.name}-venv"
     py = venv / "bin" / "python"
     if not py.exists():
         py = venv / "Scripts" / "python.exe"
@@ -306,6 +361,10 @@ def _install_semgrep_pip(spec: AssetSpec) -> None:
         capture_output=True,
     )
     subprocess.run(
-        [str(py), "-m", "pip", "install", spec.pip_package or "semgrep"],
+        [str(py), "-m", "pip", "install", spec.pip_package or spec.name],
         check=True,
     )
+
+
+# Back-compat alias for older tests / call sites
+_install_semgrep_pip = _install_pip_tool
