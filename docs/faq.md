@@ -58,7 +58,7 @@ Do **not** position RepoLens as replacing CodeQL/Semgrep/Dependabot fleet covera
 
 Reports and the CLI summary now open with a **Two-Lane** headline (Fast Brain file count ± lane seconds · Slow Brain pack or “bypassed” · duration · severity counts). Use it to sanity-check that lane scopes match what you intended.
 
-Related: [command-atlas.md](./command-atlas.md) · [command atlas durations](./command-atlas.md#7-approximate-duration) · [fair dogfood recipe](./command-atlas.md#fair-two-lane-dogfood-patternsorcerer-class).
+Related: [command-atlas.md](./command-atlas.md) · [command atlas durations](./command-atlas.md#7-approximate-duration) · [Fast Brain vs Slow Brain commands](./command-atlas.md#fast-brain-vs-slow-brain-commands--examples).
 
 ---
 
@@ -74,7 +74,7 @@ When demoing or comparing RepoLens to other tools on a PatternSorcerer-class rep
 
 **Latency honesty:** Fast Brain heuristics finish in **seconds** on typical trees. A local **qwen2.5-coder:32b** Slow Brain pass is still usually **much slower** than a cloud **Claude Haiku**-class API on the same pack — model size and prompt eval dominate, not “RepoLens overhead”. For apples-to-apples **quality** demos, compare cloud-to-cloud or local-to-local; for **CI speed**, use `--ci` or `--scanners-only`.
 
-Copy-paste recipes: [command-atlas.md § Fair Two-Lane dogfood](./command-atlas.md#fair-two-lane-dogfood-patternsorcerer-class).
+Copy-paste recipes: [command-atlas.md — Fast Brain vs Slow Brain](./command-atlas.md#fast-brain-vs-slow-brain-commands--examples).
 
 ---
 
