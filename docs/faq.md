@@ -14,6 +14,7 @@ If you only read one section, read this.
 | **What is `.[dev]` / `.[scanners]`?** | Optional **pip extras when installing RepoLens** (listed in RepoLens’s `pyproject.toml`). They are **not** part of the project you review. See [install-extras.md](./install-extras.md). |
 | **I have Ollama — why does review fail?** | RepoLens needs a one-time `repolens init --provider ollama` (writes `~/.config/repolens/config.toml`). `init` uses a model from `ollama list` when `--model` is omitted. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md#option-b--local-ai-on-your-computer-eg-ollama). |
 | **Does AI review every file?** | **No (Slow Brain).** LLM sample defaults to top **200** files. **Fast Brain** heuristics run on a much larger matched set (default 10k). Scanners walk the **full** tree. See [Two-Lane / inventory](#how-does-the-200-file-inventory-cap-work-are-the-other-files-at-risk). |
+| **Which UUID for `explain`?** | Copy the **Fingerprint** (preferred). **Occurrence** also works. See [finding fields](#what-do-finding-fields-mean). |
 
 Longer narrative: [design/ai-keys-scanners-and-local-learning.md §5](./design/ai-keys-scanners-and-local-learning.md#5-decision-summary-plain-language).  
 
@@ -106,17 +107,64 @@ Report chrome (Metrics, Coverage, About, Disclaimer) and LLM/heuristic finding p
 
 Self-review on this repo should not drown in agent scratch (`.superpowers/`), heuristic fixtures, or pedagogical “password” mentions in playbooks. Plan: [superpowers/specs/2026-08-05-self-review-hardening-design.md](./superpowers/specs/2026-08-05-self-review-hardening-design.md) · [implementation plan](./superpowers/plans/2026-08-05-self-review-hardening.md).
 
+## What do finding fields mean?
+
+Each issue in the Markdown / JSON report is a structured finding. Plain meanings:
+
+| Field | Means | Typical use |
+|-------|--------|-------------|
+| **Severity** | How bad if true: `CRITICAL` → `LOW` | `--fail-on`; triage floor |
+| **Priority** | Review band: **P1** security · **P2** bugs/reliability · **P3** architecture/quality | Report section; dual-review order |
+| **File** / **Line** | Where the tool believes the issue is | Open in editor; SARIF when verified |
+| **Category** | Rule / theme id (e.g. `heuristic.mega_file`, `sec.injection`, `gitleaks`) | Grouping; suppressions by `file`+`category` |
+| **Fingerprint** | Identity of the *issue* across runs (from category + file + title). JSON field: `stableId`. | **Prefer this** for `repolens explain`, ignore, and `feedback down` |
+| **Occurrence** | This *appearance* in tonight’s report only. Changes every run. JSON field: `runId`. | Optional; also accepted by `explain` if you copied that UUID |
+| **Source** | Who produced it: `scanner` · `heuristic` (Fast Brain / packs) · `llm` | CI `--fail-on` often prefers scanners; honesty about provenance |
+| **Location** | Whether `file`+`line` was verified against disk (`anchorQuote` / scanner evidence) | Unverified → omitted from SARIF (GitHub won’t get a bad line) |
+| **Explanation** | Why this matters in *this* codebase | Human review |
+| **Impact** | What goes wrong if unfixed (required for Critical/High) | Risk communication |
+| **Recommended fix** | What to do | Remediation |
+| **Code example** | Concrete fix snippet (required for Critical/High) | Copy/adapt |
+| **Fix timing** | `immediately` · `before launch` · `after launch` · `if time permits` | Planning |
+| **OWASP** / **CWE** | Optional taxonomy tags when the model/scanner supplies them | Mapping to standards |
+
+### Fingerprint vs Occurrence — which UUID for `explain`?
+
+**Yes — you can use either.** There is no third “explain UUID.”
+
+| You copy… | Works with `explain`? | Prefer when… |
+|-----------|----------------------|--------------|
+| **Fingerprint** | Yes | Everyday use — same value next week; also for ignore / feedback |
+| **Occurrence** | Yes | You only want *this* report’s row (advanced / debugging) |
+
+Default habit: **always copy Fingerprint.**
+
+Lookup order inside RepoLens: match **Occurrence** (`runId`) first if present, else **Fingerprint** (`stableId`).
+
+JSON still uses `stableId` / `runId` for compatibility; Markdown shows the human labels above.
+
+Schema: [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) · design: [superpowers/specs/2026-08-04-phase-6-issue-explain-diagrams-design.md](./superpowers/specs/2026-08-04-phase-6-issue-explain-diagrams-design.md).
+
 ## How do I deep-dive one finding (Phase 6 explain)?
 
-Every finding gets a **Run ID** and **Stable ID** in the report. After a review:
+Copy the finding’s **Fingerprint** (or **Occurrence** — both work). After a review:
 
 ```bash
-repolens explain <uuid> --path "$TARGET" --out "$TARGET/reports"
+# preferred — Fingerprint from the report
+repolens explain a08697ac-a881-53ca-a8a0-92d86ca3da5b --path "$TARGET" --out "$TARGET/reports"
+
+# also fine — Occurrence from the same finding
+repolens explain caf11d8b-559f-4fd7-a936-16d4681783b6 --path "$TARGET" --out "$TARGET/reports"
+
 # or during review:
-repolens review --path "$TARGET" --out "$TARGET/reports" --explain <uuid>[,<uuid>…]
+repolens review --path "$TARGET" --out "$TARGET/reports" --explain <fingerprint-or-occurrence>[,…]
 ```
 
-Writes `reports/explain_<short>_<stamp>.md` with problem, impact, 2–3 solutions, and a Mermaid diagram (textual fallback if Mermaid is invalid). Toggle: `[explain]` in config. Diagrams never fail the command (exit 0 unless UUID missing / explain disabled).
+Writes `reports/explain_<short>_<stamp>.md` with problem, impact, **actionable** solutions (symbol moves + import diffs when splitting), structure outline evidence, and a Mermaid diagram grounded in real symbols. Toggle: `[explain]` in config.
+
+Progress (default on): phase lines + `… still waiting` heartbeats while the model runs (`-v` for detail, `-q` quiet, `--heartbeat 0` to disable). Diagrams never fail the command. A note about optional PNG/SVG only means image render was skipped — the Mermaid fence still works in GitHub / IDE preview.
+
+For `heuristic.mega_file`, RepoLens feeds a **symbol outline** (classes/functions + line spans) so the model cannot invent `UI_module` / `IO_module`-style fluff; generic boilerplate answers are rejected and replaced with an outline-guided fallback.
 
 ## How do we reduce known LLM false positives for everyone?
 
@@ -554,8 +602,8 @@ Yes (`--sarif`, Phase 6.4). Export is **anchored**: scanner locations are truste
 
 Use **Phase 6.7 suppressions**:
 
-1. Copy the finding’s **Stable ID** from the report.  
-2. `repolens feedback down <stableId> --reason false_positive --path .` (writes `.repolens-ignore`), **or** add an `[[ignore]]` table by hand.  
+1. Copy the finding’s **Fingerprint** from the report (JSON: `stableId`).
+2. `repolens feedback down <fingerprint> --reason false_positive --path .` (writes `.repolens-ignore`), **or** add an `[[ignore]]` table by hand.
 3. For LLM/heuristic line noise only: `# repolens:disable-next-line` above the line (scanners still need an ignore entry).
 
 Suppressed rows leave fail-on and SARIF, but stay listed under **Suppressed** in Markdown. See [rules.md](./rules.md#suppress-a-finding-so-it-stops-nagging-phase-67).

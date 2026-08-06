@@ -22,7 +22,9 @@ _REASONS = ("false_positive", "wont_fix", "accepted_risk", "other")
 
 @feedback_app.command("down")
 def feedback_down(
-    stable_id: str = typer.Argument(..., help="Issue stableId from a report"),
+    stable_id: str = typer.Argument(
+        ..., help="Issue Fingerprint from a report (JSON: stableId)"
+    ),
     reason: str = typer.Option(
         "false_positive",
         "--reason",
@@ -36,7 +38,7 @@ def feedback_down(
         help="Optional ISO date (YYYY-MM-DD) when the ignore expires",
     ),
 ) -> None:
-    """Thumbs-down: append a stableId ignore entry (local file only)."""
+    """Thumbs-down: append a Fingerprint ignore entry (local file only)."""
     reason = reason.strip().lower()
     if reason not in _REASONS:
         console.print(f"[red]Unknown reason:[/red] {reason}. Choose from {_REASONS}")

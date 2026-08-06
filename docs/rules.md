@@ -146,13 +146,14 @@ fp_calibrations = { subprocess_list_not_injection = false }
 
 ## Deep-dive one finding
 
-Reports show a **Run ID** and **Stable ID** on each issue. To open a fuller write-up:
+Reports show a **Fingerprint** (issue identity across runs) and an **Occurrence** (this report only).  
+**Either works with `explain` — prefer Fingerprint.** Use Fingerprint for ignores too:
 
 ```bash
-repolens explain <uuid> --path . --out ./reports
+repolens explain <fingerprint> --path . --out ./reports
 ```
 
-Details: [FAQ — explain](./faq.md#how-do-i-deep-dive-one-finding-phase-6-explain).
+Field glossary: [FAQ — What do finding fields mean?](./faq.md#what-do-finding-fields-mean) · [explain](./faq.md#how-do-i-deep-dive-one-finding-phase-6-explain).
 
 ## What not to expect
 

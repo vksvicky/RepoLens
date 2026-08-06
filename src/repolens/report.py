@@ -150,6 +150,23 @@ def render_markdown(
     lines.append("")
     lines.extend(_render_metrics_section(report))
 
+    lines.extend(
+        [
+            "## Finding fields",
+            "",
+            "- **Priority:** P1 security · P2 bugs/reliability · P3 architecture/quality.",
+            "- **Fingerprint:** identity of the issue across runs — **prefer this** for "
+            "`repolens explain` and for ignore / `feedback down`.",
+            "- **Occurrence:** this appearance in *this* report only (also accepted by "
+            "`explain`; changes every run).",
+            "- **Source:** `scanner` · `heuristic` (Fast Brain) · `llm`.",
+            "- **Location:** verified → SARIF-eligible; unverified → Markdown/JSON only.",
+            "",
+            "Full glossary: RepoLens `docs/faq.md` → *What do finding fields mean?*",
+            "",
+        ]
+    )
+
     bands = (
         ("P1", "P1 — Security"),
         ("P2", "P2 — Bugs, reliability, performance"),
@@ -542,10 +559,16 @@ def _render_issue(issue: Issue) -> list[str]:
         f"- **Line:** {issue.line}",
         f"- **Category:** {issue.category}",
     ]
-    if issue.runId:
-        block.append(f"- **Run ID:** `{issue.runId}`")
     if issue.stableId:
-        block.append(f"- **Stable ID:** `{issue.stableId}`")
+        block.append(
+            f"- **Fingerprint:** `{issue.stableId}` "
+            "(prefer for `explain` / ignore)"
+        )
+    if issue.runId:
+        block.append(
+            f"- **Occurrence:** `{issue.runId}` "
+            "(this report only; also works with `explain`)"
+        )
     if issue.source:
         block.append(f"- **Source:** {issue.source}")
     if issue.locationVerified is False:

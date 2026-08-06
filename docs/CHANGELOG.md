@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (explain credibility)
+
+- `repolens explain`: phase lines + LLM heartbeats (`-v` / `-q` / `--heartbeat`)
+- Mega-file / large files: feed **symbol outline** (AST) into the prompt; forbid generic `UI_module`-style splits
+- Reject generic boilerplate LLM answers; render **moves**, **importDiff**, proposed refactor, structure evidence
+- Clearer diagram note: optional PNG skip ≠ failure
+- Explain prompt: **1–3 distinct** solutions (no filler clones); safe **additive** import diffs
+- Post-process: dedupe identical `moves`; warn when diffs strip `typer`/stdlib; IDE-safe Mermaid (`---` edges); diagrams + next steps grounded in plan moves
+
+### Added (finding-field glossary)
+
+- FAQ: **What do finding fields mean?** — human labels **Fingerprint** / **Occurrence** (JSON still `stableId` / `runId`)
+- Either UUID works with `repolens explain`; **prefer Fingerprint**
+- Markdown reports: **Finding fields** primer + per-issue Fingerprint/Occurrence labels
+- [command-atlas.md](./command-atlas.md): **Example** column + Fingerprint-first explain examples
+
 ### Added (Phase 6.11 Fast Brain / Two-Lane)
 
 - **Fast Brain:** whole-tree (default 10k) parallel heuristics + packs; fingerprints on that set
