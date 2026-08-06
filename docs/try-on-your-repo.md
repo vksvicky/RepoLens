@@ -2,6 +2,8 @@
 
 Use these steps to review a project **on disk** or from **GitHub / Bitbucket / Hugging Face / any git URL** before relying on PyPI or CI.
 
+**Command map (every CLI recipe, timings, troubleshooting):** [command-atlas.md](./command-atlas.md)
+
 Replace placeholders in the commands:
 
 | Placeholder | Meaning | Example substitution |

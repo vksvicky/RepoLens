@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pack registry (`repolens packs list`) with opt-in `[packs] enabled` / `--pack`
 - **azure-sentinel** pack: SOAR/Logic Apps playbook + light heuristics (tenant/subscription IDs, connector secrets)
 - Pack heuristics run on scanners-only / CI triage bypass; core `sentinel` unchanged when packs off
-- [packs-quickcheck.md](./packs-quickcheck.md) — expected CLI output tables + rough machine timings
+- [packs-quickcheck.md](./packs-quickcheck.md) — pack-only expected CLI output + timings
+- [command-atlas.md](./command-atlas.md) — holy-grail CLI map (install → all commands → if/then → timings → troubleshooting)
 
 ### Added (Phase 6.9 best-effort reachability & verify)
 

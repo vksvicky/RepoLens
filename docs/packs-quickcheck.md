@@ -1,6 +1,8 @@
 # Domain packs — quick check
 
-Short expected-output guide for Phase 6.10 packs. Full detail: [packs.md](./packs.md).
+Short expected-output guide for Phase 6.10 packs.  
+**All commands (install → review → after-report → troubleshooting):** [command-atlas.md](./command-atlas.md)  
+Full pack detail: [packs.md](./packs.md).
 
 ## Commands → what you should see
 
@@ -46,6 +48,6 @@ Times vary with disk, antivirus, cold Semgrep cache, and whether OSV/Trivy hit t
 
 **Pack overhead:** usually under a second on small/medium trees (light text scan of JSON/YAML/Bicep-ish files).
 
-**With LLM** (`review` / `sentinel` without `--scanners-only`): add model time — often ~1–5+ minutes locally (Ollama on laptop) or less on cloud APIs, depending on pack size and `--ci` triage bypass. Clean scanner diffs under `--ci` often **skip** the LLM entirely.
+**With LLM** (full deep + local Ollama): expect **hours**, not minutes — dogfood on M4 Pro / 128 GB is often **≥1 h for ~200 files** and **~2–3+ h for ~800 files**. Cloud APIs are still multi-pass / token-bound. Prefer `--ci` (bypass when scanners clean) or `--scanners-only` for fast loops.
 
-These are not SLAs — use them only to set expectations before the first run.
+Full matrix: [command-atlas.md § Approximate duration](./command-atlas.md#7-approximate-duration).
