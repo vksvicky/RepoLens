@@ -50,3 +50,72 @@ def test_cluster_different_files_kept() -> None:
     ]
     out = cluster_near_duplicates(issues)
     assert len(out) == 2
+
+
+def test_clusters_heuristic_and_llm_gitignore_twins():
+    a = Issue(
+        severity=Severity.MEDIUM,
+        priority="P2",
+        category="heuristic.gitignore_secrets",
+        file=".gitignore",
+        line=1,
+        title="Gitignore missing .env",
+        explanation="x",
+        impact="y",
+        recommendedFix="z",
+        codeExample="#",
+        source="heuristic",
+    )
+    b = Issue(
+        severity=Severity.HIGH,
+        priority="P1",
+        category="sec.repo_hygiene_secrets",
+        file=".gitignore",
+        line=1,
+        title="Gitignore Missing .env / Secret Patterns",
+        explanation="x",
+        impact="y",
+        recommendedFix="z",
+        codeExample="#",
+        source="llm",
+    )
+    out = cluster_near_duplicates([a, b])
+    assert len(out) == 1
+    assert out[0].severity == Severity.HIGH
+    assert out[0].source == "llm"  # higher severity wins
+    assert out[0].clusteredCount == 2
+
+
+def test_cluster_tie_prefers_llm_text_over_heuristic():
+    """Same severity: keep LLM row (rich text), not generic heuristic stub."""
+    heur = Issue(
+        severity=Severity.MEDIUM,
+        priority="P3",
+        category="heuristic.mega_file",
+        file="src/big.py",
+        line=1,
+        title="Mega-file detected",
+        explanation="File is large.",
+        impact="Harder to review.",
+        recommendedFix="Split it.",
+        codeExample="# n/a",
+        source="heuristic",
+    )
+    llm = Issue(
+        severity=Severity.MEDIUM,
+        priority="P3",
+        category="arch.structure_size",
+        file="src/big.py",
+        line=1,
+        title="Mega-file: big.py has 637 lines",
+        explanation="The `_run_mode` function is 175 lines; split by command.",
+        impact="Merge conflicts and review fatigue.",
+        recommendedFix="Extract `_run_mode` into run_mode.py.",
+        codeExample="+ from .run_mode import _run_mode",
+        source="llm",
+    )
+    out = cluster_near_duplicates([heur, llm])
+    assert len(out) == 1
+    assert out[0].source == "llm"
+    assert "_run_mode" in out[0].explanation
+    assert out[0].clusteredCount == 2
