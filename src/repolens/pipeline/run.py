@@ -184,6 +184,8 @@ def run_review(
 
     fast_brain_file_count = len(fast_files)
     llm_pack_file_count = 0
+    fast_brain_seconds: float | None = None
+    llm_seconds_prov: float | None = None
     heur_result = None
 
     if out_dir is not None:
@@ -305,6 +307,7 @@ def run_review(
             f"Fast brain: heuristics on {len(fast_files)} file(s) "
             f"(workers={cfg.fast_brain.parallel_workers})…"
         )
+        _fb_t0 = time.monotonic()
         heur_result = run_heuristics(
             root,
             fast_files,
@@ -313,6 +316,7 @@ def run_review(
             pack_ids=pack_ids or None,
             workers=cfg.fast_brain.parallel_workers,
         )
+        fast_brain_seconds = round(time.monotonic() - _fb_t0, 1)
         heur_issues = list(heur_result.issues)
         prog.detail(
             f"Fast brain: {len(heur_issues)} heuristic finding(s), "
@@ -544,6 +548,7 @@ def run_review(
                     f"(timeout {timeout:g}s — large repos can take several minutes)"
                 )
                 started = time.time()
+                _llm_t0 = time.monotonic()
                 try:
                     if use_deep:
                         # Per-pass waiting lives inside _analyze_deep_passes.
@@ -633,6 +638,7 @@ def run_review(
                     raise
                 else:
                     llm_seconds = time.time() - started
+                    llm_seconds_prov = round(time.monotonic() - _llm_t0, 1)
                     if store is not None:
                         store.record_run(
                             started_at=started,
@@ -725,6 +731,8 @@ def run_review(
             ),
             fastBrainFiles=fast_brain_file_count,
             llmPackFiles=llm_pack_file_count,
+            fastBrainSeconds=fast_brain_seconds,
+            llmSeconds=llm_seconds_prov,
             notes=list(triage_plan.notes) if triage_plan is not None else [],
         )
         # Phase 6.4: stamp locationVerified before Markdown/SARIF write

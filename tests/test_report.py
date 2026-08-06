@@ -55,6 +55,23 @@ def test_two_lane_headline_includes_counts() -> None:
     assert "4 high" in line.lower() or "High 4" in line
 
 
+def test_two_lane_headline_includes_lane_seconds_when_present():
+    report = FindingReport(
+        confidence=70,
+        summary=Summary(),
+        issues=[],
+        provenance=ProvenanceBlock(
+            fastBrainFiles=158,
+            llmPackFiles=17,
+            fastBrainSeconds=2.1,
+            llmSeconds=32.0,
+        ),
+    )
+    line = format_two_lane_headline(report)
+    assert "2.1s" in line or "2s" in line
+    assert "32" in line
+
+
 def test_format_duration() -> None:
     assert format_duration(None) is None
     assert format_duration(45) == "45s"

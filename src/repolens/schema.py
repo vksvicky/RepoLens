@@ -131,6 +131,8 @@ class ProvenanceBlock(BaseModel):
     # Phase 6.11 Two-Lane honesty
     fastBrainFiles: int | None = None
     llmPackFiles: int | None = None
+    fastBrainSeconds: float | None = Field(default=None, ge=0)
+    llmSeconds: float | None = Field(default=None, ge=0)
     notes: list[str] = Field(default_factory=list)
 
 

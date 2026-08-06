@@ -69,12 +69,18 @@ def format_two_lane_headline(report: FindingReport) -> str:
     dur = format_duration(report.durationSeconds)
     parts: list[str] = []
     if fb is not None:
-        parts.append(f"Fast Brain: {fb} file(s)")
+        fb_bit = f"Fast Brain: {fb} file(s)"
+        if prov and prov.fastBrainSeconds is not None:
+            fb_bit += f" in {prov.fastBrainSeconds:.1f}s"
+        parts.append(fb_bit)
     if llm is not None:
         if prov and prov.llmBypassed:
             parts.append("Slow Brain: bypassed (triage clean)")
         else:
-            parts.append(f"Slow Brain: {llm} file(s)")
+            sb_bit = f"Slow Brain: {llm} file(s)"
+            if prov and prov.llmSeconds is not None:
+                sb_bit += f" in {prov.llmSeconds:.1f}s"
+            parts.append(sb_bit)
     if dur:
         parts.append(dur)
     parts.append(counts)
@@ -412,6 +418,16 @@ def _render_metrics_section(report: FindingReport) -> list[str]:
             lines.append(
                 f"| LLM pack files | {prov.llmPackFiles} | Files sent to the model "
                 "(0 if bypassed / scanners-only) |"
+            )
+        if prov.fastBrainSeconds is not None:
+            lines.append(
+                f"| Fast Brain seconds | {prov.fastBrainSeconds:.1f}s | Wall time "
+                "for whole-tree heuristics |"
+            )
+        if prov.llmSeconds is not None:
+            lines.append(
+                f"| Slow Brain seconds | {prov.llmSeconds:.1f}s | Wall time for "
+                "LLM / deep analysis |"
             )
     if report.securityAuditConfidence is not None:
         lines.append(
