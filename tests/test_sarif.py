@@ -131,3 +131,23 @@ def test_write_sarif_report_creates_file(tmp_path: Path) -> None:
     data = json.loads(out.read_text(encoding="utf-8"))
     assert data["version"] == "2.1.0"
     assert data["runs"][0]["results"]
+
+
+def test_sarif_filename_matches_report_basename_utc(tmp_path: Path) -> None:
+    from datetime import datetime, timezone
+
+    from repolens.report import report_basename
+
+    (tmp_path / "a.py").write_text("x=1\n", encoding="utf-8")
+    report = FindingReport(
+        confidence=70,
+        summary=Summary(),
+        issues=[_issue(file="a.py", line=1, source="scanner", category="semgrep")],
+    )
+    when = datetime(2026, 8, 6, 14, 41, 0, tzinfo=timezone.utc)
+    out = write_sarif_report(
+        report, tmp_path, out_dir=tmp_path / "reports", mode="review", when=when
+    )
+    assert out is not None
+    assert out.name == f"{report_basename('review', when)}.sarif.json"
+    assert "2026-08-06_1441" in out.name
