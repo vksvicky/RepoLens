@@ -47,7 +47,7 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 
 - **CLI:** Python 3.11+  
 - **Reviews:** language-agnostic, with first-class focus on JS/TS, Python, Go, JVM, C#, Ruby, PHP, Rust, Swift (+ IaC/config)  
-- **AI:** Bring your own cloud key **or** run a local model (e.g. Ollama)—no embedded RepoLens key  
+- **AI:** Bring your own cloud key (Anthropic, OpenAI, DeepSeek), run a local model (e.g. Ollama), or rely on automatic local fallback (`--fallback`)  
 - **CVE / SAST / secrets:** optional plugins (OSV, Semgrep, gitleaks)—not in the slim default install  
 - **Local learning:** opt-in on-disk FTS index (`repolens learn`), informed consent first  
 - **CI:** official GitHub Action (`action.yml`) — see [docs/ci.md](./docs/ci.md)

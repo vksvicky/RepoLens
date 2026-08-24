@@ -124,11 +124,23 @@ def test_review_no_provider_prints_init_hints(tmp_path: Path, monkeypatch) -> No
     with patch("repolens.llm.setup.detect_ollama", return_value=True):
         result = runner.invoke(
             app,
-            ["review", "--path", str(tmp_path), "--out", str(tmp_path / "out")],
+            ["review", "--no-fallback", "--path", str(tmp_path), "--out", str(tmp_path / "out")],
         )
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 4, result.output
     assert "No model provider configured." in result.output
     assert "Detected Ollama" in result.output
+
+
+def test_review_no_provider_auto_fallback(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    (tmp_path / "app.py").write_text("print(1)\n", encoding="utf-8")
+    with patch("repolens.llm.setup.detect_ollama", return_value=False):
+        result = runner.invoke(
+            app,
+            ["sentinel", "--path", str(tmp_path), "--out", str(tmp_path / "out")],
+        )
+    assert result.exit_code == 0, result.output
+    assert "Fallback:" in result.output
 
 
 def test_review_empty_path_exit_2() -> None:

@@ -19,7 +19,7 @@ from repolens.last_llm import (
     merge_reused_report,
     save_last_llm_report,
 )
-from repolens.llm import default_model, resolve_llm_timeout
+from repolens.llm import LlmError, default_model, resolve_llm_timeout
 from repolens.pipeline.deep_exec import (
     _analyze_deep_passes,
     _maybe_sync_fts,
@@ -96,6 +96,7 @@ def run_review(
     sarif: bool = False,
     verify_findings: bool | None = None,
     packs: list[str] | None = None,
+    fallback: bool | None = None,
 ) -> ReviewResult:
     if force_full and force_changed:
         raise ValueError("--full and --changed cannot be combined")
@@ -103,6 +104,8 @@ def run_review(
     root = path.resolve()
     run_started = time.time()
     cfg = config or load_config(root, trust_project=trust_project)
+    if fallback is not None:
+        cfg.model.fallback = fallback
     if model_override:
         cfg.model.model = model_override
     if timeout_override is not None:
@@ -322,8 +325,42 @@ def run_review(
             f"Fast brain: {len(heur_issues)} heuristic finding(s), "
             f"{len(heur_result.hot_paths)} hot path(s)"
         )
-        if pack_ids:
-            prog.detail(f"Domain packs enabled: {', '.join(pack_ids)}")
+        if not scanners_only and not dry_run and cfg.model.fallback:
+            from repolens.config import resolve_api_key
+            from repolens.llm.setup import detect_ollama, resolve_ollama_model
+
+            provider = cfg.model.provider
+            key = resolve_api_key(cfg.model)
+            has_key = (
+                bool(key)
+                if provider in {"openai", "anthropic", "deepseek", "openai_compatible"}
+                else True
+            )
+
+            if not provider or not has_key:
+                if detect_ollama():
+                    chosen, _ = resolve_ollama_model(cfg.model.model)
+                    cfg.model.provider = "ollama"
+                    cfg.model.model = chosen
+                    prog.phase(
+                        f"Fallback: Cloud AI key missing → switching to local Ollama ({chosen})"
+                    )
+                else:
+                    scanners_only = True
+                    if not tools:
+                        tools = list(cfg.scanners.enabled)
+                        if tools:
+                            prog.phase(f"Scanners: running {', '.join(tools)}…")
+                            scanner_runs, scanner_issues, scanner_gaps = run_scanners(
+                                root, tools
+                            )
+                    prog.phase(
+                        "Fallback: Cloud AI key & Ollama unavailable → degraded to SAST scanners & heuristics"
+                    )
+                    scanner_gaps.insert(
+                        0,
+                        "Fallback: Cloud AI key & Ollama unavailable; report generated using local scanners and Fast-Brain heuristics.",
+                    )
 
         if scanners_only:
             all_ran = bool(scanner_runs) and all(r.status == "ran" for r in scanner_runs)
@@ -335,6 +372,7 @@ def run_review(
                 or (["scanners-only: no scanners selected"] if not tools else []),
                 scannerRuns=list(scanner_runs),
                 supplyChain=supply_chain,
+                llmSkipped=True,
             )
             report.summary = report.recount_summary()
         elif not files and not fast_files:
@@ -622,7 +660,7 @@ def run_review(
                                 )
                             report.summary = report.recount_summary()
                         gen.mark_done()
-                except BaseException:
+                except BaseException as exc:
                     if store is not None:
                         store.record_run(
                             started_at=started,
@@ -635,7 +673,25 @@ def run_review(
                             timeout_used=timeout,
                             outcome="error",
                         )
-                    raise
+                    if isinstance(exc, LlmError) and cfg.model.fallback:
+                        prog.phase(
+                            f"Fallback: LLM error ({exc}) → degraded to SAST scanners & heuristics"
+                        )
+                        report = FindingReport(
+                            confidence=55,
+                            summary=Summary(),
+                            issues=list(scanner_issues) + heur_issues,
+                            durabilityGaps=[
+                                f"Fallback: LLM execution failed ({exc}); report generated using local scanners and Fast-Brain heuristics."
+                            ]
+                            + list(scanner_gaps),
+                            scannerRuns=list(scanner_runs),
+                            supplyChain=supply_chain,
+                            llmSkipped=True,
+                        )
+                        report.summary = report.recount_summary()
+                    else:
+                        raise
                 else:
                     llm_seconds = time.time() - started
                     llm_seconds_prov = round(time.monotonic() - _llm_t0, 1)
