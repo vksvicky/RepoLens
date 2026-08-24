@@ -104,25 +104,16 @@ def _coerce_fix_timing(raw: Any) -> str:
     return "before launch"
 
 
-def _coerce_issue(raw: Any) -> dict[str, Any] | None:
-    """Normalize one issue object; drop entries that cannot become useful findings."""
-    if isinstance(raw, str):
-        text = raw.strip()
-        if not text:
-            return None
-        raw = {"title": text[:120], "explanation": text}
-    if not isinstance(raw, dict):
-        return None
-
-    # Flatten common wrappers
+def _flatten_issue_wrapper(raw: dict[str, Any]) -> dict[str, Any]:
     for nest_key in ("issue", "finding", "item"):
         nested = raw.get(nest_key)
         if isinstance(nested, dict):
             merged = dict(nested)
             merged.update({k: v for k, v in raw.items() if k != nest_key})
-            raw = merged
-            break
+            return merged
+    return raw
 
+def _extract_severity_priority(raw: dict[str, Any]) -> tuple[str, str]:
     sev_source = raw.get("severity") or raw.get("Severity") or raw.get("level")
     if sev_source is None or str(sev_source).strip() == "":
         sev_source = raw.get("priority")  # e.g. only "P1" provided
@@ -131,7 +122,9 @@ def _coerce_issue(raw: Any) -> dict[str, Any] | None:
         raw.get("priority") or raw.get("Priority") or raw.get("pri"),
         severity=severity,
     )
+    return severity, priority
 
+def _extract_title_explanation(raw: dict[str, Any]) -> tuple[str, str]:
     title = _first_str(raw, "title", "name", "summary", "heading", default="")
     explanation = _first_str(
         raw,
@@ -147,19 +140,9 @@ def _coerce_issue(raw: Any) -> dict[str, Any] | None:
         title = explanation[:120]
     if not explanation and title:
         explanation = title
-    if not title and not explanation:
-        return None
+    return title, explanation
 
-    recommended = _first_str(
-        raw,
-        "recommendedFix",
-        "recommended_fix",
-        "recommendation",
-        "fix",
-        "remediation",
-        "solution",
-        default="Review and remediate manually.",
-    )
+def _extract_critical_fields(raw: dict[str, Any], severity: str) -> tuple[str, str]:
     impact = _first_str(raw, "impact", "risk", "consequence", default="")
     code_example = _first_str(
         raw, "codeExample", "code_example", "example", "snippet", default=""
@@ -173,6 +156,35 @@ def _coerce_issue(raw: Any) -> dict[str, Any] | None:
             k in raw for k in ("codeExample", "code_example", "example", "snippet")
         ):
             code_example = "// Model omitted codeExample — verify manually.\n"
+    return impact, code_example
+
+def _coerce_issue(raw: Any) -> dict[str, Any] | None:
+    """Normalize one issue object; drop entries that cannot become useful findings."""
+    if isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return None
+        raw = {"title": text[:120], "explanation": text}
+    if not isinstance(raw, dict):
+        return None
+
+    raw = _flatten_issue_wrapper(raw)
+    severity, priority = _extract_severity_priority(raw)
+    title, explanation = _extract_title_explanation(raw)
+    if not title and not explanation:
+        return None
+
+    recommended = _first_str(
+        raw,
+        "recommendedFix",
+        "recommended_fix",
+        "recommendation",
+        "fix",
+        "remediation",
+        "solution",
+        default="Review and remediate manually.",
+    )
+    impact, code_example = _extract_critical_fields(raw, severity)
 
     file_path = _first_str(
         raw,
@@ -207,12 +219,7 @@ def _coerce_issue(raw: Any) -> dict[str, Any] | None:
     }
 
 
-def _coerce_report_payload(raw: Any) -> dict[str, Any]:
-    """Normalize common local-LLM JSON mistakes before Pydantic validation."""
-    if not isinstance(raw, dict):
-        raise TypeError(f"FindingReport JSON must be an object, got {type(raw).__name__}")
-    data = dict(raw)
-
+def _coerce_confidence(data: dict[str, Any]) -> None:
     conf = data.get("confidence", 0)
     if isinstance(conf, str):
         conf = conf.strip().rstrip("%")
@@ -224,9 +231,9 @@ def _coerce_report_payload(raw: Any) -> dict[str, Any]:
         conf = int(conf)
     data["confidence"] = conf
 
+def _coerce_summary(data: dict[str, Any]) -> None:
     summary = data.get("summary")
     if not isinstance(summary, dict):
-        # Models sometimes emit a string or list; recount_summary will fix counts.
         data["summary"] = {
             "critical": 0,
             "high": 0,
@@ -247,9 +254,9 @@ def _coerce_report_payload(raw: Any) -> dict[str, Any]:
             fixed[key] = val if isinstance(val, int) else 0
         data["summary"] = fixed
 
+def _coerce_issues_list(data: dict[str, Any]) -> None:
     issues_raw = data.get("issues")
     if not isinstance(issues_raw, list):
-        # Some models nest findings under findings/results
         for alt in ("findings", "results", "problems"):
             if isinstance(data.get(alt), list):
                 issues_raw = data[alt]
@@ -263,6 +270,7 @@ def _coerce_report_payload(raw: Any) -> dict[str, Any]:
             coerced_issues.append(issue)
     data["issues"] = coerced_issues
 
+def _coerce_durability_gaps(data: dict[str, Any]) -> None:
     gaps = data.get("durabilityGaps")
     if gaps is None:
         gaps = data.get("durability_gaps") or data.get("gaps") or []
@@ -271,6 +279,17 @@ def _coerce_report_payload(raw: Any) -> dict[str, Any]:
     if not isinstance(gaps, list):
         gaps = []
     data["durabilityGaps"] = [str(g) for g in gaps if str(g).strip()]
+
+def _coerce_report_payload(raw: Any) -> dict[str, Any]:
+    """Normalize common local-LLM JSON mistakes before Pydantic validation."""
+    if not isinstance(raw, dict):
+        raise TypeError(f"FindingReport JSON must be an object, got {type(raw).__name__}")
+    data = dict(raw)
+    
+    _coerce_confidence(data)
+    _coerce_summary(data)
+    _coerce_issues_list(data)
+    _coerce_durability_gaps(data)
 
     return data
 

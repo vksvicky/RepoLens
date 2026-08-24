@@ -116,28 +116,15 @@ def _parse_sse_chat_chunk(line: str) -> str | None:
     return content if isinstance(content, str) else None
 
 
-def _analyze_openai_compatible(
-    prompt: str,
-    model_cfg: ModelConfig,
-    *,
-    client: httpx.Client | None,
-    on_delta: Callable[[str], None] | None = None,
-) -> str:
-    api_key = resolve_api_key(model_cfg)
-    if model_cfg.provider != "ollama" and not api_key:
-        raise LlmError(
-            f"Missing API key. Export {model_cfg.api_key_env or 'the provider key env var'} "
-            "or use provider=ollama for local AI."
-        )
-
+def _build_openai_request(
+    prompt: str, model_cfg: ModelConfig, api_key: str | None, on_delta: Any
+) -> tuple[str, str, dict[str, str], dict[str, Any], bool]:
     base = (model_cfg.base_url or default_base_url(model_cfg.provider)).rstrip("/")
     model = model_cfg.model or default_model(model_cfg.provider)
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 
-    # Stream when a progress callback is provided, or always for local Ollama /
-    # OpenAI-compatible BYOK so wait UX can show chars received.
     use_stream = on_delta is not None or model_cfg.provider in {
         "ollama",
         "openai",
@@ -157,6 +144,44 @@ def _analyze_openai_compatible(
     if use_stream:
         payload["stream"] = True
 
+    return base, model, headers, payload, use_stream
+
+def _handle_openai_response(
+    response: httpx.Response, model_cfg: ModelConfig, model: str
+) -> str:
+    if response.status_code >= 400:
+        detail = (response.text or "").strip()
+        if len(detail) > 300:
+            detail = detail[:300] + "…"
+        raise LlmError(
+            _provider_error_hint(
+                status_code=response.status_code,
+                detail=detail,
+                provider=model_cfg.provider,
+                model=model,
+            )
+        )
+    data = response.json()
+    return data["choices"][0]["message"]["content"]
+
+def _analyze_openai_compatible(
+    prompt: str,
+    model_cfg: ModelConfig,
+    *,
+    client: httpx.Client | None,
+    on_delta: Callable[[str], None] | None = None,
+) -> str:
+    api_key = resolve_api_key(model_cfg)
+    if model_cfg.provider != "ollama" and not api_key:
+        raise LlmError(
+            f"Missing API key. Export {model_cfg.api_key_env or 'the provider key env var'} "
+            "or use provider=ollama for local AI."
+        )
+
+    base, model, headers, payload, use_stream = _build_openai_request(
+        prompt, model_cfg, api_key, on_delta
+    )
+
     timeout = resolve_llm_timeout(model_cfg)
     owns_client = client is None
     client = client or httpx.Client(timeout=timeout)
@@ -173,21 +198,7 @@ def _analyze_openai_compatible(
                 on_delta=on_delta,
             )
         response = client.post(f"{base}/chat/completions", headers=headers, json=payload)
-        if response.status_code >= 400:
-            detail = (response.text or "").strip()
-            if len(detail) > 300:
-                detail = detail[:300] + "…"
-            raise LlmError(
-                _provider_error_hint(
-                    status_code=response.status_code,
-                    detail=detail,
-                    provider=model_cfg.provider,
-                    model=model,
-                )
-            )
-        data = response.json()
-        content = data["choices"][0]["message"]["content"]
-        return content
+        return _handle_openai_response(response, model_cfg, model)
     except httpx.TimeoutException as exc:
         raise _timeout_error(timeout, model, model_cfg.provider) from exc
     except (KeyError, IndexError, json.JSONDecodeError, httpx.HTTPError) as exc:
