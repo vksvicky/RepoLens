@@ -46,6 +46,8 @@ def analyze_structured(
     try:
         raw_text = analyze_raw(prompt, model_cfg, on_delta=on_delta)
     except LlmError as exc:
+        if not model_cfg.fallback:
+            raise
         return _degrade_result("", str(exc), pass_id, prog, save_root)
 
     # Coerce / parse

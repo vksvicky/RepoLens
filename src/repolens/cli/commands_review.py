@@ -46,6 +46,7 @@ def _run_mode(
     sarif: bool = False,
     verify_findings: bool | None = None,
     packs: list[str] | None = None,
+    fallback: bool = True,
 ) -> None:
     if fmt not in {"md", "json", "both"}:
         console.print("[red]--format must be md | json | both[/red]")
@@ -119,6 +120,7 @@ def _run_mode(
             sarif=sarif,
             verify_findings=verify_findings,
             packs=packs,
+            fallback=fallback,
         )
     except FileNotFoundError as exc:
         console.print(f"[red]Config/source error:[/red] {exc}")
@@ -290,6 +292,11 @@ def review(
         "--pack",
         help="Enable a domain pack (repeatable); see `repolens packs list`",
     ),
+    fallback: bool = typer.Option(
+        True,
+        "--fallback/--no-fallback",
+        help="Automatically fall back to local Ollama or SAST scanners when Cloud AI is unavailable",
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -324,6 +331,7 @@ def review(
         sarif,
         verify_findings,
         pack,
+        fallback,
     )
 
 
@@ -413,6 +421,11 @@ def sentinel(
         "--pack",
         help="Enable a domain pack (repeatable); see `repolens packs list`",
     ),
+    fallback: bool = typer.Option(
+        True,
+        "--fallback/--no-fallback",
+        help="Automatically fall back to local Ollama or SAST scanners when Cloud AI is unavailable",
+    ),
 ) -> None:
     """Security-only review (P1 playbook)."""
     _run_mode(
@@ -447,6 +460,7 @@ def sentinel(
         sarif,
         verify_findings,
         pack,
+        fallback,
     )
 
 
@@ -536,6 +550,11 @@ def architecture(
         "--pack",
         help="Enable a domain pack (repeatable); see `repolens packs list`",
     ),
+    fallback: bool = typer.Option(
+        True,
+        "--fallback/--no-fallback",
+        help="Automatically fall back to local Ollama or SAST scanners when Cloud AI is unavailable",
+    ),
 ) -> None:
     """Architecture / production-readiness audit."""
     _run_mode(
@@ -570,4 +589,5 @@ def architecture(
         sarif,
         verify_findings,
         pack,
+        fallback,
     )

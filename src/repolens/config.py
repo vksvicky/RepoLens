@@ -31,6 +31,8 @@ class ModelConfig(BaseModel):
     base_url: str | None = None
     # LLM HTTP timeout (seconds). None → provider default (ollama longer).
     timeout_seconds: float | None = None
+    # Automatic fallback (Cloud LLM -> Ollama -> SAST scanners & heuristics)
+    fallback: bool = True
 
 
 class GeneralConfig(BaseModel):
