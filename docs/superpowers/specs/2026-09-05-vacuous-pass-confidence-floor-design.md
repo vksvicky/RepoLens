@@ -51,8 +51,8 @@ Deep mode sets `gate = min(ran pass confidences + scored band confidences) − g
 | Scanner precondition | **Option G** — scanners-all-ran is **global pipeline integrity**, not proof p2/p3 were reviewed by Semgrep |
 | Analysis evidence (v1) | Cascade: optional future string fields (`analysisNotes` / `narrative` / `notes`) **or** `len(raw_response_text.strip()) ≥ 100`. Do **not** treat `Summary` counts as prose. Do **not** require model coverage notes (would fight seeding). |
 | Vacuous definition | `confidence == 0`, empty issues, no finding-like durability gaps; ignore Two-Lane / non-coverage transport noise; **refuse** degraded / schema-invalid / hard transport failure |
-| Config | `[deep] vacuous_pass_confidence_floor`: default **on** (auto 75/55); `0` disables; `1–100` overrides both |
-| Observability | Durability notes (see §6) |
+| Config | `[deep] vacuous_pass_confidence_floor: Optional[int] = None` — `None` → auto 75/55; `0` → off; `1–100` → pin |
+| Observability | Durability notes (see §6); candidate rule + skip precedence |
 | Language | British English in user-facing strings |
 
 ## 5. Architecture & data flow
@@ -77,7 +77,7 @@ Substitution happens only on `pass_confidences`. Downstream band math is unchang
 1. Pass is vacuous (refined helper) and **not** degraded / schema-invalid.
 2. Analysis evidence cascade passes (raw ≥ 100 or future string notes).
 3. After merge + seeds, scored-band checklist is complete (`missed` empty and no invalid N/A for scored prefixes).
-4. Config allows substitution (`floor != 0`).
+4. Config allows substitution (`vacuous_pass_confidence_floor is not 0`; `None` means auto).
 
 Seeds alone never satisfy (2).
 
@@ -89,29 +89,57 @@ Seeds alone never satisfy (2).
 | Otherwise | 55 |
 | Config `vacuous_pass_confidence_floor = N` (1–100) | N for all eligible passes |
 | Config `= 0` | Substitution disabled |
+| Config omitted / `None` | Auto baseline (75 / 55) |
+
+**Config type (`DeepConfig`):**
+
+```python
+vacuous_pass_confidence_floor: Optional[int] = None
+# None → dynamic auto-baseline (75 if scanners ran, else 55)
+# 0    → disabled
+# 1..100 → pin to explicit integer
+```
 
 ## 6. Observability
 
-Emit durability notes only when flooring was **considered** (vacuous-looking pass), not on healthy high-confidence passes.
+### When flooring was “considered” (candidate)
 
-**Applied:**
+A pass is a flooring **candidate** only if it looks like an empty pack:
+
+```python
+is_candidate = report.confidence == 0 and len(report.issues) == 0
+```
+
+- If `is_candidate` and eligible → emit `metrics.vacuous_pass_confidence_floored:…`
+- If `is_candidate` and not eligible → emit exactly one `metrics.vacuous_pass_floor_skipped:…`
+- If not a candidate (e.g. 5 findings, confidence 80) → **no** floor/skip note
+
+### Applied
 
 ```text
 metrics.vacuous_pass_confidence_floored:<pass>=<N> (scanners_ran=<true|false>, checklist=complete)
 ```
 
-**Skipped (enum):**
+### Skipped (enum) and precedence
 
 | Reason code | When |
 |-------------|------|
+| `pass_degraded` | Transport error, timeout, or schema repair failure |
 | `no_analysis_evidence` | Stub JSON / raw &lt; 100 / no future string notes |
 | `checklist_incomplete` | missed &gt; 0 or invalid N/A on scored prefixes |
-| `pass_degraded` | Transport error, timeout, or schema repair failure |
+
+When multiple skip preconditions fail, emit **one** note using this priority:
 
 ```text
+pass_degraded > no_analysis_evidence > checklist_incomplete
+```
+
+Transport failure is the most actionable signal and precedes analysis-evidence or coverage checks.
+
+```text
+metrics.vacuous_pass_floor_skipped:<pass>=pass_degraded
 metrics.vacuous_pass_floor_skipped:<pass>=no_analysis_evidence
 metrics.vacuous_pass_floor_skipped:<pass>=checklist_incomplete
-metrics.vacuous_pass_floor_skipped:<pass>=pass_degraded
 ```
 
 Never raise on skip; keep raw confidence. Never invent findings.
@@ -148,7 +176,8 @@ No new JSON fields in v1. Snapshot/unit test locks the instruction string.
 7. Degraded / schema_invalid → no floor; `pass_degraded`  
 8. Coverage-seed + theme notes regression unchanged  
 9. FR0 prompt snapshot contains empty-pack confidence wording  
-10. Config `floor=0` disables; `floor=N` overrides auto 75/55  
+10. Config: `None` → auto 75/55; `floor=0` disables; `floor=N` overrides  
+11. Candidate rule: non-empty issues → no floored/skipped note; multi-fail skips emit only highest-priority reason (`pass_degraded` first)  
 
 ## 10. Docs
 
