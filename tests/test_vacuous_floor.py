@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from types import SimpleNamespace
 
+from repolens.config import load_config
 from repolens.coverage import CoverageResult
 from repolens.metrics import compute_audit_metrics
 from repolens.schema import FindingReport, Issue, ScannerRun, Severity, Summary
@@ -218,3 +221,41 @@ def test_checklist_incomplete_skips_floor_with_note() -> None:
     assert result.notes == [
         "metrics.vacuous_pass_floor_skipped:p1=checklist_incomplete"
     ]
+
+
+def test_deep_vacuous_floor_config_default_none(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    project = tmp_path / "proj"
+    project.mkdir()
+    (project / ".repolens.toml").write_text("", encoding="utf-8")
+
+    cfg = load_config(project, trust_project=False)
+    assert cfg.deep.vacuous_pass_confidence_floor is None
+
+
+def test_deep_vacuous_floor_config_roundtrip(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    project = tmp_path / "proj"
+    project.mkdir()
+    (project / ".repolens.toml").write_text(
+        "[deep]\nvacuous_pass_confidence_floor = 0\n", encoding="utf-8"
+    )
+
+    cfg = load_config(project, trust_project=False)
+    assert cfg.deep.vacuous_pass_confidence_floor == 0
+
+
+def test_deep_vacuous_floor_config_loads_pinned_value(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    project = tmp_path / "proj"
+    project.mkdir()
+    (project / ".repolens.toml").write_text(
+        "[deep]\nvacuous_pass_confidence_floor = 75\n", encoding="utf-8"
+    )
+
+    cfg = load_config(project, trust_project=False)
+    assert cfg.deep.vacuous_pass_confidence_floor == 75

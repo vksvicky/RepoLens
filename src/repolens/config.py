@@ -132,6 +132,8 @@ class DeepConfig(BaseModel):
     usage_hints: bool = True
     cluster_duplicates: bool = True
     verify_findings: bool = False
+    # None → auto 75/55; 0 → off; 1..100 → pin
+    vacuous_pass_confidence_floor: int | None = None
 
 
 class ExplainConfig(BaseModel):
