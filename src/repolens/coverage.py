@@ -46,6 +46,7 @@ class CoverageMatrix:
 @dataclass
 class CoverageResult:
     covered: list[str] = field(default_factory=list)
+    covered_notes: dict[str, str] = field(default_factory=dict)
     na: dict[str, str] = field(default_factory=dict)
     missed: list[str] = field(default_factory=list)
     invalid_na: dict[str, str] = field(default_factory=dict)
@@ -218,6 +219,9 @@ def evaluate_coverage(
     ids: Iterable[str],
     issues: Iterable[Issue],
     gaps: Iterable[str],
+    *,
+    seeded_na: dict[str, str] | None = None,
+    seeded_covered: dict[str, str] | None = None,
 ) -> CoverageResult:
     from repolens.themes import canonicalize_coverage_id
 
@@ -230,12 +234,22 @@ def evaluate_coverage(
         seen.add(cov_id)
         wanted.append(cov_id)
 
+    seed_na = {
+        canonicalize_coverage_id(k): v for k, v in (seeded_na or {}).items()
+    }
+    seed_cov = {
+        canonicalize_coverage_id(k): v for k, v in (seeded_covered or {}).items()
+    }
     na_raw = parse_coverage_notes(gaps)
     na = {
-        canonicalize_coverage_id(cid): reason for cid, reason in na_raw.items()
+        **seed_na,
+        **{
+            canonicalize_coverage_id(cid): reason for cid, reason in na_raw.items()
+        },
     }
     issue_list = list(issues)
     covered: list[str] = []
+    covered_notes: dict[str, str] = {}
     missed: list[str] = []
     result_na: dict[str, str] = {}
     invalid_na: dict[str, str] = {}
@@ -244,6 +258,10 @@ def evaluate_coverage(
         # Issues win over N/A when evidence exists (alias notes must not hide findings).
         if _issue_addresses(cov_id, issue_list):
             covered.append(cov_id)
+            continue
+        if cov_id in seed_cov:
+            covered.append(cov_id)
+            covered_notes[cov_id] = seed_cov[cov_id]
             continue
         if cov_id in na:
             reason = na[cov_id]
@@ -256,5 +274,9 @@ def evaluate_coverage(
         missed.append(cov_id)
 
     return CoverageResult(
-        covered=covered, na=result_na, missed=missed, invalid_na=invalid_na
+        covered=covered,
+        covered_notes=covered_notes,
+        na=result_na,
+        missed=missed,
+        invalid_na=invalid_na,
     )
