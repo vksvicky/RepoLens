@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from repolens.config import CoverageConfig, load_config
 from repolens.coverage import evaluate_coverage
 from repolens.themes import build_theme_breakdown
@@ -43,6 +45,11 @@ def test_coverage_seeds_load_without_trust_project(tmp_path: Path, monkeypatch) 
     cfg = load_config(project, trust_project=False)
     assert cfg.model.provider is None  # stripped without trust
     assert cfg.coverage.na["arch.testing"].startswith("Out of scope")
+
+
+def test_coverage_seed_non_string_raises() -> None:
+    with pytest.raises(ValueError, match=r"must be a string"):
+        CoverageConfig(covered={"sec": {"injection": True}})
 
 
 def test_deep_evaluate_path_uses_loaded_seeds() -> None:
