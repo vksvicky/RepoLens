@@ -321,6 +321,8 @@ def repair_prompt(original: str, error: str) -> str:
         '"summary":{"critical":0,"high":0,"medium":0,"low":0},'
         '"issues":[...],"durabilityGaps":[]}\n'
         "confidence MUST be a JSON number (not a string). "
+        "If issues is empty, confidence means how sure you are the examined "
+        "scope is free of in-band issues (0-100). "
         "summary MUST be an object with integer fields. "
         "Each issue MUST use keys: severity (CRITICAL|HIGH|MEDIUM|LOW), "
         "priority (P1|P2|P3), category, file, line (integer), title, "
