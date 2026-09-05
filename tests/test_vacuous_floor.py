@@ -259,3 +259,57 @@ def test_deep_vacuous_floor_config_loads_pinned_value(
 
     cfg = load_config(project, trust_project=False)
     assert cfg.deep.vacuous_pass_confidence_floor == 75
+
+
+def test_build_pass_confidences_with_floors_appends_notes() -> None:
+    """Wire helper: floors pass bases and appends notes onto the merged report."""
+    from repolens.pipeline.deep_exec import build_pass_confidences_with_floors
+
+    raw = "x" * 100
+    empty = _empty(0)
+    outcomes = [
+        PassFloorInput("p1", empty, raw, False),
+        PassFloorInput("p2", empty, raw, False),
+    ]
+    coverage = CoverageResult(
+        covered=["sec.injection", "rel.edge_cases"],
+        missed=[],
+        na={},
+    )
+    report = FindingReport(
+        confidence=0,
+        summary=Summary(),
+        issues=[],
+        durabilityGaps=["Two-Lane: pack truncated"],
+    )
+    updated, pass_confidences = build_pass_confidences_with_floors(
+        outcomes,
+        coverage=coverage,
+        scanner_runs=_ran(),
+        config_floor=None,
+        report=report,
+    )
+    assert pass_confidences == {"p1": 75, "p2": 75}
+    assert "Two-Lane: pack truncated" in updated.durabilityGaps
+    assert any(
+        "metrics.vacuous_pass_confidence_floored:p1=75" in g
+        for g in updated.durabilityGaps
+    )
+    assert any(
+        "metrics.vacuous_pass_confidence_floored:p2=75" in g
+        for g in updated.durabilityGaps
+    )
+    # Re-applying must not duplicate notes
+    again, _ = build_pass_confidences_with_floors(
+        outcomes,
+        coverage=coverage,
+        scanner_runs=_ran(),
+        config_floor=None,
+        report=updated,
+    )
+    floored = [
+        g
+        for g in again.durabilityGaps
+        if g.startswith("metrics.vacuous_pass_confidence_floored:")
+    ]
+    assert len(floored) == 2
