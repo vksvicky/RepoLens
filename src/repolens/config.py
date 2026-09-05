@@ -105,6 +105,10 @@ def _flatten_dotted_map(raw: Any, *, prefix: str = "") -> dict[str, str]:
             out.update(_flatten_dotted_map(value, prefix=full))
         elif isinstance(value, str):
             out[full] = value
+        else:
+            raise ValueError(
+                f"Coverage seed {full!r} must be a string, got {type(value).__name__}"
+            )
     return out
 
 

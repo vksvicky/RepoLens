@@ -70,6 +70,44 @@ def test_lazy_seeded_na_becomes_missed():
     assert "sec.xss_csrf" in result.invalid_na
 
 
+def test_issue_beats_seeded_covered():
+    issue = Issue(
+        severity=Severity.HIGH,
+        priority="P1",
+        category="sec.injection",
+        file="x.rs",
+        line=1,
+        title="sec.injection sink",
+        explanation="command injection",
+        impact="Attacker may exploit command injection.",
+        recommendedFix="fix",
+        codeExample="exec(user_input)",
+        fixTiming="immediately",
+    )
+    result = evaluate_coverage(
+        ["sec.injection"],
+        [issue],
+        [],
+        seeded_na={},
+        seeded_covered={"sec.injection": "Audited: no SQL or shell sinks"},
+    )
+    assert "sec.injection" in result.covered
+    assert "sec.injection" not in result.covered_notes
+
+
+def test_gap_na_beats_seeded_na_same_id():
+    result = evaluate_coverage(
+        ["sec.xss_csrf"],
+        [],
+        ["coverage:sec.xss_csrf: N/A — LLM gap reason overrides seed"],
+        seeded_na={"sec.xss_csrf": "Seed reason from project config"},
+        seeded_covered={},
+    )
+    assert "sec.xss_csrf" in result.na
+    assert result.na["sec.xss_csrf"] == "LLM gap reason overrides seed"
+    assert "sec.xss_csrf" not in result.missed
+
+
 def test_seeded_covered_beats_seeded_na_same_id():
     result = evaluate_coverage(
         ["arch.testing"],
