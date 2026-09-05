@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (vacuous pass confidence #21)
+
+- Deep mode: floor genuine vacuous LLM pass confidence (75/55) so clean
+  checklist-complete packages are not stuck at gate 0%; clarify empty-pack
+  confidence in prompts (#21)
+
 ### Added (Two-Lane presentation & CQ parity)
 
 - **Two-Lane headline** in Markdown reports and CLI summary (`format_two_lane_headline`) — Fast/Slow Brain file counts, optional lane seconds, bypass wording
