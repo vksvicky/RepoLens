@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from repolens.coverage import CoverageResult
 from repolens.metrics import compute_audit_metrics
 from repolens.schema import FindingReport, Issue, ScannerRun, Severity, Summary
@@ -5,7 +7,9 @@ from repolens.vacuous_floor import (
     PassFloorInput,
     apply_vacuous_pass_floors,
     has_analysis_evidence,
+    is_finding_like_gap,
     is_floor_candidate,
+    is_vacuous_for_floor,
     resolve_floor_value,
     skip_reason,
 )
@@ -39,6 +43,58 @@ def test_analysis_evidence_raw_length_and_future_string_fields() -> None:
     assert has_analysis_evidence(_empty(), "x" * 100) is True
     # Summary counts must NOT count as prose
     assert has_analysis_evidence(_empty(), "") is False
+
+
+def test_analysis_evidence_future_report_string_field() -> None:
+    report = _empty()
+    object.__setattr__(report, "analysisNotes", "x" * 20)
+    assert has_analysis_evidence(report, "") is True
+    assert has_analysis_evidence(report, "short") is True
+
+    duck = SimpleNamespace(confidence=0, issues=[], analysisNotes="y" * 20)
+    assert has_analysis_evidence(duck, "") is True  # type: ignore[arg-type]
+
+
+def test_is_finding_like_gap_filters_noise_and_keeps_real_gaps() -> None:
+    assert is_finding_like_gap("Two-Lane: transport noise") is False
+    assert is_finding_like_gap("metrics.vacuous_pass_confidence_floored:p1=75") is False
+    assert is_finding_like_gap("coverage: sec.injection missed") is True
+    assert is_finding_like_gap("llm.schema_invalid: bad json") is True
+    assert is_finding_like_gap("other.gap: something") is False
+
+
+def test_is_vacuous_for_floor_eligibility() -> None:
+    base = _empty(0)
+    assert is_vacuous_for_floor(base, degraded=True) is False
+    assert is_vacuous_for_floor(_empty(80), degraded=False) is False
+    issue = Issue(
+        severity=Severity.MEDIUM,
+        priority="P3",
+        category="heuristic.mega_file",
+        file="a.py",
+        line=1,
+        title="t",
+        explanation="e",
+        recommendedFix="f",
+    )
+    with_issues = FindingReport(confidence=0, summary=Summary(), issues=[issue])
+    assert is_vacuous_for_floor(with_issues, degraded=False) is False
+
+    finding_like = FindingReport(
+        confidence=0,
+        summary=Summary(),
+        issues=[],
+        durabilityGaps=["coverage: sec.injection missed"],
+    )
+    assert is_vacuous_for_floor(finding_like, degraded=False) is False
+
+    two_lane_only = FindingReport(
+        confidence=0,
+        summary=Summary(),
+        issues=[],
+        durabilityGaps=["Two-Lane: lane mismatch"],
+    )
+    assert is_vacuous_for_floor(two_lane_only, degraded=False) is True
 
 
 def test_resolve_floor_value_auto_and_overrides() -> None:
@@ -136,3 +192,29 @@ def test_non_candidate_emits_no_note() -> None:
     )
     assert result.notes == []
     assert result.pass_confidences["p1"] == 80
+
+
+def test_config_floor_zero_leaves_confidence_unchanged_no_notes() -> None:
+    passes = [PassFloorInput("p1", _empty(0), "x" * 100, False)]
+    coverage = CoverageResult(covered=["sec.injection"], missed=[], na={})
+    result = apply_vacuous_pass_floors(
+        passes, coverage=coverage, scanner_runs=_ran(), config_floor=0
+    )
+    assert result.pass_confidences["p1"] == 0
+    assert result.notes == []
+
+
+def test_checklist_incomplete_skips_floor_with_note() -> None:
+    passes = [PassFloorInput("p1", _empty(0), "x" * 100, False)]
+    coverage = CoverageResult(
+        covered=["rel.edge_cases"],
+        missed=["sec.injection"],
+        na={},
+    )
+    result = apply_vacuous_pass_floors(
+        passes, coverage=coverage, scanner_runs=_ran(), config_floor=None
+    )
+    assert result.pass_confidences["p1"] == 0
+    assert result.notes == [
+        "metrics.vacuous_pass_floor_skipped:p1=checklist_incomplete"
+    ]

@@ -11,11 +11,6 @@ SkipReason = Literal[
     "pass_degraded", "no_analysis_evidence", "checklist_incomplete"
 ]
 
-_TRANSPORT_NOISE_PREFIXES = (
-    "Two-Lane:",
-    "llm.schema_invalid:",  # handled via degraded flag; keep for gap filter docs
-)
-
 
 def is_floor_candidate(report: FindingReport) -> bool:
     return report.confidence == 0 and len(report.issues) == 0
