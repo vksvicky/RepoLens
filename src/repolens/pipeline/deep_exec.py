@@ -272,7 +272,13 @@ def _analyze_deep_passes(
             seen_ids.add(cid)
             unique_ids.append(cid)
 
-    coverage = evaluate_coverage(unique_ids, report.issues, report.durabilityGaps)
+    coverage = evaluate_coverage(
+        unique_ids,
+        report.issues,
+        report.durabilityGaps,
+        seeded_na=cfg.coverage.na,
+        seeded_covered=cfg.coverage.covered,
+    )
     report.coverage = CoverageBlock(
         covered=list(coverage.covered),
         na=dict(coverage.na),

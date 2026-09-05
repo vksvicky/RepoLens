@@ -7,7 +7,7 @@ import tomllib
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 ProviderName = Literal["openai", "anthropic", "deepseek", "ollama", "openai_compatible"]
 AdaptiveMode = Literal["auto", "full", "changed"]
@@ -75,6 +75,39 @@ class AdaptiveConfig(BaseModel):
     max_timeout_seconds: float = 3600
 
 
+class CoverageConfig(BaseModel):
+    """Project-declared checklist accounting (safe; no --trust-project-config)."""
+
+    na: dict[str, str] = Field(default_factory=dict)
+    covered: dict[str, str] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def flatten_toml_dotted_keys(cls, data: Any) -> Any:
+        """Unquoted ``sec.xss_csrf`` keys become nested TOML tables — flatten them."""
+        if not isinstance(data, dict):
+            return data
+        out = dict(data)
+        for field in ("na", "covered"):
+            if field in out:
+                out[field] = _flatten_dotted_map(out[field])
+        return out
+
+
+def _flatten_dotted_map(raw: Any, *, prefix: str = "") -> dict[str, str]:
+    """Merge nested TOML tables into dotted coverage id keys."""
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, str] = {}
+    for key, value in raw.items():
+        full = f"{prefix}.{key}" if prefix else str(key)
+        if isinstance(value, dict):
+            out.update(_flatten_dotted_map(value, prefix=full))
+        elif isinstance(value, str):
+            out[full] = value
+    return out
+
+
 class DeepConfig(BaseModel):
     """Multi-pass deep coverage review (heuristics + chunked P1→P3)."""
 
@@ -132,6 +165,7 @@ class RepoLensConfig(BaseModel):
     scanners: ScannersConfig = Field(default_factory=ScannersConfig)
     local_learning: LocalLearningConfig = Field(default_factory=LocalLearningConfig)
     adaptive: AdaptiveConfig = Field(default_factory=AdaptiveConfig)
+    coverage: CoverageConfig = Field(default_factory=CoverageConfig)
     deep: DeepConfig = Field(default_factory=DeepConfig)
     explain: ExplainConfig = Field(default_factory=ExplainConfig)
     ci: CiConfig = Field(default_factory=CiConfig)
