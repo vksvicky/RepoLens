@@ -62,6 +62,17 @@
 # min_timeout_seconds = 120
 # max_timeout_seconds = 3600
 
+[coverage]
+# Project audit declarations for deep-mode checklist ids (loaded without --trust-project-config).
+# Lazy N/A reasons (e.g. "not reviewed") are still rejected; findings override seeds.
+# Seed strings appear in Theme Breakdown Notes in the Markdown report.
+#
+# [coverage.na]
+# sec.xss_csrf = "Native desktop app; no web/DOM attack surface"
+#
+# [coverage.covered]
+# sec.injection = "Audited: no SQL or shell=True sinks in reviewed pack"
+
 [deep]
 # enabled = true            # Multi-pass deep coverage (default on for LLM runs)
 # chars_per_pass = 100000   # Max file-size budget (bytes) packed into each pass

@@ -236,6 +236,27 @@ Deep mode asks the model (plus heuristics) to account for each checklist id in t
 
 N/A is **good** when true (don’t invent web XSS findings for a pure CLI). Missed **lowers** gate / band confidence. Full lists appear under **## Coverage** in the Markdown report (and Theme breakdown maps the same ideas to product themes).
 
+### Declarative coverage seeds (`[coverage]`)
+
+Projects may declare standing audit notes in `.repolens.toml` under nested tables `[coverage.na]` and `[coverage.covered]` (id → reason string). These load from the project file **without** `--trust-project-config` (same trust model as `[deep]`).
+
+| Rule | Behaviour |
+|------|-----------|
+| Purpose | Honest project audit declarations for checklist ids the team has already reviewed out-of-band |
+| Lazy N/A | Still rejected (e.g. “not reviewed” → **missed**) |
+| Findings win | An issue for an id overrides a seed N/A or covered note |
+| Report | Seed strings appear in **Theme Breakdown Notes** in the Markdown report |
+
+Example:
+
+```toml
+[coverage.na]
+sec.xss_csrf = "Native desktop app; no web/DOM attack surface"
+
+[coverage.covered]
+sec.injection = "Audited: no SQL or shell=True sinks in reviewed pack"
+```
+
 ### How the % numbers are calculated (Phase 5.1)
 
 Implementation: `src/repolens/metrics.py`.
