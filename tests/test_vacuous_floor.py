@@ -134,6 +134,105 @@ def _ran() -> list[ScannerRun]:
     ]
 
 
+def _not_all_ran() -> list[ScannerRun]:
+    return [
+        ScannerRun(tool="gitleaks", status="ran"),
+        ScannerRun(tool="semgrep", status="skipped"),
+        ScannerRun(tool="osv", status="ran"),
+    ]
+
+
+def test_scanners_not_ran_uses_floor_55() -> None:
+    raw = "x" * 100
+    empty = _empty(0)
+    passes = [PassFloorInput("p1", empty, raw, False)]
+    coverage = CoverageResult(
+        covered=["sec.injection", "rel.edge_cases", "arch.testing"],
+        missed=[],
+        na={},
+    )
+    result = apply_vacuous_pass_floors(
+        passes, coverage=coverage, scanner_runs=_not_all_ran(), config_floor=None
+    )
+    assert result.pass_confidences["p1"] == 55
+    assert any("floored:p1=55" in n for n in result.notes)
+    assert any("scanners_ran=false" in n for n in result.notes)
+    metrics = compute_audit_metrics(
+        pass_confidences=result.pass_confidences,
+        coverage=coverage,
+        scanner_runs=_not_all_ran(),
+        issues=[],
+    )
+    assert metrics.security_audit_confidence == 55
+    assert metrics.gate_confidence == 55
+
+
+def test_config_floor_override_90() -> None:
+    raw = "x" * 100
+    empty = _empty(0)
+    passes = [PassFloorInput("p1", empty, raw, False)]
+    coverage = CoverageResult(
+        covered=["sec.injection", "rel.edge_cases", "arch.testing"],
+        missed=[],
+        na={},
+    )
+    result = apply_vacuous_pass_floors(
+        passes, coverage=coverage, scanner_runs=_ran(), config_floor=90
+    )
+    assert result.pass_confidences["p1"] == 90
+    assert any("floored:p1=90" in n for n in result.notes)
+
+
+def test_critical_scanner_issue_still_penalises_after_floor() -> None:
+    raw = "x" * 100
+    empty = _empty(0)
+    passes = [
+        PassFloorInput("p1", empty, raw, False),
+        PassFloorInput("p2", empty, raw, False),
+        PassFloorInput("p3", empty, raw, False),
+    ]
+    coverage = CoverageResult(
+        covered=["sec.injection", "rel.edge_cases", "arch.testing"],
+        missed=[],
+        na={},
+    )
+    floor_result = apply_vacuous_pass_floors(
+        passes, coverage=coverage, scanner_runs=_ran(), config_floor=None
+    )
+    assert floor_result.pass_confidences == {"p1": 75, "p2": 75, "p3": 75}
+    crit = Issue(
+        severity=Severity.CRITICAL,
+        priority="P1",
+        category="semgrep",
+        file="leak.py",
+        line=10,
+        title="Hardcoded secret",
+        explanation="Secret in source",
+        impact="Credential exposure",
+        recommendedFix="Remove secret",
+        codeExample='os.environ["KEY"]',
+        source="scanner",
+    )
+    metrics = compute_audit_metrics(
+        pass_confidences=floor_result.pass_confidences,
+        coverage=coverage,
+        scanner_runs=_ran(),
+        issues=[crit],
+    )
+    assert metrics.security_audit_confidence == 60
+    assert metrics.gate_confidence == 60
+    assert metrics.reliability_audit_confidence == 75
+    assert metrics.architecture_audit_confidence == 75
+
+
+def test_two_lane_gap_does_not_block_vacuous() -> None:
+    report = _empty(0)
+    report.durabilityGaps = [
+        "Two-Lane: Fast Brain sees 10000 file(s); LLM sample pool is 200"
+    ]
+    assert is_vacuous_for_floor(report, degraded=False) is True
+
+
 def test_apply_floors_logviewer_shape_gate_75_sec_80() -> None:
     raw = "x" * 100
     empty = _empty(0)
