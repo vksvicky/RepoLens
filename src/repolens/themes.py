@@ -99,7 +99,7 @@ def _status_for(
     coverage: CoverageResult,
 ) -> tuple[str, str]:
     if cov_id in coverage.covered:
-        return "covered", ""
+        return "covered", coverage.covered_notes.get(cov_id, "")
     if cov_id in coverage.na:
         return "na", coverage.na[cov_id]
     if cov_id in coverage.missed:
