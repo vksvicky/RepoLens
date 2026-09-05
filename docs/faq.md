@@ -277,6 +277,39 @@ Worked sketch (numbers like a local deep `review` on RepoLens itself):
 
 So: **high security audit + low gate** is normal when reliability/architecture (or coverage misses) are the weak link — gate is deliberately the “can I trust this package?” floor, not a security grade.
 
+### Vacuous pass confidence floor (deep mode, #21)
+
+Deep mode asks each LLM pass for a self-reported **confidence** (0–100). That number feeds gate and band audit % alongside coverage penalties.
+
+**Why gate 0% on a clean repo?** Under the old prompt contract, confidence read as “certainty in reported issues”. Models often returned schema-valid empty packs (`issues: []`, `confidence: 0`) on genuinely clean passes — consistent with the old wording but wrong for **package adequacy** when the checklist is complete and scanners ran.
+
+**New empty-pack meaning (FR0):** Prompts now say that when `issues` is empty, confidence should rate certainty that the examined scope is **free of in-band issues** (0–100). A high-confidence empty array after a thorough review is valid.
+
+**Defensive floor (FR1):** Stubborn models may still emit `0`. RepoLens can substitute a **vacuous pass confidence floor** on eligible empty passes before band maths run (config `[deep] vacuous_pass_confidence_floor`; omit/`None` = auto):
+
+| Condition | Auto floor (per eligible pass) |
+|-----------|--------------------------------|
+| Configured scanners all **`ran`** | **75** |
+| Otherwise | **55** |
+| Config `= 0` | Off (no substitution) |
+| Config `1–100` | Pin to that value |
+
+After flooring, the usual **+5** security bonus when scanners all ran still applies → security audit **80**, reliability/architecture **75**, gate **75** on a clean LogViewer-class package (no Critical/High penalties).
+
+**When flooring does *not* apply** — durability notes use a fixed skip-reason enum (one note per candidate pass, highest-priority reason wins):
+
+| Skip reason | Meaning |
+|-------------|---------|
+| `pass_degraded` | Transport error, timeout, or schema repair failure |
+| `no_analysis_evidence` | Stub JSON / raw response too short (&lt; 100 chars) — **project `[coverage]` seeds alone do not satisfy this** |
+| `checklist_incomplete` | Missed coverage ids or invalid/lazy N/A on scored bands |
+
+**Scanners-all-ran** is a **global pipeline integrity** proxy (every configured scanner completed), **not** proof that Semgrep validated P2/P3 content. Flooring means “this review package looks adequate for a gate decision”, not “% secure”.
+
+**CI vs confidence gates:** `--fail-on` gates on **finding severity** (e.g. `HIGH`), not on confidence %. Dual-review-style **confidence** gates in consumer pipelines often want **≥70**; a floored clean package lands at **75** gate — adequate for that bar, separate from `--fail-on`.
+
+Design: [superpowers/specs/2026-09-05-vacuous-pass-confidence-floor-design.md](./superpowers/specs/2026-09-05-vacuous-pass-confidence-floor-design.md).
+
 ### Core vs Extended themes (Phase 5.2)
 
 Deep reports include a **Theme breakdown** section:
