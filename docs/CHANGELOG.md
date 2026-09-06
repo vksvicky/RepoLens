@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (PyPI distribution name #1)
+
+- Publish as **`repolens-audit`** on PyPI (`repolens` / `repo-lens` blocked by
+  name similarity). Import package and console script remain `repolens`.
+
 ### Added (Phase 7 enterprise CI #3)
 
 - Jenkins, CircleCI, and GitLab CI recipes in [ci.md](./ci.md); email / Slack-Teams

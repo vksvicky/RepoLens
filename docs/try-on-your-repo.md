@@ -282,7 +282,7 @@ repolens review --path . --out .\reports-dogfood
 | Typical home | `/Users/[username]` | `/home/[username]` | `C:\Users\[username]` |
 | Example home | `/Users/jackfrost` | `/home/jackfrost` | `C:\Users\jackfrost` |
 | `repolens plugins install` (gitleaks / osv) | Supported (arm64 + amd64) | Supported (amd64 + arm64) | **Not pinned yet** — install tools yourself or use WSL; see [scanners.md](./scanners.md) |
-| Semgrep (`pip` / `repolens[scanners]`) | Yes | Yes | Usually yes via pip |
+| Semgrep (`pip` / `repolens-audit[scanners]`) | Yes | Yes | Usually yes via pip |
 | Env vars for API keys | `export OPENAI_API_KEY=...` | same | `$env:OPENAI_API_KEY = "..."` — see [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) |
 | Semgrep config override | `export REPOLENS_SEMGREP_CONFIG=./.semgrep.yml` | same | `$env:REPOLENS_SEMGREP_CONFIG = ".\.semgrep.yml"` |
 

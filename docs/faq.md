@@ -8,7 +8,7 @@ If you only read one section, read this.
 |----------|--------------|
 | **Do I need an AI key?** | For cloud AI (ChatGPT-style providers), **yes—you use your own key**. You can also run AI **on your own computer** (no cloud key). Scanners-only (`--scanners-only`) needs no AI key. |
 | **Is it self-sufficient?** | The download is the **review process and templates**, not a free built-in AI brain. For a full written review you add **your cloud key** or a **local AI**. For maximum privacy, use local AI. |
-| **Extra security software?** | Kept **optional** so the default install stays small. Use tools on your `PATH`, or `repolens plugins install` / `repolens[scanners]`—no forced huge downloads. |
+| **Extra security software?** | Kept **optional** so the default install stays small. Use tools on your `PATH`, or `repolens plugins install` / `repolens-audit[scanners]`—no forced huge downloads. |
 | **OWASP / CVE?** | **AI** explains security themes (OWASP-style) in *your* code with fix suggestions. **OSV / Semgrep / gitleaks** list deterministic evidence (**CVE** IDs, secrets, SAST). AI alone is not a complete CVE list. |
 | **Does it learn from my repo?** | **Yes (opt-in):** on your machine only, off by default, and we tell you before it starts (`repolens learn`). We don’t upload your project to train a central RepoLens model. If you use cloud AI, that provider may still see code excerpts you send for the review. |
 | **What is `.[dev]` / `.[scanners]`?** | Optional **pip extras when installing RepoLens** (listed in RepoLens’s `pyproject.toml`). They are **not** part of the project you review. See [install-extras.md](./install-extras.md). |
@@ -437,7 +437,7 @@ Full steps: [setup-ai-and-scanners.md](./setup-ai-and-scanners.md#option-b--loca
 They are **install options for the RepoLens tool**, not configuration for each repository you analyse.
 
 - **Defined in:** [`pyproject.toml`](../pyproject.toml) → `[project.optional-dependencies]` in the **RepoLens** repo  
-- **Used when:** you run `pip install -e ".[dev]"` (or `repolens[scanners]` from PyPI/git)  
+- **Used when:** you run `pip install -e ".[dev]"` (or `repolens-audit[scanners]` from PyPI/git)  
 - **Not required in:** `acme-api` or any other target of `repolens review --path …`
 
 | Extra | Packages | Notes |
@@ -503,7 +503,7 @@ Hugging Face repos (models/datasets/Spaces) are reviewed as **git content** (cod
 
 ### Always required (Phase 1)
 
-| Piece | Bundled with `pip install repolens`? |
+| Piece | Bundled with `pip install repolens-audit`? |
 |-------|--------------------------------------|
 | Python package deps (`typer`, `httpx`, …) | **Yes** |
 | Playbooks | **Yes** |
@@ -520,7 +520,7 @@ Hugging Face repos (models/datasets/Spaces) are reviewed as **git content** (cod
 | pandoc | PDF export | **Optional** |
 
 **Can we build them in?**  
-Use `repolens plugins install …` (consent download) or `pip install "repolens[scanners]"` for Semgrep via pip — large native scanners stay out of the slim default wheel. Missing scanners never break the LLM review path unless you pass `--require-scanners`.
+Use `repolens plugins install …` (consent download) or `pip install "repolens-audit[scanners]"` for Semgrep via pip — large native scanners stay out of the slim default wheel. Missing scanners never break the LLM review path unless you pass `--require-scanners`.
 
 Guide: [scanners.md](./scanners.md) · Design: [ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md).
 

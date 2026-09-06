@@ -29,14 +29,15 @@ Runtime only: `pip install -e .`
 ### After PyPI (same extra names)
 
 ```bash
-pip install "repolens[scanners]==0.1.0a1"
-pip install "repolens[dev]"          # if published with that extra
+pip install "repolens-audit[scanners]==0.1.0a1"
+pip install "repolens-audit[dev]"          # if published with that extra
+# Console script remains: repolens
 ```
 
 From git without a local clone:
 
 ```bash
-pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
 ```
 <!-- END optional-dependencies -->
 
@@ -44,7 +45,7 @@ pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@m
 
 | Tool | How you get it |
 |------|----------------|
-| Semgrep | `pip install "repolens[scanners]"` **or** `repolens plugins install semgrep` |
+| Semgrep | `pip install "repolens-audit[scanners]"` **or** `repolens plugins install semgrep` |
 | gitleaks, osv-scanner | `repolens plugins install …` (native binaries) — **not** in the `[scanners]` pip extra |
 
 Details: [scanners.md](./scanners.md).  
