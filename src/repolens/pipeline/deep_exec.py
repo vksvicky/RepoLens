@@ -22,6 +22,28 @@ from repolens.pipeline.prompt import _append_source_files
 from repolens.progress import LlmGenerateProgress, ReviewProgress
 from repolens.rules.registry import Rule, load_enabled_rules
 from repolens.schema import CoverageBlock, FindingReport, ScannerRun, Summary
+from repolens.vacuous_floor import PassFloorInput, apply_vacuous_pass_floors
+
+
+def build_pass_confidences_with_floors(
+    outcomes: list[PassFloorInput],
+    *,
+    coverage: CoverageResult,
+    scanner_runs: list[ScannerRun] | None,
+    config_floor: int | None,
+    report: FindingReport,
+) -> tuple[FindingReport, dict[str, int]]:
+    """Apply vacuous floors, append notes to *report*, return floored bases."""
+    floor_result = apply_vacuous_pass_floors(
+        outcomes,
+        coverage=coverage,
+        scanner_runs=list(scanner_runs or []),
+        config_floor=config_floor,
+    )
+    for note in floor_result.notes:
+        if note not in report.durabilityGaps:
+            report.durabilityGaps.append(note)
+    return report, floor_result.pass_confidences
 
 
 def _sync_adaptive_cache(
@@ -91,7 +113,12 @@ def _maybe_sync_fts(store, root: Path, files: list[FileEntry], diff) -> None:
 
 
 def is_vacuous_llm_report(report: FindingReport) -> bool:
-    """True when the model returned a schema-valid but empty/useless report."""
+    """True when the model returned a schema-valid but empty/useless report.
+
+    For vacuous *pass confidence flooring* (gap filtering, degraded skips),
+    prefer :func:`repolens.vacuous_floor.is_vacuous_for_floor` /
+    :func:`repolens.vacuous_floor.is_finding_like_gap`.
+    """
     return (
         report.confidence == 0
         and not report.issues
@@ -188,6 +215,8 @@ def _analyze_deep_passes(
     )
 
     parts: list[FindingReport] = []
+    raw_by_pass: dict[str, str] = {}
+    degraded_by_pass: dict[str, bool] = {}
     all_coverage_ids: list[str] = []
     raw_dir = root / ".repolens"
     n = len(passes)
@@ -239,6 +268,10 @@ def _analyze_deep_passes(
                 on_delta=gen.note_delta,
             )
         gen.mark_done()
+        raw_by_pass[deep_pass.name] = result.raw_text or ""
+        degraded_by_pass[deep_pass.name] = (
+            result.layer == "degraded" or result.report is None
+        )
         if result.layer == "degraded":
             prog.phase(
                 f"LLM: pass {deep_pass.name} degraded — merging partial/empty result"
@@ -272,7 +305,13 @@ def _analyze_deep_passes(
             seen_ids.add(cid)
             unique_ids.append(cid)
 
-    coverage = evaluate_coverage(unique_ids, report.issues, report.durabilityGaps)
+    coverage = evaluate_coverage(
+        unique_ids,
+        report.issues,
+        report.durabilityGaps,
+        seeded_na=cfg.coverage.na,
+        seeded_covered=cfg.coverage.covered,
+    )
     report.coverage = CoverageBlock(
         covered=list(coverage.covered),
         na=dict(coverage.na),
@@ -286,9 +325,22 @@ def _analyze_deep_passes(
         mode=mode,
         full_audit=full_audit,
     )
-    pass_confidences: dict[str, int] = {}
-    for deep_pass, part in zip(passes, parts, strict=False):
-        pass_confidences[deep_pass.name] = part.confidence
+    outcomes = [
+        PassFloorInput(
+            name=deep_pass.name,
+            report=part,
+            raw_text=raw_by_pass.get(deep_pass.name, ""),
+            degraded=degraded_by_pass.get(deep_pass.name, False),
+        )
+        for deep_pass, part in zip(passes, parts, strict=False)
+    ]
+    report, pass_confidences = build_pass_confidences_with_floors(
+        outcomes,
+        coverage=coverage,
+        scanner_runs=scanner_runs,
+        config_floor=cfg.deep.vacuous_pass_confidence_floor,
+        report=report,
+    )
     report = _apply_coverage_metrics(
         report,
         coverage,

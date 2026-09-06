@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from repolens.learning.store import ProjectStore
@@ -30,7 +30,7 @@ def save_last_llm_report(
     """Persist a fresh LLM report as the project’s reuse snapshot."""
     if not report.llmCompleted or report.llmSkipped:
         return
-    stamp = (when or datetime.now(timezone.utc)).isoformat()
+    stamp = (when or datetime.now(UTC)).isoformat()
     # Snapshot without this-run wall clock; reuse path sets duration anew.
     payload = report.model_copy(
         update={
@@ -87,7 +87,7 @@ def bootstrap_from_out_dir(out_dir: Path | None) -> tuple[FindingReport, str, st
             log.warning("Bootstrap report unreadable %s: %s", path, exc)
         else:
             saved_at = datetime.fromtimestamp(
-                path.stat().st_mtime, tz=timezone.utc
+                path.stat().st_mtime, tz=UTC
             ).isoformat()
             return report, saved_at, ""
 

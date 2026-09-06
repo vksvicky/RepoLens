@@ -32,6 +32,10 @@ Return ONLY valid JSON matching the FindingReport schema:
   "durabilityGaps": ["string"],
   "scores": null
 }
+Confidence: If you found issues, rate your confidence in those findings (0-100).
+If issues is empty, rate your confidence that the examined scope is free of
+in-band issues (0-100). An empty issues array with high confidence is valid
+when you thoroughly reviewed the pack and found nothing in scope.
 Critical and High issues MUST include non-empty impact and codeExample.
 Be evidence-based. Prefer fewer high-confidence findings over speculation.
 """

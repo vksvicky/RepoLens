@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from repolens.coverage import parse_coverage_notes
@@ -26,10 +26,10 @@ _COVERAGE_TRANSPORT_GAP_RE = re.compile(
 def report_timestamp(when: datetime | None = None) -> datetime:
     """UTC clock used for report filenames and headings (all formats share this)."""
     if when is None:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
     if when.tzinfo is None:
-        return when.replace(tzinfo=timezone.utc)
-    return when.astimezone(timezone.utc)
+        return when.replace(tzinfo=UTC)
+    return when.astimezone(UTC)
 
 
 def report_stamp(when: datetime | None = None) -> str:
@@ -54,6 +54,37 @@ def format_duration(seconds: float | None) -> str | None:
     if minutes:
         return f"{minutes}m {secs}s ({total}s)"
     return f"{secs}s"
+
+
+def format_two_lane_headline(report: FindingReport) -> str:
+    """Punchy SecureVibes-style opener — provenance-honest."""
+    prov = report.provenance
+    fb = prov.fastBrainFiles if prov else None
+    llm = prov.llmPackFiles if prov else None
+    s = report.summary
+    counts = (
+        f"{s.critical} critical · {s.high} high · "
+        f"{s.medium} medium · {s.low} low"
+    )
+    dur = format_duration(report.durationSeconds)
+    parts: list[str] = []
+    if fb is not None:
+        fb_bit = f"Fast Brain: {fb} file(s)"
+        if prov and prov.fastBrainSeconds is not None:
+            fb_bit += f" in {prov.fastBrainSeconds:.1f}s"
+        parts.append(fb_bit)
+    if llm is not None:
+        if prov and prov.llmBypassed:
+            parts.append("Slow Brain: bypassed (triage clean)")
+        else:
+            sb_bit = f"Slow Brain: {llm} file(s)"
+            if prov and prov.llmSeconds is not None:
+                sb_bit += f" in {prov.llmSeconds:.1f}s"
+            parts.append(sb_bit)
+    if dur:
+        parts.append(dur)
+    parts.append(counts)
+    return " · ".join(parts)
 
 
 def report_basename(mode: str, when: datetime | None = None) -> str:
@@ -121,6 +152,13 @@ def render_markdown(
             f"**Gate confidence:** {report.confidence}%",
             f"**Commit go/no-go:** {commit_go}",
             f"**Push go/no-go:** {push_go}",
+        ]
+    )
+    headline = format_two_lane_headline(report)
+    if headline:
+        lines.extend(["", f"**Two-Lane:** {headline}", ""])
+    lines.extend(
+        [
             "",
             "## Gate verdict",
             "",
@@ -380,6 +418,16 @@ def _render_metrics_section(report: FindingReport) -> list[str]:
             lines.append(
                 f"| LLM pack files | {prov.llmPackFiles} | Files sent to the model "
                 "(0 if bypassed / scanners-only) |"
+            )
+        if prov.fastBrainSeconds is not None:
+            lines.append(
+                f"| Fast Brain seconds | {prov.fastBrainSeconds:.1f}s | Wall time "
+                "for whole-tree heuristics |"
+            )
+        if prov.llmSeconds is not None:
+            lines.append(
+                f"| Slow Brain seconds | {prov.llmSeconds:.1f}s | Wall time for "
+                "LLM / deep analysis |"
             )
     if report.securityAuditConfidence is not None:
         lines.append(

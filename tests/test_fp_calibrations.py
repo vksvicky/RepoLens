@@ -6,9 +6,7 @@ from pathlib import Path
 
 from repolens.config import DeepConfig, load_config
 from repolens.fp_calibrations import (
-    CALIBRATION_INTENTIONAL_VULN,
     CALIBRATION_SUBPROCESS_LIST,
-    CALIBRATION_TEST_FIXTURE_SECRETS,
     apply_fp_calibrations,
     effective_fp_calibrations,
 )

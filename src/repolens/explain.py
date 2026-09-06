@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -62,7 +62,7 @@ def write_last_report_pointer(project_root: Path, report_json: Path) -> Path:
     pointer = meta_dir / _LAST_REPORT_NAME
     payload = {
         "json": str(report_json.resolve()),
-        "writtenAt": datetime.now(timezone.utc).isoformat(),
+        "writtenAt": datetime.now(UTC).isoformat(),
     }
     pointer.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return pointer
@@ -194,6 +194,10 @@ def _evidence_bundle(project_root: Path, issue: Issue) -> tuple[str, str]:
 
 def _explain_prompt(issue: Issue, *, outline: str, excerpt: str) -> str:
     outline_block = outline.strip() or "(no structure outline available)"
+    next_step_hint = (
+        "ordered checklist: first extract WHICH symbol into WHICH file, "
+        "then imports, then verify — never a vague one-liner"
+    )
     return f"""You are RepoLens explain — a senior engineer writing an *actionable*
 refactor / fix brief for ONE finding. Return ONLY valid JSON:
 {{
@@ -212,7 +216,7 @@ refactor / fix brief for ONE finding. Return ONLY valid JSON:
   ],
   "proposedRefactorDiff": "optional larger unified diff (imports + stubs)",
   "diagramMermaid": "flowchart TD …",
-  "nextStep": "ordered checklist: first extract WHICH symbol into WHICH file, then imports, then verify — never a vague one-liner"
+  "nextStep": "{next_step_hint}"
 }}
 
 Hard rules (violations make the answer useless):
@@ -533,7 +537,8 @@ def _mentions_token(haystack: str, token: str) -> bool:
     tok = (token or "").strip()
     if len(tok) < 2:
         return False
-    return re.search(rf"(?<![A-Za-z0-9_]){re.escape(tok)}(?![A-Za-z0-9_])", haystack, re.I) is not None
+    pattern = rf"(?<![A-Za-z0-9_]){re.escape(tok)}(?![A-Za-z0-9_])"
+    return re.search(pattern, haystack, re.I) is not None
 
 
 def next_step_is_vague(text: str, moves: list[str]) -> bool:
@@ -609,17 +614,9 @@ def build_recommended_next_step(
     return checklist
 
 
-def render_explain_markdown(
-    *,
-    issue: Issue,
-    doc: ExplainDoc,
-    diagram_block: str,
-    uuid: str,
-    outline: str = "",
-    provider: str | None = None,
-    model: str | None = None,
-    duration_seconds: float | None = None,
-) -> str:
+def _render_meta_section(
+    issue: Issue, uuid: str, provider: str | None, model: str | None, duration_seconds: float | None
+) -> list[str]:
     fp = issue.stableId or ""
     occ = issue.runId or ""
     meta = [
@@ -646,22 +643,10 @@ def render_explain_markdown(
         )
     if duration_seconds is not None:
         meta.append(f"**Duration:** {duration_seconds:.0f}s  ")
-    meta.extend(["", "## Problem", "", doc.problem.strip() or issue.explanation, ""])
-    if doc.impact.strip():
-        meta.extend(["## Impact", "", doc.impact.strip(), ""])
-    if outline.strip():
-        meta.extend(
-            [
-                "## Structure used as evidence",
-                "",
-                "```",
-                outline.strip(),
-                "```",
-                "",
-            ]
-        )
-    meta.extend(["## Actionable solutions", ""])
-    solutions = doc.solutions or []
+    return meta
+
+def _render_solutions_section(solutions: list[ExplainSolution]) -> list[str]:
+    meta = ["## Actionable solutions", ""]
     if not solutions:
         meta.append("_No solutions returned; see recommended fix on the issue._")
     for i, sol in enumerate(solutions, start=1):
@@ -684,6 +669,10 @@ def render_explain_markdown(
                 meta.append("")
                 meta.append(f"   > {note}")
             meta.append("")
+    return meta
+
+def _render_proposed_refactor(doc: ExplainDoc) -> list[str]:
+    meta = []
     if doc.proposedRefactorDiff.strip():
         meta.extend(["## Proposed refactor", ""])
         for line in render_code_example_fenced(doc.proposedRefactorDiff.strip()):
@@ -692,6 +681,38 @@ def render_explain_markdown(
             meta.append("")
             meta.append(f"> {note}")
         meta.append("")
+    return meta
+
+def render_explain_markdown(
+    *,
+    issue: Issue,
+    doc: ExplainDoc,
+    diagram_block: str,
+    uuid: str,
+    outline: str = "",
+    provider: str | None = None,
+    model: str | None = None,
+    duration_seconds: float | None = None,
+) -> str:
+    meta = _render_meta_section(issue, uuid, provider, model, duration_seconds)
+    meta.extend(["", "## Problem", "", doc.problem.strip() or issue.explanation, ""])
+    if doc.impact.strip():
+        meta.extend(["## Impact", "", doc.impact.strip(), ""])
+    if outline.strip():
+        meta.extend(
+            [
+                "## Structure used as evidence",
+                "",
+                "```",
+                outline.strip(),
+                "```",
+                "",
+            ]
+        )
+    
+    meta.extend(_render_solutions_section(doc.solutions or []))
+    meta.extend(_render_proposed_refactor(doc))
+    
     plan_title, plan_moves = _select_plan_moves(doc)
     grounded = build_diagram_from_moves(
         host_file=issue.file,
@@ -720,6 +741,42 @@ def render_explain_markdown(
     )
     return "\n".join(meta)
 
+
+def _process_diagram_block(
+    want_diagram: bool,
+    render_mode: str,
+    doc: ExplainDoc,
+    report_out: Path,
+) -> str:
+    if not want_diagram:
+        return "_Diagram skipped._"
+
+    mermaid_in = sanitize_explain_mermaid(
+        doc.diagramMermaid or "flowchart LR\n  A --> B"
+    )
+    diag = process_diagram(
+        mermaid_in,
+        render_image=render_mode,
+        out_dir=report_out / "explain-assets",
+    )
+    if diag.kind == "mermaid" and diag.mermaid:
+        diagram_block = f"```mermaid\n{diag.mermaid}\n```"
+        notes = list(diag.notes)
+        if not diag.image_path:
+            notes.append(
+                "optional PNG/SVG not generated — Mermaid fence above still "
+                "previews in GitHub/IDE (`diagram.render_skipped` is not a failure)"
+            )
+        if notes:
+            diagram_block += "\n\n_" + "; ".join(dict.fromkeys(notes)) + "_"
+        if diag.image_path:
+            diagram_block += f"\n\n![diagram]({diag.image_path})"
+        return diagram_block
+    else:
+        diagram_block = f"```\n{diag.textual or ''}\n```"
+        if diag.notes:
+            diagram_block += "\n\n_" + "; ".join(diag.notes) + "_"
+        return diagram_block
 
 def run_explain(
     *,
@@ -829,32 +886,7 @@ def run_explain(
     render_mode = (render_image or cfg.explain.render_image or "auto").lower()
     if want_diagram:
         prog.phase("Explain: processing diagram…")
-        mermaid_in = sanitize_explain_mermaid(
-            doc.diagramMermaid or "flowchart LR\n  A --> B"
-        )
-        diag = process_diagram(
-            mermaid_in,
-            render_image=render_mode,
-            out_dir=report_out / "explain-assets",
-        )
-        if diag.kind == "mermaid" and diag.mermaid:
-            diagram_block = f"```mermaid\n{diag.mermaid}\n```"
-            notes = list(diag.notes)
-            if not diag.image_path:
-                notes.append(
-                    "optional PNG/SVG not generated — Mermaid fence above still "
-                    "previews in GitHub/IDE (`diagram.render_skipped` is not a failure)"
-                )
-            if notes:
-                diagram_block += "\n\n_" + "; ".join(dict.fromkeys(notes)) + "_"
-            if diag.image_path:
-                diagram_block += f"\n\n![diagram]({diag.image_path})"
-        else:
-            diagram_block = f"```\n{diag.textual or ''}\n```"
-            if diag.notes:
-                diagram_block += "\n\n_" + "; ".join(diag.notes) + "_"
-    else:
-        diagram_block = "_Diagram skipped._"
+    diagram_block = _process_diagram_block(want_diagram, render_mode, doc, report_out)
 
     stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
     short = uuid.strip().split("-")[0]

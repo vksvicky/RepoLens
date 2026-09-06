@@ -83,7 +83,7 @@ def pr_summary_cmd(
                 fh.write(md)
                 if not md.endswith("\n"):
                     fh.write("\n")
-            console.print(f"[green]Appended[/green] PR summary → $GITHUB_STEP_SUMMARY")
+            console.print("[green]Appended[/green] PR summary → $GITHUB_STEP_SUMMARY")
 
     if not out and not github_summary:
         typer.echo(md)

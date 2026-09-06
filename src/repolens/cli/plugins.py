@@ -8,6 +8,7 @@ from rich.table import Table
 from repolens.cli.app import console, plugins_app
 from repolens.plugins import install_plugins, plugin_status
 
+
 @plugins_app.command("status")
 def plugins_status_cmd() -> None:
     """Show which scanner plugins are available (PATH or cache)."""
