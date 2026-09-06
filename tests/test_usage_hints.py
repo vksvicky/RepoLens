@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from repolens.schema import Issue, Severity
 from repolens.scanners.usage_hints import apply_usage_hints, package_referenced_in_tree
+from repolens.schema import Issue, Severity
 
 
 def _sca(pkg: str = "requests") -> Issue:

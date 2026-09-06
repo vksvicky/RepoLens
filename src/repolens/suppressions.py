@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import tomllib
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from repolens.schema import Issue, SuppressedIssue
@@ -260,7 +260,7 @@ def append_ignore_entry(
         lines.append(f"note = {_toml_str(note)}")
     if expires:
         lines.append(f"expires = {_toml_str(expires)}")
-    lines.append(f"# added {datetime.now(timezone.utc).date().isoformat()} UTC")
+    lines.append(f"# added {datetime.now(UTC).date().isoformat()} UTC")
     lines.append("")
     existing = path.read_text(encoding="utf-8") if path.is_file() else "# RepoLens suppressions\n"
     path.write_text(existing.rstrip() + "\n" + "\n".join(lines), encoding="utf-8")

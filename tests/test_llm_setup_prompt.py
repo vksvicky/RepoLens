@@ -1,5 +1,5 @@
-from repolens.llm.setup import SYSTEM_PROMPT
 from repolens.llm.parse import repair_prompt
+from repolens.llm.setup import SYSTEM_PROMPT
 
 
 def test_system_prompt_explains_empty_pack_confidence() -> None:

@@ -295,7 +295,10 @@ def review(
     fallback: bool = typer.Option(
         True,
         "--fallback/--no-fallback",
-        help="Automatically fall back to local Ollama or SAST scanners when Cloud AI is unavailable",
+        help=(
+            "Automatically fall back to local Ollama or SAST scanners "
+            "when Cloud AI is unavailable"
+        ),
     ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
@@ -424,7 +427,10 @@ def sentinel(
     fallback: bool = typer.Option(
         True,
         "--fallback/--no-fallback",
-        help="Automatically fall back to local Ollama or SAST scanners when Cloud AI is unavailable",
+        help=(
+            "Automatically fall back to local Ollama or SAST scanners "
+            "when Cloud AI is unavailable"
+        ),
     ),
 ) -> None:
     """Security-only review (P1 playbook)."""
@@ -553,7 +559,10 @@ def architecture(
     fallback: bool = typer.Option(
         True,
         "--fallback/--no-fallback",
-        help="Automatically fall back to local Ollama or SAST scanners when Cloud AI is unavailable",
+        help=(
+            "Automatically fall back to local Ollama or SAST scanners "
+            "when Cloud AI is unavailable"
+        ),
     ),
 ) -> None:
     """Architecture / production-readiness audit."""

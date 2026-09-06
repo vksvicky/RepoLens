@@ -12,7 +12,6 @@ from repolens.cli import app
 from repolens.explain import (
     ExplainDisabledError,
     ExplainSolution,
-    IssueNotFoundError,
     _evidence_bundle,
     _safe_issue_path,
     build_diagram_from_moves,

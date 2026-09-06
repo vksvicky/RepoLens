@@ -355,11 +355,14 @@ def run_review(
                                 root, tools
                             )
                     prog.phase(
-                        "Fallback: Cloud AI key & Ollama unavailable → degraded to SAST scanners & heuristics"
+                        "Fallback: Cloud AI key & Ollama unavailable → "
+                        "degraded to SAST scanners & heuristics"
                     )
                     scanner_gaps.insert(
                         0,
-                        "Fallback: Cloud AI key & Ollama unavailable; report generated using local scanners and Fast-Brain heuristics.",
+                        "Fallback: Cloud AI key & Ollama unavailable; "
+                        "report generated using local scanners and "
+                        "Fast-Brain heuristics.",
                     )
 
         if scanners_only:
@@ -675,14 +678,17 @@ def run_review(
                         )
                     if isinstance(exc, LlmError) and cfg.model.fallback:
                         prog.phase(
-                            f"Fallback: LLM error ({exc}) → degraded to SAST scanners & heuristics"
+                            f"Fallback: LLM error ({exc}) → "
+                            "degraded to SAST scanners & heuristics"
                         )
                         report = FindingReport(
                             confidence=55,
                             summary=Summary(),
                             issues=list(scanner_issues) + heur_issues,
                             durabilityGaps=[
-                                f"Fallback: LLM execution failed ({exc}); report generated using local scanners and Fast-Brain heuristics."
+                                f"Fallback: LLM execution failed ({exc}); "
+                                "report generated using local scanners and "
+                                "Fast-Brain heuristics."
                             ]
                             + list(scanner_gaps),
                             scannerRuns=list(scanner_runs),

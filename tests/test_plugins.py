@@ -115,7 +115,8 @@ def test_install_plugins_binary_yes(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_cli_plugins_status() -> None:
-    with patch("repolens.cli.plugins.plugin_status", return_value=[("gitleaks", "missing", "hint")]):
+    status = [("gitleaks", "missing", "hint")]
+    with patch("repolens.cli.plugins.plugin_status", return_value=status):
         result = runner.invoke(app, ["plugins", "status"])
     assert result.exit_code == 0, result.output
     assert "gitleaks" in result.output
@@ -123,7 +124,10 @@ def test_cli_plugins_status() -> None:
 
 def test_cli_plugins_install_yes_mocked(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    with patch("repolens.cli.plugins.install_plugins", return_value=["gitleaks: installed 8.24.0"]) as inst:
+    installed = ["gitleaks: installed 8.24.0"]
+    with patch(
+        "repolens.cli.plugins.install_plugins", return_value=installed
+    ) as inst:
         result = runner.invoke(app, ["plugins", "install", "gitleaks", "--yes"])
     assert result.exit_code == 0, result.output
     inst.assert_called_once()

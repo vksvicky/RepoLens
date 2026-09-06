@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC
 from pathlib import Path
 
 from repolens.anchor import resolve_anchor
@@ -134,7 +135,7 @@ def test_write_sarif_report_creates_file(tmp_path: Path) -> None:
 
 
 def test_sarif_filename_matches_report_basename_utc(tmp_path: Path) -> None:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from repolens.report import report_basename
 
@@ -144,7 +145,7 @@ def test_sarif_filename_matches_report_basename_utc(tmp_path: Path) -> None:
         summary=Summary(),
         issues=[_issue(file="a.py", line=1, source="scanner", category="semgrep")],
     )
-    when = datetime(2026, 8, 6, 14, 41, 0, tzinfo=timezone.utc)
+    when = datetime(2026, 8, 6, 14, 41, 0, tzinfo=UTC)
     out = write_sarif_report(
         report, tmp_path, out_dir=tmp_path / "reports", mode="review", when=when
     )

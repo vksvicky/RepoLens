@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, Literal
+from typing import Literal
 
 from repolens.coverage import CoverageResult
 from repolens.schema import FindingReport, ScannerRun

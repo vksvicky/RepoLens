@@ -8,6 +8,7 @@ from typing import Any
 
 from repolens.schema import FindingReport
 
+
 def _first_str(data: dict[str, Any], *keys: str, default: str = "") -> str:
     for key in keys:
         if key not in data:

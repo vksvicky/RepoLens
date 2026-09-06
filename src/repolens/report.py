@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from repolens.coverage import parse_coverage_notes
@@ -26,10 +26,10 @@ _COVERAGE_TRANSPORT_GAP_RE = re.compile(
 def report_timestamp(when: datetime | None = None) -> datetime:
     """UTC clock used for report filenames and headings (all formats share this)."""
     if when is None:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
     if when.tzinfo is None:
-        return when.replace(tzinfo=timezone.utc)
-    return when.astimezone(timezone.utc)
+        return when.replace(tzinfo=UTC)
+    return when.astimezone(UTC)
 
 
 def report_stamp(when: datetime | None = None) -> str:
