@@ -259,7 +259,8 @@ def test_cross_source_dedupe_keeps_llm_only_advisory() -> None:
     assert raw_ch == 1
     assert len(deduped) == 1
     assert deduped[0].severity == Severity.HIGH
-    assert deduped[0].evidenceSources == ["llm"]
+    # Same-source / single-row: no collapse — leave evidenceSources unset.
+    assert deduped[0].evidenceSources == []
 
 
 def test_cross_source_dedupe_passthrough_without_advisory() -> None:
@@ -273,3 +274,95 @@ def test_cross_source_dedupe_passthrough_without_advisory() -> None:
     assert deduped == [issue]
     assert raw_ch == 1
     assert raw_total == 1
+
+
+def test_cross_source_dedupe_keeps_distinct_ecosystems() -> None:
+    """Sourcery: empty ecosystem must not collapse PyPI vs npm same name."""
+    pypi = _issue(
+        category="osv",
+        title="CVE-2024-1111 in lodash",
+        file="requirements.txt",
+        severity=Severity.HIGH,
+        source="scanner",
+        package_name="lodash",
+        advisory="CVE-2024-1111",
+    )
+    npm = _issue(
+        category="osv",
+        title="CVE-2024-1111 in lodash",
+        file="package-lock.json",
+        severity=Severity.HIGH,
+        source="scanner",
+        package_name="lodash",
+        advisory="CVE-2024-1111",
+    )
+    deduped, _, _ = dedupe_cross_source_sca_issues([pypi, npm])
+    assert len(deduped) == 2
+
+
+def test_cross_source_dedupe_preserves_same_source_llm_rows() -> None:
+    """Sourcery: only collapse scanner↔LLM, not multiple LLM rows."""
+    a = _issue(
+        category="sec.supply_chain",
+        title="CVE-2024-2222 in demo",
+        file="a.py",
+        severity=Severity.HIGH,
+        source="llm",
+        package_name="demo",
+    )
+    b = _issue(
+        category="sec.supply_chain",
+        title="CVE-2024-2222 in demo (retry)",
+        file="b.py",
+        severity=Severity.CRITICAL,
+        source="llm",
+        package_name="demo",
+    )
+    deduped, raw_ch, raw_total = dedupe_cross_source_sca_issues([a, b])
+    assert raw_total == 2
+    assert raw_ch == 2
+    assert len(deduped) == 2
+
+
+def test_cross_source_dedupe_preserves_original_order() -> None:
+    """Sourcery: do not move advisory rows after all passthrough findings."""
+    heur = _issue(
+        category="heuristic.mega_file",
+        title="large file",
+        file="big.py",
+        severity=Severity.MEDIUM,
+        source="heuristic",
+    )
+    scanner = _issue(
+        category="osv",
+        title="RUSTSEC-2024-0436 in paste",
+        file="Cargo.lock",
+        severity=Severity.HIGH,
+        source="scanner",
+        package_name="paste",
+        advisory="RUSTSEC-2024-0436",
+    )
+    mid = _issue(
+        category="heuristic.deep_nesting",
+        title="nesting",
+        file="ui.py",
+        severity=Severity.LOW,
+        source="heuristic",
+    )
+    llm = _issue(
+        category="sec.supply_chain",
+        title="RUSTSEC-2024-0436 paste Critical",
+        file="src/lib.rs",
+        severity=Severity.CRITICAL,
+        source="llm",
+        package_name="paste",
+    )
+    deduped, _, _ = dedupe_cross_source_sca_issues([heur, scanner, mid, llm])
+    assert len(deduped) == 3
+    assert [i.category for i in deduped] == [
+        "heuristic.mega_file",
+        "osv",
+        "heuristic.deep_nesting",
+    ]
+    assert deduped[1].severity == Severity.HIGH
+    assert "llm" in deduped[1].evidenceSources
