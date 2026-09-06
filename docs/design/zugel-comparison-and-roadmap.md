@@ -122,11 +122,19 @@ so teams can optionally **check the baseline into version control** and review r
 
 ### G3 — MCP guardrail
 
-Only after G1 answers dependency queries in milliseconds:
+Only after G1 answers dependency queries in milliseconds.
 
-* `repolens_check_dependency(from, to)`
-* `repolens_get_legal_imports(file)` (needs G4 rules; until then: “no new cycles” / reachability within component)
-* `repolens_query_dependents(file)`
+**Pre-G4 tools** (no boundary DSL yet — do **not** claim “legal imports”):
+
+* `repolens_check_dependency(from, to)` — would this edge create/enlarge a **runtime** cycle? (optional: violate stored G2 baseline)
+* `repolens_would_create_cycle(from, to)` — explicit boolean/cycle-group detail (same graph; clearer than overloading “legal”)
+* `repolens_query_dependents(file)` / `repolens_query_dependencies(file)` — reachability / reverse edges only
+
+**Post-G4 only:**
+
+* `repolens_get_legal_imports(file)` — returns modules allowed by `repolens.yaml` boundaries ∩ graph facts. Do not implement this name as a reachability dump before G4; that misleads agents.
+
+Provisional pre-G4 policy for `check_dependency`: **reject** if the proposed edge would introduce or worsen a runtime SCC; otherwise **allow** (cycles-only ladder). Document that “allow” ≠ architectural approval until G4.
 
 ### G4 — DSL + LLM remediation
 
@@ -147,6 +155,8 @@ Deterministic verify via graph; LLM receives the **violation subgraph**, not the
 1. **Runtime vs type-only imports (G1):** Modern typed Python often uses:
 
    ```python
+   from typing import TYPE_CHECKING
+
    if TYPE_CHECKING:
        from app.services import OrderService
    ```
@@ -162,7 +172,7 @@ Deterministic verify via graph; LLM receives the **violation subgraph**, not the
 
    anchored on the added `import billing` line in `orders.py`.
 
-3. **Weighted cut hints for the LLM (G4):** For an SCC of 3–5 nodes, the remediation prompt should not treat every edge as equal. Annotate each edge in the violation subgraph with **symbol / usage weight** (e.g. `C → A [1 symbol: StatusEnum]` vs `B → C [25 symbols]`). Prefer inverting or extracting the **lightest** edge (minimum feedback-arc heuristic) so the LLM proposes a minimal-diff cut.
+3. **Weighted cut hints for the LLM (G4):** For an SCC of 3–5 nodes, the remediation prompt should not treat every edge as equal. Annotate each edge in the violation subgraph with **symbol / usage weight** (e.g. `C → A [1 symbol: StatusEnum]` vs `B → C [25 symbols]`). Calculate a **weighted feedback-arc set** (or iteratively cover cycles until the subgraph is acyclic), **verify** the selected edges break every cycle, and use edge weight only as the optimization cost among valid cycle-breaking sets — so the LLM is steered toward a minimal-diff cut, not a single light edge that may leave overlapping cycles intact.
 
 ---
 
