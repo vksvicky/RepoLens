@@ -59,7 +59,9 @@ RepoLens already has `cluster_near_duplicates` in `src/repolens/cluster.py`. How
 |----------|--------|-----------|
 | **Deduping mechanism** | Dedicated `dedupe_cross_source_sca_issues` helper | Clean separation of concerns; avoids corrupting general theme clustering in `cluster.py`. |
 | **Execution point** | After scanner + LLM issue merge, **before** `compute_audit_metrics` and `recount_summary` | Gate penalties and summary metrics must both compute on deduplicated issues. |
-| **Cluster key** | `(ecosystem, normalized_package, advisory_id)` | Ecosystem + package + advisory ID uniquely identifies a dependency vulnerability across lockfiles and code references. |
+| **Cluster key** | `(ecosystem, normalized_package, advisory_id)` with ecosystem inferred from advisory family (RUSTSEC/PYSEC/GO) and lockfile path; unknown ecosystems never share an empty key across distinct lockfiles | Prevents PyPI vs npm same-name collapses (Sourcery) |
+| **Collapse rule** | Only scanner↔LLM pairs; same-source rows preserved | Avoids silently dropping independent LLM findings |
+| **Output order** | Preserve input order (drop later LLM duplicates in place) | Report ordering stays stable |
 | **Advisory regex** | `(CVE-\d{4}-\d{4,}\|GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}\|RUSTSEC-\d{4}-\d{4,}\|PYSEC-\d{4}-\d{4,}\|GO-\d{4}-\d{4,})` | Covers standard open-source advisory identifiers. Case-insensitive, matched on title, explanation, and details. |
 | **Unmatched LLM findings** | Leave untouched | Strict safety: never merge an LLM finding on guesswork. |
 | **Primary selection** | Prefer scanner finding over LLM finding | Scanners have authoritative package locations, CVE links, and CVSS scores. If multiple scanners match, prefer OSV over Trivy (existing rule). |

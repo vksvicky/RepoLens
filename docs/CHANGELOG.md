@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (cross-source SCA dedupe #14)
+
+- Dedupe key includes resolved ecosystem (lockfile / advisory family); only
+  collapse scanner↔LLM pairs; preserve input order (Sourcery review on PR #23)
+
 ### Added (gate UX copy #17 MVP)
 
 - CLI summary and Markdown reports: FAQ-aligned one-liner that gate confidence is
