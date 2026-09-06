@@ -65,9 +65,12 @@ def test_workflow_annotations_critical_error_high_warning() -> None:
         ],
     )
     lines = render_workflow_annotations(report)
-    assert any(l.startswith("::error ") and "file=a.py" in l and "line=3" in l for l in lines)
-    assert any(l.startswith("::warning ") and "file=b.py" in l for l in lines)
-    assert any("A" in l for l in lines)
+    assert any(
+        line.startswith("::error ") and "file=a.py" in line and "line=3" in line
+        for line in lines
+    )
+    assert any(line.startswith("::warning ") and "file=b.py" in line for line in lines)
+    assert any("A" in line for line in lines)
 
 
 def test_annotations_skip_path_escape() -> None:
@@ -84,7 +87,7 @@ def test_annotations_skip_path_escape() -> None:
     )
     lines = render_workflow_annotations(report)
     assert lines  # still emit annotation without file= or with title only
-    assert all("../" not in l for l in lines)
+    assert all("../" not in line for line in lines)
 
 
 def test_find_newest_report_json(tmp_path: Path) -> None:

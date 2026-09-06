@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import UTC
 from pathlib import Path
 
 from repolens.schema import FindingReport, Issue, Severity, Summary
@@ -189,7 +190,7 @@ def bootstrap_markdown_from_out_dir(
     if best is None:
         return None
     _, mtime, report, path = best
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    saved_at = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+    saved_at = datetime.fromtimestamp(mtime, tz=UTC).isoformat()
     return report, saved_at, "", path

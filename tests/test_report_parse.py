@@ -6,7 +6,6 @@ from pathlib import Path
 
 from repolens.report_parse import bootstrap_markdown_from_out_dir, parse_markdown_report
 
-
 SAMPLE = """# Gate review report — 2026-08-05 17:31
 
 **Gate confidence:** 28%

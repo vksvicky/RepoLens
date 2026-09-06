@@ -12,6 +12,7 @@ from rich.table import Table
 from repolens.cli.app import app, console
 from repolens.schema import FindingReport
 
+
 @app.command()
 def export(
     report: Path = typer.Argument(..., exists=True, readable=True, help="Markdown report path"),

@@ -53,7 +53,7 @@ jobs:
             playbooks/security.md
             playbooks/architecture.md
             pyproject.toml
-            src/repolens/cli.py
+            src/repolens/cli/__init__.py
           )
           for f in "${required[@]}"; do
             test -f "$f" || { echo "Missing: $f"; exit 1; }

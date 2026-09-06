@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -62,7 +62,7 @@ def write_last_report_pointer(project_root: Path, report_json: Path) -> Path:
     pointer = meta_dir / _LAST_REPORT_NAME
     payload = {
         "json": str(report_json.resolve()),
-        "writtenAt": datetime.now(timezone.utc).isoformat(),
+        "writtenAt": datetime.now(UTC).isoformat(),
     }
     pointer.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return pointer
@@ -194,6 +194,10 @@ def _evidence_bundle(project_root: Path, issue: Issue) -> tuple[str, str]:
 
 def _explain_prompt(issue: Issue, *, outline: str, excerpt: str) -> str:
     outline_block = outline.strip() or "(no structure outline available)"
+    next_step_hint = (
+        "ordered checklist: first extract WHICH symbol into WHICH file, "
+        "then imports, then verify — never a vague one-liner"
+    )
     return f"""You are RepoLens explain — a senior engineer writing an *actionable*
 refactor / fix brief for ONE finding. Return ONLY valid JSON:
 {{
@@ -212,7 +216,7 @@ refactor / fix brief for ONE finding. Return ONLY valid JSON:
   ],
   "proposedRefactorDiff": "optional larger unified diff (imports + stubs)",
   "diagramMermaid": "flowchart TD …",
-  "nextStep": "ordered checklist: first extract WHICH symbol into WHICH file, then imports, then verify — never a vague one-liner"
+  "nextStep": "{next_step_hint}"
 }}
 
 Hard rules (violations make the answer useless):
@@ -533,7 +537,8 @@ def _mentions_token(haystack: str, token: str) -> bool:
     tok = (token or "").strip()
     if len(tok) < 2:
         return False
-    return re.search(rf"(?<![A-Za-z0-9_]){re.escape(tok)}(?![A-Za-z0-9_])", haystack, re.I) is not None
+    pattern = rf"(?<![A-Za-z0-9_]){re.escape(tok)}(?![A-Za-z0-9_])"
+    return re.search(pattern, haystack, re.I) is not None
 
 
 def next_step_is_vague(text: str, moves: list[str]) -> bool:
