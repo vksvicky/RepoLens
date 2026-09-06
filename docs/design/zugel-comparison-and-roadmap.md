@@ -122,11 +122,19 @@ so teams can optionally **check the baseline into version control** and review r
 
 ### G3 — MCP guardrail
 
-Only after G1 answers dependency queries in milliseconds:
+Only after G1 answers dependency queries in milliseconds.
 
-* `repolens_check_dependency(from, to)`
-* `repolens_get_legal_imports(file)` (needs G4 rules; until then: “no new cycles” / reachability within component)
-* `repolens_query_dependents(file)`
+**Pre-G4 tools** (no boundary DSL yet — do **not** claim “legal imports”):
+
+* `repolens_check_dependency(from, to)` — would this edge create/enlarge a **runtime** cycle? (optional: violate stored G2 baseline)
+* `repolens_would_create_cycle(from, to)` — explicit boolean/cycle-group detail (same graph; clearer than overloading “legal”)
+* `repolens_query_dependents(file)` / `repolens_query_dependencies(file)` — reachability / reverse edges only
+
+**Post-G4 only:**
+
+* `repolens_get_legal_imports(file)` — returns modules allowed by `repolens.yaml` boundaries ∩ graph facts. Do not implement this name as a reachability dump before G4; that misleads agents.
+
+Provisional pre-G4 policy for `check_dependency`: **reject** if the proposed edge would introduce or worsen a runtime SCC; otherwise **allow** (cycles-only ladder). Document that “allow” ≠ architectural approval until G4.
 
 ### G4 — DSL + LLM remediation
 
