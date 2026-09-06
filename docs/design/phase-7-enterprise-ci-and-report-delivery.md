@@ -1,7 +1,7 @@
 # Phase 7 — Enterprise CI/CD & report delivery (design)
 
-**Status:** Design sketch (not implemented)  
-**Date:** 2026-08-04  
+**Status:** Docs MVP landed in [ci.md](../ci.md) + [faq.md](../faq.md) (2026-09-06)  
+**Date:** 2026-08-04 (design); 2026-09-06 (execution)  
 **Depends on:** Phase 4 Action/CI docs, Phase 5 adaptive cache (local-first); ideally **Phase 6.x core (6.1–6.6)** (scanner gates, SARIF/SBOM) so CI delivery has trustworthy artifacts. Extended 6.7–6.10 may overlap.  
 **In Phase 7 (from deferred rehome):** forge-side **push-protection recipes** (document GH/GitLab; RepoLens stays audit-of-landed-code); wire **SARIF/SBOM** into artifact + email/webhook/dashboard notify.  
 **Not in Phase 7:** Scanner plugins / SBOM / SARIF *export implementation* → **Phase 6.x**. Extra LLM providers → **Phase 8** / **Phase 9**. Hosted ASPM/SSO → non-goal.
@@ -25,8 +25,8 @@ This phase documents that target without shipping a SaaS product yet.
 | Bitbucket Pipelines script + artifacts | **Supported** | [ci.md](../ci.md) |
 | Exit codes for gatekeeping | **Supported** | [ci.md](../ci.md), CLI schema |
 | Adaptive fingerprint DB on laptop | **Phase 5** | Local disk under `.repolens/` |
-| Jenkins / CircleCI first-class docs | **Not yet** | This document (Phase 7) |
-| Email / Slack / Teams notification | **Not yet** | Phase 7 |
+| Jenkins / CircleCI first-class docs | **Supported** | [ci.md](../ci.md) (Phase 7) |
+| Email / Slack / Teams notification | **Documented recipes** | [ci.md](../ci.md) — customer SMTP / webhooks |
 | Hosted RepoLens dashboard | **Non-goal for now** | Use artifacts + your own portal |
 
 **Honesty:** LLM review is a due-diligence layer, not a complete production security program ([faq.md](../faq.md)).
