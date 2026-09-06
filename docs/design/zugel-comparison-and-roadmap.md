@@ -172,7 +172,7 @@ Deterministic verify via graph; LLM receives the **violation subgraph**, not the
 
    anchored on the added `import billing` line in `orders.py`.
 
-3. **Weighted cut hints for the LLM (G4):** For an SCC of 3–5 nodes, the remediation prompt should not treat every edge as equal. Annotate each edge in the violation subgraph with **symbol / usage weight** (e.g. `C → A [1 symbol: StatusEnum]` vs `B → C [25 symbols]`). Prefer inverting or extracting the **lightest** edge (minimum feedback-arc heuristic) so the LLM proposes a minimal-diff cut.
+3. **Weighted cut hints for the LLM (G4):** For an SCC of 3–5 nodes, the remediation prompt should not treat every edge as equal. Annotate each edge in the violation subgraph with **symbol / usage weight** (e.g. `C → A [1 symbol: StatusEnum]` vs `B → C [25 symbols]`). Calculate a **weighted feedback-arc set** (or iteratively cover cycles until the subgraph is acyclic), **verify** the selected edges break every cycle, and use edge weight only as the optimization cost among valid cycle-breaking sets — so the LLM is steered toward a minimal-diff cut, not a single light edge that may leave overlapping cycles intact.
 
 ---
 
