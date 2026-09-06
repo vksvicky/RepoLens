@@ -374,9 +374,11 @@ RepoLens does **not** run an SMTP server. Attach `reports/gate_review_report_*.m
 Post **counts + artifact URL** only — never code excerpts, secrets, or full finding bodies.
 
 ```bash
-# After a successful artifact upload, with REPORTS_DIR=reports and WEBHOOK_URL set:
+# After a successful artifact upload, with REPORTS_DIR=reports and WEBHOOK_URL set.
+# Notification failure must not override the RepoLens gate exit code — run this in a
+# separate step that is allowed to warn, or catch errors as below.
 python3 - <<'PY'
-import json, os, urllib.request
+import json, os, sys, urllib.error, urllib.request
 from pathlib import Path
 
 reports = Path(os.environ.get("REPORTS_DIR", "reports"))
@@ -401,13 +403,24 @@ payload = {
         f"Artifacts: {os.environ.get('ARTIFACT_URL', '(see CI artifacts)')}"
     )
 }
+webhook = os.environ.get("WEBHOOK_URL")
+if not webhook:
+    print("WEBHOOK_URL unset; skipping notify", file=sys.stderr)
+    raise SystemExit(0)
 req = urllib.request.Request(
-    os.environ["WEBHOOK_URL"],
+    webhook,
     data=json.dumps(payload).encode("utf-8"),
     headers={"Content-Type": "application/json"},
     method="POST",
 )
-urllib.request.urlopen(req, timeout=30)
+try:
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        if getattr(resp, "status", 200) >= 400:
+            print(f"webhook HTTP {resp.status}; continuing", file=sys.stderr)
+except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+    # Soft-fail: do not conflate chat outage with the security gate
+    print(f"webhook notify failed: {exc}; continuing", file=sys.stderr)
+    raise SystemExit(0)
 PY
 ```
 
