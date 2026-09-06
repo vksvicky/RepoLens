@@ -10,11 +10,22 @@ from pathlib import Path
 from typing import Any
 
 from repolens.scanners.base import resolve_binary
-from repolens.schema import Issue, SupplyChainBlock
+from repolens.schema import FindingReport, Issue, Severity, SupplyChainBlock
 
 logger = logging.getLogger(__name__)
 
-_CVE_RE = re.compile(r"\b(CVE-\d{4}-\d{4,}|GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4})\b", re.I)
+_ADVISORY_RE = re.compile(
+    r"\b("
+    r"CVE-\d{4}-\d{4,}"
+    r"|GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}"
+    r"|RUSTSEC-\d{4}-\d+"
+    r"|PYSEC-\d{4}-\d+"
+    r"|GO-\d{4}-\d+"
+    r")\b",
+    re.I,
+)
+# Backward-compatible alias used by existing callers.
+_CVE_RE = _ADVISORY_RE
 _PKG_IN_TITLE_RE = re.compile(
     r"\b(?:in|for)\s+([A-Za-z0-9_.@/+\-]+)",
     re.I,
@@ -30,9 +41,16 @@ _COPYLEFT_MARKERS = (
 )
 
 
+def extract_advisory_id(text: str) -> str | None:
+    """Return the first canonical advisory id in ``text``, or ``None``."""
+    match = _ADVISORY_RE.search(text or "")
+    if not match:
+        return None
+    return match.group(1).upper()
+
+
 def advisory_id(title: str) -> str | None:
-    match = _CVE_RE.search(title or "")
-    return match.group(1).upper() if match else None
+    return extract_advisory_id(title)
 
 
 def _package_hint(title: str) -> str:
@@ -76,6 +94,114 @@ def dedupe_sca_issues(issues: list[Issue]) -> list[Issue]:
         if existing.category != "osv" and issue.category == "osv":
             best[key] = issue
     return passthrough + [best[k] for k in order]
+
+
+def _is_scanner_sca_issue(issue: Issue) -> bool:
+    if (issue.source or "").strip().lower() == "scanner":
+        return True
+    return issue.category in {"osv", "trivy"}
+
+
+def _evidence_tag(issue: Issue) -> str:
+    if issue.category in {"osv", "trivy"}:
+        return issue.category
+    source = (issue.source or "").strip().lower()
+    if source in {"scanner", "llm", "heuristic"}:
+        return source
+    return (issue.category or "unknown").strip() or "unknown"
+
+
+def _resolve_advisory(issue: Issue) -> str | None:
+    if issue.advisoryId and issue.advisoryId.strip():
+        return issue.advisoryId.strip().upper()
+    return extract_advisory_id(f"{issue.title}\n{issue.explanation}")
+
+
+def _resolve_package(issue: Issue) -> str:
+    if issue.packageName and issue.packageName.strip():
+        return issue.packageName.strip().lower()
+    return _package_hint(issue.title)
+
+
+def _prefer_cross_source_primary(candidate: Issue, existing: Issue) -> bool:
+    """True if candidate should replace existing (scanner baseline wins)."""
+    cand_scan = _is_scanner_sca_issue(candidate)
+    exist_scan = _is_scanner_sca_issue(existing)
+    if cand_scan and not exist_scan:
+        return True
+    if exist_scan and not cand_scan:
+        return False
+    if cand_scan and exist_scan:
+        if candidate.category == "osv" and existing.category != "osv":
+            return True
+    return False
+
+
+def dedupe_cross_source_sca_issues(
+    issues: list[Issue],
+) -> tuple[list[Issue], int, int]:
+    """Collapse scanner+LLM rows for the same advisory/package.
+
+    Returns ``(deduped_issues, raw_critical_high, raw_total)``.
+    Scanner severity is authoritative when both sources report the same
+    advisory; LLM findings without a recognised advisory id pass through.
+    """
+    raw_total = len(issues)
+    raw_critical_high = sum(
+        1
+        for issue in issues
+        if issue.severity in {Severity.CRITICAL, Severity.HIGH}
+    )
+
+    best: dict[tuple[str, str, str], Issue] = {}
+    evidence: dict[tuple[str, str, str], list[str]] = {}
+    order: list[tuple[str, str, str]] = []
+    passthrough: list[Issue] = []
+
+    for issue in issues:
+        advisory = _resolve_advisory(issue)
+        if advisory is None:
+            passthrough.append(issue)
+            continue
+        package = _resolve_package(issue)
+        # Ecosystem reserved for future lockfile metadata; empty is fine.
+        key = ("", package, advisory)
+        tag = _evidence_tag(issue)
+        existing = best.get(key)
+        if existing is None:
+            best[key] = issue
+            evidence[key] = [tag]
+            order.append(key)
+            continue
+        if tag not in evidence[key]:
+            evidence[key].append(tag)
+        if _prefer_cross_source_primary(issue, existing):
+            best[key] = issue
+
+    collapsed: list[Issue] = []
+    for key in order:
+        primary = best[key]
+        _, package, advisory = key
+        collapsed.append(
+            primary.model_copy(
+                update={
+                    "evidenceSources": list(evidence[key]),
+                    "advisoryId": primary.advisoryId or advisory,
+                    "packageName": primary.packageName or (package or None),
+                }
+            )
+        )
+    return passthrough + collapsed, raw_critical_high, raw_total
+
+
+def apply_cross_source_sca_dedupe(report: FindingReport) -> FindingReport:
+    """Collapse cross-source SCA rows on ``report`` and record raw tallies."""
+    deduped, raw_ch, raw_total = dedupe_cross_source_sca_issues(list(report.issues))
+    report.issues = deduped
+    report.rawCriticalHighCount = raw_ch
+    report.rawTotalFindings = raw_total
+    report.summary = report.recount_summary()
+    return report
 
 
 def parse_cyclonedx_license_summary(

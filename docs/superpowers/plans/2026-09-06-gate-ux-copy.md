@@ -40,18 +40,18 @@
 - Modify: `src/repolens/report.py`
 - Modify: `tests/test_report.py`
 
-- [ ] **Step 1: Write failing tests for report Markdown copy**
+- [x] **Step 1: Write failing tests for report Markdown copy**
   In `tests/test_report.py`:
   - Assert that generated Markdown includes the GitHub-style `> [!NOTE]` callout regarding review-package adequacy.
   - Assert that when `report.rawCriticalHighCount = 4` and unique Critical/High is 2, the summary table renders `2 unique (4 raw across tools)`.
   - Assert that when `rawCriticalHighCount` is None or equals unique, only the single count renders.
 
-- [ ] **Step 2: Update `render_report_markdown`**
+- [x] **Step 2: Update `render_report_markdown`**
   In `src/repolens/report.py`:
   - Insert explanatory note beneath the metadata table.
   - Format the summary table rows to display unique and raw numbers when deduplication occurred.
 
-- [ ] **Step 3: Run pytest**
+- [x] **Step 3: Run pytest**
   Run `pytest tests/test_report.py` to confirm tests pass.
 
 ---
@@ -62,25 +62,26 @@
 - Modify: `src/repolens/pipeline/run.py` or CLI summary renderer
 - Modify: `tests/test_cli.py`
 
-- [ ] **Step 1: Write failing tests for CLI console summary**
+- [x] **Step 1: Write failing tests for CLI console summary**
   Verify terminal output includes:
   - `* Gate confidence reflects review-package adequacy (checklist coverage + open severity penalties), not a "% secure" score.`
   - `Unique Critical/High: N (M raw across tools)` when raw count > unique count.
 
-- [ ] **Step 2: Update CLI summary formatting**
+- [x] **Step 2: Update CLI summary formatting**
   Implement the formatting using Rich console styling in the appropriate CLI output handler.
 
-- [ ] **Step 3: Run pytest**
+- [x] **Step 3: Run pytest**
   Run `pytest tests/test_cli.py` to verify console output formatting.
 
 ---
 
 ### Task 3: Pin #17b Tracking
 
-- [ ] **Step 1: Document #17b follow-up**
+- [x] **Step 1: Document #17b follow-up**
   Ensure GitHub issue #17 (or child issue) is pinned with:
   - Track: `#17b` — Local UI / desktop calibrations (`attack_surface=local_ui`, repetitive Medium clustering).
   - Milestone: Post-Phase 7 start.
+  - Done: https://github.com/vksvicky/RepoLens/issues/17#issuecomment-5558813811
 
 ---
 

@@ -53,6 +53,8 @@ class Issue(BaseModel):
     usageHint: Literal["referenced_in_source", "no_reference_found"] | None = None
     usageHintDetail: str = ""
     clusteredCount: int | None = Field(default=None, ge=1)
+    # Phase 6.x / #14: multi-source provenance for collapsed SCA rows.
+    evidenceSources: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def require_impact_and_example_for_high(self) -> Issue:
@@ -173,6 +175,9 @@ class FindingReport(BaseModel):
     # Phase 6.3: triage decided the LLM should not run (scanners clean).
     llmBypassed: bool = False
     triageHits: int | None = None
+    # #14: raw finding tallies before cross-source SCA collapse (unique → summary).
+    rawCriticalHighCount: int | None = Field(default=None, ge=0)
+    rawTotalFindings: int | None = Field(default=None, ge=0)
 
     @field_validator("confidence")
     @classmethod

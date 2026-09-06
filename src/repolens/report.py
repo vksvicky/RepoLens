@@ -22,6 +22,20 @@ _COVERAGE_TRANSPORT_GAP_RE = re.compile(
     re.IGNORECASE,
 )
 
+GATE_ADEQUACY_ONE_LINER = (
+    "Gate confidence reflects review-package adequacy "
+    '(checklist coverage + open severity penalties), not a "% secure" score.'
+)
+
+
+def format_unique_critical_high(report: FindingReport) -> str:
+    """Human label for open Critical/High, with raw count when #14 collapsed rows."""
+    unique = report.summary.critical + report.summary.high
+    raw = report.rawCriticalHighCount
+    if raw is not None and raw > unique:
+        return f"{unique} unique ({raw} raw across tools)"
+    return str(unique)
+
 
 def report_timestamp(when: datetime | None = None) -> datetime:
     """UTC clock used for report filenames and headings (all formats share this)."""
@@ -154,16 +168,27 @@ def render_markdown(
             f"**Push go/no-go:** {push_go}",
         ]
     )
+    lines.extend(
+        [
+            "",
+            "> [!NOTE]",
+            "> **Audit confidence & gate interpretation**",
+            f"> {GATE_ADEQUACY_ONE_LINER} "
+            "See RepoLens `docs/faq.md` → *What do report metrics mean?*",
+        ]
+    )
     headline = format_two_lane_headline(report)
     if headline:
         lines.extend(["", f"**Two-Lane:** {headline}", ""])
+    unique_ch = format_unique_critical_high(report)
     lines.extend(
         [
             "",
             "## Gate verdict",
             "",
             f"- **Gate confidence:** {report.confidence}% "
-            "(adequacy of this review package — not “% secure”)",
+            "(review-package adequacy — not “% secure”)",
+            f"- **Unique Critical/High:** {unique_ch}",
             (
                 f"- **Counts:** Critical {report.summary.critical} · "
                 f"High {report.summary.high} · Medium {report.summary.medium} · "
@@ -445,6 +470,11 @@ def _render_metrics_section(report: FindingReport) -> list[str]:
             f"| Architecture audit confidence | {report.architectureAuditConfidence}% | "
             "P3/`arch.*` base − missed/invalid N/A − Critical/High in that band |"
         )
+    lines.append(
+        f"| Unique Critical/High | {format_unique_critical_high(report)} | "
+        "Open Critical+High after cross-source collapse; raw shown when #14 "
+        "deduped scanner/LLM rows |"
+    )
     lines.append(
         "| Severity counts | (above) | Finding tallies — independent of confidence % |"
     )

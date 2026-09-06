@@ -377,7 +377,9 @@ def run_review(
                 supplyChain=supply_chain,
                 llmSkipped=True,
             )
-            report.summary = report.recount_summary()
+            from repolens.scanners.sca import apply_cross_source_sca_dedupe
+
+            report = apply_cross_source_sca_dedupe(report)
         elif not files and not fast_files:
             report = FindingReport(
                 confidence=90,
@@ -388,7 +390,9 @@ def run_review(
                 scannerRuns=list(scanner_runs),
                 supplyChain=supply_chain,
             )
-            report.summary = report.recount_summary()
+            from repolens.scanners.sca import apply_cross_source_sca_dedupe
+
+            report = apply_cross_source_sca_dedupe(report)
         else:
             if force_changed:
                 pack_mode = "changed"
@@ -603,6 +607,7 @@ def run_review(
                             prog=prog,
                             prompt_prefix=prompt_prefix,
                             scanner_runs=scanner_runs,
+                            scanner_issues=list(scanner_issues),
                             heur_result=heur_result,
                         )
                     else:
@@ -719,17 +724,27 @@ def run_review(
                         )
                         store.set_meta("recommended_timeout_seconds", f"{rec:g}")
 
-                extra_issues = list(scanner_issues)
-                if not use_deep:
-                    # Deep path already merged Fast Brain heuristics.
-                    extra_issues.extend(heur_issues)
-                if extra_issues or scanner_runs or scanner_gaps:
-                    report.issues = list(report.issues) + extra_issues
-                    report.scannerRuns = list(scanner_runs)
-                    report.durabilityGaps = list(report.durabilityGaps) + list(
-                        scanner_gaps
-                    )
-                    report.summary = report.recount_summary()
+                extra_issues: list = []
+                if use_deep:
+                    # Scanners already merged + cross-source deduped in deep_exec.
+                    if scanner_runs or scanner_gaps:
+                        report.scannerRuns = list(scanner_runs)
+                        report.durabilityGaps = list(report.durabilityGaps) + list(
+                            scanner_gaps
+                        )
+                else:
+                    extra_issues = list(scanner_issues) + list(heur_issues)
+                    if extra_issues or scanner_runs or scanner_gaps:
+                        report.issues = list(report.issues) + extra_issues
+                        report.scannerRuns = list(scanner_runs)
+                        report.durabilityGaps = list(report.durabilityGaps) + list(
+                            scanner_gaps
+                        )
+                        from repolens.scanners.sca import apply_cross_source_sca_dedupe
+
+                        report = apply_cross_source_sca_dedupe(report)
+                    else:
+                        report.summary = report.recount_summary()
 
                 report.issues = stamp_issue_sources(report.issues, default_llm=True)
                 report.llmCompleted = True
