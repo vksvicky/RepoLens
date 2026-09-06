@@ -56,7 +56,44 @@ Fast Brain heuristics are **not** AST parsers (that stays Slow Brain or Semgrep)
 
 Do **not** position RepoLens as replacing CodeQL/Semgrep/Dependabot fleet coverage. It adds a structured dual-review layer on a **prioritised slice**, plus optional full-tree scanners.
 
-Related: [command-atlas.md](./command-atlas.md) · [command atlas durations](./command-atlas.md#7-approximate-duration).
+Reports and the CLI summary now open with a **Two-Lane** headline (Fast Brain file count ± lane seconds · Slow Brain pack or “bypassed” · duration · severity counts). Use it to sanity-check that lane scopes match what you intended.
+
+Related: [command-atlas.md](./command-atlas.md) · [command atlas durations](./command-atlas.md#7-approximate-duration) · [Fast Brain vs Slow Brain commands](./command-atlas.md#fast-brain-vs-slow-brain-commands--examples).
+
+---
+
+## What is a fair dogfood recipe for Two-Lane speed?
+
+When demoing or comparing RepoLens to other tools on a PatternSorcerer-class repo (~200–800 reviewable files), **do not lead with `--full`**. That forces a full Slow Brain pack even when adaptive mode would shrink it — a warm run on local **32B** can still sit around **~1 hour**, which is an unfair “speed” story.
+
+| Goal | Prefer | Expect |
+|------|--------|--------|
+| Show Two-Lane scope honestly | `--ci` triage **or** default adaptive (no `--full`) | **Fast Brain** ≈ whole matched tree (up to cap); **Slow Brain** ≈ triage hit files or pack cap — check the **Two-Lane** headline |
+| PR-style gate | `repolens review --ci --fail-on HIGH …` | Often **Slow Brain bypassed** when scanners are clean at the floor |
+| Release / forced full LLM sample | `--full --deep --timeout 3600` | Slow Brain ≈ `general.max_files`; budget time |
+
+**Latency honesty:** Fast Brain heuristics finish in **seconds** on typical trees. A local **qwen2.5-coder:32b** Slow Brain pass is still usually **much slower** than a cloud **Claude Haiku**-class API on the same pack — model size and prompt eval dominate, not “RepoLens overhead”. For apples-to-apples **quality** demos, compare cloud-to-cloud or local-to-local; for **CI speed**, use `--ci` or `--scanners-only`.
+
+Copy-paste recipes: [command-atlas.md — Fast Brain vs Slow Brain](./command-atlas.md#fast-brain-vs-slow-brain-commands--examples).
+
+---
+
+## How is RepoLens different from prompt-paste review tools?
+
+| | RepoLens CLI | Prompt-paste / chat workflows |
+|--|--------------|-------------------------------|
+| Output | Structured gate reports, SARIF, CI exit codes | Text in a chat thread |
+| Remediation | **`repolens explain`** — symbol **moves**, import **diffs**, outline evidence, Mermaid (grounded in the repo) | You copy suggestions by hand |
+| Scanners | Optional gitleaks / Semgrep / OSV / Trivy on the **full tree** | Usually none unless you paste scanner output yourself |
+| Grades | **Gate / band confidence** = review-package adequacy — **not** “% secure” and **not** cross-repo percentile ranks | Some SaaS tools show population percentiles — RepoLens does **not** (privacy-first local CLI; no central corpus) |
+
+Playbooks in chat and RepoLens share review *ideas*; they are not the same product surface. See [using-playbooks.md](./using-playbooks.md).
+
+---
+
+## Do scanners catch missing `.gitignore` rules?
+
+**Usually no — and we do not claim they do.** **gitleaks** (and similar) find **secret content** already present in the tree. **Missing `.env` / credential patterns in `.gitignore`** come from **Fast Brain heuristics** (`heuristic.gitignore_secrets`, etc.) — deterministic pattern checks, not a live secret scan. Treat those rows as hygiene hints; confirm with your policy and scanners. Heuristic and LLM twins on the same theme (e.g. gitignore + `sec.repo_hygiene_secrets`) are **clustered** so the report does not list three near-identical `.gitignore` issues.
 
 ---
 
@@ -174,7 +211,7 @@ Post-parse **FP calibrations** (default on) demote patterns such as list-form `s
 
 ## What do report metrics mean? (confidence vs security)
 
-**`Confidence` / gate confidence is not “% secure” and not an architecture grade.** It is how sure RepoLens is that *this review package* (findings + coverage + scanners) is adequate for a gate-style decision. Models often self-report high numbers; Phase **5.1** recalibrates that with coverage penalties and adds band-specific metrics.
+**`Confidence` / gate confidence is not “% secure”, not an architecture grade, and not a cross-tenant percentile** (no “better than 73% of repos”). It is how sure RepoLens is that *this review package* (findings + coverage + scanners) is adequate for a gate-style decision. Models often self-report high numbers; Phase **5.1** recalibrates that with coverage penalties and adds band-specific metrics.
 
 | Metric | Means | Does **not** mean |
 |--------|--------|-------------------|
@@ -199,6 +236,27 @@ Deep mode asks the model (plus heuristics) to account for each checklist id in t
 
 N/A is **good** when true (don’t invent web XSS findings for a pure CLI). Missed **lowers** gate / band confidence. Full lists appear under **## Coverage** in the Markdown report (and Theme breakdown maps the same ideas to product themes).
 
+### Declarative coverage seeds (`[coverage]`)
+
+Projects may declare standing audit notes in `.repolens.toml` under nested tables `[coverage.na]` and `[coverage.covered]` (id → reason string). These load from the project file **without** `--trust-project-config` (same trust model as `[deep]`).
+
+| Rule | Behaviour |
+|------|-----------|
+| Purpose | Honest project audit declarations for checklist ids the team has already reviewed out-of-band |
+| Lazy N/A | Still rejected (e.g. “not reviewed” → **missed**) |
+| Findings win | An issue for an id overrides a seed N/A or covered note |
+| Report | Seed strings appear in **Theme Breakdown Notes** in the Markdown report |
+
+Example:
+
+```toml
+[coverage.na]
+sec.xss_csrf = "Native desktop app; no web/DOM attack surface"
+
+[coverage.covered]
+sec.injection = "Audited: no SQL or shell=True sinks in reviewed pack"
+```
+
 ### How the % numbers are calculated (Phase 5.1)
 
 Implementation: `src/repolens/metrics.py`.
@@ -218,6 +276,39 @@ Worked sketch (numbers like a local deep `review` on RepoLens itself):
 - Gate **47%** — pulled down by the **weakest** of those scores, then any global missed-id penalty (here: 2 missed → up to −8).
 
 So: **high security audit + low gate** is normal when reliability/architecture (or coverage misses) are the weak link — gate is deliberately the “can I trust this package?” floor, not a security grade.
+
+### Vacuous pass confidence floor (deep mode, #21)
+
+Deep mode asks each LLM pass for a self-reported **confidence** (0–100). That number feeds gate and band audit % alongside coverage penalties.
+
+**Why gate 0% on a clean repo?** Under the old prompt contract, confidence read as “certainty in reported issues”. Models often returned schema-valid empty packs (`issues: []`, `confidence: 0`) on genuinely clean passes — consistent with the old wording but wrong for **package adequacy** when the checklist is complete and scanners ran.
+
+**New empty-pack meaning (FR0):** Prompts now say that when `issues` is empty, confidence should rate certainty that the examined scope is **free of in-band issues** (0–100). A high-confidence empty array after a thorough review is valid.
+
+**Defensive floor (FR1):** Stubborn models may still emit `0`. RepoLens can substitute a **vacuous pass confidence floor** on eligible empty passes before band maths run (config `[deep] vacuous_pass_confidence_floor`; omit/`None` = auto):
+
+| Condition | Auto floor (per eligible pass) |
+|-----------|--------------------------------|
+| Configured scanners all **`ran`** | **75** |
+| Otherwise | **55** |
+| Config `= 0` | Off (no substitution) |
+| Config `1–100` | Pin to that value |
+
+After flooring, the usual **+5** security bonus when scanners all ran still applies → security audit **80**, reliability/architecture **75**, gate **75** on a clean LogViewer-class package (no Critical/High penalties).
+
+**When flooring does *not* apply** — durability notes use a fixed skip-reason enum (one note per candidate pass, highest-priority reason wins):
+
+| Skip reason | Meaning |
+|-------------|---------|
+| `pass_degraded` | Transport error, timeout, or schema repair failure |
+| `no_analysis_evidence` | Stub JSON / raw response too short (&lt; 100 chars) — **project `[coverage]` seeds alone do not satisfy this** |
+| `checklist_incomplete` | Missed coverage ids or invalid/lazy N/A on scored bands |
+
+**Scanners-all-ran** is a **global pipeline integrity** proxy (every configured scanner completed), **not** proof that Semgrep validated P2/P3 content. Flooring means “this review package looks adequate for a gate decision”, not “% secure”.
+
+**CI vs confidence gates:** `--fail-on` gates on **finding severity** (e.g. `HIGH`), not on confidence %. Dual-review-style **confidence** gates in consumer pipelines often want **≥70**; a floored clean package lands at **75** gate — adequate for that bar, separate from `--fail-on`.
+
+Design: [superpowers/specs/2026-09-05-vacuous-pass-confidence-floor-design.md](./superpowers/specs/2026-09-05-vacuous-pass-confidence-floor-design.md).
 
 ### Core vs Extended themes (Phase 5.2)
 

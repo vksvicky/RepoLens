@@ -62,6 +62,17 @@
 # min_timeout_seconds = 120
 # max_timeout_seconds = 3600
 
+[coverage]
+# Project audit declarations for deep-mode checklist ids (loaded without --trust-project-config).
+# Lazy N/A reasons (e.g. "not reviewed") are still rejected; findings override seeds.
+# Seed strings appear in Theme Breakdown Notes in the Markdown report.
+#
+# [coverage.na]
+# sec.xss_csrf = "Native desktop app; no web/DOM attack surface"
+#
+# [coverage.covered]
+# sec.injection = "Audited: no SQL or shell=True sinks in reviewed pack"
+
 [deep]
 # enabled = true            # Multi-pass deep coverage (default on for LLM runs)
 # chars_per_pass = 100000   # Max file-size budget (bytes) packed into each pass
@@ -78,6 +89,7 @@
 # usage_hints = true                      # SCA package name appears in source? (not reachability)
 # cluster_duplicates = true               # collapse near-duplicate findings
 # verify_findings = false                 # or --verify-findings: Critical location re-check
+# vacuous_pass_confidence_floor = 75  # None/omit = auto 75 if scanners ran else 55; 0 = off
 # CLI: --deep / --no-deep (None → this config; --no-deep restores single-shot)
 
 [explain]

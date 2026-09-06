@@ -18,6 +18,7 @@ COVERAGE_ID_ALIASES: dict[str, str] = {
 HEURISTIC_TO_THEME: dict[str, str] = {
     "heuristic.mega_file": "arch.structure_size",
     "heuristic.sibling_duplication": "arch.duplication",
+    "heuristic.deep_nesting": "arch.readability_complexity",
     "heuristic.gitignore_secrets": "sec.repo_hygiene_secrets",
     "heuristic.scripts_hygiene": "arch.dead_code",
     "heuristic.todo_density": "arch.dead_code",
@@ -98,7 +99,7 @@ def _status_for(
     coverage: CoverageResult,
 ) -> tuple[str, str]:
     if cov_id in coverage.covered:
-        return "covered", ""
+        return "covered", coverage.covered_notes.get(cov_id, "")
     if cov_id in coverage.na:
         return "na", coverage.na[cov_id]
     if cov_id in coverage.missed:

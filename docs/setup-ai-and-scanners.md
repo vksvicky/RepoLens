@@ -61,6 +61,12 @@ export REPOLENS_API_KEY="..."
 
 **Not BYOK:** `ollama` (local) and `none` (scanners / dry-run only).
 
+> **Restricted / Enterprise Models (e.g. Claude Mythos 5):**  
+> Access to frontier models like Claude Mythos requires approval via Anthropic's Trusted Access program (`https://claude.com/form/mythos-access-interest`). If your account has access, pass `--model claude-mythos-5` to `repolens review` or `repolens sentinel`.
+> 
+> **Automatic Fallback Cascade (`--fallback`):**  
+> By default, if a cloud API key is missing or unavailable, RepoLens automatically checks for a local Ollama instance. If Ollama is not running, it degrades gracefully to local SAST scanners and Fast-Brain static heuristics instead of failing. Use `--no-fallback` to disable fallback.
+
 **Coming later:** Phase 8 adds named aliases/recipes (Azure, Mistral, Groq, OpenRouter, …); Phase 9 adds native Gemini/Vertex/Bedrock when OpenAI-compatible is not enough. See [phases.md](./phases.md).
 
 1. Sign up / sign in.  

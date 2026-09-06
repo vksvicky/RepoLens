@@ -9,13 +9,13 @@ from typing import Literal
 from guided.argv import GuidedChoices
 from guided.caps import (
     RemoteKind,
+    ReviewCliCaps,
     default_local_path,
     full_pack_large_model_warning,
     list_installed_models,
     probe_review_cli_caps,
     suggest_timeout_seconds,
     validate_remote_value,
-    ReviewCliCaps,
 )
 
 

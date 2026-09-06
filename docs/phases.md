@@ -6,8 +6,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–6.x complete**; **next** Phase **7** (enterprise CI/CD & report delivery) → Phase 8 provider aliases → Phase 9 native SDKs. PyPI alpha (#1) can land in parallel.  
-**GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred follow-ups: [#11](https://github.com/vksvicky/RepoLens/issues/11).  
+**Current phase:** Phases **0–6.x complete**; **next roadmap phase** is Phase **7** (#3). **Immediate interrupt queue** (LogViewer dogfood / gate honesty): [#21](https://github.com/vksvicky/RepoLens/issues/21) vacuous confidence floor → [#14](https://github.com/vksvicky/RepoLens/issues/14) OSV dedupe → [#17](https://github.com/vksvicky/RepoLens/issues/17) gate UX — then resume Phase 7 → 8 → 9. PyPI alpha (#1) can land in parallel.  
+**GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred follow-ups: [#11](https://github.com/vksvicky/RepoLens/issues/11). Umbrella dogfood: [#13](https://github.com/vksvicky/RepoLens/issues/13).
 
 **CLI language:** Python 3.11+
 
@@ -15,7 +15,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 |-------|--------|
 | 5 / 5.1 / 5.2 | [#9](https://github.com/vksvicky/RepoLens/issues/9) / [#10](https://github.com/vksvicky/RepoLens/issues/10) / [#7](https://github.com/vksvicky/RepoLens/issues/7) (closed) |
 | 6 / 6.x | [#2](https://github.com/vksvicky/RepoLens/issues/2) / [#8](https://github.com/vksvicky/RepoLens/issues/8) (closed) |
-| 7 / 8 / 9 | [#3](https://github.com/vksvicky/RepoLens/issues/3) (next) / [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) |
+| Gate honesty interrupts | [#21](https://github.com/vksvicky/RepoLens/issues/21) (vacuous floor) · [#14](https://github.com/vksvicky/RepoLens/issues/14) · [#17](https://github.com/vksvicky/RepoLens/issues/17) · parent [#13](https://github.com/vksvicky/RepoLens/issues/13) |
+| 7 / 8 / 9 | [#3](https://github.com/vksvicky/RepoLens/issues/3) (roadmap next) / [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) |
 | PyPI alpha | [#1](https://github.com/vksvicky/RepoLens/issues/1) |
 
 ---
@@ -411,6 +412,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 **Exit:** Deterministic baseline on Fast Brain inventory; LLM remains sampled / triage-routed; docs honest about lanes. → **Met for implementation (2026-08-06)** (dogfood deep run completed)
 
+**Follow-up (2026-08-06):** Two-Lane headline + lane timings, theme-family clustering, indent nesting heuristic, fair dogfood docs — [plan](./superpowers/plans/2026-08-06-two-lane-presentation-and-cq-parity.md).
+
 ---
 
 ## Phase 7 — Enterprise CI/CD & report delivery (design)
@@ -521,6 +524,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-06 | Phase 6.8 PR suggested-fix UX | Job summary + annotations; no gh PR comments |
 | 2026-08-06 | Phase 6.9 scope B | SCA meta, usage hints, clustering, opt-in verify |
 | 2026-08-06 | Phase 6.10 scope B | Pack registry + opt-in azure-sentinel; core sentinel unchanged when off |
+| 2026-09-05 | Gate honesty interrupt before Phase 7 | Vacuous LLM pass confidence floor (#21) after LogViewer clean-repo gate 0%; composes with declarative `[coverage]` seeds |
 
 ---
 

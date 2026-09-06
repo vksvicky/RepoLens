@@ -10,8 +10,8 @@ import pytest
 from repolens.schema import Issue, Severity
 from repolens.suppressions import (
     IGNORE_FILENAME,
-    apply_suppressions,
     append_ignore_entry,
+    apply_suppressions,
     load_ignore_file,
     parse_disable_lines,
 )
