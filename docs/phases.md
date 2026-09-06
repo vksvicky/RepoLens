@@ -19,7 +19,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **Wave A: Gate honesty interrupt** | [#13](https://github.com/vksvicky/RepoLens/issues/13) (umbrella) | **Active interrupt** before Phase 7 |
 | ↳ Vacuous confidence floor | [#21](https://github.com/vksvicky/RepoLens/issues/21) | [x] Merged via PR #22 |
 | ↳ Cross-source SCA dedupe (A1) | [#14](https://github.com/vksvicky/RepoLens/issues/14) | [~] [Spec](./superpowers/specs/2026-09-06-cross-source-sca-dedupe-design.md) · [plan](./superpowers/plans/2026-09-06-cross-source-sca-dedupe.md) — implemented on `feat/cross-source-sca-dedupe` |
-| ↳ Gate UX & copy MVP (A2) | [#17](https://github.com/vksvicky/RepoLens/issues/17) | [ ] [Spec](./superpowers/specs/2026-09-06-gate-ux-copy-design.md) · [plan](./superpowers/plans/2026-09-06-gate-ux-copy.md); #17b pinned |
+| ↳ Gate UX & copy MVP (A2) | [#17](https://github.com/vksvicky/RepoLens/issues/17) | [~] [Spec](./superpowers/specs/2026-09-06-gate-ux-copy-design.md) · [plan](./superpowers/plans/2026-09-06-gate-ux-copy.md); #17b pinned |
 | **Wave B: Distribution & CI** | | Resumes after Wave A |
 | ↳ Phase 7: Enterprise CI/CD (B1) | [#3](https://github.com/vksvicky/RepoLens/issues/3) | [ ] Thin checklist ready; Jenkins/CircleCI/GitLab |
 | ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | [ ] Parallel track; Trusted Publisher + dogfood |
@@ -430,7 +430,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 |------|--------|-------|
 | **#21** Vacuous pass confidence floor | [x] | Merged via PR #22; auto-floors clean passes to 75/55; respects declarative seeds |
 | **#14** Cross-source SCA deduplication (A1) | [~] | [Spec](./superpowers/specs/2026-09-06-cross-source-sca-dedupe-design.md) · [plan](./superpowers/plans/2026-09-06-cross-source-sca-dedupe.md) — branch `feat/cross-source-sca-dedupe` |
-| **#17** Gate UX & copy alignment MVP (A2) | [ ] | [Spec](./superpowers/specs/2026-09-06-gate-ux-copy-design.md) · [plan](./superpowers/plans/2026-09-06-gate-ux-copy.md) |
+| **#17** Gate UX & copy alignment MVP (A2) | [~] | [Spec](./superpowers/specs/2026-09-06-gate-ux-copy-design.md) · [plan](./superpowers/plans/2026-09-06-gate-ux-copy.md) — on `feat/cross-source-sca-dedupe` |
 | **#17b** Local UI attack surface calibrations | [ ] | Pinned on [#17](https://github.com/vksvicky/RepoLens/issues/17#issuecomment-5558813811); post–Phase 7 start |
 | **Parked tracks:** #15 (32B runtime), #16 (change-set), #18 (DSL/MCP) | [ ] | Parked until gate story is solid |
 
