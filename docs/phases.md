@@ -118,7 +118,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Secret scanning adapter (e.g. gitleaks) | [x] | `scanners/gitleaks.py` |
 | SAST adapter (e.g. Semgrep) | [x] | `scanners/semgrep.py` (`--config auto`) |
 | Dependency / CVE adapter (e.g. OSV) | [x] | `scanners/osv.py` |
-| Optional `repolens[scanners]` / `plugins install` | [x] | Consent download; `--yes` for CI; Semgrep via pip extra |
+| Optional `repolens-audit[scanners]` / `plugins install` | [x] | Consent download; `--yes` for CI; Semgrep via pip extra |
 | Section in report: “Automated scanners” | [x] | Markdown + `scannerRuns` JSON |
 | Docs: enabling plugins | [x] | `docs/scanners.md` · design note |
 

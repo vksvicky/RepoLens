@@ -15,7 +15,7 @@
 
 | Topic | Choice |
 |-------|--------|
-| Packaging | Slim wheel; binaries via `repolens plugins install` + optional `repolens[scanners]` meta extra |
+| Packaging | Slim wheel; binaries via `repolens plugins install` + optional `repolens-audit[scanners]` meta extra |
 | Install UX | Consent prompt before download; `--yes` for CI |
 | User says no | Manual install hints; PATH tools still used; LLM review continues |
 | Tools (MVP) | gitleaks, Semgrep, OSV-Scanner |

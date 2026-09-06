@@ -45,7 +45,7 @@ RepoLens’s **narrative review** (playbooks → structured findings with impact
 | Scanner | Role | How we integrate | Bundle into wheel? |
 |---------|------|------------------|--------------------|
 | **gitleaks** | Secrets | Subprocess / plugin | **No** by default — `repolens plugins install gitleaks` |
-| **Semgrep** | SAST / OWASP-oriented rules | Subprocess | **No** by default — PATH, cache venv, or `repolens[scanners]` |
+| **Semgrep** | SAST / OWASP-oriented rules | Subprocess | **No** by default — PATH, cache venv, or `repolens-audit[scanners]` |
 | **OSV-Scanner** | CVE / dependency vulns | Subprocess | **No** by default — `repolens plugins install osv` |
 | **pandoc** | PDF | Subprocess | No — document Print→PDF fallback |
 
@@ -128,7 +128,7 @@ RepoLens uses a **layered** security story. Layers answer different questions.
 
 ### ML stack (indicative, not locked to a vendor)
 
-- Local embeddings: e.g. `sentence-transformers` or a small ONNX model via optional extra `repolens[local-ml]`  
+- Local embeddings: e.g. `sentence-transformers` or a small ONNX model via optional extra `repolens-audit[local-ml]`  
 - Vector store: on-disk (SQLite / Lance / Chroma local)—project decision in Phase 4 ADR  
 - Default **off** until user opts in  
 
