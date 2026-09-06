@@ -102,6 +102,16 @@ def _is_scanner_sca_issue(issue: Issue) -> bool:
     return issue.category in {"osv", "trivy"}
 
 
+def _is_llm_issue(issue: Issue) -> bool:
+    if (issue.source or "").strip().lower() == "llm":
+        return True
+    # LLM deep passes often use sec.* categories without source stamped yet.
+    if _is_scanner_sca_issue(issue):
+        return False
+    cat = (issue.category or "").strip().lower()
+    return cat.startswith("sec.") or cat.startswith("rel.") or cat.startswith("arch.")
+
+
 def _evidence_tag(issue: Issue) -> str:
     if issue.category in {"osv", "trivy"}:
         return issue.category
@@ -123,6 +133,47 @@ def _resolve_package(issue: Issue) -> str:
     return _package_hint(issue.title)
 
 
+def _resolve_ecosystem(issue: Issue) -> str:
+    """Best-effort ecosystem for the cluster key (empty = unknown)."""
+    adv = _resolve_advisory(issue) or ""
+    if adv.startswith("RUSTSEC-"):
+        return "crates"
+    if adv.startswith("PYSEC-"):
+        return "pypi"
+    if adv.startswith("GO-"):
+        return "go"
+    path = (issue.file or "").replace("\\", "/").lower()
+    base = path.rsplit("/", 1)[-1]
+    if base in {"cargo.lock", "cargo.toml"} or path.endswith("/cargo.lock"):
+        return "crates"
+    if base in {
+        "package-lock.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+        "package.json",
+        "npm-shrinkwrap.json",
+    }:
+        return "npm"
+    if base in {"go.mod", "go.sum"}:
+        return "go"
+    if (
+        (base.startswith("requirements") and base.endswith(".txt"))
+        or base in {"poetry.lock", "pipfile", "pipfile.lock", "setup.py"}
+        or base == "pyproject.toml"
+    ):
+        return "pypi"
+    if base in {"pom.xml", "build.gradle", "build.gradle.kts"}:
+        return "maven"
+    return ""
+
+
+def _ecosystems_compatible(a: str, b: str) -> bool:
+    """Equal ecosystems match; unknown may pair with a known ecosystem."""
+    if a and b:
+        return a == b
+    return True
+
+
 def _prefer_cross_source_primary(candidate: Issue, existing: Issue) -> bool:
     """True if candidate should replace existing (scanner baseline wins)."""
     cand_scan = _is_scanner_sca_issue(candidate)
@@ -137,14 +188,22 @@ def _prefer_cross_source_primary(candidate: Issue, existing: Issue) -> bool:
     return False
 
 
+def _identity_key(issue: Issue) -> tuple[str, str, str] | None:
+    advisory = _resolve_advisory(issue)
+    if advisory is None:
+        return None
+    return (_resolve_ecosystem(issue), _resolve_package(issue), advisory)
+
+
 def dedupe_cross_source_sca_issues(
     issues: list[Issue],
 ) -> tuple[list[Issue], int, int]:
-    """Collapse scanner+LLM rows for the same advisory/package.
+    """Collapse scanner+LLM rows for the same ecosystem/package/advisory.
 
     Returns ``(deduped_issues, raw_critical_high, raw_total)``.
-    Scanner severity is authoritative when both sources report the same
-    advisory; LLM findings without a recognised advisory id pass through.
+    Only collapses when a scanner row and an LLM row share a compatible
+    identity; same-source duplicates are left alone (OSV↔Trivy already
+    handled by :func:`dedupe_sca_issues`). Output preserves input order.
     """
     raw_total = len(issues)
     raw_critical_high = sum(
@@ -153,45 +212,57 @@ def dedupe_cross_source_sca_issues(
         if issue.severity in {Severity.CRITICAL, Severity.HIGH}
     )
 
-    best: dict[tuple[str, str, str], Issue] = {}
-    evidence: dict[tuple[str, str, str], list[str]] = {}
-    order: list[tuple[str, str, str]] = []
-    passthrough: list[Issue] = []
+    slots: list[Issue | None] = list(issues)
+    consumed: set[int] = set()
 
-    for issue in issues:
-        advisory = _resolve_advisory(issue)
-        if advisory is None:
-            passthrough.append(issue)
+    for i, scanner in enumerate(issues):
+        if i in consumed or not _is_scanner_sca_issue(scanner):
             continue
-        package = _resolve_package(issue)
-        # Ecosystem reserved for future lockfile metadata; empty is fine.
-        key = ("", package, advisory)
-        tag = _evidence_tag(issue)
-        existing = best.get(key)
-        if existing is None:
-            best[key] = issue
-            evidence[key] = [tag]
-            order.append(key)
+        s_key = _identity_key(scanner)
+        if s_key is None:
             continue
-        if tag not in evidence[key]:
-            evidence[key].append(tag)
-        if _prefer_cross_source_primary(issue, existing):
-            best[key] = issue
+        s_eco, s_pkg, s_adv = s_key
+        evidence = [_evidence_tag(scanner)]
+        primary = scanner
+        merged_any = False
 
-    collapsed: list[Issue] = []
-    for key in order:
-        primary = best[key]
-        _, package, advisory = key
-        collapsed.append(
-            primary.model_copy(
-                update={
-                    "evidenceSources": list(evidence[key]),
-                    "advisoryId": primary.advisoryId or advisory,
-                    "packageName": primary.packageName or (package or None),
-                }
-            )
+        for j, other in enumerate(issues):
+            if j == i or j in consumed:
+                continue
+            if not _is_llm_issue(other):
+                continue
+            o_key = _identity_key(other)
+            if o_key is None:
+                continue
+            o_eco, o_pkg, o_adv = o_key
+            if o_adv != s_adv or o_pkg != s_pkg:
+                continue
+            if not _ecosystems_compatible(s_eco, o_eco):
+                continue
+            tag = _evidence_tag(other)
+            if tag not in evidence:
+                evidence.append(tag)
+            if not s_eco and o_eco:
+                s_eco = o_eco
+            consumed.add(j)
+            slots[j] = None
+            merged_any = True
+
+        if not merged_any:
+            continue
+        # Prefer osv over other scanners if somehow both present (rare here).
+        if _prefer_cross_source_primary(scanner, primary):
+            primary = scanner
+        slots[i] = primary.model_copy(
+            update={
+                "evidenceSources": list(evidence),
+                "advisoryId": primary.advisoryId or s_adv,
+                "packageName": primary.packageName or (s_pkg or None),
+            }
         )
-    return passthrough + collapsed, raw_critical_high, raw_total
+
+    out = [issue for issue in slots if issue is not None]
+    return out, raw_critical_high, raw_total
 
 
 def apply_cross_source_sca_dedupe(report: FindingReport) -> FindingReport:
