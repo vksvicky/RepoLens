@@ -6,18 +6,24 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–6.x complete**; **next roadmap phase** is Phase **7** (#3). **Immediate interrupt queue** (LogViewer dogfood / gate honesty): [#21](https://github.com/vksvicky/RepoLens/issues/21) vacuous confidence floor → [#14](https://github.com/vksvicky/RepoLens/issues/14) OSV dedupe → [#17](https://github.com/vksvicky/RepoLens/issues/17) gate UX — then resume Phase 7 → 8 → 9. PyPI alpha (#1) can land in parallel.  
-**GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred follow-ups: [#11](https://github.com/vksvicky/RepoLens/issues/11). Umbrella dogfood: [#13](https://github.com/vksvicky/RepoLens/issues/13).
+**Current phase:** Phases **0–6.x complete**; currently in **Wave A: Gate honesty interrupt (#13)** ([#21](https://github.com/vksvicky/RepoLens/issues/21) done via PR #22 → [#14](https://github.com/vksvicky/RepoLens/issues/14) cross-source SCA dedupe → [#17](https://github.com/vksvicky/RepoLens/issues/17) gate UX copy MVP). Next is **Wave B**: Phase **7** (#3 enterprise CI/CD) with parallel **PyPI alpha** (#1).  
+**GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred follow-ups: [#11](https://github.com/vksvicky/RepoLens/issues/11). Umbrella dogfood: [#13](https://github.com/vksvicky/RepoLens/issues/13).  
+**Parked until gate solid:** [#15](https://github.com/vksvicky/RepoLens/issues/15) (32B local runtime), [#16](https://github.com/vksvicky/RepoLens/issues/16) (change-set scoping), [#18](https://github.com/vksvicky/RepoLens/issues/18) (architecture DSL / MCP layer), and **#17b** (local UI attack surface calibration post-Phase 7).
 
 **CLI language:** Python 3.11+
 
-| Phase | GitHub |
-|-------|--------|
-| 5 / 5.1 / 5.2 | [#9](https://github.com/vksvicky/RepoLens/issues/9) / [#10](https://github.com/vksvicky/RepoLens/issues/10) / [#7](https://github.com/vksvicky/RepoLens/issues/7) (closed) |
-| 6 / 6.x | [#2](https://github.com/vksvicky/RepoLens/issues/2) / [#8](https://github.com/vksvicky/RepoLens/issues/8) (closed) |
-| Gate honesty interrupts | [#21](https://github.com/vksvicky/RepoLens/issues/21) (vacuous floor) · [#14](https://github.com/vksvicky/RepoLens/issues/14) · [#17](https://github.com/vksvicky/RepoLens/issues/17) · parent [#13](https://github.com/vksvicky/RepoLens/issues/13) |
-| 7 / 8 / 9 | [#3](https://github.com/vksvicky/RepoLens/issues/3) (roadmap next) / [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) |
-| PyPI alpha | [#1](https://github.com/vksvicky/RepoLens/issues/1) |
+| Phase / Track | GitHub | Status / Notes |
+|---------------|--------|----------------|
+| 5 / 5.1 / 5.2 | [#9](https://github.com/vksvicky/RepoLens/issues/9) / [#10](https://github.com/vksvicky/RepoLens/issues/10) / [#7](https://github.com/vksvicky/RepoLens/issues/7) | Closed |
+| 6 / 6.x | [#2](https://github.com/vksvicky/RepoLens/issues/2) / [#8](https://github.com/vksvicky/RepoLens/issues/8) | Closed |
+| **Wave A: Gate honesty interrupt** | [#13](https://github.com/vksvicky/RepoLens/issues/13) (umbrella) | **Active interrupt** before Phase 7 |
+| ↳ Vacuous confidence floor | [#21](https://github.com/vksvicky/RepoLens/issues/21) | [x] Merged via PR #22 |
+| ↳ Cross-source SCA dedupe (A1) | [#14](https://github.com/vksvicky/RepoLens/issues/14) | [ ] [Spec](./superpowers/specs/2026-09-06-cross-source-sca-dedupe-design.md) · [plan](./superpowers/plans/2026-09-06-cross-source-sca-dedupe.md) |
+| ↳ Gate UX & copy MVP (A2) | [#17](https://github.com/vksvicky/RepoLens/issues/17) | [ ] [Spec](./superpowers/specs/2026-09-06-gate-ux-copy-design.md) · [plan](./superpowers/plans/2026-09-06-gate-ux-copy.md); #17b pinned |
+| **Wave B: Distribution & CI** | | Resumes after Wave A |
+| ↳ Phase 7: Enterprise CI/CD (B1) | [#3](https://github.com/vksvicky/RepoLens/issues/3) | [ ] Thin checklist ready; Jenkins/CircleCI/GitLab |
+| ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | [ ] Parallel track; Trusted Publisher + dogfood |
+| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Planned after Phase 7 |
 
 ---
 
@@ -416,24 +422,43 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
+## Wave A — Gate honesty interrupt (#13)
+
+**Goal:** Restore credibility and mathematical honesty to CI gate decisions (prevent 2 CVE advisories exploding into 6 Critical/High penalties, floor genuine vacuous clean passes, and clarify review adequacy vs "% secure" copy) before resuming Phase 7.
+
+| Item | Status | Notes |
+|------|--------|-------|
+| **#21** Vacuous pass confidence floor | [x] | Merged via PR #22; auto-floors clean passes to 75/55; respects declarative seeds |
+| **#14** Cross-source SCA deduplication (A1) | [ ] | [Spec](./superpowers/specs/2026-09-06-cross-source-sca-dedupe-design.md) · [plan](./superpowers/plans/2026-09-06-cross-source-sca-dedupe.md) |
+| **#17** Gate UX & copy alignment MVP (A2) | [ ] | [Spec](./superpowers/specs/2026-09-06-gate-ux-copy-design.md) · [plan](./superpowers/plans/2026-09-06-gate-ux-copy.md) |
+| **#17b** Local UI attack surface calibrations | [ ] | Pinned on [#17](https://github.com/vksvicky/RepoLens/issues/17#issuecomment-5558813811); post–Phase 7 start |
+| **Parked tracks:** #15 (32B runtime), #16 (change-set), #18 (DSL/MCP) | [ ] | Parked until gate story is solid |
+
+**Wave A exit criteria:** LogViewer-class deep run yields unique SCA advisories ≈ unique Critical/High (no 2→6 explosion); vacuous clean passes floor at 75/55; summary one-liner clarifies gate ≠ "% secure".
+
+---
+
 ## Phase 7 — Enterprise CI/CD & report delivery (design)
 
 **Goal:** Production-minded corporate use: CI agents (Jenkins, CircleCI, GitLab, …), artifact export, email/chat/dashboard handoff — without building a RepoLens SaaS UI.  
 *(Formerly Phase 6 — renumbered 2026-08-04.)*  
-**Consumes:** Phase 6.x SARIF/SBOM/gates (ideally 6.1–6.6). Extended 6.7–6.10 may land in parallel.
+**Execution checklist:** [docs/design/phase-7-execution-checklist.md](./design/phase-7-execution-checklist.md)  
+**Consumes:** Phase 6.x SARIF/SBOM/gates (ideally 6.1–6.6) and Wave A gate honesty. Resumes immediately following Wave A.  
+**Parallel Track:** PyPI alpha ([#1](https://github.com/vksvicky/RepoLens/issues/1)) proceeds in parallel (Trusted Publisher + local dogfood + tag; TestPyPI optional).
 
 | Item | Status | Notes |
 |------|--------|-------|
 | Design sketch | [x] | [phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md) |
-| Expand [ci.md](./ci.md) (Jenkins / CircleCI / GitLab) | [ ] | |
-| Artifact → email / webhook recipes | [ ] | Customer SMTP / forge plugins |
-| Adaptive cache guidance for ephemeral CI | [ ] | Off by default or restore via CI cache |
-| Dashboard ingest (JSON / SARIF) recipe | [ ] | External dashboard; no hosted RepoLens UI |
+| Thin execution checklist | [x] | [phase-7-execution-checklist.md](./design/phase-7-execution-checklist.md) |
+| Expand [ci.md](./ci.md) (Jenkins / CircleCI / GitLab) | [ ] | Core exit criteria (Azure DevOps as nice-to-have stretch) |
+| Artifact → email / webhook recipes | [ ] | Customer SMTP / Slack / Teams payload (no code dumps) |
+| Adaptive cache guidance for ephemeral CI | [ ] | Default off (`enabled = false`) or restore via CI cache |
+| Dashboard ingest (JSON / SARIF) recipe | [ ] | External dashboard contract; no hosted RepoLens UI |
 | Wire 6.4 SARIF/SBOM into CI upload + notify | [ ] | From Phase 6.x |
 | Forge-side push-protection recipes | [ ] | Document GH/GitLab secret push protection; RepoLens remains audit-of-landed-code |
 | FAQ “Corporate CI/CD” | [ ] | |
 
-**Phase 7 exit criteria:** A security/platform engineer can wire RepoLens into Jenkins or CircleCI, archive reports (incl. SARIF/SBOM when present), optionally email/notify, know forge push-protection vs RepoLens audit role, and know when to disable adaptive learning on CI.
+**Phase 7 exit criteria:** A security/platform engineer can wire RepoLens into Jenkins, CircleCI, or GitLab, archive reports (incl. SARIF/SBOM when present), optionally email/notify, know forge push-protection vs RepoLens audit role, and know when to disable adaptive learning on CI.
 
 ---
 
@@ -525,6 +550,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-08-06 | Phase 6.9 scope B | SCA meta, usage hints, clustering, opt-in verify |
 | 2026-08-06 | Phase 6.10 scope B | Pack registry + opt-in azure-sentinel; core sentinel unchanged when off |
 | 2026-09-05 | Gate honesty interrupt before Phase 7 | Vacuous LLM pass confidence floor (#21) after LogViewer clean-repo gate 0%; composes with declarative `[coverage]` seeds |
+| 2026-09-06 | Wave A gate honesty (#13) & Phase 7 plan | Scope A1 (#14 cross-source SCA dedupe) + A2 (#17 Gate UX copy MVP); defer #17b local_ui calibrations post-Phase 7; park #15/#16/#18; thin Phase 7 execution checklist + parallel PyPI alpha (#1) |
 
 ---
 

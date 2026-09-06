@@ -38,3 +38,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-08-06 | WIP→commit | 90% | 0/0/1/1 | Phase 6.11 Fast Brain Two-Lane + summary Metrics polish; fixed triage pack from fast inventory | chat |
 | 2026-09-05 | 2abe7f7 | 92% | 0/0/0/0 | Wire vacuous pass floors in deep_exec before audit metrics (#21) | chat / .superpowers/sdd/task-3-report.md |
 | 2026-09-06 | WIP→commit | 94% | 0/0/0/0 | CI unblock PR #22: docs path for cli package + ruff; remove shadowed transport helpers | chat |
+| 2026-09-06 | WIP→commit | 96% | 0/0/0/0 | Wave A docs: #14/#17 specs+plans, Phase 7 checklist, phases.md interrupt queue | chat |
