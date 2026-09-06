@@ -43,12 +43,12 @@
 - Modify: `src/repolens/scanners/sca.py`
 - Modify: `tests/test_sca_sbom.py`
 
-- [ ] **Step 1: Write failing tests for advisory extraction**
+- [x] **Step 1: Write failing tests for advisory extraction**
   Add unit tests in `tests/test_sca_sbom.py`:
   - Recognise `CVE-2024-12345`, `GHSA-3x3c-cg28-v232`, `RUSTSEC-2020-0071`, `PYSEC-2021-100`, `GO-2022-0965` across title and explanation.
   - Return `None` for generic findings without recognized advisory patterns.
 
-- [ ] **Step 2: Update regex & schema**
+- [x] **Step 2: Update regex & schema**
   - In `src/repolens/schema.py`:
     - Add `evidenceSources: list[str] = Field(default_factory=list)` to `Issue`.
     - Add `rawCriticalHighCount: int | None = None` and `rawTotalFindings: int | None = None` to `FindingReport`.
@@ -56,7 +56,7 @@
     - Broaden `_CVE_RE` to `_ADVISORY_RE` covering `CVE`, `GHSA`, `RUSTSEC`, `PYSEC`, `GO`.
     - Implement `extract_advisory_id(text: str) -> str | None`.
 
-- [ ] **Step 3: Run pytest & verify tests pass**
+- [x] **Step 3: Run pytest & verify tests pass**
   Run `pytest tests/test_sca_sbom.py` to confirm extraction passes.
 
 ---
@@ -67,7 +67,7 @@
 - Modify: `src/repolens/scanners/sca.py`
 - Modify: `tests/test_sca_sbom.py`
 
-- [ ] **Step 1: Write failing tests for cross-source deduplication**
+- [x] **Step 1: Write failing tests for cross-source deduplication**
   Add unit tests in `tests/test_sca_sbom.py`:
   - Merge a scanner finding (`HIGH`, category `osv`) and an LLM finding (`CRITICAL`, category `sec.supply_chain`) citing the same CVE and package:
     - Primary finding is the scanner finding.
@@ -79,7 +79,7 @@
   - Findings without advisory IDs are passed through without modification.
   - Returns `(deduped_issues, raw_critical_high, raw_total)`.
 
-- [ ] **Step 2: Implement `dedupe_cross_source_sca_issues`**
+- [x] **Step 2: Implement `dedupe_cross_source_sca_issues`**
   In `src/repolens/scanners/sca.py`:
   ```python
   def dedupe_cross_source_sca_issues(
@@ -89,7 +89,7 @@
   ```
   Cluster by `(ecosystem, package, advisory_id)`. Maintain order. If scanner and LLM both match, prefer scanner row and scanner severity, appending all contributing source tags to `evidenceSources`.
 
-- [ ] **Step 3: Run pytest**
+- [x] **Step 3: Run pytest**
   Run `pytest tests/test_sca_sbom.py` to confirm deduplication engine passes.
 
 ---
@@ -101,10 +101,10 @@
 - Modify: `src/repolens/pipeline/run.py`
 - Modify: `tests/test_vacuous_floor.py` or `tests/test_metrics.py`
 
-- [ ] **Step 1: Write integration test for advisory collapse before gate penalty**
+- [x] **Step 1: Write integration test for advisory collapse before gate penalty**
   Test that a review with 2 scanner High advisories and 2 matching LLM Critical advisories yields 2 unique High findings and a finding penalty of `−20` (not `−60`), preserving high confidence.
 
-- [ ] **Step 2: Integrate in pipeline**
+- [x] **Step 2: Integrate in pipeline**
   - In `src/repolens/pipeline/run.py`:
     - After merging scanner issues and LLM issues (`report.issues = list(report.issues) + extra_issues`), invoke `dedupe_cross_source_sca_issues`.
     - Set `report.rawCriticalHighCount` and `report.rawTotalFindings`.
@@ -113,7 +113,7 @@
   - In `src/repolens/pipeline/deep_exec.py`:
     - Ensure pass merge respects cross-source deduplication when scanner findings are present.
 
-- [ ] **Step 3: Run full test suite**
+- [x] **Step 3: Run full test suite**
   Run `pytest tests/test_sca_sbom.py tests/test_metrics.py tests/test_vacuous_floor.py`.
 
 ---

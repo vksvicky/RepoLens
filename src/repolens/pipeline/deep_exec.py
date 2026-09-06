@@ -177,6 +177,7 @@ def _analyze_deep_passes(
     prog: ReviewProgress,
     prompt_prefix: str = "",
     scanner_runs: list | None = None,
+    scanner_issues: list | None = None,
     heur_result: HeuristicResult | None = None,
 ) -> FindingReport:
     """Heuristics → plan passes → structured LLM per pass → merge + coverage."""
@@ -296,6 +297,18 @@ def _analyze_deep_passes(
     # Calibrate LLM-merged issues only (heuristics are already mixed in;
     # calibrations match injection/subprocess text patterns, not heuristic cats).
     report.issues = apply_fp_calibrations(report.issues, cfg.deep)
+    # #14: fold scanners in before metrics so Crit/High penalties use unique advisories.
+    if scanner_issues:
+        report.issues = list(report.issues) + list(scanner_issues)
+    from repolens.scanners.sca import apply_cross_source_sca_dedupe
+
+    before_cross = len(report.issues)
+    report = apply_cross_source_sca_dedupe(report)
+    if len(report.issues) < before_cross:
+        prog.detail(
+            f"SCA: collapsed {before_cross - len(report.issues)} "
+            "cross-source advisory duplicate(s)"
+        )
     report.summary = report.recount_summary()
     # Deduplicate coverage id list while preserving order
     seen_ids: set[str] = set()

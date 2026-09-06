@@ -9,11 +9,13 @@ from repolens.scanners.evidence import format_scanner_evidence_for_prompt
 from repolens.scanners.sca import (
     build_supply_chain,
     collect_license_ids,
+    dedupe_cross_source_sca_issues,
     dedupe_sca_issues,
+    extract_advisory_id,
     parse_cyclonedx_license_summary,
     write_trivy_sbom,
 )
-from repolens.schema import Issue, Severity
+from repolens.schema import FindingReport, Issue, Severity, Summary
 
 
 def _issue(
@@ -22,6 +24,10 @@ def _issue(
     title: str,
     file: str = "requirements.txt",
     severity: Severity = Severity.HIGH,
+    source: str | None = None,
+    package_name: str | None = None,
+    advisory: str | None = None,
+    explanation: str = "x",
 ) -> Issue:
     return Issue(
         severity=severity,
@@ -30,10 +36,13 @@ def _issue(
         file=file,
         line=1,
         title=title,
-        explanation="x",
+        explanation=explanation,
         impact="Known vulnerable dependency may be exploitable in production.",
         recommendedFix="Upgrade",
         codeExample="# upgrade",
+        source=source,  # type: ignore[arg-type]
+        packageName=package_name,
+        advisoryId=advisory,
     )
 
 
@@ -170,3 +179,97 @@ def test_build_supply_chain_writes_block(tmp_path: Path) -> None:
     assert block.sbomFormat == "cyclonedx"
     assert "MIT" in block.licenses
     assert any("left-pad" in n for n in block.notes)
+
+
+def test_extract_advisory_id_recognises_standard_ids() -> None:
+    cases = [
+        ("CVE-2024-12345 in paste", "CVE-2024-12345"),
+        ("see ghsa-3x3c-cg28-v232", "GHSA-3X3C-CG28-V232"),
+        ("RUSTSEC-2020-0071 advisory", "RUSTSEC-2020-0071"),
+        ("PYSEC-2021-100 details", "PYSEC-2021-100"),
+        ("GO-2022-0965 in module", "GO-2022-0965"),
+        ("explanation cites CVE-2023-99999 later", "CVE-2023-99999"),
+    ]
+    for text, expected in cases:
+        assert extract_advisory_id(text) == expected
+
+
+def test_extract_advisory_id_returns_none_without_pattern() -> None:
+    assert extract_advisory_id("generic secret hygiene finding") is None
+    assert extract_advisory_id("") is None
+
+
+def test_issue_evidence_sources_and_report_raw_counts_default() -> None:
+    issue = _issue(category="osv", title="CVE-2024-1 in x")
+    assert issue.evidenceSources == []
+    report = FindingReport(confidence=50, summary=Summary(), issues=[issue])
+    assert report.rawCriticalHighCount is None
+    assert report.rawTotalFindings is None
+
+
+def test_cross_source_dedupe_prefers_scanner_severity() -> None:
+    scanner = _issue(
+        category="osv",
+        title="CVE-2024-12345 in paste",
+        severity=Severity.HIGH,
+        source="scanner",
+        package_name="paste",
+        advisory="CVE-2024-12345",
+    )
+    llm = _issue(
+        category="sec.supply_chain",
+        title="CVE-2024-12345 paste is Critical",
+        file="src/main.py",
+        severity=Severity.CRITICAL,
+        source="llm",
+        package_name="paste",
+        explanation="CVE-2024-12345 affects paste",
+    )
+    other = _issue(
+        category="heuristic.mega_file",
+        title="large file",
+        file="big.py",
+        severity=Severity.MEDIUM,
+        source="heuristic",
+    )
+    deduped, raw_ch, raw_total = dedupe_cross_source_sca_issues(
+        [scanner, llm, other]
+    )
+    assert raw_total == 3
+    assert raw_ch == 2
+    assert len(deduped) == 2
+    primary = next(i for i in deduped if extract_advisory_id(i.title))
+    assert primary.severity == Severity.HIGH
+    assert primary.category == "osv"
+    assert "osv" in primary.evidenceSources
+    assert "llm" in primary.evidenceSources
+    assert any(i.category == "heuristic.mega_file" for i in deduped)
+
+
+def test_cross_source_dedupe_keeps_llm_only_advisory() -> None:
+    llm = _issue(
+        category="sec.supply_chain",
+        title="RUSTSEC-2024-0436 in paste",
+        severity=Severity.HIGH,
+        source="llm",
+        package_name="paste",
+    )
+    deduped, raw_ch, raw_total = dedupe_cross_source_sca_issues([llm])
+    assert raw_total == 1
+    assert raw_ch == 1
+    assert len(deduped) == 1
+    assert deduped[0].severity == Severity.HIGH
+    assert deduped[0].evidenceSources == ["llm"]
+
+
+def test_cross_source_dedupe_passthrough_without_advisory() -> None:
+    issue = _issue(
+        category="sec.injection",
+        title="possible injection in handler",
+        severity=Severity.HIGH,
+        source="llm",
+    )
+    deduped, raw_ch, raw_total = dedupe_cross_source_sca_issues([issue])
+    assert deduped == [issue]
+    assert raw_ch == 1
+    assert raw_total == 1
