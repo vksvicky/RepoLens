@@ -183,18 +183,243 @@ Design: [phase-6.x §6.4](./design/phase-6.x-scanner-depth-ci-gates-and-credibil
 
 ## Adaptive cache in CI
 
-Ephemeral agents usually start cold. Prefer `[adaptive] enabled = false` in CI, or restore/save `.repolens/repolens.sqlite` with your CI cache if you want warm packs. Details: [design/phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md).
+Ephemeral agents usually start **cold**. Prefer:
 
-## Corporate CI (Phase 7 — design)
+```toml
+# .repolens.toml on the CI agent / checked in for CI profiles
+[adaptive]
+enabled = false
+```
 
-**Today:** GitHub Action + Bitbucket script (above) are the supported first-class docs.
+Or wipe `.repolens/` at the start of each job.
 
-**Next (Phase 7):** Jenkins, CircleCI, GitLab examples; email/webhook/dashboard handoff from `reports/**` artifacts — see [design/phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md). RepoLens does not ship a hosted dashboard; export JSON/Markdown and plug into your tools.
+**Warm packs (optional):** restore and save `.repolens/repolens.sqlite` with your CI cache, keyed by **repo + branch** (never share one DB across unrelated repositories on a multi-tenant agent). Fingerprints are path/hash only; do **not** enable content FTS learning (`repolens learn`) on shared CI disks without a retention policy.
+
+Long-lived / shared agents: treat `.repolens/` as workspace-local; clean between unrelated jobs.
+
+Design: [phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md).
+
+## Corporate CI (Phase 7)
+
+GitHub Action and Bitbucket (above) remain first-class. Phase 7 adds **Jenkins**, **CircleCI**, and **GitLab CI** recipes plus delivery patterns. RepoLens does **not** ship a hosted dashboard — archive `reports/**` and plug into your tools.
+
+Shared CLI shape for PR / merge gates (prefer scanners; optional LLM when a key is present):
+
+```bash
+python3 -m venv .venv && . .venv/bin/activate
+pip install "repolens[scanners]"
+# until the PyPI alpha is published (#1), install from git:
+# pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+repolens plugins install all --yes || true
+repolens review --path . --out ./reports --format both --sarif \
+  --ci --scanners auto --fail-on HIGH
+# Exit 1 → fail the build (--fail-on threshold). Prefer --scanners-only when
+# policy forbids sending code to cloud LLMs.
+```
+
+Artifacts typically include:
+
+| Artifact | Notes |
+|----------|--------|
+| `reports/gate_review_report_*.md` | Human gate report |
+| `reports/*.json` | `FindingReport` JSON (`--format both`) |
+| `reports/*.sarif.json` | Anchored SARIF (`--sarif`) |
+| `reports/sbom.cdx.json` | CycloneDX when Trivy is available |
+
+Treat report Markdown/JSON as **internal** — they may contain paths and code excerpts.
+
+### Jenkins (Declarative Pipeline)
+
+```groovy
+pipeline {
+  agent any
+  environment {
+    // Optional — omit for scanners-only / private Ollama runners
+    OPENAI_API_KEY = credentials('openai-api-key')
+  }
+  stages {
+    stage('RepoLens') {
+      steps {
+        sh '''
+          set -euo pipefail
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install -U pip
+          pip install "repolens[scanners]"
+          repolens plugins install all --yes || true
+          # Prefer scanners-only when no cloud key / policy forbids LLM egress:
+          #   --scanners-only
+          repolens review --path . --out ./reports --format both --sarif \
+            --ci --scanners auto --fail-on HIGH
+        '''
+        archiveArtifacts artifacts: 'reports/**', fingerprint: true, allowEmptyArchive: true
+      }
+    }
+  }
+  // Optional: email via your Jenkins plugin / corporate SMTP (RepoLens has no SMTP server)
+  // post {
+  //   always {
+  //     emailext(
+  //       subject: "RepoLens ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+  //       body: "See attached gate report / build artifacts.",
+  //       attachmentsPattern: 'reports/gate_review_report_*.md',
+  //       to: '${DEFAULT_RECIPIENTS}'
+  //     )
+  //   }
+  // }
+}
+```
+
+Exit codes: `0` success · `1` `--fail-on` hit · `2` usage · see [Exit codes](#exit-codes).
+
+### CircleCI
+
+```yaml
+version: 2.1
+jobs:
+  repolens:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: Install RepoLens
+          command: |
+            pip install -U pip
+            pip install "repolens[scanners]"
+            repolens plugins install all --yes || true
+      - run:
+          name: Review
+          command: |
+            repolens review --path . --out ./reports --format both --sarif \
+              --ci --scanners auto --fail-on HIGH
+      - store_artifacts:
+          path: reports
+workflows:
+  security:
+    jobs:
+      - repolens
+```
+
+Store API keys as CircleCI **project** or **context** environment variables — never commit them.
+
+### GitLab CI
+
+```yaml
+repolens:
+  image: python:3.12-slim
+  stage: test
+  variables:
+    PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  before_script:
+    - pip install -U pip
+    - pip install "repolens[scanners]"
+    - repolens plugins install all --yes || true
+  script:
+    - |
+      repolens review --path . --out ./reports --format both --sarif \
+        --ci --scanners auto --fail-on HIGH
+  artifacts:
+    when: always
+    paths:
+      - reports/
+    expire_in: 14 days
+```
+
+Use GitLab **CI/CD variables** (masked/protected) for LLM keys. `artifacts: when: always` keeps reports even when `--fail-on` fails the job.
+
+### Azure DevOps (stretch)
+
+Nice-to-have only — not a Phase 7 exit criterion:
+
+```yaml
+# azure-pipelines.yml (sketch)
+pool:
+  vmImage: ubuntu-latest
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3.12"
+  - script: |
+      pip install "repolens[scanners]"
+      repolens plugins install all --yes || true
+      repolens review --path . --out ./reports --format both --sarif \
+        --ci --scanners auto --fail-on HIGH
+    displayName: RepoLens
+    env:
+      OPENAI_API_KEY: $(OPENAI_API_KEY)
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: reports
+      ArtifactName: repolens-reports
+    condition: always()
+```
+
+### Email notification
+
+RepoLens does **not** run an SMTP server. Attach `reports/gate_review_report_*.md` (and optionally JSON) via:
+
+- Jenkins `emailext` / Email Extension (see comment in Jenkinsfile above)
+- GitLab/CircleCI email integrations or a post-job script to your corporate relay
+- Forge “notify on failure” with a link to the archived artifact
+
+### Slack / Teams webhook (summary only)
+
+Post **counts + artifact URL** only — never code excerpts, secrets, or full finding bodies.
+
+```bash
+# After a successful artifact upload, with REPORTS_DIR=reports and WEBHOOK_URL set:
+python3 - <<'PY'
+import json, os, urllib.request
+from pathlib import Path
+
+reports = Path(os.environ.get("REPORTS_DIR", "reports"))
+candidates = sorted(reports.glob("*.json"))
+if not candidates:
+    raise SystemExit("no FindingReport JSON under reports/")
+data = json.loads(candidates[-1].read_text(encoding="utf-8"))
+summary = data.get("summary") or {}
+conf = data.get("confidence")
+payload = {
+    "text": (
+        f"RepoLens gate {conf}% — "
+        f"Critical {summary.get('critical', 0)} · "
+        f"High {summary.get('high', 0)} · "
+        f"Medium {summary.get('medium', 0)} · "
+        f"Low {summary.get('low', 0)}. "
+        f"Artifacts: {os.environ.get('ARTIFACT_URL', '(see CI artifacts)')}"
+    )
+}
+req = urllib.request.Request(
+    os.environ["WEBHOOK_URL"],
+    data=json.dumps(payload).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+urllib.request.urlopen(req, timeout=30)
+PY
+```
+
+### Dashboard ingest (DefectDojo / custom)
+
+Use `--format json|both` and ingest `FindingReport` JSON (and/or anchored SARIF) into your ASPM / DefectDojo / internal portal. Schema lives in the product (`src/repolens/schema.py`). RepoLens does **not** host a multi-tenant dashboard in Phase 7.
+
+### Forge push protection vs RepoLens
+
+| Layer | Role |
+|-------|------|
+| **GitHub / GitLab secret push protection** (and similar) | Blocks **pre-receive** commits that contain known secrets |
+| **RepoLens** | Audits **landed / PR** code with scanners + optional LLM; fails the **CI job** via `--fail-on` |
+
+Use both: forge push protection stops secret leaks at the gate; RepoLens reviews what already reached the branch or merge request. RepoLens is **not** a pre-receive server.
+
+Checklist: [phase-7-execution-checklist.md](./design/phase-7-execution-checklist.md) · design: [phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md).
 
 ## Related
 
 - [scanners.md](./scanners.md)  
 - [setup-ai-and-scanners.md](./setup-ai-and-scanners.md)  
 - [publishing.md](./publishing.md) — PyPI releases for `install-from: pypi`  
+- [faq.md](./faq.md) — *Corporate CI/CD & delivery*  
 - [phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md) — enterprise delivery design  
 
