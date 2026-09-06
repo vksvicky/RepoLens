@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Dedupe key includes resolved ecosystem (lockfile / advisory family); only
   collapse scanner↔LLM pairs; preserve input order (Sourcery review on PR #23)
+- Reject unknown↔unknown ecosystem matches when file paths differ (Sourcery on PR #24)
 
 ### Added (gate UX copy #17 MVP)
 

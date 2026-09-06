@@ -324,6 +324,57 @@ def test_cross_source_dedupe_preserves_same_source_llm_rows() -> None:
     assert len(deduped) == 2
 
 
+def test_cross_source_dedupe_rejects_unknown_ecosystem_different_paths() -> None:
+    """Sourcery: unknown↔unknown must not merge across distinct lockfile paths."""
+    scanner = _issue(
+        category="osv",
+        title="CVE-2024-3333 in demo",
+        file="vendor/custom.lock",
+        severity=Severity.HIGH,
+        source="scanner",
+        package_name="demo",
+        advisory="CVE-2024-3333",
+    )
+    llm = _issue(
+        category="sec.supply_chain",
+        title="CVE-2024-3333 in demo",
+        file="src/app.js",
+        severity=Severity.CRITICAL,
+        source="llm",
+        package_name="demo",
+    )
+    deduped, _, _ = dedupe_cross_source_sca_issues([scanner, llm])
+    assert len(deduped) == 2
+    assert all(i.severity != Severity.HIGH or i.source == "scanner" for i in deduped)
+    # Both rows retained (no collapse).
+    assert {i.file for i in deduped} == {"vendor/custom.lock", "src/app.js"}
+
+
+def test_cross_source_dedupe_allows_known_unknown_pair() -> None:
+    """Known lockfile ecosystem may still merge with an LLM row on source code."""
+    scanner = _issue(
+        category="osv",
+        title="CVE-2024-4444 in demo",
+        file="package-lock.json",
+        severity=Severity.HIGH,
+        source="scanner",
+        package_name="demo",
+        advisory="CVE-2024-4444",
+    )
+    llm = _issue(
+        category="sec.supply_chain",
+        title="CVE-2024-4444 in demo",
+        file="src/index.js",
+        severity=Severity.CRITICAL,
+        source="llm",
+        package_name="demo",
+    )
+    deduped, _, _ = dedupe_cross_source_sca_issues([scanner, llm])
+    assert len(deduped) == 1
+    assert deduped[0].severity == Severity.HIGH
+    assert "llm" in deduped[0].evidenceSources
+
+
 def test_cross_source_dedupe_preserves_original_order() -> None:
     """Sourcery: do not move advisory rows after all passthrough findings."""
     heur = _issue(

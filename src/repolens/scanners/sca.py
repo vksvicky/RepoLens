@@ -167,11 +167,29 @@ def _resolve_ecosystem(issue: Issue) -> str:
     return ""
 
 
-def _ecosystems_compatible(a: str, b: str) -> bool:
-    """Equal ecosystems match; unknown may pair with a known ecosystem."""
+def _normalize_issue_path(path: str) -> str:
+    return (path or "").strip().replace("\\", "/").lower().lstrip("./")
+
+
+def _ecosystems_compatible(
+    a: str,
+    b: str,
+    *,
+    path_a: str = "",
+    path_b: str = "",
+) -> bool:
+    """Equal ecosystems match; known↔unknown may pair; unknown↔unknown needs same path."""
     if a and b:
         return a == b
-    return True
+    if a or b:
+        # One side resolved (e.g. package-lock.json → npm); other is source code.
+        return True
+    # Both unknown: only merge when the normalized file paths match.
+    na = _normalize_issue_path(path_a)
+    nb = _normalize_issue_path(path_b)
+    if not na or not nb:
+        return False
+    return na == nb
 
 
 def _prefer_cross_source_primary(candidate: Issue, existing: Issue) -> bool:
@@ -237,7 +255,12 @@ def dedupe_cross_source_sca_issues(
             o_eco, o_pkg, o_adv = o_key
             if o_adv != s_adv or o_pkg != s_pkg:
                 continue
-            if not _ecosystems_compatible(s_eco, o_eco):
+            if not _ecosystems_compatible(
+                s_eco,
+                o_eco,
+                path_a=scanner.file,
+                path_b=other.file,
+            ):
                 continue
             tag = _evidence_tag(other)
             if tag not in evidence:
