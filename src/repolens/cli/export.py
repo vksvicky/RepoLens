@@ -48,7 +48,12 @@ def llm_status_label(report: FindingReport) -> str | None:
 
 
 def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_run: bool) -> None:
-    from repolens.report import format_duration, format_two_lane_headline
+    from repolens.report import (
+        GATE_ADEQUACY_ONE_LINER,
+        format_duration,
+        format_two_lane_headline,
+        format_unique_critical_high,
+    )
 
     table = Table(title="RepoLens summary")
     table.add_column("Metric")
@@ -67,6 +72,8 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     table.add_row("Gate confidence", f"{confidence}%")
     if report.securityAuditConfidence is not None:
         table.add_row("Security audit", f"{report.securityAuditConfidence}%")
+    if report.reliabilityAuditConfidence is not None:
+        table.add_row("Reliability audit", f"{report.reliabilityAuditConfidence}%")
     if report.architectureAuditConfidence is not None:
         table.add_row("Architecture audit", f"{report.architectureAuditConfidence}%")
     duration = format_duration(report.durationSeconds)
@@ -75,6 +82,7 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     llm_label = llm_status_label(report)
     if llm_label is not None:
         table.add_row("LLM", llm_label)
+    table.add_row("Unique Critical/High", format_unique_critical_high(report))
     table.add_row("Critical", str(report.summary.critical))
     table.add_row("High", str(report.summary.high))
     table.add_row("Medium", str(report.summary.medium))
@@ -86,3 +94,4 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     if headline:
         console.print(f"[bold]Two-Lane[/bold]: {headline}")
     console.print(table)
+    console.print(f"* {GATE_ADEQUACY_ONE_LINER}")

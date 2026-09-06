@@ -225,3 +225,29 @@ def test_sentinel_and_architecture_help_include_deep() -> None:
         assert "--no-deep" in names, cmd
         result = runner.invoke(app, [cmd, "--help"])
         assert result.exit_code == 0, result.output
+
+
+def test_print_summary_includes_gate_adequacy_one_liner() -> None:
+    from io import StringIO
+
+    from rich.console import Console
+
+    from repolens.cli import export as export_mod
+    from repolens.report import GATE_ADEQUACY_ONE_LINER
+    from repolens.schema import FindingReport, Summary
+
+    report = FindingReport(
+        confidence=75,
+        summary=Summary(critical=0, high=1, medium=0, low=0),
+        securityAuditConfidence=80,
+        rawCriticalHighCount=3,
+        rawTotalFindings=5,
+    )
+    buf = StringIO()
+    fake = Console(file=buf, force_terminal=False, width=120)
+    with patch.object(export_mod, "console", fake):
+        export_mod._print_summary(75, 10, report, dry_run=False)
+    out = buf.getvalue()
+    assert GATE_ADEQUACY_ONE_LINER in out or "review-package adequacy" in out
+    assert "Unique Critical/High" in out
+    assert "1 unique (3 raw across tools)" in out

@@ -220,6 +220,7 @@ Post-parse **FP calibrations** (default on) demote patterns such as list-form `s
 | **Reliability audit confidence** | Honesty/completeness of the **P2 / `rel.*`** checklist, minus open Critical/High in that band | “App is X% reliable” |
 | **Architecture audit confidence** | Honesty/completeness of the **P3 / `arch.*`** checklist, minus open Critical/High in that band | The 1–10 architecture `scores` block |
 | **Critical / High / Medium / Low** | Finding severity counts (all bands) | Confidence % |
+| **Unique Critical/High** | Open Critical+High after cross-source SCA collapse (#14); may show `N unique (M raw across tools)` when scanner and LLM both cited the same advisory | “There are M independent Critical/High risks” when raw > unique |
 | **Coverage** covered / N/A / missed | Checklist accountability for deep-mode rule ids | “N/A = ignored forever” — lazy N/A are rejected in 5.1 |
 | **Theme breakdown** | Per-theme covered / N/A / missed + finding counts | “% clean” per theme |
 | **Duration** | Wall-clock for the whole command | Per-pass LLM time alone |

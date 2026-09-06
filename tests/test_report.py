@@ -8,10 +8,13 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from repolens.report import (
+    GATE_ADEQUACY_ONE_LINER,
     format_duration,
     format_two_lane_headline,
+    format_unique_critical_high,
     is_coverage_transport_gap,
     render_code_example_fenced,
+    render_markdown,
     report_heading_time,
     report_stamp,
     write_json_report,
@@ -160,6 +163,56 @@ def test_write_markdown_report_includes_sections(tmp_path: Path) -> None:
     assert "as is" in text.lower() or "AS IS" in text
     assert "solely responsible" in text.lower() or "your own risk" in text.lower()
     assert text.index("## About") < text.index("## Disclaimer")
+
+
+def test_render_markdown_includes_gate_adequacy_note() -> None:
+    report = FindingReport(
+        confidence=75,
+        summary=Summary(critical=0, high=1, medium=0, low=0),
+        securityAuditConfidence=80,
+    )
+    md = render_markdown(
+        report, mode="review", commit_go="go", push_go="no-go"
+    )
+    assert "[!NOTE]" in md
+    assert "review-package adequacy" in md
+    assert GATE_ADEQUACY_ONE_LINER.split("(")[0].strip() in md or (
+        "not a" in md.lower() and "% secure" in md
+    )
+    assert '"% secure"' in md or "% secure" in md
+
+
+def test_format_unique_critical_high_shows_raw_when_collapsed() -> None:
+    plain = FindingReport(
+        confidence=50,
+        summary=Summary(critical=0, high=2, medium=0, low=0),
+    )
+    assert format_unique_critical_high(plain) == "2"
+
+    collapsed = FindingReport(
+        confidence=50,
+        summary=Summary(critical=0, high=2, medium=0, low=0),
+        rawCriticalHighCount=4,
+        rawTotalFindings=6,
+    )
+    assert format_unique_critical_high(collapsed) == (
+        "2 unique (4 raw across tools)"
+    )
+
+
+def test_render_markdown_surfaces_unique_vs_raw_critical_high() -> None:
+    report = FindingReport(
+        confidence=60,
+        summary=Summary(critical=0, high=2, medium=1, low=0),
+        rawCriticalHighCount=4,
+        rawTotalFindings=6,
+        securityAuditConfidence=70,
+    )
+    md = render_markdown(
+        report, mode="review", commit_go="go", push_go="no-go"
+    )
+    assert "2 unique (4 raw across tools)" in md
+    assert "Unique Critical/High" in md
 
 
 def test_metrics_includes_fast_brain_without_band_audits(tmp_path: Path) -> None:
