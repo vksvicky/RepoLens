@@ -374,15 +374,20 @@ import json, os, urllib.request
 from pathlib import Path
 
 reports = Path(os.environ.get("REPORTS_DIR", "reports"))
-candidates = sorted(reports.glob("*.json"))
+# Exclude *.sarif.json (same rule as pr_summary / explain report discovery)
+candidates = sorted(
+    p for p in reports.glob("*.json") if not p.name.endswith(".sarif.json")
+)
 if not candidates:
     raise SystemExit("no FindingReport JSON under reports/")
 data = json.loads(candidates[-1].read_text(encoding="utf-8"))
+# Prefer explicit schema fields; missing keys → 0 / unknown rather than None%
 summary = data.get("summary") or {}
 conf = data.get("confidence")
+conf_s = f"{conf}%" if isinstance(conf, int) else "n/a"
 payload = {
     "text": (
-        f"RepoLens gate {conf}% — "
+        f"RepoLens gate {conf_s} — "
         f"Critical {summary.get('critical', 0)} · "
         f"High {summary.get('high', 0)} · "
         f"Medium {summary.get('medium', 0)} · "
