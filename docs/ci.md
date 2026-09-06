@@ -252,21 +252,22 @@ pipeline {
           repolens review --path . --out ./reports --format both --sarif \
             --ci --scanners auto --fail-on HIGH
         '''
-        archiveArtifacts artifacts: 'reports/**', fingerprint: true, allowEmptyArchive: true
       }
     }
   }
-  // Optional: email via your Jenkins plugin / corporate SMTP (RepoLens has no SMTP server)
-  // post {
-  //   always {
-  //     emailext(
-  //       subject: "RepoLens ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-  //       body: "See attached gate report / build artifacts.",
-  //       attachmentsPattern: 'reports/gate_review_report_*.md',
-  //       to: '${DEFAULT_RECIPIENTS}'
-  //     )
-  //   }
-  // }
+  post {
+    // Archive even when --fail-on exits 1 (gate failure is when reports matter most)
+    always {
+      archiveArtifacts artifacts: 'reports/**', fingerprint: true, allowEmptyArchive: true
+      // Optional: email via Jenkins Email Extension / corporate SMTP (RepoLens has no SMTP)
+      // emailext(
+      //   subject: "RepoLens ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+      //   body: "See attached gate report / build artifacts.",
+      //   attachmentsPattern: 'reports/gate_review_report_*.md',
+      //   to: '${DEFAULT_RECIPIENTS}'
+      // )
+    }
+  }
 }
 ```
 
