@@ -93,7 +93,7 @@ pipeline {
       steps {
         sh '''
           python3 -m venv .venv && . .venv/bin/activate
-          pip install "repolens[scanners]"
+          pip install "repolens-audit[scanners]"
           repolens plugins install all --yes || true
           repolens review --path . --out ./reports --format both \\
             --fail-on HIGH --scanners-only
@@ -116,7 +116,7 @@ jobs:
     docker: [{ image: "cimg/python:3.12" }]
     steps:
       - checkout
-      - run: pip install "repolens[scanners]"
+      - run: pip install "repolens-audit[scanners]"
       - run: repolens plugins install all --yes || true
       - run: repolens review --path . --out ./reports --format both --fail-on HIGH --scanners-only
       - store_artifacts: { path: reports }

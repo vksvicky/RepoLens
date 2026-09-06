@@ -49,7 +49,7 @@ Under `.repolens/` (auto `.gitignore` `*`):
 ## Optional embeddings
 
 ```bash
-pip install "repolens[local-ml]"
+pip install "repolens-audit[local-ml]"
 ```
 
 Keyword FTS works without this extra. The `[local-ml]` extra installs `sentence-transformers` for future vector enhancement; retrieval remains FTS-first in this alpha.

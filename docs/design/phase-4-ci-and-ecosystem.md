@@ -10,7 +10,7 @@
 | Scope | Full Phase 4 checklist in one pass (Option C) |
 | Delivery | Layered verticals / ordered commits (Approach 2) |
 | Local learning | Real opt-in index + memory (not stub-only) |
-| Index stack | Keyword/TF-IDF always when enabled; embeddings only with `repolens[local-ml]` |
+| Index stack | Keyword/TF-IDF always when enabled; embeddings only with `repolens-audit[local-ml]` |
 | Action default | `run=auto`: scanners always; LLM if API key env present; `dry-run` as explicit input |
 | PyPI | Real alpha publish via Trusted Publishing (OIDC) |
 | Action packaging | Root `action.yml` for `uses:` **and** example workflow |
@@ -22,7 +22,7 @@
 ```text
 Consumer CI
   └─ uses: vksvicky/RepoLens@vX  (action.yml)
-        ├─ setup-python + pip install repolens[scanners]==version
+        ├─ setup-python + pip install repolens-audit[scanners]==version
         ├─ optional: plugins install --yes
         ├─ run: dry-run | auto (scanners + optional LLM) | scanners-only | llm
         └─ upload reports/ artifact (example workflow)
@@ -56,7 +56,7 @@ Local learning (opt-in; not Action default)
 | `fail-on` | `HIGH` | Empty string disables |
 | `scanners` | `auto` | CLI `--scanners` |
 | `require-scanners` | `false` | |
-| `version` | `0.1.0a1` | `pip install repolens[scanners]==…` |
+| `version` | `0.1.0a1` | `pip install repolens-audit[scanners]==…` |
 | `install-plugins` | `true` | `repolens plugins install all --yes` |
 
 **Secrets / env (optional):** `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`.  
@@ -73,13 +73,13 @@ Local learning (opt-in; not Action default)
 | Enable | `local_learning.enabled = true` **and** `--accept-local-learning` or interactive yes |
 | Notice | Existing copy in [ai-keys-scanners-and-local-learning.md](./ai-keys-scanners-and-local-learning.md) §4 |
 | Storage | `.repolens/index.sqlite`, `.repolens/memory.toml` (document in `.gitignore` examples) |
-| Index | Keyword/TF-IDF always; embeddings iff `repolens[local-ml]` |
+| Index | Keyword/TF-IDF always; embeddings iff `repolens-audit[local-ml]` |
 | Use | Retrieve top‑N chunks into context pack before LLM |
 | CLI | `repolens learn build\|status\|clear` (+ review uses index when enabled) |
 | CI | Not enabled by Action defaults |
 | Cloud LLM | Consent still discloses excerpts may leave the machine |
 
-**Extra:** `repolens[local-ml]` optional dependency (e.g. `sentence-transformers` or equivalent small stack) — keyword path must work without it.
+**Extra:** `repolens-audit[local-ml]` optional dependency (e.g. `sentence-transformers` or equivalent small stack) — keyword path must work without it.
 
 ## PyPI / publishing
 

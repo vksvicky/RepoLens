@@ -6,7 +6,7 @@ RepoLens is an open-source CLI that runs structured code reviews against project
 
 > **Status:** Alpha `0.1.0a1` — **Phases 0–6 complete**; **6.x** (enterprise scanner depth / CI triage) next  
 > Local CLI · remotes · optional scanners · explain + diagrams · GitHub Action · opt-in local learning · PyPI Trusted Publishing workflow  
-> Install: `pip install -e .` from a clone, or `pip install "repolens @ git+https://github.com/vksvicky/RepoLens.git"`  
+> Install: `pip install -e .` from a clone, or `pip install "repolens-audit @ git+https://github.com/vksvicky/RepoLens.git"` (CLI: `repolens`)  
 > Docs: [phases](./docs/phases.md) · [FAQ](./docs/faq.md) · [rules](./docs/rules.md) · [install extras](./docs/install-extras.md) · [CI / Action](./docs/ci.md) · [remotes](./docs/remote-sources.md) · [scanners](./docs/scanners.md) · [local learning](./docs/local-learning.md) · [publishing](./docs/publishing.md)
 
 ---
