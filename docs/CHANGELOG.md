@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 7 enterprise CI #3)
+
+- Jenkins, CircleCI, and GitLab CI recipes in [ci.md](./ci.md); email / Slack-Teams
+  summary webhooks; ephemeral adaptive-cache guidance; forge push-protection vs
+  RepoLens audit; FAQ *Corporate CI/CD & delivery*
+
 ### Fixed (cross-source SCA dedupe #14)
 
 - Dedupe key includes resolved ecosystem (lockfile / advisory family); only

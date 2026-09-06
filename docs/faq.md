@@ -664,6 +664,25 @@ Until then, many hosts work via `openai_compatible` + `--base-url`. See [setup-a
 
 ---
 
+## Corporate CI/CD & delivery (Phase 7)
+
+**Where do I start?** [ci.md](./ci.md) — GitHub Action and Bitbucket first; then Jenkins, CircleCI, and GitLab CI recipes under *Corporate CI (Phase 7)*.
+
+| Question | Short answer |
+|----------|----------------|
+| How do I fail the build? | `--fail-on HIGH` (or Action `fail-on`); exit code `1` when the threshold is hit. Prefer `--ci` so **scanner** findings gate the build. |
+| Should I run `--deep` on every PR? | No. Use `--ci` triage / scanners for PRs; reserve full deep for scheduled or release audits. |
+| Adaptive cache on ephemeral runners? | Default **`[adaptive] enabled = false`** (or wipe `.repolens/`). Optional: restore `.repolens/repolens.sqlite` keyed by **repo + branch** only — never share across unrelated repos. |
+| Can RepoLens email me? | No SMTP server in RepoLens — use Jenkins/GitLab plugins or a corporate relay; attach `gate_review_report_*.md`. |
+| Slack / Teams? | Webhook with **summary counts + artifact link only** — never code dumps or secrets ([ci.md](./ci.md)). |
+| Dashboard / DefectDojo? | Ingest `FindingReport` JSON and/or anchored SARIF; RepoLens does **not** host a SaaS UI. |
+| Push protection vs RepoLens? | Forge **secret push protection** blocks pre-receive secrets; RepoLens audits **landed / PR** code in CI. Use both. |
+| Cloud LLM in CI forbidden? | `--scanners-only`, or Ollama on a private runner. |
+
+Design: [phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md).
+
+---
+
 ## Will RepoLens auto-push my code?
 
 No. It produces reports and exit codes. Git push stays under your control.
@@ -723,9 +742,7 @@ Use full `--deep` for scheduled/release audits. See [ci.md](./ci.md) and [phase-
 
 ## Can we use this in corporate CI/CD (Jenkins, email, dashboards)?
 
-**Local + GitHub Actions / Bitbucket artifacts:** documented and usable now with `--ci` triage ([ci.md](./ci.md)).
-
-**Jenkins, CircleCI, email, internal dashboards:** planned as **Phase 7** — design sketch in [design/phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md). Pattern: run on the CI agent → archive `reports/**` → notify or ingest JSON into *your* tools. RepoLens does not ship a hosted dashboard.
+Yes — see **[Corporate CI/CD & delivery (Phase 7)](#corporate-cicd--delivery-phase-7)** and [ci.md](./ci.md). Pattern: run on the CI agent → archive `reports/**` → notify or ingest JSON/SARIF into *your* tools. RepoLens does not ship a hosted dashboard.
 
 ---
 
