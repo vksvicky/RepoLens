@@ -208,9 +208,8 @@ Shared CLI shape for PR / merge gates (prefer scanners; optional LLM when a key 
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install "repolens[scanners]"
-# until the PyPI alpha is published (#1), install from git:
-# pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+# After PyPI alpha (#1): pip install "repolens[scanners]==0.1.0a1"
 repolens plugins install all --yes
 repolens review --path . --out ./reports --format both --sarif \
   --ci --scanners auto --fail-on HIGH --require-scanners
@@ -247,7 +246,8 @@ pipeline {
           python3 -m venv .venv
           . .venv/bin/activate
           pip install -U pip
-          pip install "repolens[scanners]"
+          pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+          # After PyPI alpha (#1): pip install "repolens[scanners]==0.1.0a1"
           repolens plugins install all --yes
           # Prefer scanners-only when no cloud key / policy forbids LLM egress:
           #   --scanners-only
@@ -289,7 +289,8 @@ jobs:
           name: Install RepoLens
           command: |
             pip install -U pip
-            pip install "repolens[scanners]"
+            pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+            # After PyPI alpha (#1): pip install "repolens[scanners]==0.1.0a1"
             repolens plugins install all --yes
       - run:
           name: Review
@@ -316,7 +317,8 @@ repolens:
     PIP_DISABLE_PIP_VERSION_CHECK: "1"
   before_script:
     - pip install -U pip
-    - pip install "repolens[scanners]"
+    - pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+    # After PyPI alpha (#1): pip install "repolens[scanners]==0.1.0a1"
     - repolens plugins install all --yes
   script:
     - |
@@ -344,7 +346,8 @@ steps:
     inputs:
       versionSpec: "3.12"
   - script: |
-      pip install "repolens[scanners]"
+      pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+      # After PyPI alpha (#1): pip install "repolens[scanners]==0.1.0a1"
       repolens plugins install all --yes
       repolens review --path . --out ./reports --format both --sarif \
         --ci --scanners auto --fail-on HIGH --require-scanners
