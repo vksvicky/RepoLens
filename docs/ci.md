@@ -119,7 +119,7 @@ pipelines:
         name: RepoLens
         script:
           - pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
-          - repolens plugins install all --yes || true
+          - repolens plugins install all --yes
           - |
             python - <<'PY'
             import os, subprocess
@@ -129,6 +129,7 @@ pipelines:
                 path=".",
                 run=os.environ.get("REPOLENS_RUN", "auto"),
                 fail_on=os.environ.get("REPOLENS_FAIL_ON", "HIGH"),
+                require_scanners=True,
             )
             raise SystemExit(subprocess.call(argv))
             PY
@@ -207,14 +208,14 @@ Shared CLI shape for PR / merge gates (prefer scanners; optional LLM when a key 
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install "repolens[scanners]"
-# until the PyPI alpha is published (#1), install from git:
-# pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
-repolens plugins install all --yes || true
+pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+# After PyPI alpha (#1): pip install "repolens[scanners]==0.1.0a1"
+repolens plugins install all --yes
 repolens review --path . --out ./reports --format both --sarif \
-  --ci --scanners auto --fail-on HIGH
-# Exit 1 → fail the build (--fail-on threshold). Prefer --scanners-only when
-# policy forbids sending code to cloud LLMs.
+  --ci --scanners auto --fail-on HIGH --require-scanners
+# Exit 1 → fail-on threshold · exit 2 → missing scanners / usage.
+# Prefer --scanners-only when policy forbids sending code to cloud LLMs.
+# Do not soft-ignore plugins install in CI — a silent scanner miss skips the gate.
 ```
 
 Artifacts typically include:
@@ -245,12 +246,13 @@ pipeline {
           python3 -m venv .venv
           . .venv/bin/activate
           pip install -U pip
-          pip install "repolens[scanners]"
-          repolens plugins install all --yes || true
+          pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+          # After PyPI alpha (#1): pip install "repolens[scanners]==0.1.0a1"
+          repolens plugins install all --yes
           # Prefer scanners-only when no cloud key / policy forbids LLM egress:
           #   --scanners-only
           repolens review --path . --out ./reports --format both --sarif \
-            --ci --scanners auto --fail-on HIGH
+            --ci --scanners auto --fail-on HIGH --require-scanners
         '''
       }
     }
@@ -287,13 +289,14 @@ jobs:
           name: Install RepoLens
           command: |
             pip install -U pip
-            pip install "repolens[scanners]"
-            repolens plugins install all --yes || true
+            pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+            # After PyPI alpha (#1): pip install "repolens[scanners]==0.1.0a1"
+            repolens plugins install all --yes
       - run:
           name: Review
           command: |
             repolens review --path . --out ./reports --format both --sarif \
-              --ci --scanners auto --fail-on HIGH
+              --ci --scanners auto --fail-on HIGH --require-scanners
       - store_artifacts:
           path: reports
 workflows:
@@ -314,12 +317,13 @@ repolens:
     PIP_DISABLE_PIP_VERSION_CHECK: "1"
   before_script:
     - pip install -U pip
-    - pip install "repolens[scanners]"
-    - repolens plugins install all --yes || true
+    - pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+    # After PyPI alpha (#1): pip install "repolens[scanners]==0.1.0a1"
+    - repolens plugins install all --yes
   script:
     - |
       repolens review --path . --out ./reports --format both --sarif \
-        --ci --scanners auto --fail-on HIGH
+        --ci --scanners auto --fail-on HIGH --require-scanners
   artifacts:
     when: always
     paths:
@@ -342,10 +346,11 @@ steps:
     inputs:
       versionSpec: "3.12"
   - script: |
-      pip install "repolens[scanners]"
-      repolens plugins install all --yes || true
+      pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+      # After PyPI alpha (#1): pip install "repolens[scanners]==0.1.0a1"
+      repolens plugins install all --yes
       repolens review --path . --out ./reports --format both --sarif \
-        --ci --scanners auto --fail-on HIGH
+        --ci --scanners auto --fail-on HIGH --require-scanners
     displayName: RepoLens
     env:
       OPENAI_API_KEY: $(OPENAI_API_KEY)
@@ -369,9 +374,11 @@ RepoLens does **not** run an SMTP server. Attach `reports/gate_review_report_*.m
 Post **counts + artifact URL** only — never code excerpts, secrets, or full finding bodies.
 
 ```bash
-# After a successful artifact upload, with REPORTS_DIR=reports and WEBHOOK_URL set:
+# After a successful artifact upload, with REPORTS_DIR=reports and WEBHOOK_URL set.
+# Notification failure must not override the RepoLens gate exit code — run this in a
+# separate step that is allowed to warn, or catch errors as below.
 python3 - <<'PY'
-import json, os, urllib.request
+import json, os, sys, urllib.error, urllib.request
 from pathlib import Path
 
 reports = Path(os.environ.get("REPORTS_DIR", "reports"))
@@ -396,13 +403,24 @@ payload = {
         f"Artifacts: {os.environ.get('ARTIFACT_URL', '(see CI artifacts)')}"
     )
 }
+webhook = os.environ.get("WEBHOOK_URL")
+if not webhook:
+    print("WEBHOOK_URL unset; skipping notify", file=sys.stderr)
+    raise SystemExit(0)
 req = urllib.request.Request(
-    os.environ["WEBHOOK_URL"],
+    webhook,
     data=json.dumps(payload).encode("utf-8"),
     headers={"Content-Type": "application/json"},
     method="POST",
 )
-urllib.request.urlopen(req, timeout=30)
+try:
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        if getattr(resp, "status", 200) >= 400:
+            print(f"webhook HTTP {resp.status}; continuing", file=sys.stderr)
+except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
+    # Soft-fail: do not conflate chat outage with the security gate
+    print(f"webhook notify failed: {exc}; continuing", file=sys.stderr)
+    raise SystemExit(0)
 PY
 ```
 
