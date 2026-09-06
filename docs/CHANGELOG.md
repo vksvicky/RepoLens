@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (cross-source SCA dedupe #14)
+
+- Collapse scanner + LLM findings for the same advisory/package before gate
+  severity penalties; prefer scanner severity (LLM cannot raise Critical);
+  record `evidenceSources`, `rawCriticalHighCount`, and `rawTotalFindings`
+
 ### Changed (vacuous pass confidence #21)
 
 - Deep mode: floor genuine vacuous LLM pass confidence (75/55) so clean

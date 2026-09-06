@@ -207,3 +207,85 @@ def test_finding_report_optional_audit_confidence_fields() -> None:
     assert legacy.securityAuditConfidence is None
     assert legacy.architectureAuditConfidence is None
     assert legacy.reliabilityAuditConfidence is None
+
+
+def test_cross_source_sca_dedupe_before_security_penalty() -> None:
+    """#14: 2 advisories × (scanner High + LLM Critical) → 2 unique High → −20."""
+    from repolens.metrics import severity_finding_penalty
+    from repolens.scanners.sca import dedupe_cross_source_sca_issues
+    from repolens.schema import Issue, Severity
+
+    def row(
+        *,
+        category: str,
+        title: str,
+        severity: Severity,
+        source: str,
+        package: str,
+    ) -> Issue:
+        return Issue(
+            severity=severity,
+            priority="P1",
+            category=category,
+            file="Cargo.lock" if source == "scanner" else "src/lib.rs",
+            line=1,
+            title=title,
+            explanation=title,
+            impact="vulnerable dependency",
+            recommendedFix="upgrade",
+            codeExample="# upgrade",
+            source=source,  # type: ignore[arg-type]
+            packageName=package,
+        )
+
+    raw = [
+        row(
+            category="osv",
+            title="RUSTSEC-2024-0436 in paste",
+            severity=Severity.HIGH,
+            source="scanner",
+            package="paste",
+        ),
+        row(
+            category="sec.supply_chain",
+            title="RUSTSEC-2024-0436 paste Critical",
+            severity=Severity.CRITICAL,
+            source="llm",
+            package="paste",
+        ),
+        row(
+            category="osv",
+            title="RUSTSEC-2026-0192 in ttf-parser",
+            severity=Severity.HIGH,
+            source="scanner",
+            package="ttf-parser",
+        ),
+        row(
+            category="sec.supply_chain",
+            title="RUSTSEC-2026-0192 ttf-parser Critical",
+            severity=Severity.CRITICAL,
+            source="llm",
+            package="ttf-parser",
+        ),
+    ]
+    assert severity_finding_penalty(raw, band="security") == 60  # 2 Crit capped + …
+    # Actually 2 Crit * 20 = 40, 2 High * 10 = 20 → 60. Good.
+
+    deduped, raw_ch, raw_total = dedupe_cross_source_sca_issues(raw)
+    assert raw_total == 4
+    assert raw_ch == 4
+    assert len(deduped) == 2
+    assert all(i.severity == Severity.HIGH for i in deduped)
+    assert severity_finding_penalty(deduped, band="security") == 20
+
+    metrics = compute_audit_metrics(
+        pass_confidences={"p1": 75, "p2": 75, "p3": 75},
+        coverage=CoverageResult(covered=["sec.secrets"], missed=[], na={}),
+        scanner_runs=[
+            ScannerRun(tool="osv", status="ran"),
+            ScannerRun(tool="gitleaks", status="ran"),
+        ],
+        issues=deduped,
+    )
+    # 75 + 5 scanner − 20 (2 High) = 60
+    assert metrics.security_audit_confidence == 60
