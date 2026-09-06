@@ -147,6 +147,8 @@ Deterministic verify via graph; LLM receives the **violation subgraph**, not the
 1. **Runtime vs type-only imports (G1):** Modern typed Python often uses:
 
    ```python
+   from typing import TYPE_CHECKING
+
    if TYPE_CHECKING:
        from app.services import OrderService
    ```
