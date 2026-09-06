@@ -61,12 +61,12 @@ repolens review --path .
 **Optional “batteries” extras (Phase 3 — shipped):**
 
 ```text
-pip install "repolens[scanners]"   # Semgrep via pip; still run plugins install for gitleaks/osv
+pip install "repolens-audit[scanners]"   # Semgrep via pip; still run plugins install for gitleaks/osv
 # or
 repolens plugins install gitleaks semgrep osv
 ```
 
-We **can** build convenience installers; we **should not** force multi‑hundred‑MB native tools into the default `pip install repolens`.
+We **can** build convenience installers; we **should not** force multi‑hundred‑MB native tools into the default `pip install repolens-audit`.
 
 ---
 

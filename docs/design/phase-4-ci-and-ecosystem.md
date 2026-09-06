@@ -22,7 +22,7 @@
 ```text
 Consumer CI
   └─ uses: vksvicky/RepoLens@vX  (action.yml)
-        ├─ setup-python + pip install repolens[scanners]==version
+        ├─ setup-python + pip install repolens-audit[scanners]==version
         ├─ optional: plugins install --yes
         ├─ run: dry-run | auto (scanners + optional LLM) | scanners-only | llm
         └─ upload reports/ artifact (example workflow)
@@ -56,7 +56,7 @@ Local learning (opt-in; not Action default)
 | `fail-on` | `HIGH` | Empty string disables |
 | `scanners` | `auto` | CLI `--scanners` |
 | `require-scanners` | `false` | |
-| `version` | `0.1.0a1` | `pip install repolens[scanners]==…` |
+| `version` | `0.1.0a1` | `pip install repolens-audit[scanners]==…` |
 | `install-plugins` | `true` | `repolens plugins install all --yes` |
 
 **Secrets / env (optional):** `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`.  
