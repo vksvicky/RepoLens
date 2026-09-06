@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (gate UX copy #17 MVP)
+
+- CLI summary and Markdown reports: FAQ-aligned one-liner that gate confidence is
+  review-package adequacy (not “% secure”); **Unique Critical/High** with raw
+  count when #14 collapsed scanner/LLM rows (`#17b` local UI calibrations remain
+  post–Phase 7)
+
 ### Added (cross-source SCA dedupe #14)
 
 - Collapse scanner + LLM findings for the same advisory/package before gate

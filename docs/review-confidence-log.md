@@ -40,3 +40,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-09-06 | WIP→commit | 94% | 0/0/0/0 | CI unblock PR #22: docs path for cli package + ruff; remove shadowed transport helpers | chat |
 | 2026-09-06 | WIP→commit | 96% | 0/0/0/0 | Wave A docs: #14/#17 specs+plans, Phase 7 checklist, phases.md interrupt queue | chat |
 | 2026-09-06 | WIP→commit | 93% | 0/0/0/0 | #14 cross-source SCA dedupe (scanner baseline; gate penalty on unique) | chat |
+| 2026-09-06 | WIP→commit | 94% | 0/0/0/0 | #17 MVP gate UX copy + Unique Critical/High (raw) | chat |
