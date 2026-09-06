@@ -2,14 +2,18 @@
 
 **Do not tag a release until you have dogfooded locally** (see [Pre-publish dogfood](#pre-publish-dogfood)) and completed Trusted Publisher setup below.
 
+**PyPI distribution name:** `repolens-audit` (CLI and import package remain `repolens`).  
+Plain `repolens` / `repo-lens` are blocked by PyPI name-similarity against existing projects.
+
 ## Install paths
 
 ```bash
 # From git (works before first PyPI upload)
-pip install "repolens[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
+pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
 
 # After first successful publish
-pip install "repolens[scanners]==0.1.0a1"
+pip install "repolens-audit[scanners]==0.1.0a1"
+# then: repolens version
 ```
 
 ## Release workflow (automated)
@@ -40,7 +44,7 @@ Do these **once** before the first `v*` tag publish.
 
    | Field | Value |
    |-------|--------|
-   | PyPI Project Name | `repolens` |
+   | PyPI Project Name | `repolens-audit` |
    | Owner | `vksvicky` |
    | Repository name | `RepoLens` |
    | Workflow name | `publish.yml` |
@@ -63,8 +67,8 @@ git push origin v0.1.0a1
 ```
 
 1. Watch **Actions → Publish** for the tag.  
-2. Confirm https://pypi.org/project/repolens/  
-3. Smoke: `pip install "repolens==0.1.0a1" && repolens version`
+2. Confirm https://pypi.org/project/repolens-audit/  
+3. Smoke: `pip install "repolens-audit==0.1.0a1" && repolens version`
 
 ---
 
@@ -120,12 +124,12 @@ Also exercise the Action on GitHub (workflow_dispatch on [repolens-example.yml](
 
 - [ ] Pre-publish dogfood passed (above)  
 - [ ] GitHub environment `pypi` exists  
-- [ ] PyPI pending publisher saved for `repolens` / `publish.yml` / `pypi`  
+- [ ] PyPI pending publisher saved for `repolens-audit` / `publish.yml` / `pypi`  
 - [ ] Version in `pyproject.toml` + `src/repolens/__init__.py` matches the tag  
 - [ ] [CHANGELOG.md](./CHANGELOG.md) updated  
 - [ ] Tag `vX.Y.ZaN` and `git push origin <tag>`  
 - [ ] Publish workflow green; package visible on PyPI  
-- [ ] `pip install repolens==…` smoke test  
+- [ ] `pip install repolens-audit==…` smoke test (`repolens version` still works)  
 - [ ] Document Action pin: `uses: vksvicky/RepoLens@vX.Y.ZaN`
 
 ## Related

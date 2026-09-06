@@ -90,7 +90,7 @@ runs:
         if [ "$FROM" = "local" ]; then
           python -m pip install -e ".[scanners]"
         elif [ "$FROM" = "pypi" ]; then
-          python -m pip install "repolens[scanners]==${{ inputs.version }}"
+          python -m pip install "repolens-audit[scanners]==${{ inputs.version }}"
         elif [ "$FROM" = "git" ]; then
           REPO="${{ inputs.git-repository }}"
           REF="${{ inputs.git-ref }}"
@@ -101,7 +101,7 @@ runs:
               exit 2
               ;;
           esac
-          python -m pip install "repolens[scanners] @ git+${REPO}@${REF}"
+          python -m pip install "repolens-audit[scanners] @ git+${REPO}@${REF}"
         else
           echo "install-from must be local, pypi, or git; got: $FROM" >&2
           exit 2
