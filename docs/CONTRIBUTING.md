@@ -79,3 +79,7 @@ Do **not** open a public issue for vulnerabilities in RepoLens itself. See [SECU
 ## Questions
 
 Use GitHub Discussions (when enabled) or an issue with the `question` label.
+
+## Maintainer notes
+
+Agent design specs and implementation plans under `docs/superpowers/` (and `.superpowers/`) are **local-only** — gitignored and not part of the published open-source docs. Public design lives under `docs/design/` and the tracker in `docs/phases.md`.
