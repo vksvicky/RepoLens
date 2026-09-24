@@ -118,6 +118,18 @@ class SupplyChainBlock(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class QualityScorecard(BaseModel):
+    """Fast Brain deterministic quality signals (optional on report)."""
+
+    megaFileCount: int = Field(ge=0, default=0)
+    deepNestingCount: int = Field(ge=0, default=0)
+    nearCloneClusters: int = Field(ge=0, default=0)
+    nearCloneOccurrences: int = Field(ge=0, default=0)
+    nearCloneFindingsEmitted: int = Field(ge=0, default=0)
+    filesScanned: int = Field(ge=0, default=0)
+    notes: list[str] = Field(default_factory=list)
+
+
 class ProvenanceBlock(BaseModel):
     """Phase 6.3 report provenance for CI / audit trails."""
 
@@ -178,6 +190,7 @@ class FindingReport(BaseModel):
     # #14: raw finding tallies before cross-source SCA collapse (unique → summary).
     rawCriticalHighCount: int | None = Field(default=None, ge=0)
     rawTotalFindings: int | None = Field(default=None, ge=0)
+    quality: QualityScorecard | None = None
 
     @field_validator("confidence")
     @classmethod

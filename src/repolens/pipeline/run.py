@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from repolens.heuristics.runner import HeuristicResult
 from datetime import UTC
 from pathlib import Path
 
@@ -50,6 +54,25 @@ def fail_on_triggered(
 ) -> bool:
     """Re-export with Phase 6.3 scanner-only gate support."""
     return _fail_on_triggered(report, fail_on, scanner_only=scanner_only)
+
+
+def _attach_quality(
+    report: FindingReport,
+    *,
+    heur_result: HeuristicResult | None,
+    files_scanned: int,
+) -> None:
+    from repolens.quality import build_quality_scorecard_from_issues
+
+    if files_scanned <= 0 or heur_result is None:
+        return
+    report.quality = build_quality_scorecard_from_issues(
+        report.issues,
+        near_clone_clusters=heur_result.near_clone_clusters,
+        near_clone_occurrences=heur_result.near_clone_occurrences,
+        files_scanned=files_scanned,
+        notes=list(heur_result.near_clone_notes),
+    )
 
 
 def _git_sha(root: Path) -> str | None:
@@ -795,6 +818,11 @@ def run_review(
                 f"(ignore file / disable comments)"
             )
         report.summary = report.recount_summary()
+        _attach_quality(
+            report,
+            heur_result=heur_result,
+            files_scanned=fast_brain_file_count,
+        )
         report.provenance = ProvenanceBlock(
             repoLensVersion=__version__,
             gitSha=_git_sha(root),

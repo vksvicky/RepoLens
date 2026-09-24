@@ -8,7 +8,7 @@ from pathlib import Path
 
 from repolens.coverage import parse_coverage_notes
 from repolens.disclaimer import disclaimer_markdown_lines
-from repolens.schema import FindingReport, Issue, Severity
+from repolens.schema import FindingReport, Issue, QualityScorecard, Severity
 
 _FENCED_BLOCK_RE = re.compile(
     r"^\s*```[^\n]*\n(?P<body>.*?)\n```\s*$",
@@ -260,6 +260,7 @@ def render_markdown(
         lines.append("_No scanners requested or configured._")
         lines.append("")
 
+    lines.extend(_render_quality_scorecard_section(report))
     lines.extend(_render_supply_chain_section(report))
     lines.extend(_render_provenance_section(report))
     lines.extend(_render_suppressed_section(report))
@@ -306,6 +307,31 @@ def render_markdown(
 def is_coverage_transport_gap(gap: str) -> bool:
     """True when a gap is a coverage N/A or missed note (not a real durability todo)."""
     return bool(_COVERAGE_TRANSPORT_GAP_RE.match(gap.strip()))
+
+
+def _render_quality_scorecard_section(report: FindingReport) -> list[str]:
+    q: QualityScorecard | None = report.quality
+    if q is None:
+        return []
+    lines: list[str] = [
+        "## Quality scorecard (Fast Brain)",
+        "",
+        "| Signal | Count |",
+        "|--------|------:|",
+        f"| Mega-files | {q.megaFileCount} |",
+        f"| Deep nesting | {q.deepNestingCount} |",
+        f"| Near-clone clusters | {q.nearCloneClusters} |",
+        f"| Files scanned | {q.filesScanned} |",
+        "",
+    ]
+    for note in q.notes:
+        lines.append(f"_{note}._")
+        lines.append("")
+    lines.append(
+        "_Deterministic DRY/KISS signals — not an architecture certification._"
+    )
+    lines.append("")
+    return lines
 
 
 def _render_supply_chain_section(report: FindingReport) -> list[str]:
