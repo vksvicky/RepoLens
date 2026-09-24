@@ -1,6 +1,6 @@
 # Phase 7: Enterprise CI/CD & Report Delivery — Execution Checklist
 
-**Status:** Docs MVP implemented (2026-09-06) — close [#3](https://github.com/vksvicky/RepoLens/issues/3) when PR merges  
+**Status:** Complete (2026-09-06) — [#3](https://github.com/vksvicky/RepoLens/issues/3) closed via PR #26; Sourcery follow-ups PR #31  
 **Date:** 2026-09-06  
 **Issue:** [#3](https://github.com/vksvicky/RepoLens/issues/3)  
 **Parent Roadmap:** [docs/phases.md](../phases.md#phase-7--enterprise-cicd--report-delivery-design)  
@@ -45,4 +45,4 @@ Provide production-minded corporate CI/CD integration and delivery recipes witho
 2. [x] Webhook and email notification patterns are clearly documented with security guardrails.
 3. [x] Adaptive cache policy for ephemeral vs persistent runners is documented.
 4. [x] Forge push-protection vs audit boundaries are articulated in `docs/faq.md`.
-5. [ ] Issue #3 closed upon merge of the Phase 7 docs PR.
+5. [x] Issue #3 closed upon merge of the Phase 7 docs PR.

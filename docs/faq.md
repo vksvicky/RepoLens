@@ -6,6 +6,7 @@ If you only read one section, read this.
 
 | Question | Plain answer |
 |----------|--------------|
+| **How do I install?** | `pip install "repolens-audit[scanners]==0.1.0a1"` then run `repolens …`. Dist name on PyPI is **`repolens-audit`**; CLI stays `repolens`. See [install-extras.md](./install-extras.md). |
 | **Do I need an AI key?** | For cloud AI (ChatGPT-style providers), **yes—you use your own key**. You can also run AI **on your own computer** (no cloud key). Scanners-only (`--scanners-only`) needs no AI key. |
 | **Is it self-sufficient?** | The download is the **review process and templates**, not a free built-in AI brain. For a full written review you add **your cloud key** or a **local AI**. For maximum privacy, use local AI. |
 | **Extra security software?** | Kept **optional** so the default install stays small. Use tools on your `PATH`, or `repolens plugins install` / `repolens-audit[scanners]`—no forced huge downloads. |

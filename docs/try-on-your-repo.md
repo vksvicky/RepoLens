@@ -1,6 +1,6 @@
 # Try RepoLens on your code
 
-Use these steps to review a project **on disk** or from **GitHub / Bitbucket / Hugging Face / any git URL** before relying on PyPI or CI.
+Use these steps to review a project **on disk** or from **GitHub / Bitbucket / Hugging Face / any git URL**. For a published install, prefer `pip install "repolens-audit[scanners]==0.1.0a1"` (CLI: `repolens`); the clone/`-e` path below is for contributors and dogfood.
 
 **Command map (every CLI recipe, timings, troubleshooting):** [command-atlas.md](./command-atlas.md)
 
