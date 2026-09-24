@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from repolens.config import (
+    GraphConfig,
     ModelConfig,
     load_config,
     resolve_api_key,
@@ -84,3 +85,27 @@ def test_reject_arbitrary_api_key_env(tmp_path: Path, monkeypatch) -> None:
 def test_report_dir_rejects_escape(tmp_path: Path) -> None:
     with pytest.raises(ValueError):
         resolve_report_dir(tmp_path, "../outside")
+
+
+def test_graph_config_ratchet_defaults() -> None:
+    cfg = GraphConfig()
+    assert cfg.ratchet is False
+    assert cfg.baseline_path == ".repolens/baseline.json"
+    assert cfg.require_baseline is False
+
+
+def test_project_toml_graph_ratchet_fields(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    project = tmp_path / "proj"
+    project.mkdir()
+    (project / ".repolens.toml").write_text(
+        "[graph]\n"
+        "ratchet = true\n"
+        'baseline_path = "custom/baseline.json"\n'
+        "require_baseline = true\n",
+        encoding="utf-8",
+    )
+    cfg = load_config(project)
+    assert cfg.graph.ratchet is True
+    assert cfg.graph.baseline_path == "custom/baseline.json"
+    assert cfg.graph.require_baseline is True
