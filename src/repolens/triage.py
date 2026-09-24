@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+
 from repolens.config import CiConfig
 from repolens.schema import FindingReport, Issue, IssueSource, Severity
 

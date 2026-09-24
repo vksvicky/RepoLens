@@ -48,3 +48,10 @@ repolens-work/
 
 # Logs
 *.log
+
+# Maintainer-only (local)
+docs/superpowers/
+.superpowers/
+scratch.py
+.coverage
+RepoLens.sonargraph/
