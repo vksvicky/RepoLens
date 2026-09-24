@@ -1,4 +1,4 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from packtype import a
+    from packtype import a  # noqa: F401

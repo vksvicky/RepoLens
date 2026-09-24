@@ -1,1 +1,1 @@
-from packlazy import a
+from packlazy import a  # noqa: F401

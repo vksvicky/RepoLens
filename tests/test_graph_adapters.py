@@ -1,8 +1,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from repolens.config import GraphConfig
 from repolens.graph import analyse_python_graph
 from repolens.graph.adapters import load_precomputed_edges
