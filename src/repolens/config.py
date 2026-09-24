@@ -173,6 +173,9 @@ class GraphConfig(BaseModel):
     local_imports: Literal["exclude", "include"] = "exclude"
     critical_scc_size: int = 8
     packages: list[str] = Field(default_factory=list)
+    ratchet: bool = False
+    baseline_path: str = ".repolens/baseline.json"
+    require_baseline: bool = False
 
 
 class RepoLensConfig(BaseModel):
