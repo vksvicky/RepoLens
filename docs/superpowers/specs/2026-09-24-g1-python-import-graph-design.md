@@ -1,6 +1,6 @@
 # G1 — Deterministic Python import graph (design)
 
-**Status:** Draft for review (rev 2 — package discovery, local-import tagging, 1 finding/SCC)  
+**Status:** Approved for plan (rev 2) · Plan: [../plans/2026-09-24-g1-python-import-graph.md](../plans/2026-09-24-g1-python-import-graph.md)  
 **Date:** 2026-09-24  
 **Issue:** [#34](https://github.com/vksvicky/RepoLens/issues/34) (anchor track)  
 **Umbrella:** [#18](https://github.com/vksvicky/RepoLens/issues/18) · [zugel-comparison-and-roadmap.md](../../design/zugel-comparison-and-roadmap.md)  

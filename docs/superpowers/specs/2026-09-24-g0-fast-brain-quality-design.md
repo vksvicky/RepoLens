@@ -1,6 +1,6 @@
 # G0 — Fast Brain quality: near-clones & scorecard (design)
 
-**Status:** Draft for review (rev 2 — coalesce windows, line map, FP suppress, dual caps)  
+**Status:** Approved for plan (rev 2) · Plan: [../plans/2026-09-24-g0-fast-brain-quality.md](../plans/2026-09-24-g0-fast-brain-quality.md)  
 **Date:** 2026-09-24  
 **Issue:** [#33](https://github.com/vksvicky/RepoLens/issues/33) (companion track)  
 **Umbrella:** [#18](https://github.com/vksvicky/RepoLens/issues/18) · [zugel-comparison-and-roadmap.md](../../design/zugel-comparison-and-roadmap.md)  
