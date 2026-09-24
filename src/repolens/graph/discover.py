@@ -74,8 +74,15 @@ def _packages_from_pyproject(root: Path, gaps: list[str]) -> list[str]:
     if isinstance(explicit, list):
         names.extend(str(p) for p in explicit)
 
-    pkg_find = setuptools.get("packages.find") or {}
-    if isinstance(pkg_find, dict):
+    pkg_find = setuptools.get("packages.find")
+    if not isinstance(pkg_find, dict):
+        packages = setuptools.get("packages")
+        if isinstance(packages, dict):
+            nested = packages.get("find")
+            pkg_find = nested if isinstance(nested, dict) else {}
+        else:
+            pkg_find = {}
+    if pkg_find:
         names.extend(_packages_from_setuptools_find(root, pkg_find))
 
     hatch = tool.get("hatch") or {}
