@@ -6,6 +6,7 @@ from __future__ import annotations
 from repolens.cli import adaptive as adaptive  # noqa: F401
 from repolens.cli import commands_baseline as commands_baseline  # noqa: F401
 from repolens.cli import commands_benchmark as commands_benchmark  # noqa: F401
+from repolens.cli import commands_check as commands_check  # noqa: F401
 from repolens.cli import commands_explain as commands_explain  # noqa: F401
 from repolens.cli import commands_feedback as commands_feedback  # noqa: F401
 from repolens.cli import commands_packs as commands_packs  # noqa: F401
