@@ -7,6 +7,7 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from repolens.config import NearClonesConfig
 from repolens.heuristics.mega_files import is_mega_file_excluded
 from repolens.inventory import FileEntry
 from repolens.schema import Issue, Severity
@@ -162,21 +163,6 @@ def coalesce_pair_hits(hits_a_to_b: list[PairHit]) -> list[CloneBlock]:
         )
         for h, occurrences in merged
     ]
-
-
-@dataclass
-class NearClonesConfig:
-    """Knobs for near-clone detection (Task 4 will mirror in config.py)."""
-
-    enabled: bool = True
-    window_lines: int = 12
-    stride: int = 6
-    min_occurrences: int = 2
-    max_clusters: int = 50
-    max_findings: int = 10
-    medium_at_occurrences: int = 4
-    header_comment_lines: int = 15
-    exclude_globs: tuple[str, ...] = ()
 
 
 @dataclass

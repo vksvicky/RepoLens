@@ -51,6 +51,17 @@
 # triage_include_heuristics = true            # --ci: heuristic High+ can wake LLM
 # No AST in Fast Brain — regex/line/stat/hash only (Phase 6.11)
 
+[fast_brain.near_clones]
+# enabled = true
+# window_lines = 12
+# stride = 6
+# min_occurrences = 2
+# max_clusters = 50          # scorecard cap
+# max_findings = 10          # emitted Issue cap
+# medium_at_occurrences = 4
+# header_comment_lines = 15  # suppress comment-only header windows
+# exclude_globs = []         # extra paths (defaults include migrations/, *_pb2.py, generated/)
+
 [local_learning]
 # enabled = false           # opt-in; data stays on disk (see docs/local-learning.md)
 # cache_dir = ".repolens"   # also requires: repolens learn build --accept-local-learning
