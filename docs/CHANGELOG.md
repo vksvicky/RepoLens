@@ -169,7 +169,7 @@ repolens version
 ### Added (Phase 6.x design — remaining slices)
 
 - Roadmap for CI triage / anchored SARIF / suppressions before Phase 7 ([design](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md))
-- Implementation plan for enterprise CI triage routing ([plan](./superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md))
+- Implementation plan for enterprise CI triage routing ()
 - Blog draft: enterprise scale vs full-LLM PR checks ([blog](./blog-ideas/enterprise-scale-llm-review-ci.md))
 - End-user [rules.md](./rules.md) + AppSec comparison note
 

@@ -111,7 +111,7 @@ Playbooks in chat and RepoLens share review *ideas*; they are not the same produ
 
 When more clone clusters exist than `max_findings`, the report still counts clusters on the scorecard (up to `max_clusters`) and adds an **omission note** (e.g. additional clusters omitted from findings). Tune or disable via `[fast_brain.near_clones]` in `.repolens.toml` — see [`.repolens.example.toml`](../.repolens.example.toml).
 
-**Quality scorecard (Fast Brain)** is a compact Markdown + JSON block (`report.quality`) rolling up mega-files, deep nesting, near-clone cluster counts, and files scanned. It is a **DRY/KISS posture signal**, not an architecture certification and **not** a Sonargraph-style clone explorer (no interactive duplicate browser, no industrial dependency graph). **Cyclicity / import cycles are not on this scorecard** — that belongs to the separate Python import-graph work (G1). Design: [superpowers/specs/2026-09-24-g0-fast-brain-quality-design.md](./superpowers/specs/2026-09-24-g0-fast-brain-quality-design.md).
+**Quality scorecard (Fast Brain)** is a compact Markdown + JSON block (`report.quality`) rolling up mega-files, deep nesting, near-clone cluster counts, and files scanned. It is a **DRY/KISS posture signal**, not an architecture certification and **not** a Sonargraph-style clone explorer (no interactive duplicate browser, no industrial dependency graph). **Cyclicity / import cycles are not on this scorecard** — that belongs to the separate Python import-graph work (G1). Design:.
 
 ---
 
@@ -160,7 +160,7 @@ Report chrome (Metrics, Coverage, About, Disclaimer) and LLM/heuristic finding p
 
 ## How do we harden RepoLens against its own dogfood noise?
 
-Self-review on this repo should not drown in agent scratch (`.superpowers/`), heuristic fixtures, or pedagogical “password” mentions in playbooks. Plan: [superpowers/specs/2026-08-05-self-review-hardening-design.md](./superpowers/specs/2026-08-05-self-review-hardening-design.md) · [implementation plan](./superpowers/plans/2026-08-05-self-review-hardening.md).
+Self-review on this repo should not drown in agent scratch (`.superpowers/`), heuristic fixtures, or pedagogical “password” mentions in playbooks. Plan:.
 
 ## What do finding fields mean?
 
@@ -198,7 +198,7 @@ Lookup order inside RepoLens: match **Occurrence** (`runId`) first if present, e
 
 JSON still uses `stableId` / `runId` for compatibility; Markdown shows the human labels above.
 
-Schema: [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) · design: [superpowers/specs/2026-08-04-phase-6-issue-explain-diagrams-design.md](./superpowers/specs/2026-08-04-phase-6-issue-explain-diagrams-design.md).
+Schema: [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) · design:.
 
 ## How do I deep-dive one finding (Phase 6 explain)?
 
@@ -223,7 +223,7 @@ For `heuristic.mega_file`, RepoLens feeds a **symbol outline** (classes/function
 
 ## How do we reduce known LLM false positives for everyone?
 
-Post-parse **FP calibrations** (default on) demote patterns such as list-form `subprocess` “command injection”. Toggle under `[deep].fp_calibrations` in config / `.repolens.toml` (e.g. `subprocess_list_not_injection = false` to disable). Design: [superpowers/specs/2026-08-05-fp-calibrations-config-design.md](./superpowers/specs/2026-08-05-fp-calibrations-config-design.md).
+Post-parse **FP calibrations** (default on) demote patterns such as list-form `subprocess` “command injection”. Toggle under `[deep].fp_calibrations` in config / `.repolens.toml` (e.g. `subprocess_list_not_injection = false` to disable). Design:.
 
 ---
 
@@ -327,7 +327,7 @@ After flooring, the usual **+5** security bonus when scanners all ran still appl
 
 **CI vs confidence gates:** `--fail-on` gates on **finding severity** (e.g. `HIGH`), not on confidence %. Dual-review-style **confidence** gates in consumer pipelines often want **≥70**; a floored clean package lands at **75** gate — adequate for that bar, separate from `--fail-on`.
 
-Design: [superpowers/specs/2026-09-05-vacuous-pass-confidence-floor-design.md](./superpowers/specs/2026-09-05-vacuous-pass-confidence-floor-design.md).
+Design:.
 
 ### Core vs Extended themes (Phase 5.2)
 
