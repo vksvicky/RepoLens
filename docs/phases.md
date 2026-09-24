@@ -479,7 +479,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 |-------|-------|--------|-------|
 | G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [~] | [PR #45](https://github.com/vksvicky/RepoLens/pull/45) — near-clones + scorecard |
 | G1 Python graph + SCC (grimp) | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [~] | [PR #46](https://github.com/vksvicky/RepoLens/pull/46) — `source=graph`; fail-on like scanner |
-| G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] | Spec draft: [g2 design](./superpowers/specs/2026-09-24-g2-cyclicity-ratchet-design.md) — Rule 1 cyclicity-only |
+| G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] | Spec + [plan](./superpowers/plans/2026-09-24-g2-cyclicity-ratchet.md) — implement after G1 (#46) merges |
 | G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] | Secondary to CLI; after G1 (+G2 preferred) |
 | G4 Architecture DSL + weighted FAS LLM cuts | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] | FAS = candidate; domain direction wins |
 

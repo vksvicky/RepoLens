@@ -1,6 +1,6 @@
 # G2 — Cyclicity baseline ratchet + diff-aware CI (design)
 
-**Status:** Draft for review  
+**Status:** Approved for plan · Plan: [../plans/2026-09-24-g2-cyclicity-ratchet.md](../plans/2026-09-24-g2-cyclicity-ratchet.md)  
 **Date:** 2026-09-24  
 **Issue:** [#35](https://github.com/vksvicky/RepoLens/issues/35)  
 **Umbrella:** [#18](https://github.com/vksvicky/RepoLens/issues/18) · [zugel-comparison-and-roadmap.md](../../design/zugel-comparison-and-roadmap.md)  
@@ -164,6 +164,7 @@ Baseline stores `configSnapshot` (`type_only`, `local_imports`, and any other kn
 4. Optional later (out of MVP): `--allow-config-drift` to warn-only without failing — **not** in G2 MVP unless demanded.
 
 Test: fixture baseline exclude/16 + current include/24 → `breached=True` **and** `config_mismatch` note present.
+
 **Exit codes (`check --diff`):**
 
 | Code | Meaning |
