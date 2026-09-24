@@ -40,6 +40,26 @@ def test_baseline_set_failed_exits_3(tmp_path: Path) -> None:
     assert not out.exists()
 
 
+def test_baseline_set_skipped_exits_3_no_file(tmp_path: Path) -> None:
+    """Graph disabled → SKIPPED; must not write a vacuous cyclicity-0 baseline."""
+    root = tmp_path / "proj"
+    root.mkdir()
+    pkg = root / "mypkg"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "a.py").write_text("x = 1\n", encoding="utf-8")
+    (root / ".repolens.toml").write_text("[graph]\nenabled = false\n", encoding="utf-8")
+    out = tmp_path / "baseline.json"
+    result = runner.invoke(
+        app,
+        ["baseline", "set", "--path", str(root), "--out", str(out)],
+    )
+    assert result.exit_code == 3, result.output
+    assert not out.exists()
+    assert "skipped" in result.output.lower() or "disabled" in result.output.lower()
+    assert "baseline not written" in result.output.lower()
+
+
 def test_baseline_show_prints_cyclicity_and_fingerprints(tmp_path: Path) -> None:
     out = tmp_path / "baseline.json"
     set_result = runner.invoke(
