@@ -36,10 +36,16 @@ packs_app = typer.Typer(
     help="Optional domain packs (Azure Sentinel / SOAR, …).",
     no_args_is_help=True,
 )
+baseline_app = typer.Typer(
+    name="baseline",
+    help="Cyclicity baseline (set / show) for the import-graph ratchet.",
+    no_args_is_help=True,
+)
 app.add_typer(plugins_app, name="plugins")
 app.add_typer(learn_app, name="learn")
 app.add_typer(adaptive_app, name="adaptive")
 app.add_typer(packs_app, name="packs")
+app.add_typer(baseline_app, name="baseline")
 console = Console(stderr=True)
 
 _EMPTY_PATH_HELP = (
