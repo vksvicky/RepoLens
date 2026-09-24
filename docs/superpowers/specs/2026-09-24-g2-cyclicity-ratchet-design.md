@@ -143,9 +143,27 @@ RatchetResult:
   delta: int                     # current - baseline
   fingerprints_added: list[...]  # in current, not in baseline (informational)
   fingerprints_removed: list[...]  # in baseline, not in current (informational)
+  config_mismatch: bool          # active GraphConfig ≠ baseline.configSnapshot
+  config_mismatch_detail: str    # e.g. local_imports exclude→include
+  notes: list[str]               # durability/info lines (incl. ratchet.config_mismatch: …)
   message: str                   # British English user-facing summary
 ```
 
+### Config snapshot mismatch (implementation guard)
+
+Baseline stores `configSnapshot` (`type_only`, `local_imports`, and any other knobs that change the gated edge set).
+
+**Gotcha:** Baseline recorded with `local_imports=exclude` (cyclicity 16); later `.repolens.toml` flips to `include` → cyclicity may jump (e.g. 24) with **no code diff**, tripping Rule 1.
+
+**Required behaviour in `evaluate_ratchet()`:**
+
+1. Compare active `GraphConfig` (normalized) to `baseline.configSnapshot`.  
+2. If they differ, set `config_mismatch=True` and append  
+   `ratchet.config_mismatch: graph settings changed since baseline (e.g. local_imports exclude→include); re-run \`repolens baseline set\` after intentional config changes`.  
+3. **Still apply Rule 1** on the numbers (do not auto-pass). Operators see *why* debt appeared to grow.  
+4. Optional later (out of MVP): `--allow-config-drift` to warn-only without failing — **not** in G2 MVP unless demanded.
+
+Test: fixture baseline exclude/16 + current include/24 → `breached=True` **and** `config_mismatch` note present.
 **Exit codes (`check --diff`):**
 
 | Code | Meaning |
@@ -236,32 +254,60 @@ A legacy repo may have High graph findings **and** a passing ratchet (baseline a
 | Error | Missing baseline + `--require-baseline` → exit 2 |
 | Perf | Fixture <50 modules: `check --diff` completes in seconds in tests |
 | Edge | Type-only-only cycles with `type_only=ignore` → cyclicity unchanged |
+| Edge | `configSnapshot` mismatch (exclude→include) → breach **plus** `ratchet.config_mismatch` note |
 | Anchor | Synthetic git diff with new import → annotation points at that line |
 
 ---
 
-## 12. Docs
+## 12. User documentation (keep it simple)
 
-* FAQ: cycles-only ladder; Rule 1 rationale (don’t punish untangling); commit baseline optionally.  
-* `ci.md`: pre-commit / GHA recipe for `repolens check --diff --require-baseline`.  
-* Command atlas: `baseline` / `check` entries.  
-* Explicit: MCP is not the primary gate (G3 secondary).
+**Principle:** Operators install from PyPI and learn one short ladder — not a Sonargraph manual. Prefer FAQ + one CI snippet; avoid duplicating design math in install docs.
+
+| Doc | Update for G2? | What users see |
+|-----|----------------|----------------|
+| **`docs/faq.md`** | **Yes (required)** | Short “Import cycles & ratchet” section: always-on G1 detection; optional baseline; Rule 1 in one sentence (“debt score must not rise”); fingerprints explain *what* changed; if you change `[graph]` settings, re-run `baseline set`. Link to `ci.md`. |
+| **`docs/ci.md`** | **Yes (required)** | One recipe: `baseline set` once → commit `.repolens/baseline.json` → PR job `repolens check --diff --require-baseline`. Pre-commit optional one-liner. |
+| **`docs/command-atlas.md`** | **Yes** | `baseline set` / `show`, `check --diff`, `review --ratchet` rows + exit codes. |
+| **`README.md`** | **Yes (light)** | One bullet under features / What’s next: Python import cycles + optional cyclicity ratchet (link FAQ). No deep math. |
+| **`docs/CHANGELOG.md`** | **Yes** on ship | User-facing “Added” bullets for `baseline` / `check --diff` / `--ratchet`. |
+| **`.repolens.example.toml`** | **Yes** | Commented `[graph]` ratchet knobs. |
+| **`docs/publishing.md` / PyPI checklist** | **No feature dump** | Stay install / Trusted Publishing / smoke `pip install repolens-audit`. Optionally one smoke line after G2 ships: `repolens baseline set --help` — not cycle theory. |
+| **PyPI project description / README on PyPI** | **Same as README** | Keep install-first; cycles mentioned once if README mentions them. |
+| **Design / phases / this spec** | Maintainers only | Not linked from the install path. |
+
+**Adoption ladder (FAQ copy sketch):**
+
+1. Install: `pip install repolens-audit` — reviews report Python cycles automatically (G1).  
+2. Optional: `repolens baseline set` and commit `.repolens/baseline.json`.  
+3. CI: `repolens check --diff --require-baseline` so cyclicity cannot rise.  
+4. After intentional graph-config changes: re-run `baseline set`.
 
 ---
 
-## 13. Success criteria
+## 13. Docs (maintainer checklist)
+
+* FAQ + `ci.md` + command atlas + light README (see §12).  
+* Explicit: MCP is not the primary gate (G3 secondary).  
+* Rule 1 rationale in FAQ (one paragraph): untangling must not fail CI.
+
+---
+
+## 14. Success criteria
 
 - [ ] Baseline round-trip deterministic (sorted JSON)  
 - [ ] Rule 1 enforced; fingerprint-only changes never fail  
+- [ ] Config mismatch note when `configSnapshot` ≠ active config  
 - [ ] `check --diff` + `review --ratchet` wired  
 - [ ] Diff anchor + SARIF/annotation path tested  
 - [ ] Coverage ≥ 85% on `baseline` / `ratchet` / `diff_anchor` modules  
-- [ ] Docs + #35 AC checked  
+- [ ] Simple user docs: FAQ + ci.md + command-atlas + light README; CHANGELOG on ship; **no** cycle essay in `publishing.md`  
+- [ ] #35 AC checked  
 
 ---
 
-## 14. Open follow-ups (out of G2 MVP)
+## 15. Open follow-ups (out of G2 MVP)
 
 * Warm grimp cache reuse between review and check  
 * Auto-suggest `baseline set` after debt reduction in PR bot comments  
+* `--allow-config-drift` warn-only mode  
 * Multi-package fingerprint display truncation policy beyond title length
