@@ -22,6 +22,11 @@ from repolens.graph.types import GraphStatus
 
 _MERGE_BASE_CANDIDATES = ("origin/main", "origin/master", "main", "master")
 
+_UNANCHORED_NOTE = (
+    "ratchet.unanchored: could not anchor the breach to a newly added import line "
+    "(no git repository, empty diff, or no matching import)"
+)
+
 
 def resolve_diff_base(*, cli_base: str | None, cwd: Path | None = None) -> str | None:
     """Resolve git diff base for ratchet anchoring.
@@ -122,23 +127,25 @@ def _maybe_anchor_breach(
     cli_base: str | None,
     added_fingerprints: list[list[str]],
     message: str,
-) -> None:
+) -> bool:
+    """Print path:line (and GHA ::error) when possible. Return True if anchored."""
     if not _git_available(root):
-        return
+        return False
     base = resolve_diff_base(cli_base=cli_base, cwd=root)
     diff_text = _git_diff_text(cwd=root, base=base)
     if not diff_text.strip():
-        return
+        return False
     anchored = anchor_ratchet_breach(
         diff_text=diff_text,
         added_fingerprints=added_fingerprints,
     )
     if anchored is None:
-        return
+        return False
     path, line, _import_text = anchored
     console.print(f"{path}:{line}")
     if os.environ.get("GITHUB_ACTIONS", "").strip().lower() == "true":
         console.print(format_github_actions_error(path, line, message))
+    return True
 
 
 @check_app.callback(invoke_without_command=True)
@@ -223,11 +230,12 @@ def check(
         console.print(f"[dim]Config drift: {ratchet.config_mismatch_detail}[/dim]")
 
     if ratchet.breached:
-        _maybe_anchor_breach(
+        if not _maybe_anchor_breach(
             root=root,
             cli_base=base,
             added_fingerprints=ratchet.fingerprints_added,
             message=ratchet.message,
-        )
+        ):
+            console.print(f"[yellow]{_UNANCHORED_NOTE}[/yellow]")
         raise typer.Exit(code=1)
     raise typer.Exit(code=0)

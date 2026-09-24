@@ -23,6 +23,9 @@ from repolens.sources import SourceError, cleanup_source, resolve_source, select
 def _ratchet_breached_for_review(root: Path, *, ratchet_flag: bool) -> bool:
     """Run cyclicity ratchet when ``--ratchet`` or ``[graph].ratchet`` is set.
 
+    Caller must invoke only for ``mode == \"review\"``; sentinel/architecture must not
+    inherit config ratchet via shared ``_run_mode``.
+
     Missing baseline soft-skips unless ``require_baseline`` (same as ``check --diff``).
     Graph FAILED/SKIPPED aborts with exit 3. Returns True when cyclicity increased.
     """
@@ -216,9 +219,10 @@ def _run_mode(
             console.print(f"[red]Usage error:[/red] {exc}")
             raise typer.Exit(code=2) from exc
 
-        # Ratchet runs while the source tree still exists (before ephemeral cleanup).
-        # Either --fail-on or ratchet breach may yield exit 1.
-        if not result.dry_run:
+        # Ratchet is review-only (not sentinel/architecture). Runs while the source
+        # tree still exists (before ephemeral cleanup). Either --fail-on or ratchet
+        # breach may yield exit 1.
+        if not result.dry_run and mode == "review":
             ratchet_breached = _ratchet_breached_for_review(
                 resolved.root, ratchet_flag=ratchet
             )

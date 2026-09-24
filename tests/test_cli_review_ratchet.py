@@ -120,3 +120,33 @@ def test_review_without_ratchet_does_not_exit_1_on_cycles(tmp_path: Path) -> Non
         ],
     )
     assert result.exit_code == 0, result.output
+
+
+def test_sentinel_config_ratchet_does_not_exit_1(tmp_path: Path) -> None:
+    """[graph].ratchet must not gate sentinel (review-only scope)."""
+    root = tmp_path / "proj"
+    shutil.copytree(
+        CYCLE_PKG,
+        root,
+        ignore=shutil.ignore_patterns(".repolens"),
+    )
+    _write_low_baseline(root / ".repolens" / "baseline.json", cyclicity=0)
+    (root / ".repolens.toml").write_text(
+        "[graph]\nratchet = true\n", encoding="utf-8"
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "sentinel",
+            "--path",
+            str(root),
+            "--out",
+            str(tmp_path / "out"),
+            "--scanners-only",
+            "--scanners",
+            "off",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "ratchet breach" not in result.output.lower()
