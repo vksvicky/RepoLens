@@ -1,1 +1,1 @@
-from packcycle import a
+from packcycle import a  # noqa: F401
