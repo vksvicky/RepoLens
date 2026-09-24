@@ -19,7 +19,7 @@ Priority = Literal["P1", "P2", "P3"]
 FixTiming = Literal["immediately", "before launch", "after launch", "if time permits"]
 
 
-IssueSource = Literal["scanner", "heuristic", "llm"]
+IssueSource = Literal["scanner", "heuristic", "llm", "graph"]
 
 
 class Issue(BaseModel):
