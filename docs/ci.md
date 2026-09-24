@@ -86,6 +86,27 @@ repolens review --ci --scanners auto --fail-on HIGH --format both
 
 Full `--deep` reviews are for **scheduled / release audits**, not every PR. Budget honesty: clean PRs are typically scanners-only (seconds–minutes); do not assume a hard “&lt;5 minutes” SLA when the model runs.
 
+### Python cyclicity ratchet (fast gate, G2)
+
+Separate job or step — graph-only, no API key. Commit `.repolens/baseline.json` after `repolens baseline set`. FAQ: [cyclicity ratchet ladder](./faq.md#cyclicity-ratchet-baseline-g2).
+
+**GitHub Actions**
+
+```yaml
+      - name: Cyclicity ratchet (Rule 1)
+        run: repolens check --diff --require-baseline --path .
+```
+
+**pre-commit** (local hook)
+
+```yaml
+      - id: repolens-cyclicity-ratchet
+        name: repolens cyclicity ratchet
+        entry: repolens check --diff --require-baseline --path .
+        language: system
+        pass_filenames: false
+```
+
 Design: [phase-6.x §6.3](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md) · plan: [enterprise-ci-triage-routing](./superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md) · blog: [enterprise-scale-llm-review-ci](./blog-ideas/enterprise-scale-llm-review-ci.md)
 
 ### Inputs

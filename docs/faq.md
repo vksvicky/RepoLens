@@ -17,6 +17,7 @@ If you only read one section, read this.
 | **Does AI review every file?** | **No (Slow Brain).** LLM sample defaults to top **200** files. **Fast Brain** heuristics run on a much larger matched set (default 10k). Scanners walk the **full** tree. See [Two-Lane / inventory](#how-does-the-200-file-inventory-cap-work-are-the-other-files-at-risk). |
 | **Which UUID for `explain`?** | Copy the **Fingerprint** (preferred). **Occurrence** also works. See [finding fields](#what-do-finding-fields-mean). |
 | **Python import cycles?** | **Always on** when the matched inventory includes `.py` files: deterministic **grimp** graph + Tarjan SCCs (`source=graph`). Non-Python repos skip the lane silently. See [import graph FAQ](#python-import-cycles-import-graph-g1). |
+| **Cyclicity ratchet?** | Optional **Rule 1** gate: fail only when **runtime cyclicity** rises vs a stored baseline (`repolens baseline set` → `repolens check --diff`). Same section — [ratchet ladder](#cyclicity-ratchet-baseline-g2). |
 
 Longer narrative: [design/ai-keys-scanners-and-local-learning.md §5](./design/ai-keys-scanners-and-local-learning.md#5-decision-summary-plain-language).  
 
@@ -92,7 +93,21 @@ When a review’s matched inventory includes **Python** files, RepoLens runs a *
 | **MCP / DSL** | **Not in G1.** The **CLI report + exit code** is the gate; MCP servers and architecture DSL editors are later waves. |
 | **Sonargraph / SCIP** | G1 ships a **stub** `load_precomputed_edges(path)` for JSON edge lists (tests + future adapters); production reviews use grimp today. |
 
-Analysis failures (SyntaxError, discovery miss) append **`graph.analysis_failed: …`** durability gaps and **do not** abort the review. Design:. Commands: [command-atlas — Import graph](./command-atlas.md#import-graph-python-g1).
+### Cyclicity ratchet (baseline, G2)
+
+Short ladder for CI or pre-commit (seconds, no LLM):
+
+| Step | What to run |
+|------|-------------|
+| 1 | `repolens baseline set --path .` — writes `.repolens/baseline.json` (cyclicity + cycle fingerprints). Commit the file if you want baseline updates reviewed in PRs. |
+| 2 | `repolens check --diff --require-baseline --path .` — primary gate on every PR or hook. |
+| 3 *(optional)* | `repolens review --ratchet …` or `[graph] ratchet = true` — same Rule 1 after a review (combines with `--fail-on`). |
+
+**Rule 1 (one line):** the gate fails only when **runtime cyclicity** (∑ *n²* over cycle groups) is **strictly greater** than the baseline — not when fingerprints shuffle but the score stays flat or improves.
+
+**After `[graph]` config changes** (e.g. `local_imports`, `type_only`): run **`repolens baseline set`** again once the change is intentional. Until then you may see a `ratchet.config_mismatch` note; Rule 1 still applies.
+
+Analysis failures (SyntaxError, discovery miss) append **`graph.analysis_failed: …`** durability gaps and **do not** abort the review. Commands: [command-atlas — Import graph](./command-atlas.md#import-graph-python-g1) · [ratchet commands](./command-atlas.md#import-graph-ratchet-python-g2).
 
 ---
 
