@@ -178,6 +178,31 @@ def test_check_breach_exit_1(tmp_path: Path) -> None:
     assert "+" in result.output  # fingerprint added lines
 
 
+def test_check_breach_unanchored_note_when_no_git(tmp_path: Path) -> None:
+    """Breach still exits 1 and emits ratchet.unanchored when anchor cannot run."""
+    baseline = tmp_path / "baseline.json"
+    _write_low_baseline(baseline, cyclicity=0)
+
+    with patch(
+        "repolens.cli.commands_check._git_available",
+        return_value=False,
+    ):
+        result = runner.invoke(
+            app,
+            [
+                "check",
+                "--diff",
+                "--path",
+                str(CYCLE_PKG),
+                "--baseline",
+                str(baseline),
+            ],
+        )
+    assert result.exit_code == 1, result.output
+    assert "ratchet.unanchored:" in result.output
+    assert "ratchet breach" in result.output.lower()
+
+
 def test_check_graph_failed_exit_3(tmp_path: Path) -> None:
     baseline = tmp_path / "baseline.json"
     _write_low_baseline(baseline, cyclicity=0)
