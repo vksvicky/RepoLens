@@ -92,7 +92,7 @@ When a review’s matched inventory includes **Python** files, RepoLens runs a *
 | **MCP / DSL** | **Not in G1.** The **CLI report + exit code** is the gate; MCP servers and architecture DSL editors are later waves. |
 | **Sonargraph / SCIP** | G1 ships a **stub** `load_precomputed_edges(path)` for JSON edge lists (tests + future adapters); production reviews use grimp today. |
 
-Analysis failures (SyntaxError, discovery miss) append **`graph.analysis_failed: …`** durability gaps and **do not** abort the review. Design: [superpowers/specs/2026-09-24-g1-python-import-graph-design.md](./superpowers/specs/2026-09-24-g1-python-import-graph-design.md). Commands: [command-atlas — Import graph](./command-atlas.md#import-graph-python-g1).
+Analysis failures (SyntaxError, discovery miss) append **`graph.analysis_failed: …`** durability gaps and **do not** abort the review. Design:. Commands: [command-atlas — Import graph](./command-atlas.md#import-graph-python-g1).
 
 ---
 
@@ -160,7 +160,7 @@ Report chrome (Metrics, Coverage, About, Disclaimer) and LLM/heuristic finding p
 
 ## How do we harden RepoLens against its own dogfood noise?
 
-Self-review on this repo should not drown in agent scratch (`.superpowers/`), heuristic fixtures, or pedagogical “password” mentions in playbooks. Plan: [superpowers/specs/2026-08-05-self-review-hardening-design.md](./superpowers/specs/2026-08-05-self-review-hardening-design.md) · [implementation plan](./superpowers/plans/2026-08-05-self-review-hardening.md).
+Self-review on this repo should not drown in agent scratch (`.superpowers/`), heuristic fixtures, or pedagogical “password” mentions in playbooks.
 
 ## What do finding fields mean?
 
@@ -198,7 +198,7 @@ Lookup order inside RepoLens: match **Occurrence** (`runId`) first if present, e
 
 JSON still uses `stableId` / `runId` for compatibility; Markdown shows the human labels above.
 
-Schema: [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) · design: [superpowers/specs/2026-08-04-phase-6-issue-explain-diagrams-design.md](./superpowers/specs/2026-08-04-phase-6-issue-explain-diagrams-design.md).
+Schema: [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) · design:.
 
 ## How do I deep-dive one finding (Phase 6 explain)?
 
@@ -223,7 +223,7 @@ For `heuristic.mega_file`, RepoLens feeds a **symbol outline** (classes/function
 
 ## How do we reduce known LLM false positives for everyone?
 
-Post-parse **FP calibrations** (default on) demote patterns such as list-form `subprocess` “command injection”. Toggle under `[deep].fp_calibrations` in config / `.repolens.toml` (e.g. `subprocess_list_not_injection = false` to disable). Design: [superpowers/specs/2026-08-05-fp-calibrations-config-design.md](./superpowers/specs/2026-08-05-fp-calibrations-config-design.md).
+Post-parse **FP calibrations** (default on) demote patterns such as list-form `subprocess` “command injection”. Toggle under `[deep].fp_calibrations` in config / `.repolens.toml` (e.g. `subprocess_list_not_injection = false` to disable). Design:.
 
 ---
 
@@ -327,7 +327,7 @@ After flooring, the usual **+5** security bonus when scanners all ran still appl
 
 **CI vs confidence gates:** `--fail-on` gates on **finding severity** (e.g. `HIGH`), not on confidence %. Dual-review-style **confidence** gates in consumer pipelines often want **≥70**; a floored clean package lands at **75** gate — adequate for that bar, separate from `--fail-on`.
 
-Design: [superpowers/specs/2026-09-05-vacuous-pass-confidence-floor-design.md](./superpowers/specs/2026-09-05-vacuous-pass-confidence-floor-design.md).
+Design:.
 
 ### Core vs Extended themes (Phase 5.2)
 
