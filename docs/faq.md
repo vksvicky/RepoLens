@@ -98,6 +98,23 @@ Playbooks in chat and RepoLens share review *ideas*; they are not the same produ
 
 ---
 
+## What are near-clones and the Quality scorecard (Fast Brain)?
+
+**Near-clones** are **deterministic Fast Brain heuristics** (`source=heuristic`, category `quality.near_clone`) — sliding line windows + content hash, not AST matching and not Slow Brain LLM prose. Findings use **physical** file:line numbers (blank lines skipped in the hash, but line anchors match the file on disk). Overlapping windows for the same file pair are **coalesced** into one block; boilerplate (header comments, import-only windows, common generated paths) is suppressed.
+
+| Knob | Default | Role |
+|------|---------|------|
+| `[fast_brain.near_clones].window_lines` / `stride` | 12 / 6 | Window size and step |
+| `max_clusters` | **50** | Tally on the **Quality scorecard** (and internal cluster list) |
+| `max_findings` | **10** | Max near-clone **Issues** in the findings list |
+| `medium_at_occurrences` | 4 | Severity bump when a cluster repeats |
+
+When more clone clusters exist than `max_findings`, the report still counts clusters on the scorecard (up to `max_clusters`) and adds an **omission note** (e.g. additional clusters omitted from findings). Tune or disable via `[fast_brain.near_clones]` in `.repolens.toml` — see [`.repolens.example.toml`](../.repolens.example.toml).
+
+**Quality scorecard (Fast Brain)** is a compact Markdown + JSON block (`report.quality`) rolling up mega-files, deep nesting, near-clone cluster counts, and files scanned. It is a **DRY/KISS posture signal**, not an architecture certification and **not** a Sonargraph-style clone explorer (no interactive duplicate browser, no industrial dependency graph). **Cyclicity / import cycles are not on this scorecard** — that belongs to the separate Python import-graph work (G1). Design: [superpowers/specs/2026-09-24-g0-fast-brain-quality-design.md](./superpowers/specs/2026-09-24-g0-fast-brain-quality-design.md).
+
+---
+
 ## What is the adaptive cache (Phase 5)?
 
 On each review RepoLens can maintain `.repolens/repolens.sqlite` (local): file fingerprints + run timings + optional FTS content (opt-in). Later runs prefer **changed + P1** files (`adaptive.mode=auto`), and store a **recommended timeout** per project.
