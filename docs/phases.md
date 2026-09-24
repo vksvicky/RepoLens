@@ -6,9 +6,9 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–6.x** and **Wave A gate honesty** complete ([#21](https://github.com/vksvicky/RepoLens/issues/21), [#14](https://github.com/vksvicky/RepoLens/issues/14), [#17](https://github.com/vksvicky/RepoLens/issues/17) MVP). **Now:** **Wave B / Phase 7** ([#3](https://github.com/vksvicky/RepoLens/issues/3) enterprise CI/CD). Parallel: **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)).  
+**Current phase:** Phases **0–7** and **Wave A gate honesty** complete. **Now:** finish **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) — tag `v0.1.0a1` for `repolens-audit`. Next product tracks: optional **G0** ([#33](https://github.com/vksvicky/RepoLens/issues/33)) then **G1 graph** ([#34](https://github.com/vksvicky/RepoLens/issues/34)) under [#18](https://github.com/vksvicky/RepoLens/issues/18); then Phase **8** ([#4](https://github.com/vksvicky/RepoLens/issues/4)).  
 **GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred follow-ups: [#11](https://github.com/vksvicky/RepoLens/issues/11). Umbrella dogfood: [#13](https://github.com/vksvicky/RepoLens/issues/13).  
-**Parked:** [#15](https://github.com/vksvicky/RepoLens/issues/15) (32B local runtime), [#16](https://github.com/vksvicky/RepoLens/issues/16) (change-set scoping), [#18](https://github.com/vksvicky/RepoLens/issues/18) (architecture DSL / MCP), **#17b** (local UI calibrations — after Phase 7 start).
+**Parked:** [#15](https://github.com/vksvicky/RepoLens/issues/15) (32B local runtime), [#16](https://github.com/vksvicky/RepoLens/issues/16) (change-set scoping), **#17b** (local UI calibrations), [#29](https://github.com/vksvicky/RepoLens/issues/29)/[#30](https://github.com/vksvicky/RepoLens/issues/30) (post-alpha UX). Structure programme children [#33](https://github.com/vksvicky/RepoLens/issues/33)–[#37](https://github.com/vksvicky/RepoLens/issues/37) wait on #1 (G0 may parallel).
 
 **CLI language:** Python 3.11+
 
@@ -20,11 +20,17 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | ↳ Vacuous confidence floor | [#21](https://github.com/vksvicky/RepoLens/issues/21) | [x] Merged via PR #22 |
 | ↳ Cross-source SCA dedupe (A1) | [#14](https://github.com/vksvicky/RepoLens/issues/14) | [x] Merged via PR #23 (+ Sourcery follow-ups #24/#25) |
 | ↳ Gate UX & copy MVP (A2) | [#17](https://github.com/vksvicky/RepoLens/issues/17) | [x] Merged via PR #23; #17b pinned |
-| **Wave B: Distribution & CI** | | **Active** |
-| ↳ Phase 7: Enterprise CI/CD (B1) | [#3](https://github.com/vksvicky/RepoLens/issues/3) | [~] Docs MVP ready — PR to close #3 |
-| ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | [ ] Parallel track; Trusted Publisher + dogfood |
-| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Planned after Phase 7 |
-
+| **Wave B: Distribution & CI** | | **B1 done · B2 active** |
+| ↳ Phase 7: Enterprise CI/CD (B1) | [#3](https://github.com/vksvicky/RepoLens/issues/3) | [x] Closed — docs MVP + Sourcery follow-ups (#26/#31) |
+| ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | **[Now]** Dist name `repolens-audit`; env + pending publisher + rename done; **tag publish remaining** |
+| **Wave C: Structure / Zügel-aligned** | [#18](https://github.com/vksvicky/RepoLens/issues/18) | Design revised; start after #1 |
+| ↳ G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [ ] May parallel #1 |
+| ↳ G1 Python import graph | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [ ] Before MCP |
+| ↳ G2 Cyclicity ratchet | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] After G1 |
+| ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] After G1 (+G2 preferred) |
+| ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] After G1 |
+| Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [ ] Small parallel docs |
+| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Planned after #1 (and preferably after G1 kickoff or Phase 8 parallel) |
 ---
 
 ## Legend
@@ -431,7 +437,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **#21** Vacuous pass confidence floor | [x] | Merged via PR #22; auto-floors clean passes to 75/55; respects declarative seeds |
 | **#14** Cross-source SCA deduplication (A1) | [x] | Merged via PR #23 (+ #24/#25 Sourcery harden) |
 | **#17** Gate UX & copy alignment MVP (A2) | [x] | Merged via PR #23; FAQ-aligned one-liner + Unique Critical/High |
-| **#17b** Local UI attack surface calibrations | [ ] | Pinned on [#17](https://github.com/vksvicky/RepoLens/issues/17#issuecomment-5558813811); after Phase 7 start |
+| **#17b** Local UI attack surface calibrations | [ ] | Pinned on [#17](https://github.com/vksvicky/RepoLens/issues/17#issuecomment-5558813811); Phase 7 done — unpark after #1 if desired |
 | **Parked tracks:** #15 (32B runtime), #16 (change-set), #18 (DSL/MCP) | [ ] | Parked |
 
 **Wave A exit criteria:** Met for MVP (unique SCA ≈ unique Crit/High; vacuous floor; gate ≠ "% secure" copy).
@@ -458,7 +464,25 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Forge-side push-protection recipes | [x] | GH/GitLab push protection vs RepoLens post-land audit |
 | FAQ “Corporate CI/CD” | [x] | [faq.md](./faq.md) |
 
-**Phase 7 exit criteria:** A security/platform engineer can wire RepoLens into Jenkins, CircleCI, or GitLab, archive reports (incl. SARIF/SBOM when present), optionally email/notify, know forge push-protection vs RepoLens audit role, and know when to disable adaptive learning on CI.
+**Phase 7 exit criteria:** A security/platform engineer can wire RepoLens into Jenkins, CircleCI, or GitLab, archive reports (incl. SARIF/SBOM when present), optionally email/notify, know forge push-protection vs RepoLens audit role, and know when to disable adaptive learning on CI. → **Met (2026-09-06)** via #26 + #31; issue #3 closed.
+
+---
+
+## Wave C — Structure programme (Zügel-aligned)
+
+**Goal:** Deterministic import graph + ratchet + optional MCP/DSL without becoming Sonargraph.  
+**Design:** [zugel-comparison-and-roadmap.md](./design/zugel-comparison-and-roadmap.md) (revised 2026-09-06: **graph before MCP**).  
+**Umbrella:** [#18](https://github.com/vksvicky/RepoLens/issues/18)
+
+| Phase | Issue | Status | Notes |
+|-------|-------|--------|-------|
+| G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [ ] | Near-clones + scorecard; may parallel #1 |
+| G1 Python graph + SCC + TYPE_CHECKING tags | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [ ] | Stdlib `ast`; **before** MCP |
+| G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] | Git-friendly baseline; runtime cycles hard-fail |
+| G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] | Cycle/reachability tools pre-G4 only |
+| G4 Architecture DSL + weighted FAS LLM cuts | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] | `get_legal_imports` only here |
+
+**Start after** PyPI alpha (#1) unless doing G0 docs/heuristics in parallel.
 
 ---
 
@@ -552,6 +576,9 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-09-05 | Gate honesty interrupt before Phase 7 | Vacuous LLM pass confidence floor (#21) after LogViewer clean-repo gate 0%; composes with declarative `[coverage]` seeds |
 | 2026-09-06 | Wave A gate honesty (#13) & Phase 7 plan | Scope A1 (#14 cross-source SCA dedupe) + A2 (#17 Gate UX copy MVP); defer #17b local_ui calibrations post-Phase 7; park #15/#16/#18; thin Phase 7 execution checklist + parallel PyPI alpha (#1) |
 | 2026-09-06 | Phase 7 docs MVP (#3) | Jenkins / CircleCI / GitLab recipes + notify/cache/push-protection + Corporate CI FAQ in ci.md / faq.md |
+| 2026-09-06 | PyPI dist name `repolens-audit` (#1) | Bare `repolens` blocked by similarity; CLI/import remain `repolens` (PR #32) |
+| 2026-09-06 | Zügel roadmap revised (#18) | Graph before MCP; G0–G4 issues #33–#37; TYPE_CHECKING / FAS / pre-G4 tool honesty (PRs #38/#39) |
+| 2026-09-24 | Roadmap sync | Phase 7 closed; **next = #1 tag publish**; Wave C after #1 |
 
 ---
 
