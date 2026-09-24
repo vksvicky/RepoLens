@@ -318,6 +318,7 @@ def run_review(
             mega_file_exclude_globs=cfg.deep.mega_file_exclude_globs or None,
             pack_ids=pack_ids or None,
             workers=cfg.fast_brain.parallel_workers,
+            near_clones_config=cfg.fast_brain.near_clones,
         )
         fast_brain_seconds = round(time.monotonic() - _fb_t0, 1)
         heur_issues = list(heur_result.issues)

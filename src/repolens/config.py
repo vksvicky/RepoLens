@@ -42,6 +42,20 @@ class GeneralConfig(BaseModel):
     max_files: int = 200
 
 
+class NearClonesConfig(BaseModel):
+    """Fast Brain near-clone detection (line/hash windows, dual caps)."""
+
+    enabled: bool = True
+    window_lines: int = 12
+    stride: int = 6
+    min_occurrences: int = 2
+    max_clusters: int = 50
+    max_findings: int = 10
+    medium_at_occurrences: int = 4
+    header_comment_lines: int = 15
+    exclude_globs: list[str] = Field(default_factory=list)
+
+
 class FastBrainConfig(BaseModel):
     """Phase 6.11 Lane 1: whole-tree deterministic heuristics (not the LLM pack)."""
 
@@ -50,6 +64,7 @@ class FastBrainConfig(BaseModel):
     parallel_workers: int = 8
     # When True, heuristic hits at severity_floor can wake --ci LLM triage.
     triage_include_heuristics: bool = True
+    near_clones: NearClonesConfig = Field(default_factory=NearClonesConfig)
 
 
 class ScannersConfig(BaseModel):

@@ -163,6 +163,22 @@ def test_scripts_hygiene_skips_markdown_playbooks(tmp_path: Path) -> None:
     assert not any(i.file.endswith(".md") for i in hygiene)
 
 
+def test_runner_emits_near_clone_via_fast_brain(tmp_path: Path) -> None:
+    body = "\n".join(f"    x = {i}" for i in range(30))
+    fn = f"def copied():\n{body}\n"
+    leading = "def other():\n    pass\n\n"
+    (tmp_path / "a.py").write_text(leading + fn, encoding="utf-8")
+    (tmp_path / "b.py").write_text(leading + fn, encoding="utf-8")
+    entries = _entries_for(tmp_path, "a.py", "b.py")
+
+    result = run_heuristics(tmp_path, entries)
+
+    clones = [i for i in result.issues if i.category == "quality.near_clone"]
+    assert len(clones) == 1
+    assert result.near_clone_clusters >= 1
+    assert result.near_clone_occurrences >= 1
+
+
 def test_missing_dependabot_when_package_manifest_exists(tmp_path: Path) -> None:
     (tmp_path / "package.json").write_text('{"name":"demo"}\n', encoding="utf-8")
     (tmp_path / "src").mkdir()
