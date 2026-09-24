@@ -41,5 +41,3 @@ Durable record of dual-review gate confidence over time.
 | 2026-09-06 | WIP→commit | 96% | 0/0/0/0 | Wave A docs: #14/#17 specs+plans, Phase 7 checklist, phases.md interrupt queue | chat |
 | 2026-09-06 | WIP→commit | 93% | 0/0/0/0 | #14 cross-source SCA dedupe (scanner baseline; gate penalty on unique) | chat |
 | 2026-09-06 | WIP→commit | 94% | 0/0/0/0 | #17 MVP gate UX copy + Unique Critical/High (raw) | chat |
-| 2026-09-24 | 1c098af | 92% | 0/0/0/1 | G2 Task 5: baseline set/show CLI; SKIPPED still writes | chat / .superpowers/sdd/task-5-report.md |
-| 2026-09-24 | WIP→commit | 93% | 0/0/0/1 | G2 Task 6: check --diff cyclicity ratchet CLI | chat / .superpowers/sdd/task-6-report.md |
