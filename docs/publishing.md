@@ -129,10 +129,10 @@ Also exercise the Action on GitHub (workflow_dispatch on [repolens-example.yml](
 - [x] PyPI pending publisher saved for `repolens-audit` / `publish.yml` / `pypi`  
 - [x] Version in `pyproject.toml` + `src/repolens/__init__.py` matches the tag  
 - [x] [CHANGELOG.md](./CHANGELOG.md) updated  
-- [ ] Tag `vX.Y.ZaN` and `git push origin <tag>`  
-- [ ] Publish workflow green; package visible on PyPI  
-- [ ] `pip install repolens-audit==…` smoke test (`repolens version` still works)  
-- [ ] Document Action pin: `uses: vksvicky/RepoLens@vX.Y.ZaN`
+- [x] Tag `v0.1.0a1` and `git push origin v0.1.0a1`  
+- [x] Publish workflow green; package visible on PyPI  
+- [x] `pip install "repolens-audit==0.1.0a1"` smoke test (`repolens version` works)  
+- [x] Document Action pin: `uses: vksvicky/RepoLens@v0.1.0a1` (or `@main` while iterating)
 
 ## Related
 
