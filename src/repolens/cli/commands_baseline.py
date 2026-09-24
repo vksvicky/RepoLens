@@ -61,6 +61,14 @@ def baseline_set(
             console.print(f"[red]{gap}[/red]")
         console.print("[red]Graph analysis failed; baseline not written.[/red]")
         raise typer.Exit(code=3)
+    if result.status is GraphStatus.SKIPPED:
+        for gap in result.durability_gaps:
+            console.print(f"[red]{gap}[/red]")
+        console.print(
+            "[red]Graph analysis was skipped (e.g. graph disabled); "
+            "baseline not written.[/red]"
+        )
+        raise typer.Exit(code=3)
     doc = baseline_from_graph(result, config=graph_cfg, version=__version__)
     write_baseline(target, doc)
     fps = doc["graph"]["fingerprints"]
