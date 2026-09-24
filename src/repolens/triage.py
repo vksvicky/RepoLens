@@ -3,12 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal
-
 from repolens.config import CiConfig
-from repolens.schema import FindingReport, Issue, Severity
-
-IssueSource = Literal["scanner", "heuristic", "llm"]
+from repolens.schema import FindingReport, Issue, IssueSource, Severity
 
 _SCANNER_CATEGORIES = frozenset(
     {"gitleaks", "semgrep", "osv", "trivy", "checkov"}
@@ -52,9 +48,11 @@ def _meets_floor(issue: Issue, floor: str) -> bool:
 
 def infer_issue_source(issue: Issue) -> IssueSource:
     """Best-effort source tag for gating and provenance."""
-    if issue.source in {"scanner", "heuristic", "llm"}:
+    if issue.source in {"scanner", "heuristic", "llm", "graph"}:
         return issue.source  # type: ignore[return-value]
     cat = (issue.category or "").strip().lower()
+    if cat == "arch.import_cycle":
+        return "graph"
     if cat in _SCANNER_CATEGORIES or any(m in cat for m in _SCANNER_CATEGORIES):
         return "scanner"
     if cat.startswith("heuristic.") or cat.startswith("pack."):
@@ -70,11 +68,13 @@ def stamp_issue_sources(
     """Fill missing ``source`` from category heuristics."""
     out: list[Issue] = []
     for issue in issues:
-        if issue.source in {"scanner", "heuristic", "llm"}:
+        if issue.source in {"scanner", "heuristic", "llm", "graph"}:
             out.append(issue)
             continue
         cat = (issue.category or "").strip().lower()
-        if cat in _SCANNER_CATEGORIES or any(m in cat for m in _SCANNER_CATEGORIES):
+        if cat == "arch.import_cycle":
+            out.append(issue.model_copy(update={"source": "graph"}))
+        elif cat in _SCANNER_CATEGORIES or any(m in cat for m in _SCANNER_CATEGORIES):
             out.append(issue.model_copy(update={"source": "scanner"}))
         elif cat.startswith("heuristic.") or cat.startswith("pack."):
             out.append(issue.model_copy(update={"source": "heuristic"}))
@@ -226,8 +226,10 @@ def fail_on_triggered(
         )
     threshold = order[key]
     for issue in report.issues:
-        if scanner_only and infer_issue_source(issue) != "scanner":
-            continue
+        if scanner_only:
+            src = infer_issue_source(issue)
+            if src not in {"scanner", "graph"}:
+                continue
         if order[issue.severity.value] >= threshold:
             return True
     return False

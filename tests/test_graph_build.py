@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from repolens.graph import analyse_python_graph
-from repolens.graph.build import GraphConfig
+from repolens.config import GraphConfig
 from repolens.graph.types import GraphStatus, ImportScope
 
 FIXTURES = Path(__file__).parent / "fixtures"
