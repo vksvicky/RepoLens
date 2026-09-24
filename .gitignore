@@ -46,6 +46,9 @@ reports-dogfood/
 .cache/
 repolens-work/
 
-# Logs
-*.log
+# Local feature worktrees
 .worktrees/
+
+# Maintainer-only agent specs/plans (local reference — not part of the open-source docs)
+docs/superpowers/
+.superpowers/

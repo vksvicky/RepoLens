@@ -1,7 +1,6 @@
 # Blog idea — Reuse last LLM findings when nothing changed
 
 **Status:** Stub for later (CRC Club / RepoLens product blog)  
-**Spec:** [../superpowers/specs/2026-08-05-reuse-last-llm-findings-design.md](../superpowers/specs/2026-08-05-reuse-last-llm-findings-design.md)
 
 ## Angle
 

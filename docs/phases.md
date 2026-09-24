@@ -192,7 +192,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design approved | [x] | [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md) · [spec](./superpowers/specs/2026-08-04-phase-5.1-deep-hardening-design.md) |
+| Design approved | [x] | [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md) |
 | Lazy N/A rejection + coverage honesty | [x] | `is_lazy_na_reason` → missed |
 | Gate + security (+ arch/rel) audit confidence + glossary | [x] | `metrics.py` + report Metrics section |
 | Mega-file ignore globs (docs/xcuserdata/pbxproj) | [x] | Configurable via `[deep]` |
@@ -229,7 +229,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design approved | [x] | [phase-6-issue-explain-diagrams.md](./design/phase-6-issue-explain-diagrams.md) · [spec](./superpowers/specs/2026-08-04-phase-6-issue-explain-diagrams-design.md) |
+| Design approved | [x] | [phase-6-issue-explain-diagrams.md](./design/phase-6-issue-explain-diagrams.md) |
 | Issue IDs on FindingReport | [x] | `stableId` (v5) + `runId` (v4); stamped before report write |
 | `[explain]` config + `repolens explain` + `review --explain` | [x] | |
 | Diagram spine (validate → repair → fallback → optional image) | [x] | Exit 0 |
@@ -268,7 +268,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design | [x] | Umbrella §3 / 6.1 · [plan](./superpowers/plans/2026-08-06-phase-6.1-trivy-checkov-plugins.md) |
+| Design | [x] | Umbrella §3 / 6.1 |
 | `trivy` plugin (pin + merge) | [x] | `trivy fs` JSON → Issues (vuln + misconfig) |
 | `checkov` plugin (pin + merge) | [x] | pip pin → JSON failed_checks |
 | Structured results → LLM pack | [x] | `format_scanner_evidence_for_prompt` |
@@ -360,7 +360,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design | [x] | Umbrella §3 / 6.7 · [spec](./superpowers/specs/2026-08-06-phase-6.7-suppressions-design.md) |
+| Design | [x] | Umbrella §3 / 6.7 |
 | `.repolens-ignore` (stableId / fingerprint + reason) | [x] | TOML; expiry optional |
 | `# repolens:disable-next-line` (and block form) | [x] | LLM/heuristic only |
 | Suppressions honored in fail-on + SARIF | [x] | Markdown **Suppressed** section |
@@ -376,7 +376,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design | [x] | Umbrella §3 / 6.8 · [spec](./superpowers/specs/2026-08-06-phase-6.8-pr-suggested-fix-ux.md) |
+| Design | [x] | Umbrella §3 / 6.8 |
 | PR / job-summary presentation | [x] | `repolens pr-summary` + Action `$GITHUB_STEP_SUMMARY` |
 | Surface Critical/High code examples as suggestions | [x] | Plus `::error`/`::warning` annotations |
 | Docs recipe | [x] | [ci.md](./ci.md#pr-suggested-fix-summary-phase-68) |
@@ -390,7 +390,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design | [x] | Umbrella §3 / 6.9 · [spec](./superpowers/specs/2026-08-06-phase-6.9-reachability-verify.md) |
+| Design | [x] | Umbrella §3 / 6.9 |
 | Best-effort reachability (free signals only) | [x] | SCA meta + usage hints; FAQ: no call graphs |
 | Optional sandbox/repro verify mode | [~] | Location re-verify opt-in (not LLM repro sandbox) |
 | Near-duplicate clustering | [x] | file+category+title/CWE; keep highest severity |
@@ -403,7 +403,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design | [x] | Umbrella §3 / 6.10 · [spec](./superpowers/specs/2026-08-06-phase-6.10-domain-packs.md) |
+| Design | [x] | Umbrella §3 / 6.10 |
 | Azure Sentinel / Logic Apps SOAR pack (opt-in) | [x] | `--pack azure-sentinel` / `[packs] enabled` |
 | Pack registry pattern for future domains | [x] | `repolens.packs` + `repolens packs list` |
 | Docs | [x] | [packs.md](./packs.md) |
@@ -416,7 +416,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design | [x] | [spec](./superpowers/specs/2026-08-06-phase-6.11-fast-brain-whole-tree-heuristics.md) · [plan](./superpowers/plans/2026-08-06-phase-6.11-fast-brain.md) |
+| Design | [x] | |
 | Whole-tree heuristics ∥ scanners | [x] | Fast inventory default 10k; LLM pool 200 |
 | Parallel heuristic workers | [x] | `ThreadPoolExecutor` for I/O chunks |
 | Triage includes heuristic hits | [x] | `[fast_brain].triage_include_heuristics` |
@@ -424,7 +424,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 **Exit:** Deterministic baseline on Fast Brain inventory; LLM remains sampled / triage-routed; docs honest about lanes. → **Met for implementation (2026-08-06)** (dogfood deep run completed)
 
-**Follow-up (2026-08-06):** Two-Lane headline + lane timings, theme-family clustering, indent nesting heuristic, fair dogfood docs — [plan](./superpowers/plans/2026-08-06-two-lane-presentation-and-cq-parity.md).
+**Follow-up (2026-08-06):** Two-Lane headline + lane timings, theme-family clustering, indent nesting heuristic, fair dogfood docs —.
 
 ---
 
@@ -472,14 +472,13 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 **Goal:** Deterministic import graph + ratchet + optional MCP/DSL without becoming Sonargraph.  
 **Design:** [zugel-comparison-and-roadmap.md](./design/zugel-comparison-and-roadmap.md) (rev 2026-09-24: grimp core, CLI-primary gates, FAS-as-candidate).  
-**Umbrella:** [#18](https://github.com/vksvicky/RepoLens/issues/18)  
-**Specs:** [G0](./superpowers/specs/2026-09-24-g0-fast-brain-quality-design.md) · [G1](./superpowers/specs/2026-09-24-g1-python-import-graph-design.md)
+**Umbrella:** [#18](https://github.com/vksvicky/RepoLens/issues/18)
 
 | Phase | Issue | Status | Notes |
 |-------|-------|--------|-------|
 | G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [~] | [PR #45](https://github.com/vksvicky/RepoLens/pull/45) — near-clones + scorecard |
 | G1 Python graph + SCC (grimp) | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [~] | [PR #46](https://github.com/vksvicky/RepoLens/pull/46) — `source=graph`; fail-on like scanner |
-| G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] | Spec + [plan](./superpowers/plans/2026-09-24-g2-cyclicity-ratchet.md) — implement after G1 (#46) merges |
+| G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] | Rule 1 cyclicity-only; implement after G1 (#46) merges |
 | G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] | Secondary to CLI; after G1 (+G2 preferred) |
 | G4 Architecture DSL + weighted FAS LLM cuts | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] | FAS = candidate; domain direction wins |
 
@@ -494,7 +493,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design sketch | [x] | [phase-8-provider-aliases-and-recipes.md](./design/phase-8-provider-aliases-and-recipes.md) · [spec](./superpowers/specs/2026-08-05-phase-8-provider-aliases-design.md) |
+| Design sketch | [x] | [phase-8-provider-aliases-and-recipes.md](./design/phase-8-provider-aliases-and-recipes.md) |
 | P0 aliases: Azure, Mistral, Groq, OpenRouter | [ ] | Map to OpenAI-compatible + stream |
 | Setup/FAQ recipes (P0–P2) | [ ] | LM Studio / vLLM as `openai_compatible` |
 | Gemini: recipe or “see Phase 9” | [ ] | No half-native adapter in Phase 8 |
@@ -509,7 +508,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design sketch | [x] | [phase-9-native-provider-sdks.md](./design/phase-9-native-provider-sdks.md) · [spec](./superpowers/specs/2026-08-05-phase-9-native-provider-sdks-design.md) |
+| Design sketch | [x] | [phase-9-native-provider-sdks.md](./design/phase-9-native-provider-sdks.md) |
 | Native Gemini and/or Vertex | [ ] | Stream → `on_delta` |
 | Native Bedrock (if demanded) | [ ] | Prefer Converse + thin httpx |
 | Keep Phase 8 aliases on OpenAI-compatible path | [ ] | Do not rewrite without cause |
