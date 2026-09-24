@@ -26,7 +26,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **Wave C: Structure / Zügel-aligned** | [#18](https://github.com/vksvicky/RepoLens/issues/18) | **Active** — G0+G1 in PR; G2 next |
 | ↳ G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [~] [PR #45](https://github.com/vksvicky/RepoLens/pull/45) — near-clones + scorecard |
 | ↳ G1 Python import graph | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [~] [PR #46](https://github.com/vksvicky/RepoLens/pull/46) — grimp core; `source=graph` |
-| ↳ G2 Cyclicity ratchet | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] Spec next (after G1 merge) |
+| ↳ G2 Cyclicity ratchet | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] Spec draft (Rule 1); implement after G1 merge |
 | ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] After G1 (+G2 preferred); MCP secondary |
 | ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] After G1; FAS = candidate cut |
 | Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [ ] Small parallel docs |
@@ -479,7 +479,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 |-------|-------|--------|-------|
 | G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [~] | [PR #45](https://github.com/vksvicky/RepoLens/pull/45) — near-clones + scorecard |
 | G1 Python graph + SCC (grimp) | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [~] | [PR #46](https://github.com/vksvicky/RepoLens/pull/46) — `source=graph`; fail-on like scanner |
-| G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] | **Next** after G1 merge — baseline + `check --diff` |
+| G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] | Spec draft: [g2 design](./superpowers/specs/2026-09-24-g2-cyclicity-ratchet-design.md) — Rule 1 cyclicity-only |
 | G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] | Secondary to CLI; after G1 (+G2 preferred) |
 | G4 Architecture DSL + weighted FAS LLM cuts | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] | FAS = candidate; domain direction wins |
 
