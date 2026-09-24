@@ -95,9 +95,11 @@ For each file:
 
 With N=12, S=6, a 30-line copied function yields multiple overlapping window matches between the same file pair. **Before** emitting findings:
 
-* Group matches by `(file_a, file_b, hash-run connectivity)`.  
-* Merge windows that **overlap or abut** on both sides into one **clone block**: e.g. `A.py:1–30` duplicated in `B.py:45–74`.  
-* One coalesced block ⇒ at most one cluster candidate (not four).
+* Group matches by `(file_a, file_b)`.  
+* Merge consecutive windows only when A- and B-ranges **overlap or abut** **and** the alignment offset `(phys_start_b - phys_start_a)` is **constant** across those windows (same continuous block in both files).  
+  * Example merge: A:1–12↔B:45–56 and A:7–18↔B:51–62 (both offset `+44`).  
+  * Example **do not** merge: A:7–18↔B:100–111 (offset `+93`) even if A-ranges abut.  
+* Result: e.g. `A.py:1–30` duplicated in `B.py:45–74` as **one** clone block (not four).
 
 ### 6.4 Boilerplate & false-positive suppression
 

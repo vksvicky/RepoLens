@@ -77,7 +77,7 @@ existing report / SARIF / --fail-on pipeline
 | `src/repolens/graph/types.py` | `EdgeKind`, `ImportScope`, `ImportEdge`, `CycleGroup`, `GraphResult` |
 | `src/repolens/graph/discover.py` | Package-name discovery heuristic (§6.5) |
 | `src/repolens/graph/build.py` | Invoke grimp; merge AST scope tags; map to our types; catch failures |
-| `src/repolens/graph/scope_tags.py` | Lightweight stdlib `ast` pass: module-level vs function-local imports |
+| `src/repolens/graph/scope_tags.py` | Stdlib `ast` pass: function body + TYPE_CHECKING **line ranges** only |
 | `src/repolens/graph/cycles.py` | SCC / cyclicity on the **gated** edge set |
 | `src/repolens/graph/findings.py` | `GraphResult` → **one `Issue` per SCC** |
 | `src/repolens/graph/adapters.py` | `load_precomputed_edges(path) → GraphResult` stub |
@@ -93,13 +93,14 @@ Pipeline hook: run as a **sibling deterministic lane** beside Fast Brain heurist
 | `kind` | `runtime` \| `type_only` | Only `runtime` (unless `type_only=warn` emits soft findings) |
 | `scope` | `module` \| `function_local` | `function_local` excluded when `local_imports=exclude` (default) |
 
-**Grimp limitation (explicit):** `grimp.build_graph` builds an `ImportGraph` of module→module edges and does **not** reliably expose whether each import statement lived inside a `def` / `async def` vs module top-level. RepoLens therefore:
+**Grimp limitation (explicit):** `grimp.build_graph` / `ImportGraph` resolve module→module edges but do **not** mark function-local vs module-level scope (`is_lazy` is not that signal). RepoLens therefore:
 
-1. Call grimp for **resolved** internal edges (path / relative / package mechanics).  
-2. Run a **lightweight stdlib AST pass** (`scope_tags.py`) over each analysed `.py` file to record `(importer_module, imported_module, lineno, scope)` for every `ast.Import` / `ast.ImportFrom`.  
-3. **Intersect:** tag each grimp edge with `scope=function_local` if **all** supporting import statements for that pair are function-local; otherwise `scope=module` if any module-level statement exists.  
-4. Tag `kind=type_only` when the import sits under a recognised `TYPE_CHECKING` guard (including common aliases — best-effort; document gaps).  
-5. Build the **gated graph** for SCC/cyclicity from edges that survive config filters (`type_only`, `local_imports`).
+1. Call grimp for **resolved** internal edges (`exclude_type_checking_imports=True` when `type_only=ignore`).  
+2. For each edge, read `graph.get_import_details(importer, imported)` → `line_number` / `line_contents`.  
+3. Run a **trivial AST pass** (`scope_tags.py`) per importer file that returns only **line ranges**: `function_ranges: [(start, end), …]` and `type_checking_ranges: [(start, end), …]`. It does **not** resolve imported module names (avoids AST↔grimp name mismatch).  
+4. **Intersect by line:** a detail is `function_local` iff `line_number` falls in any `function_ranges` entry; else `module`. An edge is `function_local` iff **all** of its detail lines are function-local; else `module`.  
+5. Optionally tag `type_only` via `type_checking_ranges` when not relying solely on grimp’s exclude flag (`type_only=warn`).  
+6. Build the **gated graph** for SCC/cyclicity from edges that survive config filters (`type_only`, `local_imports`).
 
 If AST parse fails for a file, keep grimp edges for that module as `scope=module` (conservative) and append `graph.analysis_failed: …` — do not drop the whole run.
 

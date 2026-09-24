@@ -4,7 +4,7 @@
 
 **Goal:** Always-on deterministic Python import-cycle detection via core `grimp`, emitting one `source=graph` finding per runtime SCC and treating graph findings like scanners under CI `--fail-on`.
 
-**Architecture:** Discover top-level package names → `grimp.build_graph(*packages)` (with `src`/root on `sys.path`) → intersect edges with a stdlib AST scope/TYPE_CHECKING tag pass → Tarjan SCC on the gated edge set → one High/Critical `Issue` per SCC → sibling pipeline lane + report block. Failures become durability gaps; never crash the review.
+**Architecture:** Discover top-level package names → `grimp.build_graph(*packages)` (with `src`/root on `sys.path`) → for each edge use `get_import_details` line numbers against AST **function body line ranges** (and TYPE_CHECKING ranges) → Tarjan SCC on the gated edge set → one High/Critical `Issue` per SCC → sibling pipeline lane + report block. Failures become durability gaps; never crash the review.
 
 **Tech Stack:** Python 3.11+, `grimp>=3.4,<4` (core dep), stdlib `ast`, Pydantic schema, pytest.
 
@@ -21,7 +21,8 @@
 - **Exactly one** `Issue` per runtime SCC (never one per module).
 - Category `arch.import_cycle`, priority `P3`, `source="graph"`.
 - Under `scanner_only=True`, `source=graph` participates in `--fail-on` like `scanner`.
-- Use `grimp.build_graph(..., exclude_type_checking_imports=True)` when `type_only=ignore`; do **not** treat grimp `is_lazy` as function-local — function-local comes from our AST pass.
+- Use `grimp.build_graph(..., exclude_type_checking_imports=True)` when `type_only=ignore`; do **not** treat grimp `is_lazy` as function-local.
+- Function-local detection: AST returns **line ranges** only; `build.py` classifies a grimp detail as `function_local` iff its `line_number` falls in any function range — never re-resolve imported module names in AST.
 - Packages must be importable: temporarily prepend `root` and/or `root/src` to `sys.path` around `build_graph`.
 - Dual-review gate before commit/push; TDD per task; coverage ≥ 85% on `repolens.graph`.
 - Branch: `feat/g1-python-import-graph` off `main` (after specs PR #44 merges, or rebase onto it).
@@ -36,7 +37,7 @@
 | `src/repolens/graph/__init__.py` | Public API: `analyse_python_graph` |
 | `src/repolens/graph/types.py` | `EdgeKind`, `ImportScope`, `ImportEdge`, `CycleGroup`, `GraphResult`, `GraphStatus` |
 | `src/repolens/graph/discover.py` | Package-name discovery (§6.5) |
-| `src/repolens/graph/scope_tags.py` | AST: module vs function_local + TYPE_CHECKING |
+| `src/repolens/graph/scope_tags.py` | AST: function body + TYPE_CHECKING **line ranges** (no module-name resolution) |
 | `src/repolens/graph/cycles.py` | Tarjan SCC + cyclicity ∑n² |
 | `src/repolens/graph/build.py` | Orchestrate discover → grimp → tags → gated graph → SCC |
 | `src/repolens/graph/findings.py` | One `Issue` per SCC |
@@ -218,48 +219,62 @@ def test_none_found_gap(tmp_path: Path):
 
 ---
 
-### Task 3: AST scope tags
+### Task 3: AST line ranges (function + TYPE_CHECKING)
 
 **Files:**
 - Create: `src/repolens/graph/scope_tags.py`
 - Create: `tests/test_graph_scope_tags.py`
 
 **Interfaces:**
-- Produces: `tag_file_imports(path: Path, module_name: str) -> list[TaggedImport]`  
-  where `TaggedImport` has `importer`, `imported_raw`, `lineno`, `scope`, `type_only: bool`
+- Produces: `file_scope_ranges(path: Path) -> ScopeRanges`  
+  ```python
+  @dataclass(frozen=True)
+  class ScopeRanges:
+      function_ranges: tuple[tuple[int, int], ...]   # inclusive (start_line, end_line)
+      type_checking_ranges: tuple[tuple[int, int], ...]
+  ```
+- Does **not** resolve or return imported module names — grimp owns that.
 
 - [ ] **Step 1: Failing tests**
 
 ```python
-def test_module_level_import(tmp_path):
+def test_function_range_covers_body(tmp_path):
     p = tmp_path / "a.py"
-    p.write_text("from pkg import b\n")
-    tags = tag_file_imports(p, "pkg.a")
-    assert tags[0].scope == ImportScope.MODULE
-    assert tags[0].type_only is False
+    p.write_text("def f():\n    from pkg import b\n    return 1\n")
+    ranges = file_scope_ranges(p)
+    assert ranges.function_ranges  # e.g. (1, 3) inclusive
+    start, end = ranges.function_ranges[0]
+    assert start <= 2 <= end  # import line is inside
 
-def test_function_local(tmp_path):
+def test_module_level_not_in_function_range(tmp_path):
     p = tmp_path / "a.py"
-    p.write_text("def f():\n    from pkg import b\n")
-    tags = tag_file_imports(p, "pkg.a")
-    assert tags[0].scope == ImportScope.FUNCTION_LOCAL
+    p.write_text("from pkg import b\n\ndef f():\n    pass\n")
+    ranges = file_scope_ranges(p)
+    assert not any(s <= 1 <= e for s, e in ranges.function_ranges)
 
-def test_type_checking_block(tmp_path):
+def test_type_checking_range(tmp_path):
     p = tmp_path / "a.py"
     p.write_text(
         "from typing import TYPE_CHECKING\n"
         "if TYPE_CHECKING:\n"
         "    from pkg import b\n"
     )
-    tags = tag_file_imports(p, "pkg.a")
-    assert tags[0].type_only is True
+    ranges = file_scope_ranges(p)
+    assert any(s <= 3 <= e for s, e in ranges.type_checking_ranges)
 ```
 
 - [ ] **Step 2: Run — fail**
 
-- [ ] **Step 3: Implement** walk `ast.parse`; track stack of `FunctionDef`/`AsyncFunctionDef`; detect `If` tests that are `NAME=TYPE_CHECKING` or `Attribute(..., TYPE_CHECKING)`; record Import/ImportFrom. On `SyntaxError`, return `[]` (caller records gap).
+- [ ] **Step 3: Implement** `ast.parse`; for each `FunctionDef` / `AsyncFunctionDef` record `(node.lineno, node.end_lineno or node.lineno)`; for `If` with test `TYPE_CHECKING` / `*.TYPE_CHECKING` record the if-body span. Nested functions: record each. On `SyntaxError`, return empty `ScopeRanges` (caller records gap).
 
-- [ ] **Step 4–5: pytest pass; commit** `feat(graph): AST tag module vs function-local imports`
+Helper used by Task 5:
+
+```python
+def line_in_ranges(line: int, ranges: Sequence[tuple[int, int]]) -> bool:
+    return any(start <= line <= end for start, end in ranges)
+```
+
+- [ ] **Step 4–5: pytest pass; commit** `feat(graph): AST function and TYPE_CHECKING line ranges`
 
 ---
 
@@ -302,7 +317,7 @@ def test_acyclic():
 - Create fixtures: `tests/fixtures/graph_cycle_pkg/`, `graph_acyclic_pkg/`, `graph_lazy_pkg/`, `graph_typecheck_pkg/`
 
 **Interfaces:**
-- Consumes: `discover_packages`, `tag_file_imports`, `strongly_connected_components`, `cyclicity`
+- Consumes: `discover_packages`, `file_scope_ranges`, `line_in_ranges`, `strongly_connected_components`, `cyclicity`
 - Produces: `analyse_python_graph(root: Path, *, config: GraphConfig | None = None) -> GraphResult`
 
 - [ ] **Step 1: Fixture packages** (each installable via path on `sys.path`)
@@ -363,14 +378,18 @@ def analyse_python_graph(root: Path, *, config: GraphConfig | None = None) -> Gr
             durability_gaps=gaps + [f"graph.analysis_failed: {exc}"],
         )
     # Collect edges via modules + find_modules_directly_imported_by
-    # For each edge, get_import_details for line_number
-    # Map module→file path under root; run tag_file_imports; intersect scopes
+    # Cache ScopeRanges per importer file path (file_scope_ranges)
+    # For each edge, details = graph.get_import_details(importer, imported)
+    #   For each detail with line_number:
+    #     scope = FUNCTION_LOCAL if line_in_ranges(line, function_ranges) else MODULE
+    #     type_only = line_in_ranges(line, type_checking_ranges)  # if type_only=warn path
+    # Edge scope = FUNCTION_LOCAL iff ALL detail lines are function_local; else MODULE
     # Filter gated_edges by type_only / local_imports
     # SCC on gated_edges; build CycleGroup with representative_edge
     ...
 ```
 
-Intersect rule (spec): edge is `function_local` only if **all** supporting statements for that pair are function-local; else `module` if any module-level exists.
+**Line-range intersect (locked):** grimp supplies resolved `(importer, imported)` + `line_number`; AST supplies only ranges. Never match on imported names in `scope_tags.py`.
 
 - [ ] **Step 4: pytest pass**
 
@@ -572,7 +591,8 @@ _Deterministic Python import cycles (grimp) — not an architecture certificatio
 |-----------|------|
 | grimp core dep | 1 |
 | Package discovery §6.5 | 2 |
-| AST local-import tags §6.1 | 3 |
+| AST function/TYPE_CHECKING line ranges §6.1 | 3 |
+| Grimp `get_import_details` × range intersect | 5 |
 | TYPE_CHECKING via grimp flag + tags | 5 |
 | Tarjan / cyclicity | 4 |
 | analyse_python_graph durability | 5 |

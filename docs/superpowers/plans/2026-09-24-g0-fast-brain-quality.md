@@ -110,21 +110,36 @@ def window_hash(lines: Sequence[str]) -> str:
 - [ ] **Step 1: Failing test — 30-line copy with N=12 S=6 → one block**
 
 ```python
-def test_coalesce_stride_trap():
-    # Simulate 4 overlapping window matches between A and B for one 30-line region
+def test_coalesce_stride_trap_same_offset():
+    # offset = start_b - start_a == +44 for every window → one continuous copy
     hits = [
-        PairHit("A.py", "B.py", 1, 12, 45, 56),
-        PairHit("A.py", "B.py", 7, 18, 51, 62),
-        PairHit("A.py", "B.py", 13, 24, 57, 68),
-        PairHit("A.py", "B.py", 19, 30, 63, 74),
+        PairHit("A.py", "B.py", 1, 12, 45, 56),   # +44
+        PairHit("A.py", "B.py", 7, 18, 51, 62),   # +44
+        PairHit("A.py", "B.py", 13, 24, 57, 68),  # +44
+        PairHit("A.py", "B.py", 19, 30, 63, 74),  # +44
     ]
     blocks = coalesce_pair_hits(hits)
     assert len(blocks) == 1
     assert blocks[0].phys_start_a == 1 and blocks[0].phys_end_a == 30
     assert blocks[0].phys_start_b == 45 and blocks[0].phys_end_b == 74
+
+def test_coalesce_rejects_different_offset():
+    # Same A-side stride, but B jumped elsewhere → do NOT merge into one block
+    hits = [
+        PairHit("A.py", "B.py", 1, 12, 45, 56),    # +44
+        PairHit("A.py", "B.py", 7, 18, 100, 111),  # +93
+    ]
+    blocks = coalesce_pair_hits(hits)
+    assert len(blocks) == 2
 ```
 
-Coalesce rule: sort by `phys_start_a`; merge if ranges overlap or abut (`next.start <= cur.end + 1`) **and** the B-side ranges similarly overlap/abut.
+**Coalesce rule (locked):** sort by `phys_start_a`. Merge consecutive hits only when:
+
+1. A-ranges overlap or abut (`next.phys_start_a <= cur.phys_end_a + 1`), **and**
+2. B-ranges overlap or abut similarly, **and**
+3. **Constant offset:** `(phys_start_b - phys_start_a)` is equal for both hits (same continuous alignment in both files).
+
+Without (3), coincidental same-hash windows at unrelated B offsets would falsely glue into one block.
 
 - [ ] **Step 2–5: Implement; commit** `feat(quality): coalesce overlapping near-clone windows`
 
@@ -318,7 +333,7 @@ Call `build_quality_scorecard` once when assembling the final `FindingReport` (a
 |-----------|------|
 | Physical line map §6.1 | 1 |
 | Sliding windows | 1 |
-| Coalesce stride trap §6.3 | 2 |
+| Coalesce (constant offset) | 2 |
 | FP suppress §6.4 | 3 |
 | Dual caps §6.5 | 3 |
 | Runner + config | 4 |
