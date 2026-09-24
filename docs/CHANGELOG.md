@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0a1] — 2026-09-24
+
+First public PyPI release. Distribution name **`repolens-audit`** (CLI / import: `repolens`).
+
+```bash
+pip install "repolens-audit[scanners]==0.1.0a1"
+repolens version
+```
+
 ### Changed (PyPI distribution name #1)
 
 - Publish as **`repolens-audit`** on PyPI (`repolens` / `repo-lens` blocked by

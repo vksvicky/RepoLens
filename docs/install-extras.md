@@ -30,11 +30,11 @@ Runtime only: `pip install -e .`
 
 ```bash
 pip install "repolens-audit[scanners]==0.1.0a1"
-pip install "repolens-audit[dev]"          # if published with that extra
+pip install "repolens-audit[dev]"          # contributor tooling
 # Console script remains: repolens
 ```
 
-From git without a local clone:
+From git without a local clone (unreleased tip):
 
 ```bash
 pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
