@@ -48,6 +48,7 @@ repolens-work/
 
 # Logs
 *.log
+.worktrees/
 
 # Maintainer-only (local)
 docs/superpowers/
