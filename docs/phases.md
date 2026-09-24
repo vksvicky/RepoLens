@@ -22,7 +22,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | ↳ Gate UX & copy MVP (A2) | [#17](https://github.com/vksvicky/RepoLens/issues/17) | [x] Merged via PR #23; #17b pinned |
 | **Wave B: Distribution & CI** | | **B1 done · B2 active** |
 | ↳ Phase 7: Enterprise CI/CD (B1) | [#3](https://github.com/vksvicky/RepoLens/issues/3) | [x] Closed — docs MVP + Sourcery follow-ups (#26/#31) |
-| ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | **[Now]** Dist name `repolens-audit`; env + pending publisher + rename done; **tag publish remaining** |
+| ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | **[Now]** Tag `v0.1.0a1` / Publish — dist `repolens-audit`; docs PyPI-first |
 | **Wave C: Structure / Zügel-aligned** | [#18](https://github.com/vksvicky/RepoLens/issues/18) | Design revised; start after #1 |
 | ↳ G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [ ] May parallel #1 |
 | ↳ G1 Python import graph | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [ ] Before MCP |

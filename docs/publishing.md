@@ -8,12 +8,14 @@ Plain `repolens` / `repo-lens` are blocked by PyPI name-similarity against exist
 ## Install paths
 
 ```bash
-# From git (works before first PyPI upload)
+# Preferred (PyPI alpha) — CLI entry point is still `repolens`
+pip install "repolens-audit[scanners]==0.1.0a1"
+
+# From git (unreleased tip / contributors)
 pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
 
-# After first successful publish
-pip install "repolens-audit[scanners]==0.1.0a1"
-# then: repolens version
+# Editable clone
+pip install -e ".[dev]"
 ```
 
 ## Release workflow (automated)
@@ -122,11 +124,11 @@ Also exercise the Action on GitHub (workflow_dispatch on [repolens-example.yml](
 
 ## Version checklist
 
-- [ ] Pre-publish dogfood passed (above)  
-- [ ] GitHub environment `pypi` exists  
-- [ ] PyPI pending publisher saved for `repolens-audit` / `publish.yml` / `pypi`  
-- [ ] Version in `pyproject.toml` + `src/repolens/__init__.py` matches the tag  
-- [ ] [CHANGELOG.md](./CHANGELOG.md) updated  
+- [x] Pre-publish dogfood passed (above)  
+- [x] GitHub environment `pypi` exists  
+- [x] PyPI pending publisher saved for `repolens-audit` / `publish.yml` / `pypi`  
+- [x] Version in `pyproject.toml` + `src/repolens/__init__.py` matches the tag  
+- [x] [CHANGELOG.md](./CHANGELOG.md) updated  
 - [ ] Tag `vX.Y.ZaN` and `git push origin <tag>`  
 - [ ] Publish workflow green; package visible on PyPI  
 - [ ] `pip install repolens-audit==…` smoke test (`repolens version` still works)  
