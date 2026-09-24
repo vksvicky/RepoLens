@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import ast
 import sys
-from dataclasses import dataclass, field
 from pathlib import Path
 
 import grimp
 
+from repolens.config import GraphConfig
 from repolens.graph.cycles import cyclicity, strongly_connected_components
 from repolens.graph.discover import discover_packages
 from repolens.graph.scope_tags import ScopeRanges, file_scope_ranges, line_in_ranges
@@ -20,15 +20,6 @@ from repolens.graph.types import (
     ImportEdge,
     ImportScope,
 )
-
-
-@dataclass
-class GraphConfig:
-    enabled: bool = True
-    type_only: str = "ignore"
-    local_imports: str = "exclude"
-    critical_scc_size: int = 8
-    packages: list[str] = field(default_factory=list)
 
 
 def analyse_python_graph(root: Path, *, config: GraphConfig | None = None) -> GraphResult:

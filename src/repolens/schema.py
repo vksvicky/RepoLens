@@ -118,6 +118,16 @@ class SupplyChainBlock(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class GraphBlock(BaseModel):
+    """G1: deterministic Python import graph summary (optional)."""
+
+    status: str
+    cyclicity: int = 0
+    cycleCount: int = 0
+    moduleCount: int = 0
+    packageCount: int = 0
+
+
 class ProvenanceBlock(BaseModel):
     """Phase 6.3 report provenance for CI / audit trails."""
 
@@ -159,6 +169,7 @@ class FindingReport(BaseModel):
     coverage: CoverageBlock | None = None
     themes: list[ThemeEntry] | None = None
     supplyChain: SupplyChainBlock | None = None
+    graph: GraphBlock | None = None
     provenance: ProvenanceBlock | None = None
     # Phase 5.1 audit metrics (optional for backward compatibility with older reports).
     securityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
