@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–7** and **Wave A gate honesty** complete. **Now:** finish **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) — tag `v0.1.0a1` for `repolens-audit`. Next product tracks: optional **G0** ([#33](https://github.com/vksvicky/RepoLens/issues/33)) then **G1 graph** ([#34](https://github.com/vksvicky/RepoLens/issues/34)) under [#18](https://github.com/vksvicky/RepoLens/issues/18); then Phase **8** ([#4](https://github.com/vksvicky/RepoLens/issues/4)).  
+**Current phase:** Phases **0–7** and **Wave A** complete; **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) published as `repolens-audit==0.1.0a1`. **Now:** Wave C — optional **G0** ([#33](https://github.com/vksvicky/RepoLens/issues/33)) then **G1 graph** ([#34](https://github.com/vksvicky/RepoLens/issues/34)) under [#18](https://github.com/vksvicky/RepoLens/issues/18); Phase **8** ([#4](https://github.com/vksvicky/RepoLens/issues/4)) as capacity allows.  
 **GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred follow-ups: [#11](https://github.com/vksvicky/RepoLens/issues/11). Umbrella dogfood: [#13](https://github.com/vksvicky/RepoLens/issues/13).  
 **Parked:** [#15](https://github.com/vksvicky/RepoLens/issues/15) (32B local runtime), [#16](https://github.com/vksvicky/RepoLens/issues/16) (change-set scoping), **#17b** (local UI calibrations), [#29](https://github.com/vksvicky/RepoLens/issues/29)/[#30](https://github.com/vksvicky/RepoLens/issues/30) (post-alpha UX). Structure programme children [#33](https://github.com/vksvicky/RepoLens/issues/33)–[#37](https://github.com/vksvicky/RepoLens/issues/37) wait on #1 (G0 may parallel).
 
@@ -22,7 +22,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | ↳ Gate UX & copy MVP (A2) | [#17](https://github.com/vksvicky/RepoLens/issues/17) | [x] Merged via PR #23; #17b pinned |
 | **Wave B: Distribution & CI** | | **B1 done · B2 active** |
 | ↳ Phase 7: Enterprise CI/CD (B1) | [#3](https://github.com/vksvicky/RepoLens/issues/3) | [x] Closed — docs MVP + Sourcery follow-ups (#26/#31) |
-| ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | **[Now]** Tag `v0.1.0a1` / Publish — dist `repolens-audit`; docs PyPI-first |
+| ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | [x] Closed — `repolens-audit==0.1.0a1` on PyPI |
 | **Wave C: Structure / Zügel-aligned** | [#18](https://github.com/vksvicky/RepoLens/issues/18) | Design revised; start after #1 |
 | ↳ G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [ ] May parallel #1 |
 | ↳ G1 Python import graph | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [ ] Before MCP |
@@ -482,7 +482,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] | Cycle/reachability tools pre-G4 only |
 | G4 Architecture DSL + weighted FAS LLM cuts | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] | `get_legal_imports` only here |
 
-**Start after** PyPI alpha (#1) unless doing G0 docs/heuristics in parallel.
+**Start now** — PyPI alpha (#1) is published; G0 may still parallel G1.
 
 ---
 
@@ -579,6 +579,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-09-06 | PyPI dist name `repolens-audit` (#1) | Bare `repolens` blocked by similarity; CLI/import remain `repolens` (PR #32) |
 | 2026-09-06 | Zügel roadmap revised (#18) | Graph before MCP; G0–G4 issues #33–#37; TYPE_CHECKING / FAS / pre-G4 tool honesty (PRs #38/#39) |
 | 2026-09-24 | Roadmap sync | Phase 7 closed; **next = #1 tag publish**; Wave C after #1 |
+| 2026-09-24 | PyPI alpha published (#1) | Tag `v0.1.0a1`; https://pypi.org/project/repolens-audit/0.1.0a1/ |
 
 ---
 
