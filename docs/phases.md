@@ -6,9 +6,9 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–7** and **Wave A** complete; **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) published as `repolens-audit==0.1.0a1`. **Now:** Wave C — optional **G0** ([#33](https://github.com/vksvicky/RepoLens/issues/33)) then **G1 graph** ([#34](https://github.com/vksvicky/RepoLens/issues/34)) under [#18](https://github.com/vksvicky/RepoLens/issues/18); Phase **8** ([#4](https://github.com/vksvicky/RepoLens/issues/4)) as capacity allows.  
+**Current phase:** Phases **0–7** and **Wave A** complete; **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) published as `repolens-audit==0.1.0a1`. **Wave C active:** **G0** ([#33](https://github.com/vksvicky/RepoLens/issues/33) → [PR #45](https://github.com/vksvicky/RepoLens/pull/45)) and **G1** ([#34](https://github.com/vksvicky/RepoLens/issues/34) → [PR #46](https://github.com/vksvicky/RepoLens/pull/46)) in review under [#18](https://github.com/vksvicky/RepoLens/issues/18). **Next after G1 merge:** **G2** cyclicity ratchet ([#35](https://github.com/vksvicky/RepoLens/issues/35)). Phase **8** ([#4](https://github.com/vksvicky/RepoLens/issues/4)) as capacity allows.  
 **GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred follow-ups: [#11](https://github.com/vksvicky/RepoLens/issues/11). Umbrella dogfood: [#13](https://github.com/vksvicky/RepoLens/issues/13).  
-**Parked:** [#15](https://github.com/vksvicky/RepoLens/issues/15) (32B local runtime), [#16](https://github.com/vksvicky/RepoLens/issues/16) (change-set scoping), **#17b** (local UI calibrations), [#29](https://github.com/vksvicky/RepoLens/issues/29)/[#30](https://github.com/vksvicky/RepoLens/issues/30) (post-alpha UX). Structure programme children [#33](https://github.com/vksvicky/RepoLens/issues/33)–[#37](https://github.com/vksvicky/RepoLens/issues/37) wait on #1 (G0 may parallel).
+**Parked:** [#15](https://github.com/vksvicky/RepoLens/issues/15) (32B local runtime), [#16](https://github.com/vksvicky/RepoLens/issues/16) (change-set scoping), **#17b** (local UI calibrations), [#29](https://github.com/vksvicky/RepoLens/issues/29)/[#30](https://github.com/vksvicky/RepoLens/issues/30) (post-alpha UX).
 
 **CLI language:** Python 3.11+
 
@@ -23,12 +23,12 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **Wave B: Distribution & CI** | | **B1 done · B2 active** |
 | ↳ Phase 7: Enterprise CI/CD (B1) | [#3](https://github.com/vksvicky/RepoLens/issues/3) | [x] Closed — docs MVP + Sourcery follow-ups (#26/#31) |
 | ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | [x] Closed — `repolens-audit==0.1.0a1` on PyPI |
-| **Wave C: Structure / Zügel-aligned** | [#18](https://github.com/vksvicky/RepoLens/issues/18) | Design revised; start after #1 |
-| ↳ G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [ ] May parallel #1 |
-| ↳ G1 Python import graph | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [ ] Before MCP |
-| ↳ G2 Cyclicity ratchet | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] After G1 |
-| ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] After G1 (+G2 preferred) |
-| ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] After G1 |
+| **Wave C: Structure / Zügel-aligned** | [#18](https://github.com/vksvicky/RepoLens/issues/18) | **Active** — G0+G1 in PR; G2 next |
+| ↳ G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [~] [PR #45](https://github.com/vksvicky/RepoLens/pull/45) — near-clones + scorecard |
+| ↳ G1 Python import graph | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [~] [PR #46](https://github.com/vksvicky/RepoLens/pull/46) — grimp core; `source=graph` |
+| ↳ G2 Cyclicity ratchet | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] Spec next (after G1 merge) |
+| ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] After G1 (+G2 preferred); MCP secondary |
+| ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] After G1; FAS = candidate cut |
 | Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [ ] Small parallel docs |
 | 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Planned after #1 (and preferably after G1 kickoff or Phase 8 parallel) |
 ---
@@ -471,18 +471,19 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 ## Wave C — Structure programme (Zügel-aligned)
 
 **Goal:** Deterministic import graph + ratchet + optional MCP/DSL without becoming Sonargraph.  
-**Design:** [zugel-comparison-and-roadmap.md](./design/zugel-comparison-and-roadmap.md) (revised 2026-09-06: **graph before MCP**).  
-**Umbrella:** [#18](https://github.com/vksvicky/RepoLens/issues/18)
+**Design:** [zugel-comparison-and-roadmap.md](./design/zugel-comparison-and-roadmap.md) (rev 2026-09-24: grimp core, CLI-primary gates, FAS-as-candidate).  
+**Umbrella:** [#18](https://github.com/vksvicky/RepoLens/issues/18)  
+**Specs:** [G0](./superpowers/specs/2026-09-24-g0-fast-brain-quality-design.md) · [G1](./superpowers/specs/2026-09-24-g1-python-import-graph-design.md)
 
 | Phase | Issue | Status | Notes |
 |-------|-------|--------|-------|
-| G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [ ] | Near-clones + scorecard; may parallel #1 |
-| G1 Python graph + SCC + TYPE_CHECKING tags | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [ ] | Stdlib `ast`; **before** MCP |
-| G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] | Git-friendly baseline; runtime cycles hard-fail |
-| G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] | Cycle/reachability tools pre-G4 only |
-| G4 Architecture DSL + weighted FAS LLM cuts | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] | `get_legal_imports` only here |
+| G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [~] | [PR #45](https://github.com/vksvicky/RepoLens/pull/45) — near-clones + scorecard |
+| G1 Python graph + SCC (grimp) | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [~] | [PR #46](https://github.com/vksvicky/RepoLens/pull/46) — `source=graph`; fail-on like scanner |
+| G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] | **Next** after G1 merge — baseline + `check --diff` |
+| G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] | Secondary to CLI; after G1 (+G2 preferred) |
+| G4 Architecture DSL + weighted FAS LLM cuts | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] | FAS = candidate; domain direction wins |
 
-**Start now** — PyPI alpha (#1) is published; G0 may still parallel G1.
+**In flight:** G0 + G1 PRs. **Do not start G2 code** until G1 (#46) merges (graph + cyclicity APIs are the ratchet substrate).
 
 ---
 
@@ -580,6 +581,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-09-06 | Zügel roadmap revised (#18) | Graph before MCP; G0–G4 issues #33–#37; TYPE_CHECKING / FAS / pre-G4 tool honesty (PRs #38/#39) |
 | 2026-09-24 | Roadmap sync | Phase 7 closed; **next = #1 tag publish**; Wave C after #1 |
 | 2026-09-24 | PyPI alpha published (#1) | Tag `v0.1.0a1`; https://pypi.org/project/repolens-audit/0.1.0a1/ |
+| 2026-09-24 | Wave C G0+G1 implementation | Specs/plans (#44); G0 PR #45; G1 PR #46 (grimp core); **next = G2 #35 spec** |
 
 ---
 
