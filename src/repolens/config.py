@@ -165,6 +165,16 @@ class PacksConfig(BaseModel):
     enabled: list[str] = Field(default_factory=list)
 
 
+class GraphConfig(BaseModel):
+    """G1: Python import graph (grimp) knobs."""
+
+    enabled: bool = True
+    type_only: Literal["ignore", "warn"] = "ignore"
+    local_imports: Literal["exclude", "include"] = "exclude"
+    critical_scc_size: int = 8
+    packages: list[str] = Field(default_factory=list)
+
+
 class RepoLensConfig(BaseModel):
     general: GeneralConfig = Field(default_factory=GeneralConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
@@ -177,6 +187,7 @@ class RepoLensConfig(BaseModel):
     ci: CiConfig = Field(default_factory=CiConfig)
     packs: PacksConfig = Field(default_factory=PacksConfig)
     fast_brain: FastBrainConfig = Field(default_factory=FastBrainConfig)
+    graph: GraphConfig = Field(default_factory=GraphConfig)
 
 
 def user_config_path() -> Path:
