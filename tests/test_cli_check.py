@@ -84,6 +84,31 @@ def test_resolve_diff_base_fallback_none(tmp_path: Path, monkeypatch) -> None:
         assert resolve_diff_base(cli_base=None, cwd=tmp_path) is None
 
 
+
+def test_resolve_diff_base_rejects_unsafe_cli_base(monkeypatch) -> None:
+    monkeypatch.delenv("GITHUB_BASE_REF", raising=False)
+    assert resolve_diff_base(cli_base="main; rm -rf /") is None
+    assert resolve_diff_base(cli_base="--output=/tmp/x") is None
+    assert resolve_diff_base(cli_base="-C/tmp") is None
+
+
+def test_git_diff_text_rejects_unsafe_base(tmp_path: Path) -> None:
+    from subprocess import CompletedProcess
+    from repolens.cli import commands_check as mod
+
+    calls: list[list[str]] = []
+
+    def fake_run(cmd, **kwargs):  # noqa: ANN001
+        calls.append(list(cmd))
+        return CompletedProcess(cmd, 0, stdout="diff", stderr="")
+
+    with patch("repolens.cli.commands_check.subprocess.run", side_effect=fake_run):
+        assert mod._git_diff_text(cwd=tmp_path, base="evil;id") == ""
+        assert calls == []
+        assert mod._git_diff_text(cwd=tmp_path, base="origin/main") == "diff"
+        assert calls == [["git", "diff", "origin/main...HEAD"]]
+
+
 def test_check_requires_diff_flag(tmp_path: Path) -> None:
     result = runner.invoke(app, ["check", "--path", str(tmp_path)])
     assert result.exit_code == 2, result.output

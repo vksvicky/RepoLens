@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -22,10 +23,20 @@ from repolens.graph.types import GraphStatus
 
 _MERGE_BASE_CANDIDATES = ("origin/main", "origin/master", "main", "master")
 
+# Allow common git refs / SHAs; reject option-injection and shell metacharacters.
+_SAFE_GIT_REF = re.compile(r"^(?:HEAD(?:~\d+)?|[A-Za-z0-9][A-Za-z0-9._/\-^{}]*)$")
+
 _UNANCHORED_NOTE = (
     "ratchet.unanchored: could not anchor the breach to a newly added import line "
     "(no git repository, empty diff, or no matching import)"
 )
+
+
+def _is_safe_git_ref(ref: str) -> bool:
+    """Return True when *ref* is safe to pass as a git argv token (no shell)."""
+    if not ref or len(ref) > 256 or ref.startswith("-"):
+        return False
+    return _SAFE_GIT_REF.fullmatch(ref) is not None
 
 
 def resolve_diff_base(*, cli_base: str | None, cwd: Path | None = None) -> str | None:
@@ -35,10 +46,11 @@ def resolve_diff_base(*, cli_base: str | None, cwd: Path | None = None) -> str |
     (working-tree / ``git diff HEAD`` fallback).
     """
     if cli_base:
-        return cli_base
+        return cli_base if _is_safe_git_ref(cli_base) else None
     gha = os.environ.get("GITHUB_BASE_REF", "").strip()
     if gha:
-        return gha if gha.startswith("origin/") else f"origin/{gha}"
+        candidate = gha if gha.startswith("origin/") else f"origin/{gha}"
+        return candidate if _is_safe_git_ref(candidate) else None
 
     root = cwd or Path.cwd()
     for ref in _MERGE_BASE_CANDIDATES:
@@ -50,7 +62,7 @@ def resolve_diff_base(*, cli_base: str | None, cwd: Path | None = None) -> str |
             text=True,
         )
         sha = (completed.stdout or "").strip()
-        if completed.returncode == 0 and sha:
+        if completed.returncode == 0 and sha and _is_safe_git_ref(sha):
             return sha
 
     parent = subprocess.run(
@@ -94,17 +106,25 @@ def _git_available(cwd: Path) -> bool:
 
 
 def _git_diff_text(*, cwd: Path, base: str | None) -> str:
-    if base:
-        cmd = ["git", "diff", f"{base}...HEAD"]
+    # Two call sites keep argv literals static for scanners; validate *base* first.
+    if base is not None:
+        if not _is_safe_git_ref(base):
+            return ""
+        completed = subprocess.run(
+            ["git", "diff", f"{base}...HEAD"],
+            cwd=cwd,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
     else:
-        cmd = ["git", "diff", "HEAD"]
-    completed = subprocess.run(
-        cmd,
-        cwd=cwd,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+        completed = subprocess.run(
+            ["git", "diff", "HEAD"],
+            cwd=cwd,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
     if completed.returncode != 0:
         return ""
     return completed.stdout or ""
