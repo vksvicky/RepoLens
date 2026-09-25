@@ -9,6 +9,7 @@ Deep guides stay linked; this page is the map.
 | Cloud vs Ollama vs scanners-only | [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) |
 | **Fast Brain vs Slow Brain** (which flags, what to expect) | [§ Fast Brain vs Slow Brain](#fast-brain-vs-slow-brain-commands--examples) |
 | **Python import graph** (cycles, CI fail-on) | [§ Import graph (Python, G1)](#import-graph-python-g1) |
+| **Cyclicity ratchet** (baseline, Rule 1) | [§ Import graph ratchet (G2)](#import-graph-ratchet-python-g2) |
 | Scanner plugins | [scanners.md](./scanners.md) |
 | CI / GitHub Action | [ci.md](./ci.md) |
 | Domain packs detail | [packs.md](./packs.md) · [packs-quickcheck.md](./packs-quickcheck.md) |
@@ -19,7 +20,7 @@ Deep guides stay linked; this page is the map.
 
 - Tables are **Command / Recipe → Expect → Example**. Copy the **Example** column; swap `TARGET` for your repo path.
 - Progress lines (`→ …`) show by default; **`-v`** adds detail; **`-q`** is quiet (CI).
-- Exit codes (typical): **0** ok · **1** `--fail-on` threshold hit · **2** usage/config/missing required scanner · **3** clone/source failure.
+- Exit codes (typical): **0** ok · **1** `--fail-on` and/or **ratchet breach** · **2** usage/config/missing baseline (`check --require-baseline`) or `--require-scanners` · **3** clone/source failure or **graph analysis failed/skipped** on `baseline` / `check --diff`.
 - Durations are **order-of-magnitude**, not SLAs (disk, cold Semgrep cache, network, model size all move the needle).
 
 ---
@@ -173,6 +174,9 @@ Pack-only smoke + if/then: [packs-quickcheck.md](./packs-quickcheck.md).
 | `LLM pack: N/200` then bypass | Pack planned, then triage short-circuited | Cosmetic order; still correct |
 | Gate confidence 75% / scanners-only | Heuristic confidence without LLM | Normal for `--scanners-only` |
 | Exit code **1** with `--fail-on HIGH` | Finding at/above threshold (CI: **scanner** + **`source=graph`** import-cycle rows) | Open report **Import graph** section; or `repolens feedback down <fingerprint> --reason false_positive --path "$TARGET"` |
+| `Ratchet breach: runtime cyclicity increased…` | **Rule 1** — cyclicity rose vs baseline | Remove/refactor the new import; or lower debt then `repolens baseline set`; see `path:line` on PR diffs when anchored |
+| `ratchet.config_mismatch` note | `[graph]` settings differ from baseline snapshot | After intentional config change: `repolens baseline set --path "$TARGET"` |
+| `check --diff` exit **2** (no baseline) | `--require-baseline` or `[graph] require_baseline` | `repolens baseline set --path "$TARGET"` and commit `.repolens/baseline.json` |
 | Exit code **2** / `ScannerRequirementError` | `--require-scanners` and a tool missing | `repolens plugins install all --yes` |
 | `command not found: repolens` | Venv not activated / not installed | `source .venv/bin/activate` then `repolens version` |
 | Unknown command (`packs`, `pr-summary`, …) | Old install | `pip install -e ".[dev]"` from latest clone |
@@ -276,6 +280,21 @@ repolens review --path "$TARGET" --out "$TARGET/reports" \
 ```
 
 FAQ: [Python import cycles](./faq.md#python-import-cycles-import-graph-g1).
+
+---
+
+## Import graph ratchet (Python, G2)
+
+Graph-only **Rule 1** gate: runtime cyclicity must not **increase** vs `.repolens/baseline.json`. Primary CI path — no LLM, no scanners required.
+
+| Command | Expect | Exit |
+|---------|--------|------|
+| `repolens baseline set --path "$TARGET"` | Writes baseline JSON; prints cyclicity + fingerprint count | **0** ok · **3** graph failed/skipped |
+| `repolens baseline show --path "$TARGET"` | Prints path, cyclicity, fingerprint count | **0** · **2** missing baseline |
+| `repolens check --diff --require-baseline --path "$TARGET"` | Compares current graph to baseline; `+`/`-` fingerprint delta on stdout | **0** pass · **1** breach · **2** missing baseline or forgot `--diff` · **3** graph failed/skipped |
+| `repolens review … --ratchet` | Same ratchet after report (with or without `--fail-on`) | **1** if either ratchet or `--fail-on` trips |
+
+CI recipes: [ci.md — cyclicity ratchet](./ci.md#python-cyclicity-ratchet-fast-gate-g2). FAQ: [ratchet ladder](./faq.md#cyclicity-ratchet-baseline-g2).
 
 ---
 

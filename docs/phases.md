@@ -26,7 +26,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **Wave C: Structure / Zügel-aligned** | [#18](https://github.com/vksvicky/RepoLens/issues/18) | Design revised; start after #1 |
 | ↳ G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [ ] May parallel #1 |
 | ↳ G1 Python import graph | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [ ] Before MCP |
-| ↳ G2 Cyclicity ratchet | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] After G1 |
+| ↳ G2 Cyclicity ratchet | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [~] [#48](https://github.com/vksvicky/RepoLens/pull/48) |
 | ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] After G1 (+G2 preferred) |
 | ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] After G1 |
 | Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [ ] Small parallel docs |
@@ -478,7 +478,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 |-------|-------|--------|-------|
 | G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [ ] | Near-clones + scorecard; may parallel #1 |
 | G1 Python graph + SCC + TYPE_CHECKING tags | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [ ] | Stdlib `ast`; **before** MCP |
-| G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [ ] | Git-friendly baseline; runtime cycles hard-fail |
+| G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [~] [#48](https://github.com/vksvicky/RepoLens/pull/48) | Git-friendly baseline; runtime cycles hard-fail |
 | G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] | Cycle/reachability tools pre-G4 only |
 | G4 Architecture DSL + weighted FAS LLM cuts | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] | `get_legal_imports` only here |
 

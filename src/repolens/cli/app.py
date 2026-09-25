@@ -36,10 +36,22 @@ packs_app = typer.Typer(
     help="Optional domain packs (Azure Sentinel / SOAR, …).",
     no_args_is_help=True,
 )
+baseline_app = typer.Typer(
+    name="baseline",
+    help="Cyclicity baseline (set / show) for the import-graph ratchet.",
+    no_args_is_help=True,
+)
+check_app = typer.Typer(
+    name="check",
+    help="Graph-only cyclicity ratchet check (CI / pre-commit gate).",
+    invoke_without_command=True,
+)
 app.add_typer(plugins_app, name="plugins")
 app.add_typer(learn_app, name="learn")
 app.add_typer(adaptive_app, name="adaptive")
 app.add_typer(packs_app, name="packs")
+app.add_typer(baseline_app, name="baseline")
+app.add_typer(check_app, name="check")
 console = Console(stderr=True)
 
 _EMPTY_PATH_HELP = (
