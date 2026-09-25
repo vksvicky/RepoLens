@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -94,6 +93,7 @@ def test_resolve_diff_base_rejects_unsafe_cli_base(monkeypatch) -> None:
 
 def test_git_diff_text_rejects_unsafe_base(tmp_path: Path) -> None:
     from subprocess import CompletedProcess
+
     from repolens.cli import commands_check as mod
 
     calls: list[list[str]] = []
@@ -129,7 +129,8 @@ def test_check_missing_baseline_soft_skip(tmp_path: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     assert "baseline" in result.output.lower()
-    assert "skip" in result.output.lower() or "warn" in result.output.lower() or "no baseline" in result.output.lower()
+    out = result.output.lower()
+    assert "skip" in out or "warn" in out or "no baseline" in out
 
 
 def test_check_missing_baseline_require_exits_2(tmp_path: Path) -> None:
