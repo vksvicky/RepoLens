@@ -7,11 +7,75 @@ from pathlib import Path
 import typer
 
 from repolens.cli.app import _coerce_local_path, app, console
+from repolens.cli.commands_check import _print_fingerprint_delta, _resolve_baseline_path
 from repolens.cli.export import _print_summary
+from repolens.config import load_config
+from repolens.graph import analyse_python_graph
+from repolens.graph.baseline import load_baseline
+from repolens.graph.ratchet import evaluate_ratchet
+from repolens.graph.types import GraphStatus
 from repolens.llm import LlmError
 from repolens.pipeline import ScannerRequirementError, fail_on_triggered, run_review
 from repolens.progress import ReviewProgress
 from repolens.sources import SourceError, cleanup_source, resolve_source, select_source
+
+
+def _ratchet_breached_for_review(root: Path, *, ratchet_flag: bool) -> bool:
+    """Run cyclicity ratchet when ``--ratchet`` or ``[graph].ratchet`` is set.
+
+    Caller must invoke only for ``mode == \"review\"``; sentinel/architecture must not
+    inherit config ratchet via shared ``_run_mode``.
+
+    Missing baseline soft-skips unless ``require_baseline`` (same as ``check --diff``).
+    Graph FAILED/SKIPPED aborts with exit 3. Returns True when cyclicity increased.
+    """
+    cfg = load_config(root)
+    graph_cfg = cfg.graph
+    if not (ratchet_flag or graph_cfg.ratchet):
+        return False
+
+    target = _resolve_baseline_path(
+        root, baseline=None, baseline_path=graph_cfg.baseline_path
+    )
+    must_have = graph_cfg.require_baseline
+    if not target.is_file():
+        if must_have:
+            console.print(f"[red]No baseline found at[/red] {target}")
+            console.print("Run [cyan]repolens baseline set[/cyan] to create one.")
+            raise typer.Exit(code=2)
+        console.print(
+            f"[yellow]Warning:[/yellow] no baseline found at {target}; "
+            "skipping ratchet check. Run [cyan]repolens baseline set[/cyan] to create one."
+        )
+        return False
+
+    gres = analyse_python_graph(root, config=graph_cfg)
+    if gres.status is GraphStatus.FAILED:
+        for gap in gres.durability_gaps:
+            console.print(f"[red]{gap}[/red]")
+        console.print("[red]Graph analysis failed; ratchet check aborted.[/red]")
+        raise typer.Exit(code=3)
+    if gres.status is GraphStatus.SKIPPED:
+        for gap in gres.durability_gaps:
+            console.print(f"[red]{gap}[/red]")
+        console.print(
+            "[red]Graph analysis was skipped (e.g. graph disabled); "
+            "ratchet check aborted.[/red]"
+        )
+        raise typer.Exit(code=3)
+
+    doc = load_baseline(target)
+    ratchet = evaluate_ratchet(current=gres, baseline=doc, config=graph_cfg)
+    console.print(ratchet.message)
+    _print_fingerprint_delta(
+        added=ratchet.fingerprints_added,
+        removed=ratchet.fingerprints_removed,
+    )
+    for note in ratchet.notes:
+        console.print(f"[yellow]{note}[/yellow]")
+    if ratchet.config_mismatch and ratchet.config_mismatch_detail:
+        console.print(f"[dim]Config drift: {ratchet.config_mismatch_detail}[/dim]")
+    return ratchet.breached
 
 
 def _run_mode(
@@ -47,6 +111,7 @@ def _run_mode(
     verify_findings: bool | None = None,
     packs: list[str] | None = None,
     fallback: bool = True,
+    ratchet: bool = False,
 ) -> None:
     if fmt not in {"md", "json", "both"}:
         console.print("[red]--format must be md | json | both[/red]")
@@ -72,6 +137,7 @@ def _run_mode(
     )
 
     resolved = None
+    ratchet_breached = False
     try:
         try:
             local_path = _coerce_local_path(path)
@@ -122,6 +188,47 @@ def _run_mode(
             packs=packs,
             fallback=fallback,
         )
+
+        _print_summary(
+            result.report.confidence,
+            result.files_scanned,
+            result.report,
+            dry_run=result.dry_run,
+        )
+        if result.markdown_path:
+            console.print(f"[green]Markdown report:[/green] {result.markdown_path}")
+        if result.json_path:
+            console.print(f"[green]JSON report:[/green] {result.json_path}")
+        if result.sarif_path:
+            console.print(f"[green]SARIF report:[/green] {result.sarif_path}")
+
+        if explain_uuids and not result.dry_run:
+            from repolens.cli.commands_explain import run_post_review_explains
+
+            run_post_review_explains(explain_uuids, path=path, result=result)
+
+        try:
+            scanner_only = bool(
+                result.report.provenance is not None
+                and result.report.provenance.failOnScannerOnly
+            )
+            triggered = fail_on_triggered(
+                result.report, fail_on, scanner_only=scanner_only
+            )
+        except ValueError as exc:
+            console.print(f"[red]Usage error:[/red] {exc}")
+            raise typer.Exit(code=2) from exc
+
+        # Ratchet is review-only (not sentinel/architecture). Runs while the source
+        # tree still exists (before ephemeral cleanup). Either --fail-on or ratchet
+        # breach may yield exit 1.
+        if not result.dry_run and mode == "review":
+            ratchet_breached = _ratchet_breached_for_review(
+                resolved.root, ratchet_flag=ratchet
+            )
+
+        if triggered or ratchet_breached:
+            raise typer.Exit(code=1)
     except FileNotFoundError as exc:
         console.print(f"[red]Config/source error:[/red] {exc}")
         raise typer.Exit(code=2) from exc
@@ -159,38 +266,6 @@ def _run_mode(
     finally:
         if resolved is not None:
             cleanup_source(resolved)
-
-    _print_summary(
-        result.report.confidence,
-        result.files_scanned,
-        result.report,
-        dry_run=result.dry_run,
-    )
-    if result.markdown_path:
-        console.print(f"[green]Markdown report:[/green] {result.markdown_path}")
-    if result.json_path:
-        console.print(f"[green]JSON report:[/green] {result.json_path}")
-    if result.sarif_path:
-        console.print(f"[green]SARIF report:[/green] {result.sarif_path}")
-
-    if explain_uuids and not result.dry_run:
-        from repolens.cli.commands_explain import run_post_review_explains
-
-        run_post_review_explains(explain_uuids, path=path, result=result)
-
-    try:
-        scanner_only = bool(
-            result.report.provenance is not None
-            and result.report.provenance.failOnScannerOnly
-        )
-        triggered = fail_on_triggered(
-            result.report, fail_on, scanner_only=scanner_only
-        )
-    except ValueError as exc:
-        console.print(f"[red]Usage error:[/red] {exc}")
-        raise typer.Exit(code=2) from exc
-    if triggered:
-        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -300,6 +375,14 @@ def review(
             "when Cloud AI is unavailable"
         ),
     ),
+    ratchet: bool = typer.Option(
+        False,
+        "--ratchet",
+        help=(
+            "Exit 1 if runtime cyclicity exceeds the baseline "
+            "(also enabled by [graph].ratchet; combines with --fail-on)"
+        ),
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -335,6 +418,7 @@ def review(
         verify_findings,
         pack,
         fallback,
+        ratchet,
     )
 
 
