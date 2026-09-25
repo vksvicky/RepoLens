@@ -8,6 +8,7 @@ Deep guides stay linked; this page is the map.
 | Paths / OS install detail | [try-on-your-repo.md](./try-on-your-repo.md) |
 | Cloud vs Ollama vs scanners-only | [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) |
 | **Fast Brain vs Slow Brain** (which flags, what to expect) | [§ Fast Brain vs Slow Brain](#fast-brain-vs-slow-brain-commands--examples) |
+| **Python import graph** (cycles, CI fail-on) | [§ Import graph (Python, G1)](#import-graph-python-g1) |
 | Scanner plugins | [scanners.md](./scanners.md) |
 | CI / GitHub Action | [ci.md](./ci.md) |
 | Domain packs detail | [packs.md](./packs.md) · [packs-quickcheck.md](./packs-quickcheck.md) |
@@ -171,7 +172,7 @@ Pack-only smoke + if/then: [packs-quickcheck.md](./packs-quickcheck.md).
 | Report under wrong repo’s `reports/` | Relative `--out reports` follows **shell cwd**, not `--path` | Always use `"$TARGET/reports"` (absolute) |
 | `LLM pack: N/200` then bypass | Pack planned, then triage short-circuited | Cosmetic order; still correct |
 | Gate confidence 75% / scanners-only | Heuristic confidence without LLM | Normal for `--scanners-only` |
-| Exit code **1** with `--fail-on HIGH` | Finding at/above threshold (CI: usually **scanner** rows) | Open report; or `repolens feedback down <fingerprint> --reason false_positive --path "$TARGET"` |
+| Exit code **1** with `--fail-on HIGH` | Finding at/above threshold (CI: **scanner** + **`source=graph`** import-cycle rows) | Open report **Import graph** section; or `repolens feedback down <fingerprint> --reason false_positive --path "$TARGET"` |
 | Exit code **2** / `ScannerRequirementError` | `--require-scanners` and a tool missing | `repolens plugins install all --yes` |
 | `command not found: repolens` | Venv not activated / not installed | `source .venv/bin/activate` then `repolens version` |
 | Unknown command (`packs`, `pr-summary`, …) | Old install | `pip install -e ".[dev]"` from latest clone |
@@ -249,6 +250,32 @@ repolens review --path "$TARGET" --out "$TARGET/reports" \
 Use **recipe 2** (`--ci --deep`) when comparing speed or PR cost to other tools. Use **recipe 4** (`--full --deep`) only when you intentionally want a forced Slow Brain pack for quality. Do **not** use `--full` to “show off” Two-Lane speed.
 
 More context: [faq.md — fair dogfood](./faq.md#what-is-a-fair-dogfood-recipe-for-two-lane-speed) · [Two-Lane inventory](./faq.md#how-does-the-200-file-inventory-cap-work-are-the-other-files-at-risk) · [gitignore vs scanners](./faq.md#do-scanners-catch-missing-gitignore-rules) · [ci.md](./ci.md).
+
+---
+
+## Import graph (Python, G1)
+
+Deterministic **Python import-cycle** detection runs automatically when the matched inventory includes `.py` files. It uses **grimp** (core dep) plus AST line-range tagging for function-local imports; results appear as **`source=graph`** findings and an **Import graph** block in Markdown/JSON.
+
+| Topic | Expect |
+|-------|--------|
+| Scope | Sibling lane to Fast Brain — **not** inside regex-only heuristics; **idle** when zero `.py` in inventory |
+| Findings | One **High** (or **Critical** for large SCCs) finding **per cycle group** — category `arch.import_cycle` |
+| `--scanners-only` | Graph lane still runs when `.py` is present; no LLM required |
+| `--ci --fail-on HIGH` | **Graph** counts like **scanner** under triage (`scanner_only`); heuristic/LLM rows do not fail the gate |
+| Config | `[graph]` in `.repolens.toml` — `packages`, `type_only`, `local_imports`, `critical_scc_size` (see `.repolens.example.toml`) |
+| MCP / IDE graph | **Out of scope for G1** — CLI report + exit code only |
+| Precomputed edges | `repolens.graph.adapters.load_precomputed_edges(path)` ingests a JSON edge list (stub for future Sonargraph/SCIP); production reviews use grimp |
+
+Example CI recipe (graph failures fail like scanner High):
+
+```bash
+TARGET=/Users/[username]/Development/[your-project]
+repolens review --path "$TARGET" --out "$TARGET/reports" \
+  --ci --scanners-only --fail-on HIGH -q
+```
+
+FAQ: [Python import cycles](./faq.md#python-import-cycles-import-graph-g1).
 
 ---
 

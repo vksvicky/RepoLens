@@ -16,6 +16,7 @@ If you only read one section, read this.
 | **I have Ollama — why does review fail?** | RepoLens needs a one-time `repolens init --provider ollama` (writes `~/.config/repolens/config.toml`). `init` uses a model from `ollama list` when `--model` is omitted. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md#option-b--local-ai-on-your-computer-eg-ollama). |
 | **Does AI review every file?** | **No (Slow Brain).** LLM sample defaults to top **200** files. **Fast Brain** heuristics run on a much larger matched set (default 10k). Scanners walk the **full** tree. See [Two-Lane / inventory](#how-does-the-200-file-inventory-cap-work-are-the-other-files-at-risk). |
 | **Which UUID for `explain`?** | Copy the **Fingerprint** (preferred). **Occurrence** also works. See [finding fields](#what-do-finding-fields-mean). |
+| **Python import cycles?** | **Always on** when the matched inventory includes `.py` files: deterministic **grimp** graph + Tarjan SCCs (`source=graph`). Non-Python repos skip the lane silently. See [import graph FAQ](#python-import-cycles-import-graph-g1). |
 
 Longer narrative: [design/ai-keys-scanners-and-local-learning.md §5](./design/ai-keys-scanners-and-local-learning.md#5-decision-summary-plain-language).  
 
@@ -76,6 +77,22 @@ When demoing or comparing RepoLens to other tools on a PatternSorcerer-class rep
 **Latency honesty:** Fast Brain heuristics finish in **seconds** on typical trees. A local **qwen2.5-coder:32b** Slow Brain pass is still usually **much slower** than a cloud **Claude Haiku**-class API on the same pack — model size and prompt eval dominate, not “RepoLens overhead”. For apples-to-apples **quality** demos, compare cloud-to-cloud or local-to-local; for **CI speed**, use `--ci` or `--scanners-only`.
 
 Copy-paste recipes: [command-atlas.md — Fast Brain vs Slow Brain](./command-atlas.md#fast-brain-vs-slow-brain-commands--examples).
+
+---
+
+## Python import cycles (import graph, G1)
+
+When a review’s matched inventory includes **Python** files, RepoLens runs a **sibling deterministic lane** (beside Fast Brain heuristics) that builds an internal import graph with **[grimp](https://github.com/seddonym/grimp)** (core dependency — no optional extra). It reports **runtime strongly connected components** as **`source=graph`** findings (`arch.import_cycle`, priority P3): **exactly one finding per cycle group**, not one per module.
+
+| Topic | Plain answer |
+|-------|--------------|
+| **Always on?** | Yes for Python in the inventory. Pure JS/Go/etc. trees with **no** matched `.py` → lane idle (no durability gap). |
+| **Package names** | Inferred from layout (`src/` children, flat packages, `pyproject.toml` hints) unless you override `[graph] packages = […]` in config. Script folders without importable packages may yield an empty graph — expected, not a crash. |
+| **CI `--fail-on`** | Under `--ci` / `scanner_only`, **graph** findings count like **scanner** rows (High/Critical can fail the gate). Heuristic and LLM findings stay excluded unless you drop `scanner_only`. |
+| **MCP / DSL** | **Not in G1.** The **CLI report + exit code** is the gate; MCP servers and architecture DSL editors are later waves. |
+| **Sonargraph / SCIP** | G1 ships a **stub** `load_precomputed_edges(path)` for JSON edge lists (tests + future adapters); production reviews use grimp today. |
+
+Analysis failures (SyntaxError, discovery miss) append **`graph.analysis_failed: …`** durability gaps and **do not** abort the review. Design:. Commands: [command-atlas — Import graph](./command-atlas.md#import-graph-python-g1).
 
 ---
 
@@ -143,7 +160,7 @@ Report chrome (Metrics, Coverage, About, Disclaimer) and LLM/heuristic finding p
 
 ## How do we harden RepoLens against its own dogfood noise?
 
-Self-review on this repo should not drown in agent scratch (`.superpowers/`), heuristic fixtures, or pedagogical “password” mentions in playbooks. Plan: [superpowers/specs/2026-08-05-self-review-hardening-design.md](./superpowers/specs/2026-08-05-self-review-hardening-design.md) · [implementation plan](./superpowers/plans/2026-08-05-self-review-hardening.md).
+Self-review on this repo should not drown in agent scratch (`.superpowers/`), heuristic fixtures, or pedagogical “password” mentions in playbooks.
 
 ## What do finding fields mean?
 
@@ -181,7 +198,7 @@ Lookup order inside RepoLens: match **Occurrence** (`runId`) first if present, e
 
 JSON still uses `stableId` / `runId` for compatibility; Markdown shows the human labels above.
 
-Schema: [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) · design: [superpowers/specs/2026-08-04-phase-6-issue-explain-diagrams-design.md](./superpowers/specs/2026-08-04-phase-6-issue-explain-diagrams-design.md).
+Schema: [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) · design:.
 
 ## How do I deep-dive one finding (Phase 6 explain)?
 
@@ -206,7 +223,7 @@ For `heuristic.mega_file`, RepoLens feeds a **symbol outline** (classes/function
 
 ## How do we reduce known LLM false positives for everyone?
 
-Post-parse **FP calibrations** (default on) demote patterns such as list-form `subprocess` “command injection”. Toggle under `[deep].fp_calibrations` in config / `.repolens.toml` (e.g. `subprocess_list_not_injection = false` to disable). Design: [superpowers/specs/2026-08-05-fp-calibrations-config-design.md](./superpowers/specs/2026-08-05-fp-calibrations-config-design.md).
+Post-parse **FP calibrations** (default on) demote patterns such as list-form `subprocess` “command injection”. Toggle under `[deep].fp_calibrations` in config / `.repolens.toml` (e.g. `subprocess_list_not_injection = false` to disable). Design:.
 
 ---
 
@@ -310,7 +327,7 @@ After flooring, the usual **+5** security bonus when scanners all ran still appl
 
 **CI vs confidence gates:** `--fail-on` gates on **finding severity** (e.g. `HIGH`), not on confidence %. Dual-review-style **confidence** gates in consumer pipelines often want **≥70**; a floored clean package lands at **75** gate — adequate for that bar, separate from `--fail-on`.
 
-Design: [superpowers/specs/2026-09-05-vacuous-pass-confidence-floor-design.md](./superpowers/specs/2026-09-05-vacuous-pass-confidence-floor-design.md).
+Design:.
 
 ### Core vs Extended themes (Phase 5.2)
 
