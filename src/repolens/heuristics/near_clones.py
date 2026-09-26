@@ -14,6 +14,9 @@ from repolens.schema import Issue, Severity
 
 CODE_SUFFIXES = {".py", ".pyi", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".kt"}
 
+# C-family line/block comments: // and /* … */
+_C_STYLE_COMMENT_SUFFIXES = {".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".kt"}
+
 DEFAULT_NEAR_CLONE_EXCLUDE_GLOBS: tuple[str, ...] = (
     "**/migrations/**",
     "**/*_pb2.py",
@@ -201,7 +204,7 @@ def _is_comment_line(line: str, suffix: str) -> bool:
         return True
     if suffix in {".py", ".pyi"}:
         return stripped.startswith("#")
-    if suffix in {".js", ".jsx", ".ts", ".tsx"}:
+    if suffix in _C_STYLE_COMMENT_SUFFIXES:
         return (
             stripped.startswith("//")
             or stripped.startswith("*")
@@ -211,15 +214,60 @@ def _is_comment_line(line: str, suffix: str) -> bool:
     return stripped.startswith("#") or stripped.startswith("//")
 
 
+def _is_go_import_member(stripped: str) -> bool:
+    """True for lines inside a Go ``import ( … )`` group."""
+    if stripped in {"(", ")"}:
+        return True
+    # "fmt" / `"example.com/pkg"`
+    if stripped.startswith('"') and stripped.endswith('"'):
+        return True
+    # . "fmt"  or  alias "fmt"
+    if '"' in stripped:
+        head, _, tail = stripped.partition(" ")
+        path = tail.strip() if tail else ""
+        if path.startswith('"') and path.endswith('"'):
+            return head == "." or head.isidentifier()
+    return False
+
+
 def _is_import_line(line: str, suffix: str) -> bool:
-    stripped = line.lstrip()
+    stripped = line.strip()
     if not stripped:
         return True
     if suffix in {".py", ".pyi"}:
         return stripped.startswith("import ") or stripped.startswith("from ")
     if suffix in {".js", ".jsx", ".ts", ".tsx"}:
         return stripped.startswith("import ") or "require(" in stripped
+    if suffix == ".go":
+        # Single-line imports only; group members need ``_chunk_is_import_only``.
+        return stripped.startswith("import ") or stripped.startswith("import(")
+    if suffix == ".rs":
+        return stripped.startswith("use ") or stripped.startswith("extern crate ")
+    if suffix == ".kt":
+        return stripped.startswith("import ")
     return False
+
+
+def _chunk_is_import_only(norm_chunk: Sequence[str], suffix: str) -> bool:
+    non_blank = [line.strip() for line in norm_chunk if line.strip()]
+    if not non_blank:
+        return False
+    if suffix == ".go":
+        # Require an ``import`` keyword so bare string-literal windows are not suppressed.
+        has_import = any(
+            line.startswith("import ") or line.startswith("import(") or line == "import"
+            for line in non_blank
+        )
+        if not has_import:
+            return False
+        return all(
+            line.startswith("import ")
+            or line.startswith("import(")
+            or line == "import"
+            or _is_go_import_member(line)
+            for line in non_blank
+        )
+    return all(_is_import_line(line, suffix) for line in non_blank)
 
 
 def _should_skip_window(
@@ -239,10 +287,7 @@ def _should_skip_window(
         ]
         if phys_text and all(_is_comment_line(line, suffix) for line in phys_text):
             return True
-    non_blank = [line for line in norm_chunk if line.strip()]
-    if non_blank and all(_is_import_line(line, suffix) for line in non_blank):
-        return True
-    return False
+    return _chunk_is_import_only(norm_chunk, suffix)
 
 
 def _exclude_globs_for(config: NearClonesConfig) -> tuple[str, ...]:
