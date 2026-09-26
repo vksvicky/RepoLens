@@ -397,7 +397,7 @@ Guided wizard: `./scripts/repolens-guided.sh` prompts for deep (default **Y** on
 | Milestone / release | `repolens review --full --deep …` or `--full-audit` | Often **≥1 h** on local 32B |
 | Thin single-shot | `repolens review --no-deep …` | 1 LLM call (weaker coverage) |
 
-**Cost knobs (#15):** `--deep-passes N` (or `[deep] max_passes`) caps band passes; invalid JSON gets **one** micro-repair then degrades (count in report as `llmRepairAttempts`). Build dirs like `target/`, `node_modules/`, `reports/`, `.repolens/` are ignored so cold-cache inventory does not inflate Fast Brain.
+**Cost knobs (#15):** `--deep-passes N` (or `[deep] max_passes`) caps band passes; invalid JSON gets **one** micro-repair then degrades (count in report as `llmRepairAttempts`). Build dirs like `target/`, `node_modules/`, `reports/`, `.repolens/` are ignored so cold-cache inventory does not inflate Fast Brain. Pre-flight **Slow Brain estimate** is a coarse lower band — local 32B often spends many minutes on prompt evaluation before the first token (LogViewer dogfood: 7 files × 1 pass ≈ 30 minutes wall-clock on `qwen2.5-coder:32b`).
 
 **`--changed` vs `--git-diff` (#16):** `--changed` = SQLite fingerprint delta since last sync. `--git-diff [base|auto]` = git branch/worktree delta and **restricts** the Slow Brain pack to that intersection (scanners + Fast Brain stay whole-tree). Do not conflate them. Change-set deep complements a human/agent dual-review gate — it focuses the LLM on files you touched; it does not replace gate honesty.
 

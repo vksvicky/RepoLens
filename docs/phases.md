@@ -6,9 +6,9 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–7**, **Wave A/B**, and **Wave C (G0–G4)** complete; **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) = `repolens-audit==0.1.0a1`. Phase **8** aliases ([#4](https://github.com/vksvicky/RepoLens/issues/4)) and Phase **9** Gemini AI Studio MVP ([#5](https://github.com/vksvicky/RepoLens/issues/5) / [PR #52](https://github.com/vksvicky/RepoLens/pull/52)) shipped; Vertex/Bedrock remain follow-ups. **Dogfood (#15/#16):** deep cost knobs + `--git-diff` change-set Slow Brain restrict — closes LogViewer umbrella [#13](https://github.com/vksvicky/RepoLens/issues/13).  
-**GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred residuals: [#11](https://github.com/vksvicky/RepoLens/issues/11).  
-**Parked:** **#17b** (local UI calibrations).
+**Current phase:** Phases **0–7**, **Wave A/B**, **Wave C (G0–G4)**, Phase **8**, Phase **9** Gemini MVP, and LogViewer dogfood (**#15/#16/#13**) complete ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)). **Open / parked:** [#11](https://github.com/vksvicky/RepoLens/issues/11) residuals · [#17b](https://github.com/vksvicky/RepoLens/issues/17) local UI calibrations · Phase 9 Vertex/Bedrock follow-up · [#6](https://github.com/vksvicky/RepoLens/issues/6) community feedback.  
+**GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12).  
+**Parked:** **#17b** (local UI calibrations); [#11](https://github.com/vksvicky/RepoLens/issues/11) study/SARIF/registry residuals.
 
 **CLI language:** Python 3.11+
 
@@ -30,8 +30,11 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [x] Optional `repolens-mcp` — [PR #51](https://github.com/vksvicky/RepoLens/pull/51) |
 | ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [x] `repolens.yaml` + FAS candidates — [PR #51](https://github.com/vksvicky/RepoLens/pull/51) |
 | Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [x] Sourcery/CodeRabbit vs gate — see [repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit) |
-| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 done ([PR #51](https://github.com/vksvicky/RepoLens/pull/51)); Phase 9 Gemini MVP done ([PR #52](https://github.com/vksvicky/RepoLens/pull/52)); Vertex/Bedrock follow-up |
-| Dogfood: 32B cost / change-set | [#15](https://github.com/vksvicky/RepoLens/issues/15) / [#16](https://github.com/vksvicky/RepoLens/issues/16) | **Next** — cost knobs then `--git-diff` Slow Brain restrict |
+| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 done ([PR #51](https://github.com/vksvicky/RepoLens/pull/51)); Phase 9 Gemini MVP done ([PR #52](https://github.com/vksvicky/RepoLens/pull/52)); Vertex/Bedrock → [#58](https://github.com/vksvicky/RepoLens/issues/58) |
+| Dogfood: 32B cost / change-set | [#15](https://github.com/vksvicky/RepoLens/issues/15) / [#16](https://github.com/vksvicky/RepoLens/issues/16) | **Done** ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)); umbrella [#13](https://github.com/vksvicky/RepoLens/issues/13) closed |
+| Deferred residuals | [#11](https://github.com/vksvicky/RepoLens/issues/11) | Parked (heuristics / study / SARIF import / Trivy registry) |
+| Community feedback | [#6](https://github.com/vksvicky/RepoLens/issues/6) | Open channel |
+| Local UI calibrations | #17b on [#17](https://github.com/vksvicky/RepoLens/issues/17) | Parked |
 ---
 
 ## Legend
@@ -511,8 +514,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 |------|--------|-------|
 | Design sketch | [x] | [phase-9-native-provider-sdks.md](./design/phase-9-native-provider-sdks.md) |
 | Native Gemini (AI Studio) | [x] | `provider=gemini` + `GEMINI_API_KEY`; stream → `on_delta` — [PR #52](https://github.com/vksvicky/RepoLens/pull/52) |
-| Native Vertex AI | [ ] | Follow-up (ADC / project / region) |
-| Native Bedrock (if demanded) | [ ] | Prefer Converse + thin httpx |
+| Native Vertex AI | [ ] | Follow-up [#58](https://github.com/vksvicky/RepoLens/issues/58) (ADC / project / region) |
+| Native Bedrock (if demanded) | [ ] | Follow-up [#58](https://github.com/vksvicky/RepoLens/issues/58) — prefer Converse + thin httpx |
 | Keep Phase 8 aliases on OpenAI-compatible path | [x] | Aliases unchanged |
 
 **Phase 9 exit criteria:** At least one native provider ships with init + streaming wait UX + tests; FAQ clearly marks alias vs native. → **Met** by Gemini AI Studio MVP; Vertex/Bedrock remain optional follow-ups.
@@ -586,6 +589,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-09-26 | Wave C G0–G4 + Phase 8 | G2 [#48](https://github.com/vksvicky/RepoLens/pull/48); G3/G4/Phase 8/competitive [#51](https://github.com/vksvicky/RepoLens/pull/51); close umbrella [#18](https://github.com/vksvicky/RepoLens/issues/18) |
 | 2026-09-26 | Phase 9 Gemini MVP | Native AI Studio ([#5](https://github.com/vksvicky/RepoLens/issues/5) / [PR #52](https://github.com/vksvicky/RepoLens/pull/52)); Vertex/Bedrock remain follow-ups |
 | 2026-09-26 | Dogfood next | Unpark [#15](https://github.com/vksvicky/RepoLens/issues/15) then [#16](https://github.com/vksvicky/RepoLens/issues/16); refresh [#12](https://github.com/vksvicky/RepoLens/issues/12); triage [#11](https://github.com/vksvicky/RepoLens/issues/11) |
+| 2026-09-26 | Dogfood #15/#16 landed | [PR #57](https://github.com/vksvicky/RepoLens/pull/57); [#13](https://github.com/vksvicky/RepoLens/issues/13) closed; LogViewer `--git-diff auto --deep-passes 1` validated; Vertex/Bedrock → [#58](https://github.com/vksvicky/RepoLens/issues/58) |
 
 ---
 
