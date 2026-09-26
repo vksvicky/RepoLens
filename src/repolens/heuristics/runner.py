@@ -7,10 +7,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from repolens.config import NearClonesConfig
 from repolens.heuristics.ci_gaps import find_ci_gaps
 from repolens.heuristics.deep_nesting import find_deep_nesting
 from repolens.heuristics.gitignore_secrets import find_gitignore_secret_gaps
 from repolens.heuristics.mega_files import DEFAULT_MEGA_FILE_EXCLUDES, find_mega_files
+from repolens.heuristics.near_clones import find_near_clones
 from repolens.heuristics.scripts_hygiene import find_script_credential_hygiene, find_todo_density
 from repolens.heuristics.siblings import find_sibling_pairs
 from repolens.inventory import FileEntry
@@ -21,6 +23,9 @@ from repolens.schema import Issue
 class HeuristicResult:
     issues: list[Issue] = field(default_factory=list)
     hot_paths: list[str] = field(default_factory=list)
+    near_clone_clusters: int = 0
+    near_clone_occurrences: int = 0
+    near_clone_notes: list[str] = field(default_factory=list)
 
 
 def _chunked(entries: list[FileEntry], n_chunks: int) -> list[list[FileEntry]]:
@@ -59,6 +64,7 @@ def run_heuristics(
     mega_file_exclude_globs: Sequence[str] | None = None,
     pack_ids: Sequence[str] | None = None,
     workers: int = 1,
+    near_clones_config: NearClonesConfig | None = None,
 ) -> HeuristicResult:
     """Fast Brain heuristics — regex/line/stat only (no AST). See Phase 6.11."""
     root = root.resolve()
@@ -99,6 +105,20 @@ def run_heuristics(
         if issue.file not in hot_paths:
             hot_paths.append(issue.file)
 
+    nc_cfg = near_clones_config if near_clones_config is not None else NearClonesConfig()
+    near_clone_clusters = 0
+    near_clone_occurrences = 0
+    near_clone_notes: list[str] = []
+    if nc_cfg.enabled:
+        nc = find_near_clones(entries, config=nc_cfg)
+        issues.extend(nc.issues)
+        near_clone_clusters = nc.cluster_count
+        near_clone_occurrences = nc.occurrence_count
+        near_clone_notes = list(nc.notes)
+        for issue in nc.issues:
+            if issue.file not in hot_paths:
+                hot_paths.append(issue.file)
+
     issues.extend(find_gitignore_secret_gaps(root, entries))
     issues.extend(
         _map_entry_issues(entries, find_script_credential_hygiene, workers=workers)
@@ -122,4 +142,10 @@ def run_heuristics(
             seen.add(path)
             ordered_hots.append(path)
 
-    return HeuristicResult(issues=issues, hot_paths=ordered_hots)
+    return HeuristicResult(
+        issues=issues,
+        hot_paths=ordered_hots,
+        near_clone_clusters=near_clone_clusters,
+        near_clone_occurrences=near_clone_occurrences,
+        near_clone_notes=near_clone_notes,
+    )

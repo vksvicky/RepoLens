@@ -16,6 +16,8 @@ If you only read one section, read this.
 | **I have Ollama — why does review fail?** | RepoLens needs a one-time `repolens init --provider ollama` (writes `~/.config/repolens/config.toml`). `init` uses a model from `ollama list` when `--model` is omitted. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md#option-b--local-ai-on-your-computer-eg-ollama). |
 | **Does AI review every file?** | **No (Slow Brain).** LLM sample defaults to top **200** files. **Fast Brain** heuristics run on a much larger matched set (default 10k). Scanners walk the **full** tree. See [Two-Lane / inventory](#how-does-the-200-file-inventory-cap-work-are-the-other-files-at-risk). |
 | **Which UUID for `explain`?** | Copy the **Fingerprint** (preferred). **Occurrence** also works. See [finding fields](#what-do-finding-fields-mean). |
+| **Python import cycles?** | **Always on** when the matched inventory includes `.py` files: deterministic **grimp** graph + Tarjan SCCs (`source=graph`). Non-Python repos skip the lane silently. See [import graph FAQ](#python-import-cycles-import-graph-g1). |
+| **Cyclicity ratchet?** | Optional **Rule 1** gate: fail only when **runtime cyclicity** rises vs a stored baseline (`repolens baseline set` → `repolens check --diff`). Same section — [ratchet ladder](#cyclicity-ratchet-baseline-g2). |
 
 Longer narrative: [design/ai-keys-scanners-and-local-learning.md §5](./design/ai-keys-scanners-and-local-learning.md#5-decision-summary-plain-language).  
 
@@ -79,6 +81,36 @@ Copy-paste recipes: [command-atlas.md — Fast Brain vs Slow Brain](./command-at
 
 ---
 
+## Python import cycles (import graph, G1)
+
+When a review’s matched inventory includes **Python** files, RepoLens runs a **sibling deterministic lane** (beside Fast Brain heuristics) that builds an internal import graph with **[grimp](https://github.com/seddonym/grimp)** (core dependency — no optional extra). It reports **runtime strongly connected components** as **`source=graph`** findings (`arch.import_cycle`, priority P3): **exactly one finding per cycle group**, not one per module.
+
+| Topic | Plain answer |
+|-------|--------------|
+| **Always on?** | Yes for Python in the inventory. Pure JS/Go/etc. trees with **no** matched `.py` → lane idle (no durability gap). |
+| **Package names** | Inferred from layout (`src/` children, flat packages, `pyproject.toml` hints) unless you override `[graph] packages = […]` in config. Script folders without importable packages may yield an empty graph — expected, not a crash. |
+| **CI `--fail-on`** | Under `--ci` / `scanner_only`, **graph** findings count like **scanner** rows (High/Critical can fail the gate). Heuristic and LLM findings stay excluded unless you drop `scanner_only`. |
+| **MCP / DSL** | **Not in G1.** The **CLI report + exit code** is the gate; MCP servers and architecture DSL editors are later waves. |
+| **Sonargraph / SCIP** | G1 ships a **stub** `load_precomputed_edges(path)` for JSON edge lists (tests + future adapters); production reviews use grimp today. |
+
+### Cyclicity ratchet (baseline, G2)
+
+Short ladder for CI or pre-commit (seconds, no LLM):
+
+| Step | What to run |
+|------|-------------|
+| 1 | `repolens baseline set --path .` — writes `.repolens/baseline.json` (cyclicity + cycle fingerprints). Commit the file if you want baseline updates reviewed in PRs. |
+| 2 | `repolens check --diff --require-baseline --path .` — primary gate on every PR or hook. |
+| 3 *(optional)* | `repolens review --ratchet …` or `[graph] ratchet = true` — same Rule 1 after a review (combines with `--fail-on`). |
+
+**Rule 1 (one line):** the gate fails only when **runtime cyclicity** (∑ *n²* over cycle groups) is **strictly greater** than the baseline — not when fingerprints shuffle but the score stays flat or improves.
+
+**After `[graph]` config changes** (e.g. `local_imports`, `type_only`): run **`repolens baseline set`** again once the change is intentional. Until then you may see a `ratchet.config_mismatch` note; Rule 1 still applies.
+
+Analysis failures (SyntaxError, discovery miss) append **`graph.analysis_failed: …`** durability gaps and **do not** abort the review. Commands: [command-atlas — Import graph](./command-atlas.md#import-graph-python-g1) · [ratchet commands](./command-atlas.md#import-graph-ratchet-python-g2).
+
+---
+
 ## How is RepoLens different from prompt-paste review tools?
 
 | | RepoLens CLI | Prompt-paste / chat workflows |
@@ -95,6 +127,23 @@ Playbooks in chat and RepoLens share review *ideas*; they are not the same produ
 ## Do scanners catch missing `.gitignore` rules?
 
 **Usually no — and we do not claim they do.** **gitleaks** (and similar) find **secret content** already present in the tree. **Missing `.env` / credential patterns in `.gitignore`** come from **Fast Brain heuristics** (`heuristic.gitignore_secrets`, etc.) — deterministic pattern checks, not a live secret scan. Treat those rows as hygiene hints; confirm with your policy and scanners. Heuristic and LLM twins on the same theme (e.g. gitignore + `sec.repo_hygiene_secrets`) are **clustered** so the report does not list three near-identical `.gitignore` issues.
+
+---
+
+## What are near-clones and the Quality scorecard (Fast Brain)?
+
+**Near-clones** are **deterministic Fast Brain heuristics** (`source=heuristic`, category `quality.near_clone`) — sliding line windows + content hash, not AST matching and not Slow Brain LLM prose. Findings use **physical** file:line numbers (blank lines skipped in the hash, but line anchors match the file on disk). Overlapping windows for the same file pair are **coalesced** into one block; boilerplate (header comments, import-only windows, common generated paths) is suppressed.
+
+| Knob | Default | Role |
+|------|---------|------|
+| `[fast_brain.near_clones].window_lines` / `stride` | 12 / 6 | Window size and step |
+| `max_clusters` | **50** | Tally on the **Quality scorecard** (and internal cluster list) |
+| `max_findings` | **10** | Max near-clone **Issues** in the findings list |
+| `medium_at_occurrences` | 4 | Severity bump when a cluster repeats |
+
+When more clone clusters exist than `max_findings`, the report still counts clusters on the scorecard (up to `max_clusters`) and adds an **omission note** (e.g. additional clusters omitted from findings). Tune or disable via `[fast_brain.near_clones]` in `.repolens.toml` — see [`.repolens.example.toml`](../.repolens.example.toml).
+
+**Quality scorecard (Fast Brain)** is a compact Markdown + JSON block (`report.quality`) rolling up mega-files, deep nesting, near-clone cluster counts, and files scanned. It is a **DRY/KISS posture signal**, not an architecture certification and **not** a Sonargraph-style clone explorer (no interactive duplicate browser, no industrial dependency graph). **Cyclicity / import cycles are not on this scorecard** — that belongs to the separate Python import-graph work (G1). Design:.
 
 ---
 

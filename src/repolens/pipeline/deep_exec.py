@@ -196,6 +196,7 @@ def _analyze_deep_passes(
             mega_file_exclude_globs=cfg.deep.mega_file_exclude_globs or None,
             pack_ids=pack_ids or None,
             workers=cfg.fast_brain.parallel_workers,
+            near_clones_config=cfg.fast_brain.near_clones,
         )
     if prog.verbose:
         prog.detail(

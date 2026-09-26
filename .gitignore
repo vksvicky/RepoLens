@@ -49,10 +49,9 @@ repolens-work/
 # Local feature worktrees
 .worktrees/
 
-# Maintainer-only agent specs/plans (local reference — not part of the open-source docs)
+# Maintainer-only (local)
 docs/superpowers/
 .superpowers/
-
 scratch.py
 .coverage
 RepoLens.sonargraph/
