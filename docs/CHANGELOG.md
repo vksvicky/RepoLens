@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 
+- **`--import-sarif`** — defensive SARIF 2.1 import (repeatable); merges CodeQL/Sonar/ESLint (and similar) into one gate report as `source=scanner`; **Automated scanners** shows `sarif:<driver>`; docs in [scanners.md](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-) and [ci.md](./ci.md#import-external-sarif-companion-gate)
 - **`--deep-passes` / `[deep] max_passes`** — cap deep band passes (1 = P1-only iteration); pre-flight Slow Brain wall-time estimate (#15)
 - **`llmRepairAttempts`** on reports — JSON micro-repair hard-capped at 1 per pass (#15)
 - **`--git-diff [base|auto]`** — restrict Slow Brain pack to git change-set; scanners + Fast Brain stay whole-tree; report **Change-set scope** section (#16)

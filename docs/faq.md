@@ -583,8 +583,9 @@ Guide: [scanners.md](./scanners.md) · Design: [ai-keys-scanners-and-local-learn
 A shell script gives you disconnected JSON dumps, duplicated CVEs, no
 cross-tool dedupe, no import-graph cyclicity, no Critical/High remediation
 examples, and no unified `--fail-on` confidence gate. RepoLens merges
-scanner evidence into one prioritized P1→P2→P3 decision (and can import
-third-party SARIF into the same report).
+scanner evidence into one prioritized P1→P2→P3 decision; use
+[`--import-sarif`](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-)
+to fold CodeQL/Sonar/ESLint SARIF into the same gate report.
 
 See [competitive landscape](./design/competitive-landscape-sonar-alternatives-2026.md).
 
@@ -778,7 +779,7 @@ No. Use RepoLens as a due-diligence layer **plus** tests, CI, and mature scanner
 
 ## Does RepoLens export SARIF for GitHub / Sonar?
 
-Yes (`--sarif`, Phase 6.4). Export is **anchored**: scanner locations are trusted; LLM/heuristic findings need a resolvable `anchorQuote` in the cited file. Unverified locations stay in Markdown/JSON only — never in SARIF — so GHAS highlighting is not fed hallucinated lines. See [ci.md](./ci.md#anchored-sarif--sbom-phase-64--62).
+Yes (`--sarif`, Phase 6.4). Export is **anchored**: scanner locations are trusted; LLM/heuristic findings need a resolvable `anchorQuote` in the cited file. Unverified locations stay in Markdown/JSON only — never in SARIF — so GHAS highlighting is not fed hallucinated lines. See [ci.md](./ci.md#anchored-sarif--sbom-phase-64--62). **Inbound** SARIF from other tools: [`--import-sarif`](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-) (companion gate; separate from `--fail-on` vs `--format md` reporting).
 
 ## How do I stop the same finding failing every PR?
 
