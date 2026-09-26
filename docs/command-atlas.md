@@ -10,6 +10,8 @@ Deep guides stay linked; this page is the map.
 | **Fast Brain vs Slow Brain** (which flags, what to expect) | [§ Fast Brain vs Slow Brain](#fast-brain-vs-slow-brain-commands--examples) |
 | **Python import graph** (cycles, CI fail-on) | [§ Import graph (Python, G1)](#import-graph-python-g1) |
 | **Cyclicity ratchet** (baseline, Rule 1) | [§ Import graph ratchet (G2)](#import-graph-ratchet-python-g2) |
+| **Architecture DSL** (boundaries, FAS candidates) | [§ Architecture DSL (G4)](#architecture-dsl-g4) |
+| **MCP graph tools** | [mcp.md](./mcp.md) · [§ MCP graph tools (G3)](#mcp-graph-tools-g3) |
 | Scanner plugins | [scanners.md](./scanners.md) |
 | CI / GitHub Action | [ci.md](./ci.md) |
 | Domain packs detail | [packs.md](./packs.md) · [packs-quickcheck.md](./packs-quickcheck.md) |
@@ -270,7 +272,7 @@ Deterministic **Python import-cycle** detection runs automatically when the matc
 | `--scanners-only` | Graph lane still runs when `.py` is present; no LLM required |
 | `--ci --fail-on HIGH` | **Graph** counts like **scanner** under triage (`scanner_only`); heuristic/LLM rows do not fail the gate |
 | Config | `[graph]` in `.repolens.toml` — `packages`, `type_only`, `local_imports`, `critical_scc_size` (see `.repolens.example.toml`) |
-| MCP / IDE graph | **Out of scope for G1** — CLI report + exit code only |
+| MCP / IDE graph | Optional **G3** — [mcp.md](./mcp.md); CLI remains the primary gate |
 | Precomputed edges | `repolens.graph.adapters.load_precomputed_edges(path)` ingests a JSON edge list (stub for future Sonargraph/SCIP); production reviews use grimp |
 
 Example CI recipe (graph failures fail like scanner High):
@@ -297,6 +299,43 @@ Graph-only **Rule 1** gate: runtime cyclicity must not **increase** vs `.repolen
 | `repolens review … --ratchet` | Same ratchet after report (with or without `--fail-on`) | **1** if either ratchet or `--fail-on` trips |
 
 CI recipes: [ci.md — cyclicity ratchet](./ci.md#python-cyclicity-ratchet-fast-gate-g2). FAQ: [ratchet ladder](./faq.md#cyclicity-ratchet-baseline-g2).
+
+---
+
+## Architecture DSL (G4)
+
+Strict **`repolens.yaml`** (or `.repolens/architecture.yaml` / `architecture.json`) boundaries verified by the G1 graph. Schema: packaged `architecture/schemas/architecture.schema.json`.
+
+```yaml
+schemaVersion: 1
+boundaries:
+  - name: domain
+    path: src/domain/**
+    allowed_imports: []
+  - name: api
+    path: src/api/**
+    allowed_imports: [domain]
+```
+
+| Command | Role | Exit |
+|---------|------|------|
+| `repolens check architecture --path "$TARGET"` | Deterministic boundary verify + print weighted FAS **candidates** | **0** ok · **1** violations · **2** missing/invalid DSL · **3** graph failed |
+| `repolens check architecture --json` | Emit remediation context (subgraph + FAS candidates) for LLM / agents | same |
+
+**FAS = candidate:** lightest feedback-arc-set cuts are suggestions only — choose the cut that respects layer direction. See [zugel-comparison-and-roadmap.md](./design/zugel-comparison-and-roadmap.md).
+
+---
+
+## MCP graph tools (G3)
+
+Optional secondary query surface for agents. **Primary gate remains CLI/CI.**
+
+```bash
+pip install 'repolens-audit[mcp]'
+repolens-mcp --path /absolute/path/to/repo
+```
+
+Docs: [mcp.md](./mcp.md). Tools: `repolens_check_dependency`, `repolens_would_create_cycle`, `repolens_query_dependencies` / `_dependents`, and (with G4 DSL) `repolens_get_legal_imports`.
 
 ---
 

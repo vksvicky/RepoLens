@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–7** and **Wave A** complete; **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) published as `repolens-audit==0.1.0a1`. **Wave C:** **G0–G2 merged** ([#33](https://github.com/vksvicky/RepoLens/issues/33)/[#45](https://github.com/vksvicky/RepoLens/pull/45), [#34](https://github.com/vksvicky/RepoLens/issues/34)/[#46](https://github.com/vksvicky/RepoLens/pull/46), [#35](https://github.com/vksvicky/RepoLens/issues/35)/[#48](https://github.com/vksvicky/RepoLens/pull/48)) under [#18](https://github.com/vksvicky/RepoLens/issues/18). **Next:** **G4** architecture DSL ([#37](https://github.com/vksvicky/RepoLens/issues/37)); **G3** MCP ([#36](https://github.com/vksvicky/RepoLens/issues/36)) remains secondary. Parallel: competitive docs ([#28](https://github.com/vksvicky/RepoLens/issues/28)); Phase **8** ([#4](https://github.com/vksvicky/RepoLens/issues/4)) as capacity allows.  
+**Current phase:** Phases **0–7** and **Wave A** complete; **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) published as `repolens-audit==0.1.0a1`. **Wave C:** **G0–G2 merged**; this branch adds **G4** ([#37](https://github.com/vksvicky/RepoLens/issues/37)), **G3** MCP ([#36](https://github.com/vksvicky/RepoLens/issues/36)), Phase **8** ([#4](https://github.com/vksvicky/RepoLens/issues/4)), competitive docs ([#28](https://github.com/vksvicky/RepoLens/issues/28)).  
 **GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred follow-ups: [#11](https://github.com/vksvicky/RepoLens/issues/11). Umbrella dogfood: [#13](https://github.com/vksvicky/RepoLens/issues/13).  
 **Parked:** [#15](https://github.com/vksvicky/RepoLens/issues/15) (32B local runtime), [#16](https://github.com/vksvicky/RepoLens/issues/16) (change-set scoping), **#17b** (local UI calibrations), [#29](https://github.com/vksvicky/RepoLens/issues/29)/[#30](https://github.com/vksvicky/RepoLens/issues/30) (post-alpha UX).
 
@@ -23,14 +23,14 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **Wave B: Distribution & CI** | | **B1 done · B2 active** |
 | ↳ Phase 7: Enterprise CI/CD (B1) | [#3](https://github.com/vksvicky/RepoLens/issues/3) | [x] Closed — docs MVP + Sourcery follow-ups (#26/#31) |
 | ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | [x] Closed — `repolens-audit==0.1.0a1` on PyPI |
-| **Wave C: Structure / Zügel-aligned** | [#18](https://github.com/vksvicky/RepoLens/issues/18) | **G0–G2 merged** — G3/G4 next |
+| **Wave C: Structure / Zügel-aligned** | [#18](https://github.com/vksvicky/RepoLens/issues/18) | **G0–G4 + Phase 8** on this branch |
 | ↳ G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [x] Merged via [PR #45](https://github.com/vksvicky/RepoLens/pull/45) |
 | ↳ G1 Python import graph | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [x] Merged via [PR #46](https://github.com/vksvicky/RepoLens/pull/46) |
 | ↳ G2 Cyclicity ratchet | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [x] Merged via [PR #48](https://github.com/vksvicky/RepoLens/pull/48) |
-| ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] Secondary — after CLI gates; do not block G4 |
-| ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] **Next** — cycles → layers/DSL ladder |
-| Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [ ] Small parallel docs |
-| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 as capacity; Phase 9 later |
+| ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [x] Optional `repolens-mcp` — cycles/reachability + G4 legal imports |
+| ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [x] `repolens.yaml` + `check architecture` + FAS candidates |
+| Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [x] Sourcery/CodeRabbit vs gate — see [repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit) |
+| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 aliases shipped; Phase 9 later |
 ---
 
 ## Legend
@@ -479,10 +479,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [x] | Merged [PR #45](https://github.com/vksvicky/RepoLens/pull/45) — near-clones + scorecard |
 | G1 Python graph + SCC (grimp) | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [x] | Merged [PR #46](https://github.com/vksvicky/RepoLens/pull/46) — `source=graph`; fail-on like scanner |
 | G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [x] | Merged [PR #48](https://github.com/vksvicky/RepoLens/pull/48) — Rule 1 cyclicity-only ratchet |
-| G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] | Secondary to CLI; after G1 (+G2 preferred) |
-| G4 Architecture DSL + weighted FAS LLM cuts | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] | FAS = candidate; domain direction wins |
+| G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [x] | Optional `repolens-mcp` — see [mcp.md](./mcp.md) |
+| G4 Architecture DSL + weighted FAS LLM cuts | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [x] | `repolens check architecture`; FAS = candidate |
 
-**Landed:** G0–G2. **Next:** **G4** ([#37](https://github.com/vksvicky/RepoLens/issues/37)) architecture DSL. **G3** MCP ([#36](https://github.com/vksvicky/RepoLens/issues/36)) remains optional/secondary. Maintainer specs stay local (not in the free docs tree).
+**Landed:** G0–G4 + Phase 8 aliases on this branch. Maintainers keep detailed specs local (not in the free docs tree).
 
 ---
 
@@ -494,9 +494,9 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Item | Status | Notes |
 |------|--------|-------|
 | Design sketch | [x] | [phase-8-provider-aliases-and-recipes.md](./design/phase-8-provider-aliases-and-recipes.md) |
-| P0 aliases: Azure, Mistral, Groq, OpenRouter | [ ] | Map to OpenAI-compatible + stream |
-| Setup/FAQ recipes (P0–P2) | [ ] | LM Studio / vLLM as `openai_compatible` |
-| Gemini: recipe or “see Phase 9” | [ ] | No half-native adapter in Phase 8 |
+| P0 aliases: Azure, Mistral, Groq, OpenRouter | [x] | Map to OpenAI-compatible + stream |
+| Setup/FAQ recipes (P0–P2) | [x] | LM Studio / vLLM as `openai_compatible` |
+| Gemini: recipe or “see Phase 9” | [x] | No half-native adapter in Phase 8 |
 
 **Phase 8 exit criteria:** Users can `init --provider groq|mistral|azure|openrouter` (and follow recipes for self-hosted OpenAI-compatible hosts) without hand-editing obscure `base_url`s.
 

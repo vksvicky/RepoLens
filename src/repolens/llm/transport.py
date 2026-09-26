@@ -85,12 +85,10 @@ def _build_openai_request(
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 
-    use_stream = on_delta is not None or model_cfg.provider in {
-        "ollama",
-        "openai",
-        "deepseek",
-        "openai_compatible",
-    }
+    from repolens.providers import is_openai_compat_transport
+
+    # Stream by default for OpenAI-compatible transports (incl. Phase 8 aliases).
+    use_stream = on_delta is not None or is_openai_compat_transport(model_cfg.provider)
 
     payload: dict[str, Any] = {
         "model": model,

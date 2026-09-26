@@ -90,6 +90,29 @@ Best-in-class for one job. Trivy/Checkov expose RepoLens’s biggest coverage ho
 
 **Product debt:** Trivy + Checkov plugins before any “full AppSec” claims.
 
+### PR / IDE velocity tools (Sourcery / CodeRabbit)
+
+**Primary job:** accelerate PR and IDE loops — inline comments, PR summaries, conversational review, Python idiom/refactor hints, team review analytics.
+
+| | Sourcery / CodeRabbit | RepoLens |
+|--|----------------------|----------|
+| Moment | While coding / on the PR | Pre-merge / release / due-diligence **gate** |
+| Output | Inline suggestions, chat, summaries | Structured P1→P3 report, SARIF/SBOM, CI exit codes |
+| Scope | Velocity and readability | Security + reliability + architecture **audit** with scanners |
+| Hosting | Often SaaS / IDE extension | Local CLI, BYOK / Ollama, forge-agnostic |
+
+They are **complementary**: use Sourcery/CodeRabbit for day-to-day PR velocity; use RepoLens when you need a portable dual-review gate, confidence honesty, and scanner-merged evidence.
+
+#### Explicit non-goals (do **not** turn RepoLens into)
+
+- Real-time IDE refactoring extension product (VS Code / PyCharm)
+- Python-first idiom rewriter competing with Ruff / Sourcery
+- Hosted team analytics / seat SaaS dashboard
+- Conversational `@repolens` PR bot as the **primary** UX
+- Continuous multi-repo hosted security cloud
+
+Optional later (separate issues): Crit/High GitHub review comments; stronger local dismiss → pattern demotion.
+
 ---
 
 ## Honest scorecard for RepoLens

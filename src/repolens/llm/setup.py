@@ -144,22 +144,17 @@ def provider_setup_hints() -> list[str]:
 
 
 def default_base_url(provider: str | None) -> str:
-    return {
-        "openai": "https://api.openai.com/v1",
-        "anthropic": "https://api.anthropic.com/v1",
-        "deepseek": "https://api.deepseek.com/v1",
-        "ollama": "http://127.0.0.1:11434/v1",
-        "openai_compatible": "http://127.0.0.1:11434/v1",
-    }.get(provider or "", "https://api.openai.com/v1")
+    from repolens.providers import default_base_url_for
+
+    return default_base_url_for(provider)
 
 
 def default_model(provider: str | None) -> str:
+    from repolens.providers import default_model_for
+
     if provider in {"ollama", "openai_compatible"}:
         return resolve_ollama_model(None)[0]
-    return {
-        "openai": "gpt-4.1-mini",
-        "anthropic": "claude-sonnet-4-20250514",
-        "deepseek": "deepseek-chat",
-    }.get(provider or "", "gpt-4.1-mini")
+    named = default_model_for(provider)
+    return named or "gpt-4.1-mini"
 
 
