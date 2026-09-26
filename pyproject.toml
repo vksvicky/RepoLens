@@ -53,6 +53,12 @@ mcp = [
 architecture = [
   "PyYAML>=6.0",
 ]
+vertex = [
+  "google-auth>=2.0",
+]
+bedrock = [
+  "botocore>=1.34",
+]
 
 [project.scripts]
 repolens = "repolens.cli:run"

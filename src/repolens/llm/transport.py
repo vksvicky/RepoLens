@@ -56,6 +56,18 @@ def analyze_raw(
         return analyze_gemini(
             prompt, model_cfg, client=client, on_delta=on_delta
         )
+    if model_cfg.provider == "vertex":
+        from repolens.llm.vertex import analyze_vertex
+
+        return analyze_vertex(
+            prompt, model_cfg, client=client, on_delta=on_delta
+        )
+    if model_cfg.provider == "bedrock":
+        from repolens.llm.bedrock import analyze_bedrock
+
+        return analyze_bedrock(
+            prompt, model_cfg, client=client, on_delta=on_delta
+        )
 
     return _analyze_openai_compatible(
         prompt, model_cfg, client=client, on_delta=on_delta
