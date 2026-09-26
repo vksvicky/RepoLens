@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 
+- Tracker hygiene: Wave C G0–G4 and Phase 8/9 Gemini MVP marked complete in [phases.md](./phases.md); next dogfood is [#15](https://github.com/vksvicky/RepoLens/issues/15) then [#16](https://github.com/vksvicky/RepoLens/issues/16) (`--git-diff` change-set).
 - Maintainer agent specs/plans under `docs/superpowers/` are local-only (gitignored); public docs point at `docs/design/` and `docs/phases.md`.
 
 

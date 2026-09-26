@@ -6,9 +6,9 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–7** and **Wave A** complete; **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) published as `repolens-audit==0.1.0a1`. **Wave C:** **G0–G2 merged**; this branch adds **G4** ([#37](https://github.com/vksvicky/RepoLens/issues/37)), **G3** MCP ([#36](https://github.com/vksvicky/RepoLens/issues/36)), Phase **8** ([#4](https://github.com/vksvicky/RepoLens/issues/4)), competitive docs ([#28](https://github.com/vksvicky/RepoLens/issues/28)).  
-**GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred follow-ups: [#11](https://github.com/vksvicky/RepoLens/issues/11). Umbrella dogfood: [#13](https://github.com/vksvicky/RepoLens/issues/13).  
-**Parked:** [#15](https://github.com/vksvicky/RepoLens/issues/15) (32B local runtime), [#16](https://github.com/vksvicky/RepoLens/issues/16) (change-set scoping), **#17b** (local UI calibrations), [#29](https://github.com/vksvicky/RepoLens/issues/29)/[#30](https://github.com/vksvicky/RepoLens/issues/30) (post-alpha UX).
+**Current phase:** Phases **0–7**, **Wave A/B**, and **Wave C (G0–G4)** complete; **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) = `repolens-audit==0.1.0a1`. Phase **8** aliases ([#4](https://github.com/vksvicky/RepoLens/issues/4)) and Phase **9** Gemini AI Studio MVP ([#5](https://github.com/vksvicky/RepoLens/issues/5) / [PR #52](https://github.com/vksvicky/RepoLens/pull/52)) shipped; Vertex/Bedrock remain follow-ups. **Next dogfood:** [#15](https://github.com/vksvicky/RepoLens/issues/15) (32B cost control) then [#16](https://github.com/vksvicky/RepoLens/issues/16) (`--git-diff` change-set deep).  
+**GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred residuals: [#11](https://github.com/vksvicky/RepoLens/issues/11). LogViewer umbrella: [#13](https://github.com/vksvicky/RepoLens/issues/13) (close after #15+#16).  
+**Parked:** **#17b** (local UI calibrations).
 
 **CLI language:** Python 3.11+
 
@@ -20,17 +20,18 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | ↳ Vacuous confidence floor | [#21](https://github.com/vksvicky/RepoLens/issues/21) | [x] Merged via PR #22 |
 | ↳ Cross-source SCA dedupe (A1) | [#14](https://github.com/vksvicky/RepoLens/issues/14) | [x] Merged via PR #23 (+ Sourcery follow-ups #24/#25) |
 | ↳ Gate UX & copy MVP (A2) | [#17](https://github.com/vksvicky/RepoLens/issues/17) | [x] Merged via PR #23; #17b pinned |
-| **Wave B: Distribution & CI** | | **B1 done · B2 active** |
+| **Wave B: Distribution & CI** | | **Done** |
 | ↳ Phase 7: Enterprise CI/CD (B1) | [#3](https://github.com/vksvicky/RepoLens/issues/3) | [x] Closed — docs MVP + Sourcery follow-ups (#26/#31) |
 | ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | [x] Closed — `repolens-audit==0.1.0a1` on PyPI |
-| **Wave C: Structure / Zügel-aligned** | [#18](https://github.com/vksvicky/RepoLens/issues/18) | **G0–G4 + Phase 8** on this branch |
+| **Wave C: Structure / Zügel-aligned** | [#18](https://github.com/vksvicky/RepoLens/issues/18) | **Done** — G0–G4 (umbrella closing) |
 | ↳ G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [x] Merged via [PR #45](https://github.com/vksvicky/RepoLens/pull/45) |
 | ↳ G1 Python import graph | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [x] Merged via [PR #46](https://github.com/vksvicky/RepoLens/pull/46) |
 | ↳ G2 Cyclicity ratchet | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [x] Merged via [PR #48](https://github.com/vksvicky/RepoLens/pull/48) |
-| ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [x] Optional `repolens-mcp` — cycles/reachability + G4 legal imports |
-| ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [x] `repolens.yaml` + `check architecture` + FAS candidates |
+| ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [x] Optional `repolens-mcp` — [PR #51](https://github.com/vksvicky/RepoLens/pull/51) |
+| ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [x] `repolens.yaml` + FAS candidates — [PR #51](https://github.com/vksvicky/RepoLens/pull/51) |
 | Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [x] Sourcery/CodeRabbit vs gate — see [repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit) |
-| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 shipped; Phase 9 Gemini AI Studio in flight |
+| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 done ([PR #51](https://github.com/vksvicky/RepoLens/pull/51)); Phase 9 Gemini MVP done ([PR #52](https://github.com/vksvicky/RepoLens/pull/52)); Vertex/Bedrock follow-up |
+| Dogfood: 32B cost / change-set | [#15](https://github.com/vksvicky/RepoLens/issues/15) / [#16](https://github.com/vksvicky/RepoLens/issues/16) | **Next** — cost knobs then `--git-diff` Slow Brain restrict |
 ---
 
 ## Legend
@@ -438,7 +439,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **#14** Cross-source SCA deduplication (A1) | [x] | Merged via PR #23 (+ #24/#25 Sourcery harden) |
 | **#17** Gate UX & copy alignment MVP (A2) | [x] | Merged via PR #23; FAQ-aligned one-liner + Unique Critical/High |
 | **#17b** Local UI attack surface calibrations | [ ] | Pinned on [#17](https://github.com/vksvicky/RepoLens/issues/17#issuecomment-5558813811); Phase 7 done — unpark after #1 if desired |
-| **Parked tracks:** #15 (32B runtime), #16 (change-set), #18 (DSL/MCP) | [ ] | Parked |
+| **Former parked:** #15 / #16 | [~] | Unparked as next dogfood; #18 Wave C closed when G0–G4 confirmed |
 
 **Wave A exit criteria:** Met for MVP (unique SCA ≈ unique Crit/High; vacuous floor; gate ≠ "% secure" copy).
 
@@ -482,7 +483,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [x] | Optional `repolens-mcp` — see [mcp.md](./mcp.md) |
 | G4 Architecture DSL + weighted FAS LLM cuts | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [x] | `repolens check architecture`; FAS = candidate |
 
-**Landed:** G0–G4 + Phase 8 aliases on this branch. Maintainers keep detailed specs local (not in the free docs tree).
+**Landed:** G0–G4 via PRs [#45](https://github.com/vksvicky/RepoLens/pull/45)/[#46](https://github.com/vksvicky/RepoLens/pull/46)/[#48](https://github.com/vksvicky/RepoLens/pull/48)/[#51](https://github.com/vksvicky/RepoLens/pull/51). Umbrella [#18](https://github.com/vksvicky/RepoLens/issues/18) closes with tracker hygiene. Maintainers keep detailed specs local (not in the free docs tree).
 
 ---
 
@@ -498,7 +499,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Setup/FAQ recipes (P0–P2) | [x] | LM Studio / vLLM as `openai_compatible` |
 | Gemini: recipe or “see Phase 9” | [x] | No half-native adapter in Phase 8 |
 
-**Phase 8 exit criteria:** Users can `init --provider groq|mistral|azure|openrouter` (and follow recipes for self-hosted OpenAI-compatible hosts) without hand-editing obscure `base_url`s.
+**Phase 8 exit criteria:** Users can `init --provider groq|mistral|azure|openrouter` (and follow recipes for self-hosted OpenAI-compatible hosts) without hand-editing obscure `base_url`s. → **Met (2026-09-26)** via [PR #51](https://github.com/vksvicky/RepoLens/pull/51); issue [#4](https://github.com/vksvicky/RepoLens/issues/4) closed.
 
 ---
 
@@ -509,7 +510,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Item | Status | Notes |
 |------|--------|-------|
 | Design sketch | [x] | [phase-9-native-provider-sdks.md](./design/phase-9-native-provider-sdks.md) |
-| Native Gemini (AI Studio) | [x] | `provider=gemini` + `GEMINI_API_KEY`; stream → `on_delta` |
+| Native Gemini (AI Studio) | [x] | `provider=gemini` + `GEMINI_API_KEY`; stream → `on_delta` — [PR #52](https://github.com/vksvicky/RepoLens/pull/52) |
 | Native Vertex AI | [ ] | Follow-up (ADC / project / region) |
 | Native Bedrock (if demanded) | [ ] | Prefer Converse + thin httpx |
 | Keep Phase 8 aliases on OpenAI-compatible path | [x] | Aliases unchanged |
@@ -582,6 +583,9 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-09-24 | Roadmap sync | Phase 7 closed; **next = #1 tag publish**; Wave C after #1 |
 | 2026-09-24 | PyPI alpha published (#1) | Tag `v0.1.0a1`; https://pypi.org/project/repolens-audit/0.1.0a1/ |
 | 2026-09-24 | Wave C G0+G1 implementation | Specs/plans (#44); G0 PR #45; G1 PR #46 (grimp core); **next = G2 #35 spec** |
+| 2026-09-26 | Wave C G0–G4 + Phase 8 | G2 [#48](https://github.com/vksvicky/RepoLens/pull/48); G3/G4/Phase 8/competitive [#51](https://github.com/vksvicky/RepoLens/pull/51); close umbrella [#18](https://github.com/vksvicky/RepoLens/issues/18) |
+| 2026-09-26 | Phase 9 Gemini MVP | Native AI Studio ([#5](https://github.com/vksvicky/RepoLens/issues/5) / [PR #52](https://github.com/vksvicky/RepoLens/pull/52)); Vertex/Bedrock remain follow-ups |
+| 2026-09-26 | Dogfood next | Unpark [#15](https://github.com/vksvicky/RepoLens/issues/15) then [#16](https://github.com/vksvicky/RepoLens/issues/16); refresh [#12](https://github.com/vksvicky/RepoLens/issues/12); triage [#11](https://github.com/vksvicky/RepoLens/issues/11) |
 
 ---
 
