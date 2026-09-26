@@ -122,6 +122,8 @@ Analysis failures (SyntaxError, discovery miss) append **`graph.analysis_failed:
 
 Playbooks in chat and RepoLens share review *ideas*; they are not the same product surface. See [using-playbooks.md](./using-playbooks.md).
 
+**Sourcery / CodeRabbit** optimise for PR/IDE velocity (inline comments, summaries, refactor idioms); **RepoLens** is the portable dual-review **gate/audit** (P1→P3 playbooks, scanners, SARIF/SBOM, BYOK/local). Use them together — see [repolens-vs-appsec-tools.md — PR/IDE velocity tools](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit).
+
 ---
 
 ## Do scanners catch missing `.gitignore` rules?

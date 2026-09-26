@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–7** and **Wave A** complete; **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) published as `repolens-audit==0.1.0a1`. **Wave C:** **G0–G2 merged** ([#33](https://github.com/vksvicky/RepoLens/issues/33)/[#45](https://github.com/vksvicky/RepoLens/pull/45), [#34](https://github.com/vksvicky/RepoLens/issues/34)/[#46](https://github.com/vksvicky/RepoLens/pull/46), [#35](https://github.com/vksvicky/RepoLens/issues/35)/[#48](https://github.com/vksvicky/RepoLens/pull/48)) under [#18](https://github.com/vksvicky/RepoLens/issues/18). **Next:** **G4** architecture DSL ([#37](https://github.com/vksvicky/RepoLens/issues/37)); **G3** MCP ([#36](https://github.com/vksvicky/RepoLens/issues/36)) remains secondary. Parallel: competitive docs ([#28](https://github.com/vksvicky/RepoLens/issues/28)); Phase **8** ([#4](https://github.com/vksvicky/RepoLens/issues/4)) as capacity allows.  
+**Current phase:** Phases **0–7** and **Wave A** complete; **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) published as `repolens-audit==0.1.0a1`. **Wave C:** **G0–G2 merged** ([#33](https://github.com/vksvicky/RepoLens/issues/33)/[#45](https://github.com/vksvicky/RepoLens/pull/45), [#34](https://github.com/vksvicky/RepoLens/issues/34)/[#46](https://github.com/vksvicky/RepoLens/pull/46), [#35](https://github.com/vksvicky/RepoLens/issues/35)/[#48](https://github.com/vksvicky/RepoLens/pull/48)) under [#18](https://github.com/vksvicky/RepoLens/issues/18). **In flight (this branch):** **G4** ([#37](https://github.com/vksvicky/RepoLens/issues/37)), **G3** MCP ([#36](https://github.com/vksvicky/RepoLens/issues/36)), Phase **8** ([#4](https://github.com/vksvicky/RepoLens/issues/4)), competitive docs ([#28](https://github.com/vksvicky/RepoLens/issues/28)).  
 **GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred follow-ups: [#11](https://github.com/vksvicky/RepoLens/issues/11). Umbrella dogfood: [#13](https://github.com/vksvicky/RepoLens/issues/13).  
 **Parked:** [#15](https://github.com/vksvicky/RepoLens/issues/15) (32B local runtime), [#16](https://github.com/vksvicky/RepoLens/issues/16) (change-set scoping), **#17b** (local UI calibrations), [#29](https://github.com/vksvicky/RepoLens/issues/29)/[#30](https://github.com/vksvicky/RepoLens/issues/30) (post-alpha UX).
 
@@ -29,8 +29,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | ↳ G2 Cyclicity ratchet | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [x] Merged via [PR #48](https://github.com/vksvicky/RepoLens/pull/48) |
 | ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] Secondary — after CLI gates; do not block G4 |
 | ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [ ] **Next** — cycles → layers/DSL ladder |
-| Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [ ] Small parallel docs |
-| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 as capacity; Phase 9 later |
+| Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [x] Sourcery/CodeRabbit vs gate — see [repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit) |
+| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 aliases in flight; Phase 9 later |
 ---
 
 ## Legend
