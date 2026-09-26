@@ -378,7 +378,7 @@ Design: [phase-5.2-theme-coverage-and-report-breakdown.md](./design/phase-5.2-th
 
 If the model returns invalid JSON, RepoLens still writes a report (scanners + heuristics + any salvageable issues) and exits **0**.
 
-**Cloud tip (Phase A):** OpenAI / Anthropic / DeepSeek / `openai_compatible` use the **same `--deep` pipeline** as Ollama — provider choice is quality/cost/privacy, not a separate review path. Pick via `repolens init --provider …`. Heartbeats stream completion chars for all of these (Ollama also shows `/api/ps` load). Named aliases for Azure/Groq/etc. are **Phase 8**; native Gemini/Bedrock are **Phase 9**.
+**Cloud tip (Phase A + Phase 8):** OpenAI / Anthropic / DeepSeek / `openai_compatible` and named aliases (`groq`, `mistral`, `openrouter`, `azure`, …) use the **same `--deep` pipeline** as Ollama — provider choice is quality/cost/privacy, not a separate review path. Pick via `repolens init --provider …`. Heartbeats stream completion chars for all of these (Ollama also shows `/api/ps` load). Native Gemini/Bedrock SDKs are **Phase 9**. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
 
 Guided wizard: `./scripts/repolens-guided.sh` prompts for deep (default **Y** on review / full-audit).
 
@@ -699,18 +699,13 @@ Each report also records **Duration** (wall clock for the whole command).
 | `openai` | `OPENAI_API_KEY` | OpenAI chat completions | Yes |
 | `anthropic` | `ANTHROPIC_API_KEY` | Anthropic Messages API | Yes |
 | `deepseek` | `DEEPSEEK_API_KEY` | OpenAI-compatible | Yes |
-| `openai_compatible` | `REPOLENS_API_KEY` | Your `--base-url` (Azure, Groq, OpenRouter, LM Studio, …) | Yes |
+| `groq` / `mistral` / `openrouter` / `together` / `fireworks` | Host-specific (`GROQ_API_KEY`, …) | OpenAI-compatible (Phase 8 alias) | Yes |
+| `azure` / `azure_openai` | `AZURE_OPENAI_API_KEY` | OpenAI-compatible; **`--base-url` required** | Yes |
+| `openai_compatible` | `REPOLENS_API_KEY` | Your `--base-url` (LM Studio, vLLM, …) | Yes |
 | `ollama` | _(none)_ | Local OpenAI-compatible | Yes + `/api/ps` |
 | `none` | — | No LLM | N/A |
 
-**Planned (not shipped yet):**
-
-| Phase | What |
-|-------|------|
-| **Phase 8** | Named aliases + recipes: Azure OpenAI, Mistral, Groq, OpenRouter, LM Studio/vLLM, … ([design](./design/phase-8-provider-aliases-and-recipes.md)) |
-| **Phase 9** | Native SDKs where needed: Gemini/Vertex, Bedrock, … ([design](./design/phase-9-native-provider-sdks.md)) |
-
-Until then, many hosts work via `openai_compatible` + `--base-url`. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
+**Phase 9 (not yet):** native Gemini/Vertex / Bedrock SDKs where OpenAI-compatible is not enough ([design](./design/phase-9-native-provider-sdks.md)). Gemini may still work today via Google’s OpenAI-compatible gateway + `openai_compatible`. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) and [phase-8 design](./design/phase-8-provider-aliases-and-recipes.md).
 
 ---
 
