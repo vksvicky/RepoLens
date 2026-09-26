@@ -112,6 +112,8 @@ def run_review(
     timeout_override: float | None = None,
     force_full: bool = False,
     force_changed: bool = False,
+    git_diff: str | None = None,
+    deep_passes: int | None = None,
     full_audit: bool = False,
     dry_run: bool = False,
     trust_project: bool = False,
@@ -129,6 +131,10 @@ def run_review(
 ) -> ReviewResult:
     if force_full and force_changed:
         raise ValueError("--full and --changed cannot be combined")
+    if git_diff is not None and force_full:
+        raise ValueError("--full and --git-diff cannot be combined")
+    if git_diff is not None and force_changed:
+        raise ValueError("--changed and --git-diff cannot be combined")
     prog = progress or null_progress()
     root = path.resolve()
     run_started = time.time()
@@ -141,6 +147,10 @@ def run_review(
         if timeout_override <= 0:
             raise ValueError("--timeout must be a positive number of seconds")
         cfg.model.timeout_seconds = timeout_override
+    if deep_passes is not None:
+        if deep_passes < 1:
+            raise ValueError("--deep-passes must be >= 1")
+        cfg.deep.max_passes = deep_passes
     if verify_findings is True:
         cfg.deep.verify_findings = True
     elif verify_findings is False:
@@ -151,6 +161,17 @@ def run_review(
 
     pack_ids = resolve_enabled_packs([*cfg.packs.enabled, *(packs or [])])
     cfg.packs.enabled = list(pack_ids)
+
+    change_set_block = None
+    git_diff_requested = git_diff is not None
+    git_diff_base_cli: str | None = None
+    git_changed_paths: list[str] = []
+    if git_diff_requested:
+        raw = (git_diff or "").strip()
+        if raw.lower() in {"", "auto"}:
+            git_diff_base_cli = None
+        else:
+            git_diff_base_cli = raw
 
     # Phase 6.3: --ci enables triage routing + changed pack + single-shot LLM
     if ci:
@@ -474,6 +495,38 @@ def run_review(
                     f"(adaptive mode={pack_mode}){note}"
                 )
 
+            if git_diff_requested:
+                from repolens.changeset import (
+                    cap_changeset_paths,
+                    filter_entries_to_changeset,
+                    list_git_changed_paths,
+                )
+                from repolens.git_refs import resolve_diff_base
+                from repolens.schema import ChangeSetBlock
+
+                resolved_base = resolve_diff_base(
+                    cli_base=git_diff_base_cli, cwd=root
+                )
+                git_changed_paths = list_git_changed_paths(
+                    root, resolved_base, include_dirty=True
+                )
+                llm_files = filter_entries_to_changeset(llm_files, git_changed_paths)
+                change_set_block = ChangeSetBlock(
+                    base=resolved_base,
+                    pathCount=len(git_changed_paths),
+                    paths=cap_changeset_paths(git_changed_paths),
+                )
+                prog.phase(
+                    f"LLM pack: git-diff change-set → {len(llm_files)} file(s) "
+                    f"(base={resolved_base or 'worktree'}; "
+                    f"{len(git_changed_paths)} path(s) from git)"
+                )
+                if not llm_files:
+                    prog.detail(
+                        "Change-set intersection with inventory is empty — "
+                        "Slow Brain will skip (scanners/Fast Brain still ran)"
+                    )
+
             triage_bypassed = False
             triage_plan = None
             if cfg.ci.triage_routing:
@@ -520,6 +573,12 @@ def run_review(
                         llm_files = select_pack_entries(
                             files, triage_plan.pack_files
                         )
+                    if git_diff_requested and git_changed_paths:
+                        from repolens.changeset import filter_entries_to_changeset
+
+                        llm_files = filter_entries_to_changeset(
+                            llm_files, git_changed_paths
+                        )
                     scanner_gaps.extend(
                         n for n in triage_plan.notes if n not in scanner_gaps
                     )
@@ -559,17 +618,29 @@ def run_review(
                             mode=mode,
                         )
                 else:
-                    gap = (
-                        "LLM skipped: --changed / adaptive mode=changed found no "
-                        "added or changed files since the last fingerprint sync, "
-                        "and no prior successful LLM snapshot is available to reuse. "
-                        "Run once without --changed (or with --full), then --changed "
-                        "will carry findings forward. Or use --scanners-only."
-                    )
-                    prog.phase(
-                        "LLM: skipped — no fingerprint delta and no prior LLM "
-                        "snapshot to reuse"
-                    )
+                    if git_diff_requested:
+                        gap = (
+                            "LLM skipped: --git-diff change-set intersected the "
+                            "inventory with zero files (empty or unscanned paths), "
+                            "and no prior successful LLM snapshot is available to reuse. "
+                            "Commit/stage relevant sources or omit --git-diff."
+                        )
+                        prog.phase(
+                            "LLM: skipped — empty git change-set intersection "
+                            "and no prior LLM snapshot to reuse"
+                        )
+                    else:
+                        gap = (
+                            "LLM skipped: --changed / adaptive mode=changed found no "
+                            "added or changed files since the last fingerprint sync, "
+                            "and no prior successful LLM snapshot is available to reuse. "
+                            "Run once without --changed (or with --full), then --changed "
+                            "will carry findings forward. Or use --scanners-only."
+                        )
+                        prog.phase(
+                            "LLM: skipped — no fingerprint delta and no prior LLM "
+                            "snapshot to reuse"
+                        )
                     prog.detail(
                         "Tip: run a full/auto LLM pass once to seed .repolens/; "
                         "or --scanners-only for a fast no-AI check"
@@ -821,6 +892,8 @@ def run_review(
         report.durationSeconds = round(time.time() - run_started, 1)
         if graph_block is not None:
             report.graph = graph_block
+        if change_set_block is not None:
+            report.changeSet = change_set_block
         if graph_gaps:
             report.durabilityGaps = list(report.durabilityGaps) + [
                 g for g in graph_gaps if g not in report.durabilityGaps
@@ -976,7 +1049,10 @@ def _analyze_with_repair(
             summary=Summary(),
             issues=[],
             durabilityGaps=["LLM returned None"],
+            llmRepairAttempts=result.repair_attempts or None,
         )
+    if result.repair_attempts:
+        result.report.llmRepairAttempts = result.repair_attempts
     return result.report
 
 

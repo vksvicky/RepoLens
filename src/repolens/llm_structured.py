@@ -29,6 +29,8 @@ class StructuredLlmResult:
     raw_text: str
     layer: Literal["ok", "coerced", "micro_repair", "degraded"]
     error: str | None
+    # Hard-capped at 1 micro-repair attempt per call (#15).
+    repair_attempts: int = 0
 
 
 def analyze_structured(
@@ -48,7 +50,7 @@ def analyze_structured(
     except LlmError as exc:
         if not model_cfg.fallback:
             raise
-        return _degrade_result("", str(exc), pass_id, prog, save_root)
+        return _degrade_result("", str(exc), pass_id, prog, save_root, repair_attempts=0)
 
     # Coerce / parse
     try:
@@ -61,9 +63,10 @@ def analyze_structured(
             raw_text=raw_text,
             layer=layer,
             error=None,
+            repair_attempts=0,
         )
     except (LlmError, ValidationError, json.JSONDecodeError, TypeError, ValueError) as parse_exc:
-        # Micro-repair
+        # Micro-repair (hard cap: exactly one attempt)
         prog.phase("LLM: first response invalid — retrying with repair prompt…")
         repair_msg = repair_prompt(raw_text, str(parse_exc))
         try:
@@ -75,6 +78,7 @@ def analyze_structured(
                     raw_text=repaired_raw,
                     layer="micro_repair",
                     error=None,
+                    repair_attempts=1,
                 )
             except (
                 LlmError,
@@ -84,10 +88,22 @@ def analyze_structured(
                 ValueError,
             ) as repair_parse_exc:
                 return _degrade_result(
-                    repaired_raw, str(repair_parse_exc), pass_id, prog, save_root
+                    repaired_raw,
+                    str(repair_parse_exc),
+                    pass_id,
+                    prog,
+                    save_root,
+                    repair_attempts=1,
                 )
         except LlmError as repair_net_exc:
-            return _degrade_result(raw_text, str(repair_net_exc), pass_id, prog, save_root)
+            return _degrade_result(
+                raw_text,
+                str(repair_net_exc),
+                pass_id,
+                prog,
+                save_root,
+                repair_attempts=1,
+            )
 
 
 def _looks_coerced(raw_text: str) -> bool:
@@ -121,6 +137,8 @@ def _degrade_result(
     pass_id: str,
     prog: ReviewProgress,
     save_root: Path,
+    *,
+    repair_attempts: int = 0,
 ) -> StructuredLlmResult:
     prog.phase(f"LLM: analysis degraded for pass '{pass_id}': {error_msg}")
 
@@ -163,10 +181,13 @@ def _degrade_result(
     if not salvaged_report.durabilityGaps:
         salvaged_report.durabilityGaps = []
     salvaged_report.durabilityGaps.append(gap_msg)
+    if repair_attempts:
+        salvaged_report.llmRepairAttempts = repair_attempts
 
     return StructuredLlmResult(
         report=salvaged_report,
         raw_text=raw_text,
         layer="degraded",
         error=error_msg,
+        repair_attempts=repair_attempts,
     )

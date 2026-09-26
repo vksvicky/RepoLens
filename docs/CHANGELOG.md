@@ -6,9 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once the first release is tagged.
 
 ## [Unreleased]
+### Added
+
+- **`--deep-passes` / `[deep] max_passes`** — cap deep band passes (1 = P1-only iteration); pre-flight Slow Brain wall-time estimate (#15)
+- **`llmRepairAttempts`** on reports — JSON micro-repair hard-capped at 1 per pass (#15)
+- **`--git-diff [base|auto]`** — restrict Slow Brain pack to git change-set; scanners + Fast Brain stay whole-tree; report **Change-set scope** section (#16)
+
 ### Changed
 
-- Tracker hygiene: Wave C G0–G4 and Phase 8/9 Gemini MVP marked complete in [phases.md](./phases.md); next dogfood is [#15](https://github.com/vksvicky/RepoLens/issues/15) then [#16](https://github.com/vksvicky/RepoLens/issues/16) (`--git-diff` change-set).
+- Tracker hygiene: Wave C G0–G4 and Phase 8/9 Gemini MVP marked complete in [phases.md](./phases.md) ([#18](https://github.com/vksvicky/RepoLens/issues/18) / PR #56).
+- Inventory ignores Rust/JVM `target/` build dirs (with existing `node_modules/`, `reports/`, `.repolens/`) to curb cold-cache inflation (#15)
+- FAQ / command atlas: fast vs iteration vs milestone deep profiles; `--changed` (fingerprint) vs `--git-diff` (git) (#15/#16)
 - Maintainer agent specs/plans under `docs/superpowers/` are local-only (gitignored); public docs point at `docs/design/` and `docs/phases.md`.
 
 

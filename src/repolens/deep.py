@@ -106,11 +106,18 @@ def plan_deep_passes(
     adaptive_paths: Iterable[str],
     chars_per_pass: int,
     rules: list[Rule],
+    max_passes: int | None = None,
 ) -> list[DeepPass]:
-    """Plan band-ordered deep passes from enabled rules for ``mode``."""
+    """Plan band-ordered deep passes from enabled rules for ``mode``.
+
+    ``max_passes`` caps how many band passes run (1 = first band only, e.g. P1
+    for ``review``). ``None`` or ``<= 0`` keeps the full mode band list.
+    """
     bands = _MODE_BANDS.get(mode)
     if bands is None:
         raise ValueError(f"Unknown mode: {mode}")
+    if max_passes is not None and max_passes > 0:
+        bands = bands[:max_passes]
 
     ordered_files = _order_entries(
         entries, hot_paths=hot_paths, adaptive_paths=adaptive_paths
