@@ -35,7 +35,7 @@ SonarQube wants a server, PostgreSQL, and auth. CodeRabbit and Macroscope want y
 | **We are not Macroscope / CodeRabbit / Kodus** | Do not make “inline PR velocity bot / auto-approve SaaS” the primary product. Optional Crit/High PR comments are fine; seat SaaS is not. |
 | **We already sit beside Semgrep / Trivy / Gitleaks / OSV / Checkov** | Keep absorbing **evidence** from rules tools; do not reimplement their engines. |
 | **Our wedge** | Portable **P1→P2→P3 dual-review** (security + reliability + architecture) with human-readable remediation, explain/diagrams, BYOK/Ollama, forge-agnostic CLI — **merged** with scanner evidence — **with zero platform to operate**. |
-| **Strategic integration** | **SARIF 2.1 import** is the executive-reporting trojan horse (ingest any enterprise tool’s output into one narrative). Prefer it over writing language-specific scanner plugins. Defensive normaliser required (§13). |
+| **Strategic integration** | **SARIF 2.1 import** (`--import-sarif`) is **shipped** — ingest Sonar/CodeQL/ESLint/… into one narrative. Prefer it over writing language-specific scanner plugins. Defensive normaliser in place (§13). |
 | **Adopt selectively** | Ideas and **integrations** (SARIF first, companion recipes, ratchet UX). Rarely: thin plugins. Almost never: reimplementation. |
 
 **Who holds the CLI (buyer personas):**
@@ -48,7 +48,7 @@ SonarQube wants a server, PostgreSQL, and auth. CodeRabbit and Macroscope want y
 
 **Why not just `semgrep && trivy && gitleaks`?**
 
-A shell script yields three disconnected JSON dumps, duplicated CVEs, no cross-tool dedupe, no import-graph cyclicity, no Critical/High remediation examples, and no unified confidence / fail-on gate. RepoLens turns raw scanner evidence into one **prioritized human decision** (and can later weave third-party SARIF into the same story).
+A shell script yields three disconnected JSON dumps, duplicated CVEs, no cross-tool dedupe, no import-graph cyclicity, no Critical/High remediation examples, and no unified confidence / fail-on gate. RepoLens turns raw scanner evidence — plus third-party SARIF via `--import-sarif` — into one **prioritized human decision**.
 
 **External positioning sentence:**
 
@@ -84,7 +84,7 @@ Lane E exists because continuous linters and PR bots assume an already-wired org
 | Explain + Mermaid diagrams; `.repolens-ignore` / feedback demotion | Shipped |
 | Plugins: Semgrep, Gitleaks, OSV; opt-in Trivy, Checkov; CycloneDX SBOM | Shipped |
 | CI Action, SARIF **export**, enterprise CI recipes, cyclicity ratchet (G2) | Shipped |
-| SARIF **import** (Sonar/CodeQL/ESLint/…) into narrative | **Strategic next** (§8.2) |
+| SARIF **import** (`--import-sarif`; Sonar/CodeQL/ESLint/…) into narrative | Shipped |
 | Providers: Ollama + cloud BYOK + Phase 8 aliases + Phase 9 Gemini/Vertex/Bedrock | Shipped |
 | `--git-diff` change-set Slow Brain + deep cost knobs | Shipped |
 | Hosted multi-repo portal, SSO ASPM, IDE extension product, auto-approve PRs | **Non-goal** |
@@ -320,7 +320,7 @@ Legend: ● strong · ◐ partial · ○ weak/absent · — N/A
 |----------|-------------|-------|
 | P0 (done) | Semgrep, Gitleaks, OSV | Keep |
 | P0 (done, polish) | Trivy, Checkov | Opt-in; honesty on registry limits |
-| **P1 (strategic)** | **SARIF 2.1 import** (Sonar / CodeQL / ESLint / SpotBugs / Brakeman / Qodana / …) | **Trojan horse** — prioritize above any new language plugin; weave into P1→P2→P3 + dedupe. Implement a **defensive, schema-tolerant normaliser** (dialect sprawl — §13). |
+| **P0 (done)** | **SARIF 2.1 import** (`--import-sarif`; Sonar / CodeQL / ESLint / SpotBugs / Brakeman / Qodana / …) | **Shipped** — defensive schema-tolerant normaliser; merged into scanner runs + P1→P2→P3 narrative + dedupe (dialect sprawl — §13). |
 | P2 | **Bearer CLI** plugin | Privacy niche; only with dogfood pull — or Bearer→SARIF if they emit it |
 | P3 | Native Brakeman / PMD wrappers | **Avoid** if SARIF covers them; annex-only if not |
 | — | Qodana / Sonar as **CI companions** | Docs recipes only |

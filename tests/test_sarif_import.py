@@ -12,7 +12,7 @@ from repolens.sarif_import import (
     load_sarif_issues,
     scanner_runs_from_imports,
 )
-from repolens.schema import Issue, Severity
+from repolens.schema import Issue, ScannerRun, Severity
 
 FIXTURES = Path(__file__).parent / "fixtures" / "sarif"
 
@@ -274,3 +274,40 @@ def test_run_review_merges_import_sarif(tmp_path: Path) -> None:
     tools = [r.tool for r in result.report.scannerRuns]
     assert "sarif:ESLint" in tools
     assert any(i.title.startswith("ESLint:") for i in result.report.issues)
+
+
+def test_fallback_scanner_refresh_keeps_import_sarif_once(tmp_path: Path) -> None:
+    """Fallback re-runs scanners and re-imports SARIF; issues must not drop or duplicate."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.js").write_text("x\ny\neval(user)\n", encoding="utf-8")
+    sarif_path = FIXTURES / "minimal_eslint.sarif.json"
+    cfg = RepoLensConfig(
+        model=ModelConfig(provider=None, fallback=True),
+        scanners=ScannersConfig(enabled=["semgrep"]),
+    )
+    mock_run = ScannerRun(tool="semgrep", status="ran", findingCount=0)
+
+    def fake_run_scanners(root: Path, tools: list[str]):
+        return ([mock_run], [], [])
+
+    with (
+        patch("repolens.llm.setup.detect_ollama", return_value=False),
+        patch(
+            "repolens.pipeline.run.run_scanners",
+            side_effect=fake_run_scanners,
+        ) as run_scanners_mock,
+    ):
+        result = run_review(
+            path=tmp_path,
+            mode="sentinel",
+            config=cfg,
+            out_dir=tmp_path / "r",
+            scanners="off",
+            import_sarif=[sarif_path],
+        )
+
+    assert run_scanners_mock.call_count >= 1
+    eslint_issues = [i for i in result.report.issues if i.title.startswith("ESLint:")]
+    assert len(eslint_issues) == 1
+    assert "sarif:ESLint" in [r.tool for r in result.report.scannerRuns]
+    assert not any("no scanners selected" in g.lower() for g in result.report.durabilityGaps)

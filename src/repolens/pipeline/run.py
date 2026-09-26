@@ -497,7 +497,11 @@ def run_review(
                 summary=Summary(),
                 issues=non_llm_issues,
                 durabilityGaps=list(scanner_gaps)
-                or (["scanners-only: no scanners selected"] if not tools else []),
+                or (
+                    ["scanners-only: no scanners selected"]
+                    if not tools and not import_sarif
+                    else []
+                ),
                 scannerRuns=list(scanner_runs),
                 supplyChain=supply_chain,
                 llmSkipped=True,
