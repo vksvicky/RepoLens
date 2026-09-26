@@ -111,6 +111,18 @@ boundaries:
     assert "Boundary violations" in result.output or "FAIL" in result.output
 
 
+def test_architecture_path_must_stay_under_root(tmp_path: Path) -> None:
+    import pytest
+    from repolens.architecture import ArchitectureLoadError, discover_architecture_path
+
+    outside = tmp_path / "outside.yaml"
+    outside.write_text("schemaVersion: 1\nboundaries: []\n", encoding="utf-8")
+    root = tmp_path / "proj"
+    root.mkdir()
+    with pytest.raises(ArchitectureLoadError, match="escapes"):
+        discover_architecture_path(root, explicit=outside)
+
+
 def test_check_architecture_cli_json(tmp_path: Path) -> None:
     pkg = tmp_path / "okpkg"
     pkg.mkdir()
