@@ -3,9 +3,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import patch
 
-from repolens.sarif_import import load_sarif_issues
-from repolens.schema import Severity
+from repolens.config import ModelConfig, RepoLensConfig, ScannersConfig
+from repolens.pipeline import run_review
+from repolens.sarif_import import (
+    SarifImportResult,
+    load_sarif_issues,
+    scanner_runs_from_imports,
+)
+from repolens.schema import Issue, Severity
 
 FIXTURES = Path(__file__).parent / "fixtures" / "sarif"
 
@@ -201,3 +208,69 @@ def test_multi_run_keeps_per_tool_names(tmp_path: Path) -> None:
     assert [r.tool_name for r in results] == ["ESLint", "CodeQL"]
     assert results[0].issues[0].title.startswith("ESLint:")
     assert results[1].issues[0].title.startswith("CodeQL:")
+
+
+def test_scanner_runs_from_imports_success() -> None:
+    issue = Issue(
+        severity=Severity.HIGH,
+        priority="P1",
+        category="sarif.ESLint",
+        file="a.js",
+        line=1,
+        title="ESLint: e1",
+        explanation="e",
+        impact="x",
+        recommendedFix="fix",
+        codeExample="# x",
+        fixTiming="before launch",
+        source="scanner",
+    )
+    runs = scanner_runs_from_imports(
+        [SarifImportResult(tool_name="ESLint", issues=[issue], skipped=0)]
+    )
+    assert len(runs) == 1
+    assert runs[0].tool == "sarif:ESLint"
+    assert runs[0].status == "ran"
+    assert runs[0].findingCount == 1
+
+
+def test_scanner_runs_from_imports_failed_parse() -> None:
+    runs = scanner_runs_from_imports(
+        [SarifImportResult(tool_name="sarif", issues=[], skipped=0, detail="no runs")]
+    )
+    assert runs[0].status == "failed"
+    assert runs[0].detail == "no runs"
+
+
+def test_scanner_runs_from_imports_skipped_only() -> None:
+    runs = scanner_runs_from_imports(
+        [SarifImportResult(tool_name="X", issues=[], skipped=2)]
+    )
+    assert runs[0].status == "ran"
+    assert runs[0].detail == "skipped 2"
+
+
+def test_run_review_merges_import_sarif(tmp_path: Path) -> None:
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.js").write_text("x\ny\neval(user)\n", encoding="utf-8")
+    sarif_path = FIXTURES / "minimal_eslint.sarif.json"
+    cfg = RepoLensConfig(
+        model=ModelConfig(provider=None),
+        scanners=ScannersConfig(enabled=[]),
+    )
+    with patch(
+        "repolens.pipeline.run.run_scanners",
+        return_value=([], [], []),
+    ):
+        result = run_review(
+            path=tmp_path,
+            mode="sentinel",
+            config=cfg,
+            out_dir=tmp_path / "r",
+            scanners_only=True,
+            scanners="off",
+            import_sarif=[sarif_path],
+        )
+    tools = [r.tool for r in result.report.scannerRuns]
+    assert "sarif:ESLint" in tools
+    assert any(i.title.startswith("ESLint:") for i in result.report.issues)

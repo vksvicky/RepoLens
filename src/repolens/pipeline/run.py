@@ -128,6 +128,7 @@ def run_review(
     verify_findings: bool | None = None,
     packs: list[str] | None = None,
     fallback: bool | None = None,
+    import_sarif: list[Path] | None = None,
 ) -> ReviewResult:
     if force_full and force_changed:
         raise ValueError("--full and --changed cannot be combined")
@@ -330,6 +331,19 @@ def run_review(
                     raise ScannerRequirementError(missing)
         else:
             prog.detail("Scanners: skipped (off / none selected)")
+
+        if import_sarif:
+            from repolens.sarif_import import load_many_sarif, scanner_runs_from_imports
+
+            imported = load_many_sarif(list(import_sarif), root=root)
+            for block in imported:
+                scanner_issues.extend(block.issues)
+                if block.skipped:
+                    prog.detail(
+                        f"SARIF import ({block.tool_name}): "
+                        f"skipped {block.skipped} result(s)"
+                    )
+            scanner_runs.extend(scanner_runs_from_imports(imported))
 
         want_supply = cfg.scanners.sbom or cfg.scanners.licenses
         trivy_requested = bool(tools) and "trivy" in tools

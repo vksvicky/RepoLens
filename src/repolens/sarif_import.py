@@ -7,7 +7,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import unquote, urlparse
 
-from repolens.schema import Issue, Severity
+from repolens.schema import Issue, ScannerRun, Severity
 
 _LEVEL = {
     "error": Severity.HIGH,
@@ -205,3 +205,15 @@ def load_many_sarif(paths: list[Path], *, root: Path) -> list[SarifImportResult]
     for p in paths:
         merged.extend(load_sarif_issues(p, root=root))
     return merged
+
+
+def scanner_runs_from_imports(results: list[SarifImportResult]) -> list[ScannerRun]:
+    return [
+        ScannerRun(
+            tool=f"sarif:{r.tool_name}",
+            status="ran" if r.issues or not r.detail else "failed",
+            findingCount=len(r.issues),
+            detail=r.detail or (f"skipped {r.skipped}" if r.skipped else ""),
+        )
+        for r in results
+    ]
