@@ -23,7 +23,12 @@ DEFAULT_NEAR_CLONE_EXCLUDE_GLOBS: tuple[str, ...] = (
 
 @dataclass(frozen=True)
 class PairHit:
-    """Matching window between two files (physical line ranges, inclusive)."""
+    """Matching window between two files (physical + normalised line ranges).
+
+    Physical ranges are inclusive 1-based line numbers for reporting.
+    Normalised ranges use half-open indices ``[norm_start, norm_end)`` over
+    blank-stripped lines (same convention as :class:`WindowHit`).
+    """
 
     file_a: str
     file_b: str
@@ -31,6 +36,10 @@ class PairHit:
     phys_end_a: int
     phys_start_b: int
     phys_end_b: int
+    norm_start_a: int
+    norm_end_a: int
+    norm_start_b: int
+    norm_end_b: int
 
 
 @dataclass(frozen=True)
@@ -103,18 +112,20 @@ def iter_windows(
         )
 
 
-def _pair_offset(hit: PairHit) -> int:
-    return hit.phys_start_b - hit.phys_start_a
+def _pair_norm_offset(hit: PairHit) -> int:
+    return hit.norm_start_b - hit.norm_start_a
 
 
 def _can_merge_pair_hits(cur: PairHit, nxt: PairHit) -> bool:
     if cur.file_a != nxt.file_a or cur.file_b != nxt.file_b:
         return False
-    if nxt.phys_start_a > cur.phys_end_a + 1:
+    # Overlap or abut in normalised (blank-free) index space — physical gaps
+    # from dropped blank lines must not split a continuous clone region.
+    if nxt.norm_start_a > cur.norm_end_a:
         return False
-    if nxt.phys_start_b > cur.phys_end_b + 1:
+    if nxt.norm_start_b > cur.norm_end_b:
         return False
-    return _pair_offset(cur) == _pair_offset(nxt)
+    return _pair_norm_offset(cur) == _pair_norm_offset(nxt)
 
 
 def _merge_pair_hits(cur: PairHit, nxt: PairHit) -> PairHit:
@@ -125,6 +136,10 @@ def _merge_pair_hits(cur: PairHit, nxt: PairHit) -> PairHit:
         max(cur.phys_end_a, nxt.phys_end_a),
         cur.phys_start_b,
         max(cur.phys_end_b, nxt.phys_end_b),
+        cur.norm_start_a,
+        max(cur.norm_end_a, nxt.norm_end_a),
+        cur.norm_start_b,
+        max(cur.norm_end_b, nxt.norm_end_b),
     )
 
 
@@ -135,7 +150,7 @@ def coalesce_pair_hits(hits_a_to_b: list[PairHit]) -> list[CloneBlock]:
 
     sorted_hits = sorted(
         hits_a_to_b,
-        key=lambda h: (h.file_a, h.file_b, h.phys_start_a, h.phys_start_b),
+        key=lambda h: (h.file_a, h.file_b, h.norm_start_a, h.norm_start_b),
     )
     merged: list[tuple[PairHit, int]] = []
     cur = sorted_hits[0]
@@ -331,6 +346,10 @@ def find_near_clones(
                         ha.phys_end,
                         hb.phys_start,
                         hb.phys_end,
+                        ha.norm_start,
+                        ha.norm_end,
+                        hb.norm_start,
+                        hb.norm_end,
                     )
                 )
 
