@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from repolens.llm.errors import LlmError
+from repolens.llm.gemini import _parse_gemini_sse_text_delta
 from repolens.llm.parse import (
     _coerce_report_payload,
     parse_report_json,
@@ -53,5 +54,6 @@ __all__ = [
     "_coerce_report_payload",
     "_parse_sse_chat_chunk",
     "_parse_anthropic_sse_text_delta",
+    "_parse_gemini_sse_text_delta",
     "_stream_openai_compatible",
 ]
