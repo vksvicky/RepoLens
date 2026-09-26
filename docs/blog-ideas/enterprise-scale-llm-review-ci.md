@@ -2,7 +2,7 @@
 
 **Status:** Draft for CRC Club / RepoLens product blog  
 **Audience:** Platform / AppSec / engineering leaders evaluating AI code review  
-**Related design:** [phase-6.x-scanner-depth-ci-gates-and-credibility.md](../design/phase-6.x-scanner-depth-ci-gates-and-credibility.md) · [plan](../superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md)
+**Related design:** [phase-6.x-scanner-depth-ci-gates-and-credibility.md](../design/phase-6.x-scanner-depth-ci-gates-and-credibility.md)
 
 ---
 
@@ -113,7 +113,7 @@ The detailed slices live under Phase **6.x** (before enterprise CI packaging in 
 | 6.6 | Benchmarks led by **remediation rate / MTTR**, not F1 alone |
 | **6.7** | `.repolens-ignore` so dismissed findings stay dismissed |
 
-Implementation plan: [2026-08-06-enterprise-ci-triage-routing.md](../superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md).
+Implementation plan:.
 
 ---
 

@@ -53,7 +53,6 @@ Ship in order. Each phase has its own exit criteria and can land as one or more 
 ### Phase 6.1 — Trivy + Checkov plugins
 
 **Status:** Implemented (2026-08-06) — FS/IaC adapters; opt-in enabled list  
-**Plan:** [2026-08-06-phase-6.1-trivy-checkov-plugins.md](../superpowers/plans/2026-08-06-phase-6.1-trivy-checkov-plugins.md)
 
 **Goal:** Deterministic containers, filesystem/deps (via Trivy), and IaC policy evidence in the same report as Semgrep/gitleaks/OSV.
 
@@ -74,7 +73,6 @@ Ship in order. Each phase has its own exit criteria and can land as one or more 
 ### Phase 6.2 — SBOM, licenses & SCA enrichment
 
 **Status:** Implemented (2026-08-06) — CycloneDX via Trivy; SPDX still out of scope  
-**Plan:** [2026-08-06-phase-6.2-sbom-licenses-sca.md](../superpowers/plans/2026-08-06-phase-6.2-sbom-licenses-sca.md)
 
 **Goal:** Procurement-friendly inventory without claiming enterprise reachability SCA — and **without LLM dependency-graph hallucinations**.
 
@@ -97,7 +95,7 @@ Ship in order. Each phase has its own exit criteria and can land as one or more 
 ### Phase 6.3 — Deterministic CI gates, triage routing & provenance
 
 **Status:** Implemented (2026-08-06) — `--ci` triage, parallel scanners, provenance/source tags  
-**Implementation plan:** [2026-08-06-enterprise-ci-triage-routing.md](../superpowers/plans/2026-08-06-enterprise-ci-triage-routing.md) · **Blog:** [enterprise-scale-llm-review-ci.md](../blog-ideas/enterprise-scale-llm-review-ci.md)
+**Implementation plan:** · **Blog:** [enterprise-scale-llm-review-ci.md](../blog-ideas/enterprise-scale-llm-review-ci.md)
 
 **Goal:** CI hard-gates on **scanner** evidence; LLM is never the sole production gate; PR runs stay affordable via **triage routing** (not “stuff the whole repo into the model”).
 
@@ -136,7 +134,6 @@ diff → scanners on changed paths (Semgrep / Trivy / gitleaks / OSV / …)
 ### Phase 6.4 — Thin ASPM handoff (anchored SARIF + recipes)
 
 **Status:** Implemented (2026-08-06) — `--sarif` + anchor resolve; import still stretch  
-**Plan:** [2026-08-06-phase-6.4-anchored-sarif.md](../superpowers/plans/2026-08-06-phase-6.4-anchored-sarif.md)
 
 **Goal:** Drop findings into GitHub Security tab / Sonar / other ingest **without breaking UIs** via hallucinated locations.
 
@@ -169,7 +166,6 @@ SARIF consumers (GHAS, Sonar) expect **exact** path + line (+ column). LLMs rout
 ### Phase 6.5 — Playbook depth & calibration
 
 **Status:** Implemented (2026-08-06) — playbooks + calibrations + extended themes  
-**Plan:** [2026-08-06-phase-6.5-playbook-depth.md](../superpowers/plans/2026-08-06-phase-6.5-playbook-depth.md)
 
 **Goal:** Close cheap, high-value **checklist** gaps vs CodeQL/Checkmarx defaults; strengthen evidence-first behaviour. Not a new SAST engine.
 
@@ -295,7 +291,6 @@ Also:
 ### Phase 6.10 — Optional domain packs (starting point: Azure Sentinel / SOAR)
 
 **Status:** Implemented (2026-08-06) — scope B: registry + azure-sentinel playbook/heuristics  
-**Spec:** [2026-08-06-phase-6.10-domain-packs.md](../superpowers/specs/2026-08-06-phase-6.10-domain-packs.md)
 
 **Goal:** Niche declarative/workflow packs where AST SAST is weak; not core default path.
 
@@ -409,4 +404,4 @@ Headline differentiators:
 
 ## 8. Tracker
 
-Implementation checkboxes live in [phases.md](../phases.md) under **Phase 6.1–6.10**. This file is the design umbrella; per-phase implementation plans may be added under `docs/superpowers/plans/` when a slice starts.
+Implementation checkboxes live in [phases.md](../phases.md) under **Phase 6.1–6.10**. This file is the design umbrella.
