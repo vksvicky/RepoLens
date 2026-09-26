@@ -249,6 +249,8 @@ repolens review --path "$TARGET" --out "$TARGET/reports" \
 
 **“Triage clean”** means *clean at the severity floor* (default **HIGH**), not *zero findings*. Fast Brain can still report dozens of Medium nesting / mega-file / hygiene issues while Slow Brain stays off.
 
+When Fast Brain runs, Markdown and JSON reports include a **Quality scorecard (Fast Brain)** section (mega-files, nesting, near-clone clusters, files scanned). Near-clone **findings** are capped separately from the scorecard tally — see [faq.md — near-clones & scorecard](./faq.md#what-are-near-clones-and-the-quality-scorecard-fast-brain).
+
 ### Fair dogfood (PatternSorcerer-class)
 
 Use **recipe 2** (`--ci --deep`) when comparing speed or PR cost to other tools. Use **recipe 4** (`--full --deep`) only when you intentionally want a forced Slow Brain pack for quality. Do **not** use `--full` to “show off” Two-Lane speed.
