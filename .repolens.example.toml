@@ -45,6 +45,16 @@
 # enabled = ["azure-sentinel"]                # or: repolens review --pack azure-sentinel
 # See docs/packs.md — does not replace Checkov/ARM-TTK
 
+[graph]
+# enabled = true                              # false skips import-graph analysis (durability note)
+# type_only = "ignore"                        # ignore | warn (TYPE_CHECKING-only edges)
+# local_imports = "exclude"                   # exclude | include (function-local imports)
+# critical_scc_size = 8                       # SCC size at or above → CRITICAL severity
+# packages = ["repolens"]                     # optional override; skips auto-discovery when set
+# ratchet = false                             # review: fail if cyclicity exceeds baseline
+# baseline_path = ".repolens/baseline.json"   # committed debt snapshot (see `repolens baseline set`)
+# require_baseline = false                    # check --diff may require baseline file
+
 [fast_brain]
 # max_files = 10000                           # Fast Brain heuristics (0 = uncapped matched)
 # parallel_workers = 8                        # I/O thread pool for line/regex heuristics
