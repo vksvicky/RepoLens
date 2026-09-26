@@ -772,7 +772,11 @@ No as a marketing lead. Phase 6.6 pre-registers a methodology that leads with **
 
 ## How do Critical/High suggested fixes show up on a PR?
 
-On GitHub Actions (Phase 6.8), the RepoLens Action appends a **PR summary** to the job summary and emits `::error` / `::warning` annotations for Critical/High (with code examples in the summary). Locally: `repolens pr-summary --reports-dir reports`. RepoLens does **not** auto-commit fixes or post review comments via the GitHub API. See [ci.md](./ci.md#pr-suggested-fix-summary-phase-68).
+On GitHub Actions (Phase 6.8), the RepoLens Action appends a **PR summary** to the job summary and emits `::error` / `::warning` annotations for Critical/High (with code examples in the summary). Locally: `repolens pr-summary --reports-dir reports`.
+
+**Optional inline review comments (#29):** set Action input `pr-review-comments: true` or run `repolens pr-summary … --post-review-comments` on a `pull_request` job with `permissions.pull-requests: write`. Caps at **3** Critical/High comments; re-runs **edit in place** via a fingerprint marker (no comment spam). Lines not present in the PR diff are skipped. Default remains **off**.
+
+RepoLens does **not** auto-commit fixes. See [ci.md](./ci.md#pr-suggested-fix-summary-phase-68).
 
 ## How does `--ci` triage routing work?
 
