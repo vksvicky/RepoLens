@@ -56,6 +56,10 @@
 # ratchet = false                             # review: fail if cyclicity exceeds baseline
 # baseline_path = ".repolens/baseline.json"   # committed debt snapshot (see `repolens baseline set`)
 # require_baseline = false                    # check --diff may require baseline file
+# Architecture DSL (G4): place repolens.yaml at repo root (see docs/command-atlas.md)
+#   schemaVersion: 1
+#   boundaries: [{ name: domain, path: src/domain/**, allowed_imports: [] }]
+# Then: repolens check architecture --path .
 
 [fast_brain]
 # max_files = 10000                           # Fast Brain heuristics (0 = uncapped matched)
