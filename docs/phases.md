@@ -30,7 +30,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [x] Optional `repolens-mcp` — cycles/reachability + G4 legal imports |
 | ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [x] `repolens.yaml` + `check architecture` + FAS candidates |
 | Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [x] Sourcery/CodeRabbit vs gate — see [repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit) |
-| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 aliases shipped; Phase 9 later |
+| 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 shipped; Phase 9 Gemini AI Studio in flight |
 ---
 
 ## Legend
@@ -509,11 +509,12 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Item | Status | Notes |
 |------|--------|-------|
 | Design sketch | [x] | [phase-9-native-provider-sdks.md](./design/phase-9-native-provider-sdks.md) |
-| Native Gemini and/or Vertex | [ ] | Stream → `on_delta` |
+| Native Gemini (AI Studio) | [x] | `provider=gemini` + `GEMINI_API_KEY`; stream → `on_delta` |
+| Native Vertex AI | [ ] | Follow-up (ADC / project / region) |
 | Native Bedrock (if demanded) | [ ] | Prefer Converse + thin httpx |
-| Keep Phase 8 aliases on OpenAI-compatible path | [ ] | Do not rewrite without cause |
+| Keep Phase 8 aliases on OpenAI-compatible path | [x] | Aliases unchanged |
 
-**Phase 9 exit criteria:** At least one native provider ships with init + streaming wait UX + tests; FAQ clearly marks alias vs native.
+**Phase 9 exit criteria:** At least one native provider ships with init + streaming wait UX + tests; FAQ clearly marks alias vs native. → **Met** by Gemini AI Studio MVP; Vertex/Bedrock remain optional follow-ups.
 
 ---
 
