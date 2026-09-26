@@ -46,12 +46,12 @@ def test_issue_line_uses_physical_not_norm_index() -> None:
 
 
 def test_coalesce_stride_trap_same_offset() -> None:
-    # offset = start_b - start_a == +44 for every window → one continuous copy
+    # Same normalised A→B offset; overlapping windows → one continuous copy
     hits = [
-        PairHit("A.py", "B.py", 1, 12, 45, 56),
-        PairHit("A.py", "B.py", 7, 18, 51, 62),
-        PairHit("A.py", "B.py", 13, 24, 57, 68),
-        PairHit("A.py", "B.py", 19, 30, 63, 74),
+        PairHit("A.py", "B.py", 1, 12, 45, 56, 0, 12, 44, 56),
+        PairHit("A.py", "B.py", 7, 18, 51, 62, 6, 18, 50, 62),
+        PairHit("A.py", "B.py", 13, 24, 57, 68, 12, 24, 56, 68),
+        PairHit("A.py", "B.py", 19, 30, 63, 74, 18, 30, 62, 74),
     ]
     blocks = coalesce_pair_hits(hits)
     assert len(blocks) == 1
@@ -62,11 +62,45 @@ def test_coalesce_stride_trap_same_offset() -> None:
 def test_coalesce_rejects_different_offset() -> None:
     # Same A-side stride, but B jumped elsewhere → do NOT merge into one block
     hits = [
-        PairHit("A.py", "B.py", 1, 12, 45, 56),
-        PairHit("A.py", "B.py", 7, 18, 100, 111),
+        PairHit("A.py", "B.py", 1, 12, 45, 56, 0, 12, 0, 12),
+        PairHit("A.py", "B.py", 7, 18, 100, 111, 6, 18, 80, 92),
     ]
     blocks = coalesce_pair_hits(hits)
     assert len(blocks) == 2
+
+
+def test_coalesce_across_blank_line_physical_gap() -> None:
+    """Blank lines between abutting normalised windows must not split a clone.
+
+    Norm windows [0,12) and [12,24) abut. Physical ends/starts skip blanks
+    (phys end 12 → next phys start 15), which the old phys+1 check rejected.
+    """
+    hits = [
+        PairHit("A.py", "B.py", 1, 12, 101, 112, 0, 12, 0, 12),
+        PairHit("A.py", "B.py", 15, 26, 115, 126, 12, 24, 12, 24),
+    ]
+    blocks = coalesce_pair_hits(hits)
+    assert len(blocks) == 1
+    assert blocks[0].phys_start_a == 1 and blocks[0].phys_end_a == 26
+    assert blocks[0].phys_start_b == 101 and blocks[0].phys_end_b == 126
+    assert blocks[0].occurrences == 2
+
+
+def test_coalesce_blank_gap_end_to_end(tmp_path: Path) -> None:
+    """Copied body with blank lines between stride windows → one finding."""
+    # 12 + blanks + 12 non-blank lines; window=12, stride=12 → two abutting
+    # normalised windows separated by blanks in physical space.
+    part1 = "\n".join(f"x_{i} = {i}" for i in range(12))
+    part2 = "\n".join(f"y_{i} = {i}" for i in range(12))
+    body = part1 + "\n\n\n" + part2 + "\n"
+    (tmp_path / "a.py").write_text(body, encoding="utf-8")
+    (tmp_path / "b.py").write_text(body, encoding="utf-8")
+    result = find_near_clones(
+        _entries_under(tmp_path),
+        config=NearClonesConfig(window_lines=12, stride=12),
+    )
+    assert len(result.issues) == 1, result.issues
+    assert result.issues[0].category == "quality.near_clone"
 
 
 def test_header_comment_suppressed(tmp_path: Path) -> None:
