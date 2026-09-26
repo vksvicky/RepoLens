@@ -6,9 +6,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–7**, **Wave A/B**, **Wave C (G0–G4)**, Phase **8**, Phase **9** Gemini MVP, and LogViewer dogfood (**#15/#16/#13**) complete ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)). **Open / parked:** [#11](https://github.com/vksvicky/RepoLens/issues/11) residuals · [#17b](https://github.com/vksvicky/RepoLens/issues/17) local UI calibrations · Phase 9 Vertex/Bedrock follow-up · [#6](https://github.com/vksvicky/RepoLens/issues/6) community feedback.  
+**Current phase:** Phases **0–7**, **Wave A/B**, **Wave C (G0–G4)**, Phase **8**, Phase **9** Gemini MVP, and LogViewer dogfood (**#15/#16/#13**) complete ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)). Vertex/Bedrock follow-up → [#58](https://github.com/vksvicky/RepoLens/issues/58).  
 **GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12).  
-**Parked:** **#17b** (local UI calibrations); [#11](https://github.com/vksvicky/RepoLens/issues/11) study/SARIF/registry residuals.
+**Parked (no sticky tracker):** light heuristics / formal Semgrep–CodeQL study cells / SARIF import stretch / full Trivy registry-auth matrix (formerly [#11](https://github.com/vksvicky/RepoLens/issues/11)); **#17b** local UI calibrations.  
+**Feedback:** [Discussions](https://github.com/vksvicky/RepoLens/discussions) + [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose) (feedback mega-thread [#6](https://github.com/vksvicky/RepoLens/issues/6) closed).
 
 **CLI language:** Python 3.11+
 
@@ -32,8 +33,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [x] Sourcery/CodeRabbit vs gate — see [repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit) |
 | 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 done ([PR #51](https://github.com/vksvicky/RepoLens/pull/51)); Phase 9 Gemini MVP done ([PR #52](https://github.com/vksvicky/RepoLens/pull/52)); Vertex/Bedrock → [#58](https://github.com/vksvicky/RepoLens/issues/58) |
 | Dogfood: 32B cost / change-set | [#15](https://github.com/vksvicky/RepoLens/issues/15) / [#16](https://github.com/vksvicky/RepoLens/issues/16) | **Done** ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)); umbrella [#13](https://github.com/vksvicky/RepoLens/issues/13) closed |
-| Deferred residuals | [#11](https://github.com/vksvicky/RepoLens/issues/11) | Parked (heuristics / study / SARIF import / Trivy registry) |
-| Community feedback | [#6](https://github.com/vksvicky/RepoLens/issues/6) | Open channel |
+| Deferred residuals | formerly [#11](https://github.com/vksvicky/RepoLens/issues/11) | **Closed** — parked in phases header (no sticky tracker) |
+| Community feedback | formerly [#6](https://github.com/vksvicky/RepoLens/issues/6) | **Closed** — [Discussions](https://github.com/vksvicky/RepoLens/discussions) + issue templates |
 | Local UI calibrations | #17b on [#17](https://github.com/vksvicky/RepoLens/issues/17) | Parked |
 ---
 
@@ -590,6 +591,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-09-26 | Phase 9 Gemini MVP | Native AI Studio ([#5](https://github.com/vksvicky/RepoLens/issues/5) / [PR #52](https://github.com/vksvicky/RepoLens/pull/52)); Vertex/Bedrock remain follow-ups |
 | 2026-09-26 | Dogfood next | Unpark [#15](https://github.com/vksvicky/RepoLens/issues/15) then [#16](https://github.com/vksvicky/RepoLens/issues/16); refresh [#12](https://github.com/vksvicky/RepoLens/issues/12); triage [#11](https://github.com/vksvicky/RepoLens/issues/11) |
 | 2026-09-26 | Dogfood #15/#16 landed | [PR #57](https://github.com/vksvicky/RepoLens/pull/57); [#13](https://github.com/vksvicky/RepoLens/issues/13) closed; LogViewer `--git-diff auto --deep-passes 1` validated; Vertex/Bedrock → [#58](https://github.com/vksvicky/RepoLens/issues/58) |
+| 2026-09-26 | Tracker hygiene | Close [#11](https://github.com/vksvicky/RepoLens/issues/11) (parked residuals, no sticky issue); close [#6](https://github.com/vksvicky/RepoLens/issues/6) → Discussions + issue templates |
 
 ---
 

@@ -7,8 +7,9 @@ body:
     attributes:
       value: |
         For defects use **Bug report**. For product ideas use **Feature request**.
-        General teaching / shipping feedback can also go on
-        [issue #6](https://github.com/vksvicky/RepoLens/issues/6).
+        General teaching / shipping feedback belongs in
+        [Discussions](https://github.com/vksvicky/RepoLens/discussions)
+        (or pick **Question** here if you need a tracked answer).
         **Do not** paste secrets, API keys, or proprietary source.
   - type: dropdown
     id: topic
