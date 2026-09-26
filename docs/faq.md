@@ -386,18 +386,22 @@ Guided wizard: `./scripts/repolens-guided.sh` prompts for deep (default **Y** on
 
 ## Do I need `--full-audit` every time? (review profiles)
 
-**No.** Full audit runs deep P1→P2→P3 with the full architecture checklist — often **30–60+ minutes** on a 32B local model and a ~180-file pack. Use profiles:
+**No.** Full audit runs deep P1→P2→P3 with the full architecture checklist — often **≥1 hour** on a 32B local model and a ~200-file pack. That is expected, not a hang. Use profiles:
 
-| Goal | Suggested command | Typical cost (32B local, large pack) |
-|------|-------------------|--------------------------------------|
-| Verify metric / security band only | `repolens sentinel …` (P1 only) | ~1 deep pass |
-| Day-to-day / PR delta | `repolens review --changed …` | Often skips LLM if no file delta; else smaller pack |
-| Normal dual review | `repolens review …` (deep on, **no** `--full-audit`) | 3 passes, scoped P3 |
-| Release / milestone | `repolens review --full-audit …` | 3 passes + full arch + scores |
-| Fast scanners only | `repolens review --scanners-only …` | Seconds–minutes |
+| Goal | Suggested command | Typical cost (32B local) |
+|------|-------------------|--------------------------|
+| Fast SCA + heuristics | `repolens review --scanners-only …` | Seconds |
+| Pre-push / iteration (git change-set) | `repolens review --git-diff auto --deep --deep-passes 1 …` | 1 band × touched files |
+| Day-to-day fingerprint delta | `repolens review --changed --deep …` | Often skips LLM if no delta |
+| Normal dual review | `repolens review --deep …` (no `--full`) | Up to 3 passes; pre-flight estimate printed |
+| Milestone / release | `repolens review --full --deep …` or `--full-audit` | Often **≥1 h** on local 32B |
 | Thin single-shot | `repolens review --no-deep …` | 1 LLM call (weaker coverage) |
 
-To check the **security audit confidence** fix without a 40‑minute full audit: run **`sentinel`** (or `review` without `--full-audit`).
+**Cost knobs (#15):** `--deep-passes N` (or `[deep] max_passes`) caps band passes; invalid JSON gets **one** micro-repair then degrades (count in report as `llmRepairAttempts`). Build dirs like `target/`, `node_modules/`, `reports/`, `.repolens/` are ignored so cold-cache inventory does not inflate Fast Brain.
+
+**`--changed` vs `--git-diff` (#16):** `--changed` = SQLite fingerprint delta since last sync. `--git-diff [base|auto]` = git branch/worktree delta and **restricts** the Slow Brain pack to that intersection (scanners + Fast Brain stay whole-tree). Do not conflate them. Change-set deep complements a human/agent dual-review gate — it focuses the LLM on files you touched; it does not replace gate honesty.
+
+To check the **security audit confidence** fix without a 40‑minute full audit: run **`sentinel`** (or `review --deep-passes 1`).
 
 ---
 

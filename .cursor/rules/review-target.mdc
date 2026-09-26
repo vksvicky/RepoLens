@@ -17,7 +17,8 @@ When suggesting or running live `repolens review` / `sentinel` validation agains
 |--------|---------|
 | Unit (seconds) | `python -m pytest tests/test_themes.py tests/test_report.py -q` |
 | Scanners only | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only` |
-| LLM only on delta | `repolens review --path "$TARGET" --out "$TARGET/reports" --changed --deep --timeout 900` |
+| Fingerprint delta LLM | `repolens review --path "$TARGET" --out "$TARGET/reports" --changed --deep --timeout 900` |
+| Git change-set deep (pre-push) | `repolens review --path "$TARGET" --out "$TARGET/reports" --git-diff auto --deep --deep-passes 1 --timeout 1800` |
 | Full warm pack (slow on 32B) | omit `--changed` — `auto` with **no fingerprint delta still packs all files** |
 | Full audit | `--full-audit` (slowest) |
 

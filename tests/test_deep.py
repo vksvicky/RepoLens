@@ -131,6 +131,25 @@ def test_plan_deep_passes_review_orders_p1_p2_p3() -> None:
     assert passes[2].rule_ids == ["architecture"]
 
 
+def test_plan_deep_passes_max_passes_caps_bands() -> None:
+    rules = [
+        _rule("security", "p1"),
+        _rule("reliability", "p2"),
+        _rule("architecture", "p3"),
+    ]
+    passes = plan_deep_passes(
+        "review",
+        full_audit=False,
+        entries=[_entry("a.py", 10)],
+        hot_paths=[],
+        adaptive_paths=[],
+        chars_per_pass=1000,
+        rules=rules,
+        max_passes=1,
+    )
+    assert [p.name for p in passes] == ["p1"]
+
+
 def test_plan_deep_passes_sentinel_is_p1_only() -> None:
     rules = [
         _rule("security", "p1"),
