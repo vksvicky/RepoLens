@@ -33,7 +33,8 @@ def estimate_deep_runtime_minutes(
     per = _SEC_PER_FILE.get(key, _DEFAULT_SEC)
     # Local Ollama 32B dogfood: ~200 files × 3 passes ≈ 70+ minutes; scale up.
     if key == "ollama":
-        per = 8.0
+        # Local 32B: prompt eval dominates; LogViewer dogfood ~7 files / 1 pass ≈ 30 min.
+        per = 240.0
     seconds = files * passes * per
     return max(1, int(round(seconds / 60.0)))
 
