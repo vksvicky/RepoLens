@@ -18,7 +18,7 @@
       },
       "results": [
         {
-          "ruleId": "java:S106",
+          "rule": { "id": "java:S106" },
           "level": "warning",
           "message": { "text": "Replace this use of System.out by a logger." },
           "locations": [

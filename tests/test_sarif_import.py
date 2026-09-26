@@ -4,11 +4,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from repolens.sarif_import import load_sarif_issues
 from repolens.schema import Severity
-
 
 FIXTURES = Path(__file__).parent / "fixtures" / "sarif"
 
@@ -136,6 +133,22 @@ def test_srcroot_uri_prefix_normalises(tmp_path: Path) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
     issue = load_sarif_issues(path, root=tmp_path)[0].issues[0]
     assert issue.file == "src/a.py"
+
+
+def test_import_codeql_absolute_file_uri(tmp_path: Path) -> None:
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "leak.py").write_text("print('secret')\n", encoding="utf-8")
+    raw = (FIXTURES / "minimal_codeql.sarif.json").read_text(encoding="utf-8")
+    root_uri = tmp_path.resolve().as_uri()
+    sarif_path = tmp_path / "codeql.sarif.json"
+    sarif_path.write_text(raw.replace("file:///ABS/ROOT", root_uri), encoding="utf-8")
+    results = load_sarif_issues(sarif_path, root=tmp_path)
+    assert results[0].tool_name == "CodeQL"
+    assert len(results[0].issues) == 1
+    issue = results[0].issues[0]
+    assert issue.file == "src/leak.py"
+    assert issue.line == 12
+    assert "py/clear-text-logging" in issue.title
 
 
 def test_multi_run_keeps_per_tool_names(tmp_path: Path) -> None:
