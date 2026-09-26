@@ -67,7 +67,22 @@ repolens pr-summary --reports-dir reports --github-summary --annotate
 
 - Appends a **Critical/High** suggested-fix section to the job’s `$GITHUB_STEP_SUMMARY` (code examples included; no auto-commit)
 - Emits GitHub workflow commands: `::error` for Critical, `::warning` for High (file/line when the path is safe)
-- Does **not** post PR review comments via the GitHub API
+- Does **not** post PR review comments unless you opt in (below)
+
+#### Optional inline PR review comments (#29)
+
+```yaml
+with:
+  pr-summary: true
+  pr-review-comments: true   # default false
+permissions:
+  contents: read
+  pull-requests: write
+```
+
+Or CLI: `repolens pr-summary --reports-dir reports --post-review-comments --pr 123`
+
+Anti-spam: **max 3** Critical/High comments; re-runs **edit in place** using an HTML fingerprint marker; lines missing from the PR diff are skipped (no pile-on).
 
 Local / other CI:
 

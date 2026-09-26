@@ -42,6 +42,12 @@ inputs:
     description: Append PR suggested-fix summary to $GITHUB_STEP_SUMMARY + annotations
     required: false
     default: "true"
+  pr-review-comments:
+    description: >-
+      Opt-in: post/update up to 3 Critical/High inline PR review comments
+      (idempotent; requires pull_request context + permissions.pull-requests: write)
+    required: false
+    default: "false"
   reports-dir:
     description: Report output directory (relative to path)
     required: false
@@ -174,6 +180,10 @@ runs:
       run: |
         set -euo pipefail
         REPORTS="${{ inputs.reports-dir }}"
-        if ! repolens pr-summary --reports-dir "$REPORTS" --github-summary --annotate; then
+        EXTRA=()
+        if [[ "${{ inputs.pr-review-comments }}" == "true" ]]; then
+          EXTRA+=(--post-review-comments)
+        fi
+        if ! repolens pr-summary --reports-dir "$REPORTS" --github-summary --annotate "${EXTRA[@]}"; then
           echo "pr-summary skipped or failed (no JSON report?)" >&2
         fi
