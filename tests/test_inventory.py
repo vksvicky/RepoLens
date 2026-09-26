@@ -71,6 +71,25 @@ def test_ignores_superpowers_scratch(tmp_path: Path) -> None:
     assert all(".superpowers" not in r for r in rels)
 
 
+def test_ignores_rust_target_and_reports(tmp_path: Path) -> None:
+    (tmp_path / "main.rs").write_text("fn main() {}\n", encoding="utf-8")
+    tgt = tmp_path / "target" / "debug"
+    tgt.mkdir(parents=True)
+    (tgt / "build_script.rs").write_text("// generated\n", encoding="utf-8")
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    (reports / "gate.md").write_text("# old\n", encoding="utf-8")
+    nm = tmp_path / "node_modules" / "pkg"
+    nm.mkdir(parents=True)
+    (nm / "index.js").write_text("module.exports=1\n", encoding="utf-8")
+    files = list_files(tmp_path)
+    rels = [f.relative for f in files]
+    assert "main.rs" in rels
+    assert all("target/" not in r and not r.startswith("target/") for r in rels)
+    assert all("reports/" not in r for r in rels)
+    assert all("node_modules/" not in r for r in rels)
+
+
 def test_skips_symlinks_outside_root(tmp_path: Path) -> None:
     outside = tmp_path / "secret.txt"
     outside.write_text("top-secret\n", encoding="utf-8")

@@ -15,6 +15,8 @@ IGNORE_DIR_NAMES = {
     "node_modules",
     "dist",
     "build",
+    # Rust / JVM build outputs (cold-cache inventory inflation on dogfood trees).
+    "target",
     "__pycache__",
     ".pytest_cache",
     ".mypy_cache",

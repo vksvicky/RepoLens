@@ -104,6 +104,8 @@ def _run_mode(
     timeout: float | None = None,
     force_full: bool = False,
     force_changed: bool = False,
+    git_diff: str | None = None,
+    deep_passes: int | None = None,
     deep: bool | None = None,
     explain_uuids: str | None = None,
     ci: bool = False,
@@ -123,6 +125,18 @@ def _run_mode(
 
     if force_full and force_changed:
         console.print("[red]--full and --changed cannot be combined[/red]")
+        raise typer.Exit(code=2)
+
+    if git_diff is not None and force_full:
+        console.print("[red]--full and --git-diff cannot be combined[/red]")
+        raise typer.Exit(code=2)
+
+    if git_diff is not None and force_changed:
+        console.print("[red]--changed and --git-diff cannot be combined[/red]")
+        raise typer.Exit(code=2)
+
+    if deep_passes is not None and deep_passes < 1:
+        console.print("[red]--deep-passes must be >= 1[/red]")
         raise typer.Exit(code=2)
 
     if quiet and verbose:
@@ -174,6 +188,8 @@ def _run_mode(
             timeout_override=timeout,
             force_full=force_full,
             force_changed=force_changed,
+            git_diff=git_diff,
+            deep_passes=deep_passes,
             full_audit=full_audit,
             dry_run=dry_run,
             trust_project=trust_project,
@@ -332,12 +348,27 @@ def review(
     force_changed: bool = typer.Option(
         False,
         "--changed",
-        help="LLM pack = added/changed files only (skip LLM if none)",
+        help="LLM pack = fingerprint added/changed files only (not git diff; skip LLM if none)",
+    ),
+    git_diff: str | None = typer.Option(
+        None,
+        "--git-diff",
+        help=(
+            "Restrict Slow Brain pack to git change-set vs BASE "
+            "(ref like main, or 'auto'). Scanners/Fast Brain stay whole-tree. "
+            "Conflicts with --full / --changed."
+        ),
     ),
     deep: bool | None = typer.Option(
         None,
         "--deep/--no-deep",
         help="Multi-pass deep coverage (default: on; --no-deep = single-shot)",
+    ),
+    deep_passes: int | None = typer.Option(
+        None,
+        "--deep-passes",
+        help="Cap deep band passes (1 = P1-only). Overrides [deep].max_passes.",
+        min=1,
     ),
     explain: str | None = typer.Option(
         None,
@@ -411,6 +442,8 @@ def review(
         timeout,
         force_full,
         force_changed,
+        git_diff,
+        deep_passes,
         deep,
         explain,
         ci,
@@ -481,12 +514,26 @@ def sentinel(
     force_changed: bool = typer.Option(
         False,
         "--changed",
-        help="LLM pack = added/changed files only (skip LLM if none)",
+        help="LLM pack = fingerprint added/changed files only (not git diff; skip LLM if none)",
+    ),
+    git_diff: str | None = typer.Option(
+        None,
+        "--git-diff",
+        help=(
+            "Restrict Slow Brain pack to git change-set vs BASE "
+            "(ref like main, or 'auto'). Conflicts with --full / --changed."
+        ),
     ),
     deep: bool | None = typer.Option(
         None,
         "--deep/--no-deep",
         help="Multi-pass deep coverage (default: on; --no-deep = single-shot)",
+    ),
+    deep_passes: int | None = typer.Option(
+        None,
+        "--deep-passes",
+        help="Cap deep band passes (1 = P1-only). Overrides [deep].max_passes.",
+        min=1,
     ),
     ci: bool = typer.Option(
         False,
@@ -544,6 +591,8 @@ def sentinel(
         timeout,
         force_full,
         force_changed,
+        git_diff,
+        deep_passes,
         deep,
         None,
         ci,
@@ -613,12 +662,26 @@ def architecture(
     force_changed: bool = typer.Option(
         False,
         "--changed",
-        help="LLM pack = added/changed files only (skip LLM if none)",
+        help="LLM pack = fingerprint added/changed files only (not git diff; skip LLM if none)",
+    ),
+    git_diff: str | None = typer.Option(
+        None,
+        "--git-diff",
+        help=(
+            "Restrict Slow Brain pack to git change-set vs BASE "
+            "(ref like main, or 'auto'). Conflicts with --full / --changed."
+        ),
     ),
     deep: bool | None = typer.Option(
         None,
         "--deep/--no-deep",
         help="Multi-pass deep coverage (default: on; --no-deep = single-shot)",
+    ),
+    deep_passes: int | None = typer.Option(
+        None,
+        "--deep-passes",
+        help="Cap deep band passes (1 = P1-only). Overrides [deep].max_passes.",
+        min=1,
     ),
     ci: bool = typer.Option(
         False,
@@ -676,6 +739,8 @@ def architecture(
         timeout,
         force_full,
         force_changed,
+        git_diff,
+        deep_passes,
         deep,
         None,
         ci,
