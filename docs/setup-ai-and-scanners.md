@@ -47,7 +47,27 @@ You create an account with an AI company, copy a **secret key**, and let RepoLen
 | `anthropic` | `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) → API keys | Streamed chars/chunks (Messages SSE) |
 | `deepseek` | `DEEPSEEK_API_KEY` | [platform.deepseek.com](https://platform.deepseek.com) → API keys | Streamed chars/chunks |
 
-**Escape hatch** — any OpenAI-compatible HTTP API (Azure OpenAI, Groq, Mistral, OpenRouter, LM Studio, vLLM, …):
+**Phase 8 aliases** (OpenAI-compatible transport; same streamed wait UX):
+
+| Alias | Env var | Default `base_url` | Notes |
+|-------|---------|--------------------|--------|
+| `groq` | `GROQ_API_KEY` | `https://api.groq.com/openai/v1` | Fast CI-friendly inference |
+| `mistral` | `MISTRAL_API_KEY` | `https://api.mistral.ai/v1` | |
+| `openrouter` | `OPENROUTER_API_KEY` | `https://openrouter.ai/api/v1` | Model ids are vendor-prefixed |
+| `together` | `TOGETHER_API_KEY` | `https://api.together.xyz/v1` | |
+| `fireworks` | `FIREWORKS_API_KEY` | `https://api.fireworks.ai/inference/v1` | |
+| `azure` / `azure_openai` | `AZURE_OPENAI_API_KEY` | *(required)* | Pass `--base-url` (resource endpoint) + deployment as `--model` |
+
+```bash
+repolens init --provider groq --force
+export GROQ_API_KEY=...
+
+repolens init --provider azure --base-url https://<resource>.openai.azure.com/openai/v1 \
+  --model <deployment> --force
+export AZURE_OPENAI_API_KEY=...
+```
+
+**Escape hatch** — any other OpenAI-compatible HTTP API (LM Studio, vLLM, Cloudflare Workers AI, …):
 
 ```bash
 repolens init --provider openai_compatible --model <name> \
@@ -59,6 +79,13 @@ export REPOLENS_API_KEY="..."
 |----------|---------|--------|
 | `openai_compatible` | `REPOLENS_API_KEY` | Set `base_url` + `model` for that host; same streamed wait UX |
 
+| Recipe-only host | Typical `base_url` | Phase |
+|------------------|--------------------|-------|
+| LM Studio | `http://127.0.0.1:1234/v1` | 8 (use `openai_compatible`) |
+| vLLM / llama.cpp server | `http://127.0.0.1:8000/v1` | 8 (use `openai_compatible`) |
+| Gemini / Vertex (OpenAI-compatible gateway) | Google’s OpenAI-shaped endpoint when available | 8 recipe; **native** SDK → Phase 9 |
+| Amazon Bedrock (native) | — | Phase 9 |
+
 **Not BYOK:** `ollama` (local) and `none` (scanners / dry-run only).
 
 > **Restricted / Enterprise Models (e.g. Claude Mythos 5):**  
@@ -67,7 +94,7 @@ export REPOLENS_API_KEY="..."
 > **Automatic Fallback Cascade (`--fallback`):**  
 > By default, if a cloud API key is missing or unavailable, RepoLens automatically checks for a local Ollama instance. If Ollama is not running, it degrades gracefully to local SAST scanners and Fast-Brain static heuristics instead of failing. Use `--no-fallback` to disable fallback.
 
-**Coming later:** Phase 8 adds named aliases/recipes (Azure, Mistral, Groq, OpenRouter, …); Phase 9 adds native Gemini/Vertex/Bedrock when OpenAI-compatible is not enough. See [phases.md](./phases.md).
+Design notes: [phase-8-provider-aliases-and-recipes.md](./design/phase-8-provider-aliases-and-recipes.md). Native Gemini/Bedrock SDKs are [Phase 9](./design/phase-9-native-provider-sdks.md).
 
 1. Sign up / sign in.  
 2. Add billing if the provider requires it.  

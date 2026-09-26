@@ -86,33 +86,33 @@ def init_cmd(
     provider: str = typer.Option(
         ...,
         "--provider",
-        help="openai | anthropic | deepseek | openai_compatible | ollama | none",
+        help=(
+            "openai | anthropic | deepseek | openai_compatible | ollama | none | "
+            "azure | mistral | groq | openrouter | together | fireworks"
+        ),
         prompt=(
-            "Provider (openai / anthropic / deepseek / openai_compatible / ollama / none)"
+            "Provider (openai / anthropic / deepseek / openai_compatible / ollama / "
+            "azure / mistral / groq / openrouter / none)"
         ),
     ),
     model: str | None = typer.Option(None, "--model", help="Default model name"),
     base_url: str | None = typer.Option(
         None,
         "--base-url",
-        help="Override API base URL (required for most openai_compatible hosts)",
+        help="Override API base URL (required for azure / most openai_compatible hosts)",
     ),
     force: bool = typer.Option(False, "--force", help="Overwrite existing user config"),
 ) -> None:
     """First-run setup: write ~/.config/repolens/config.toml (BYOK, Ollama, or scanners-only)."""
     from repolens.config import user_config_path
+    from repolens.providers import INIT_PROVIDERS, PROVIDER_ALIASES
 
     provider = provider.strip().lower()
-    allowed = {
-        "openai",
-        "anthropic",
-        "deepseek",
-        "openai_compatible",
-        "ollama",
-        "none",
-    }
-    if provider not in allowed:
-        console.print(f"[red]Unknown provider:[/red] {provider}. Choose from {sorted(allowed)}")
+    if provider not in INIT_PROVIDERS:
+        console.print(
+            f"[red]Unknown provider:[/red] {provider}. "
+            f"Choose from {sorted(INIT_PROVIDERS)}"
+        )
         raise typer.Exit(code=2)
 
     path = user_config_path()
@@ -136,7 +136,6 @@ def init_cmd(
         "openai": ("gpt-4.1-mini", "OPENAI_API_KEY", None),
         "anthropic": ("claude-sonnet-4-20250514", "ANTHROPIC_API_KEY", None),
         "deepseek": ("deepseek-chat", "DEEPSEEK_API_KEY", "https://api.deepseek.com/v1"),
-        # Escape hatch for Azure OpenAI, Groq, Mistral, OpenRouter, LM Studio, etc.
         "openai_compatible": (
             "gpt-4.1-mini",
             "REPOLENS_API_KEY",
@@ -144,9 +143,24 @@ def init_cmd(
         ),
         "ollama": (None, None, "http://127.0.0.1:11434/v1"),
     }
+    for alias_name, alias in PROVIDER_ALIASES.items():
+        defaults[alias_name] = (
+            alias.default_model,
+            alias.api_key_env,
+            alias.base_url,
+        )
+
     default_model, key_env, base = defaults[provider]
     chosen_model = model or default_model
     chosen_base = base_url or base
+    alias = PROVIDER_ALIASES.get(provider)
+    if alias and alias.requires_base_url and not base_url:
+        console.print(
+            f"[red]{provider}[/red] requires [cyan]--base-url[/cyan] "
+            "(Azure resource endpoint). "
+            + (alias.notes or "")
+        )
+        raise typer.Exit(code=2)
     if provider == "openai_compatible" and not base_url:
         console.print(
             "[yellow]openai_compatible[/yellow] usually needs "
@@ -178,15 +192,16 @@ def init_cmd(
     console.print(f"[green]Wrote[/green] {written}")
     if key_env:
         console.print(f"Export your key: [cyan]export {key_env}=...[/cyan]")
+    if alias and alias.notes:
+        console.print(f"[dim]{alias.notes}[/dim]")
     if provider == "ollama":
         console.print(
             f"Config model is [cyan]{chosen_model}[/cyan]. "
             "Change anytime with [cyan]repolens init --provider ollama --model NAME --force[/cyan] "
-            "or edit the config file."
+            "or edit the file."
         )
     console.print("Try: [cyan]repolens review --path . --dry-run[/cyan]")
     console.print("Optional scanners: [cyan]repolens plugins status[/cyan]")
-
 
 
 

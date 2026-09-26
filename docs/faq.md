@@ -90,7 +90,7 @@ When a review’s matched inventory includes **Python** files, RepoLens runs a *
 | **Always on?** | Yes for Python in the inventory. Pure JS/Go/etc. trees with **no** matched `.py` → lane idle (no durability gap). |
 | **Package names** | Inferred from layout (`src/` children, flat packages, `pyproject.toml` hints) unless you override `[graph] packages = […]` in config. Script folders without importable packages may yield an empty graph — expected, not a crash. |
 | **CI `--fail-on`** | Under `--ci` / `scanner_only`, **graph** findings count like **scanner** rows (High/Critical can fail the gate). Heuristic and LLM findings stay excluded unless you drop `scanner_only`. |
-| **MCP / DSL** | **Not in G1.** The **CLI report + exit code** is the gate; MCP servers and architecture DSL editors are later waves. |
+| **MCP / DSL** | Optional. MCP: [mcp.md](./mcp.md). Architecture DSL: `repolens check architecture` + `repolens.yaml` (G4). CLI/CI remains the primary gate. |
 | **Sonargraph / SCIP** | G1 ships a **stub** `load_precomputed_edges(path)` for JSON edge lists (tests + future adapters); production reviews use grimp today. |
 
 ### Cyclicity ratchet (baseline, G2)
@@ -121,6 +121,8 @@ Analysis failures (SyntaxError, discovery miss) append **`graph.analysis_failed:
 | Grades | **Gate / band confidence** = review-package adequacy — **not** “% secure” and **not** cross-repo percentile ranks | Some SaaS tools show population percentiles — RepoLens does **not** (privacy-first local CLI; no central corpus) |
 
 Playbooks in chat and RepoLens share review *ideas*; they are not the same product surface. See [using-playbooks.md](./using-playbooks.md).
+
+**Sourcery / CodeRabbit** optimise for PR/IDE velocity (inline comments, summaries, refactor idioms); **RepoLens** is the portable dual-review **gate/audit** (P1→P3 playbooks, scanners, SARIF/SBOM, BYOK/local). Use them together — see [repolens-vs-appsec-tools.md — PR/IDE velocity tools](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit).
 
 ---
 
@@ -376,7 +378,7 @@ Design: [phase-5.2-theme-coverage-and-report-breakdown.md](./design/phase-5.2-th
 
 If the model returns invalid JSON, RepoLens still writes a report (scanners + heuristics + any salvageable issues) and exits **0**.
 
-**Cloud tip (Phase A):** OpenAI / Anthropic / DeepSeek / `openai_compatible` use the **same `--deep` pipeline** as Ollama — provider choice is quality/cost/privacy, not a separate review path. Pick via `repolens init --provider …`. Heartbeats stream completion chars for all of these (Ollama also shows `/api/ps` load). Named aliases for Azure/Groq/etc. are **Phase 8**; native Gemini/Bedrock are **Phase 9**.
+**Cloud tip (Phase A + Phase 8):** OpenAI / Anthropic / DeepSeek / `openai_compatible` and named aliases (`groq`, `mistral`, `openrouter`, `azure`, …) use the **same `--deep` pipeline** as Ollama — provider choice is quality/cost/privacy, not a separate review path. Pick via `repolens init --provider …`. Heartbeats stream completion chars for all of these (Ollama also shows `/api/ps` load). Native Gemini/Bedrock SDKs are **Phase 9**. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
 
 Guided wizard: `./scripts/repolens-guided.sh` prompts for deep (default **Y** on review / full-audit).
 
@@ -697,18 +699,13 @@ Each report also records **Duration** (wall clock for the whole command).
 | `openai` | `OPENAI_API_KEY` | OpenAI chat completions | Yes |
 | `anthropic` | `ANTHROPIC_API_KEY` | Anthropic Messages API | Yes |
 | `deepseek` | `DEEPSEEK_API_KEY` | OpenAI-compatible | Yes |
-| `openai_compatible` | `REPOLENS_API_KEY` | Your `--base-url` (Azure, Groq, OpenRouter, LM Studio, …) | Yes |
+| `groq` / `mistral` / `openrouter` / `together` / `fireworks` | Host-specific (`GROQ_API_KEY`, …) | OpenAI-compatible (Phase 8 alias) | Yes |
+| `azure` / `azure_openai` | `AZURE_OPENAI_API_KEY` | OpenAI-compatible; **`--base-url` required** | Yes |
+| `openai_compatible` | `REPOLENS_API_KEY` | Your `--base-url` (LM Studio, vLLM, …) | Yes |
 | `ollama` | _(none)_ | Local OpenAI-compatible | Yes + `/api/ps` |
 | `none` | — | No LLM | N/A |
 
-**Planned (not shipped yet):**
-
-| Phase | What |
-|-------|------|
-| **Phase 8** | Named aliases + recipes: Azure OpenAI, Mistral, Groq, OpenRouter, LM Studio/vLLM, … ([design](./design/phase-8-provider-aliases-and-recipes.md)) |
-| **Phase 9** | Native SDKs where needed: Gemini/Vertex, Bedrock, … ([design](./design/phase-9-native-provider-sdks.md)) |
-
-Until then, many hosts work via `openai_compatible` + `--base-url`. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
+**Phase 9 (not yet):** native Gemini/Vertex / Bedrock SDKs where OpenAI-compatible is not enough ([design](./design/phase-9-native-provider-sdks.md)). Gemini may still work today via Google’s OpenAI-compatible gateway + `openai_compatible`. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) and [phase-8 design](./design/phase-8-provider-aliases-and-recipes.md).
 
 ---
 
