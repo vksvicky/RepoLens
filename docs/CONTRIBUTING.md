@@ -76,9 +76,11 @@ Playbooks drive review quality. When editing them:
 
 Do **not** open a public issue for vulnerabilities in RepoLens itself. See [SECURITY.md](./SECURITY.md).
 
-## Questions
+## Questions & feedback
 
-Use GitHub Discussions (when enabled) or an issue with the `question` label.
+- **Teaching / mentoring / shipping experience:** [GitHub Discussions](https://github.com/vksvicky/RepoLens/discussions)
+- **Bugs / features / tracked questions:** [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose)
+- Do **not** paste secrets, API keys, or proprietary source
 
 ## Maintainer notes
 
