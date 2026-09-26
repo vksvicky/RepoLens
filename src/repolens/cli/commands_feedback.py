@@ -31,6 +31,14 @@ def feedback_down(
         help="false_positive | wont_fix | accepted_risk | other",
     ),
     note: str = typer.Option("", "--note", help="Optional audit note"),
+    path_pattern: str = typer.Option(
+        "",
+        "--path-pattern",
+        help=(
+            "Optional fnmatch for future soft-demotion "
+            "(e.g. scripts/dev_*.py). Auto-derived when omitted if basename has a prefix_."
+        ),
+    ),
     path: Path = typer.Option(Path("."), "--path", help="Project root"),
     expires: str | None = typer.Option(
         None,
@@ -64,13 +72,16 @@ def feedback_down(
         file=meta.get("file", ""),
         title=meta.get("title", ""),
         note=note.strip(),
+        path_pattern=path_pattern.strip(),
     )
     console.print(f"[green]Wrote[/green] ignore entry → {written}")
     console.print(f"[green]Logged[/green] feedback event → {fb_path}")
     if reason == "false_positive" and meta.get("category"):
         console.print(
             "[dim]Future reviews may soft-demote matching LLM/heuristic findings "
-            f"(category `{meta['category']}`). Scanners still need an ignore entry.[/dim]"
+            f"(category `{meta['category']}`"
+            + (f", path `{path_pattern}`" if path_pattern.strip() else "")
+            + "). Scanners still need an ignore entry. Local-only — not cloud learning.[/dim]"
         )
     console.print(
         "[dim]Suppressed findings are excluded from fail-on and SARIF on the next review. "
