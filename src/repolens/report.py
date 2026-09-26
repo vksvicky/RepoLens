@@ -321,6 +321,8 @@ def _render_quality_scorecard_section(report: FindingReport) -> list[str]:
         f"| Mega-files | {q.megaFileCount} |",
         f"| Deep nesting | {q.deepNestingCount} |",
         f"| Near-clone clusters | {q.nearCloneClusters} |",
+        f"| Near-clone occurrences | {q.nearCloneOccurrences} |",
+        f"| Near-clone findings emitted | {q.nearCloneFindingsEmitted} |",
         f"| Files scanned | {q.filesScanned} |",
         "",
     ]
