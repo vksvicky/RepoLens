@@ -96,6 +96,8 @@ def test_render_markdown_includes_quality_scorecard_section() -> None:
     assert "| Mega-files | 3 |" in md
     assert "| Deep nesting | 7 |" in md
     assert "| Near-clone clusters | 12 |" in md
+    assert "| Near-clone occurrences | 40 |" in md
+    assert "| Near-clone findings emitted | 10 |" in md
     assert "| Files scanned | 1840 |" in md
     assert "_40 additional clone clusters omitted from findings._" in md
     assert "Deterministic DRY/KISS signals" in md
