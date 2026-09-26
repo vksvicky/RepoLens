@@ -90,7 +90,7 @@ When a review’s matched inventory includes **Python** files, RepoLens runs a *
 | **Always on?** | Yes for Python in the inventory. Pure JS/Go/etc. trees with **no** matched `.py` → lane idle (no durability gap). |
 | **Package names** | Inferred from layout (`src/` children, flat packages, `pyproject.toml` hints) unless you override `[graph] packages = […]` in config. Script folders without importable packages may yield an empty graph — expected, not a crash. |
 | **CI `--fail-on`** | Under `--ci` / `scanner_only`, **graph** findings count like **scanner** rows (High/Critical can fail the gate). Heuristic and LLM findings stay excluded unless you drop `scanner_only`. |
-| **MCP / DSL** | **Not in G1.** The **CLI report + exit code** is the gate; MCP servers and architecture DSL editors are later waves. |
+| **MCP / DSL** | Optional. MCP: [mcp.md](./mcp.md). Architecture DSL: `repolens check architecture` + `repolens.yaml` (G4). CLI/CI remains the primary gate. |
 | **Sonargraph / SCIP** | G1 ships a **stub** `load_precomputed_edges(path)` for JSON edge lists (tests + future adapters); production reviews use grimp today. |
 
 ### Cyclicity ratchet (baseline, G2)
