@@ -22,11 +22,25 @@ class ArchitectureLoadError(ValueError):
     """Invalid or missing architecture document."""
 
 
-def discover_architecture_path(root: Path, *, explicit: Path | None = None) -> Path | None:
+def discover_architecture_path(
+    root: Path, *, explicit: Path | None = None
+) -> Path | None:
+    """Resolve architecture DSL path; *explicit* must stay under *root*."""
+    root = root.resolve()
     if explicit is not None:
-        return explicit if explicit.is_file() else None
+        candidate = explicit.expanduser()
+        if not candidate.is_absolute():
+            candidate = root / candidate
+        candidate = candidate.resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError:
+            raise ArchitectureLoadError(
+                f"Architecture path escapes project root: {explicit}"
+            ) from None
+        return candidate if candidate.is_file() else None
     for rel in DEFAULT_ARCHITECTURE_CANDIDATES:
-        candidate = root / rel
+        candidate = (root / rel).resolve()
         if candidate.is_file():
             return candidate
     return None

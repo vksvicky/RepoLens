@@ -39,7 +39,11 @@ def check_architecture(
     """Verify architecture DSL boundaries against the import graph."""
     root = path.expanduser().resolve()
     cfg = load_config(root)
-    arch_path = discover_architecture_path(root, explicit=architecture)
+    try:
+        arch_path = discover_architecture_path(root, explicit=architecture)
+    except ArchitectureLoadError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(code=2) from exc
     if arch_path is None:
         console.print(
             "[red]No architecture file found.[/red] Expected one of: "
