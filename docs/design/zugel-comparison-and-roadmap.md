@@ -1,8 +1,8 @@
 # RepoLens vs. Zügel: Architectural Analysis & Upgrade Roadmap
 
-**Status:** Revised 2026-09-24 — adds grimp-first Python resolution, CLI-primary guardrails, FAS-as-candidate (not gospel)  
-**Prior revision:** 2026-09-06 — inverted MCP/graph ordering and polyglot AST assumptions  
-**Tracker:** [#18](https://github.com/vksvicky/RepoLens/issues/18) (umbrella) · [G0 #33](https://github.com/vksvicky/RepoLens/issues/33) · [G1 #34](https://github.com/vksvicky/RepoLens/issues/34) · [G2 #35](https://github.com/vksvicky/RepoLens/issues/35) · [G3 #36](https://github.com/vksvicky/RepoLens/issues/36) · [G4 #37](https://github.com/vksvicky/RepoLens/issues/37)  
+**Status:** Programme **complete** (G0–G4 landed 2026-09-26) — grimp-first Python resolution, CLI-primary guardrails, FAS-as-candidate (not gospel); umbrella [#18](https://github.com/vksvicky/RepoLens/issues/18) closing  
+**Prior revision:** 2026-09-24 — adds grimp-first Python resolution, CLI-primary guardrails, FAS-as-candidate (not gospel)  
+**Tracker:** [#18](https://github.com/vksvicky/RepoLens/issues/18) (umbrella, closing) · [G0 #33](https://github.com/vksvicky/RepoLens/issues/33) · [G1 #34](https://github.com/vksvicky/RepoLens/issues/34) · [G2 #35](https://github.com/vksvicky/RepoLens/issues/35) · [G3 #36](https://github.com/vksvicky/RepoLens/issues/36) · [G4 #37](https://github.com/vksvicky/RepoLens/issues/37)  
 **Related:** [architecture-dsl-format-comparison.md](./architecture-dsl-format-comparison.md) · Sonargraph product family ([hello2morrow](https://www.hello2morrow.com/products/sonargraph))
 
 ---
