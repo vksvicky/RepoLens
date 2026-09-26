@@ -113,6 +113,7 @@ boundaries:
 
 def test_architecture_path_must_stay_under_root(tmp_path: Path) -> None:
     import pytest
+
     from repolens.architecture import ArchitectureLoadError, discover_architecture_path
 
     outside = tmp_path / "outside.yaml"

@@ -699,13 +699,14 @@ Each report also records **Duration** (wall clock for the whole command).
 | `openai` | `OPENAI_API_KEY` | OpenAI chat completions | Yes |
 | `anthropic` | `ANTHROPIC_API_KEY` | Anthropic Messages API | Yes |
 | `deepseek` | `DEEPSEEK_API_KEY` | OpenAI-compatible | Yes |
+| `gemini` | `GEMINI_API_KEY` | **Native** Generative Language SSE (Phase 9) | Yes |
 | `groq` / `mistral` / `openrouter` / `together` / `fireworks` | Host-specific (`GROQ_API_KEY`, …) | OpenAI-compatible (Phase 8 alias) | Yes |
 | `azure` / `azure_openai` | `AZURE_OPENAI_API_KEY` | OpenAI-compatible; **`--base-url` required** | Yes |
 | `openai_compatible` | `REPOLENS_API_KEY` | Your `--base-url` (LM Studio, vLLM, …) | Yes |
 | `ollama` | _(none)_ | Local OpenAI-compatible | Yes + `/api/ps` |
 | `none` | — | No LLM | N/A |
 
-**Phase 9 (not yet):** native Gemini/Vertex / Bedrock SDKs where OpenAI-compatible is not enough ([design](./design/phase-9-native-provider-sdks.md)). Gemini may still work today via Google’s OpenAI-compatible gateway + `openai_compatible`. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) and [phase-8 design](./design/phase-8-provider-aliases-and-recipes.md).
+**Phase 9 follow-ups (not yet):** Vertex AI (ADC) and Amazon Bedrock (SigV4) — [design](./design/phase-9-native-provider-sdks.md). Prefer native `gemini` over Google’s OpenAI-compatible gateway unless you specifically need that shape. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
 
 ---
 

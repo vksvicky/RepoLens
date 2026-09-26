@@ -46,6 +46,12 @@ You create an account with an AI company, copy a **secret key**, and let RepoLen
 | `openai` | `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com) → API keys | Streamed chars/chunks |
 | `anthropic` | `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) → API keys | Streamed chars/chunks (Messages SSE) |
 | `deepseek` | `DEEPSEEK_API_KEY` | [platform.deepseek.com](https://platform.deepseek.com) → API keys | Streamed chars/chunks |
+| `gemini` | `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) | Streamed chars/chunks (native Generative Language SSE) |
+
+```bash
+repolens init --provider gemini --force
+export GEMINI_API_KEY=...
+```
 
 **Phase 8 aliases** (OpenAI-compatible transport; same streamed wait UX):
 
@@ -83,8 +89,8 @@ export REPOLENS_API_KEY="..."
 |------------------|--------------------|-------|
 | LM Studio | `http://127.0.0.1:1234/v1` | 8 (use `openai_compatible`) |
 | vLLM / llama.cpp server | `http://127.0.0.1:8000/v1` | 8 (use `openai_compatible`) |
-| Gemini / Vertex (OpenAI-compatible gateway) | Google’s OpenAI-shaped endpoint when available | 8 recipe; **native** SDK → Phase 9 |
-| Amazon Bedrock (native) | — | Phase 9 |
+| Gemini OpenAI-compatible gateway | `…/v1beta/openai/` | Optional; prefer native `gemini` |
+| Vertex AI / Amazon Bedrock (native) | — | Phase 9 follow-ups (not in MVP) |
 
 **Not BYOK:** `ollama` (local) and `none` (scanners / dry-run only).
 
@@ -94,7 +100,7 @@ export REPOLENS_API_KEY="..."
 > **Automatic Fallback Cascade (`--fallback`):**  
 > By default, if a cloud API key is missing or unavailable, RepoLens automatically checks for a local Ollama instance. If Ollama is not running, it degrades gracefully to local SAST scanners and Fast-Brain static heuristics instead of failing. Use `--no-fallback` to disable fallback.
 
-Design notes: [phase-8-provider-aliases-and-recipes.md](./design/phase-8-provider-aliases-and-recipes.md). Native Gemini/Bedrock SDKs are [Phase 9](./design/phase-9-native-provider-sdks.md).
+Design notes: [phase-8-provider-aliases-and-recipes.md](./design/phase-8-provider-aliases-and-recipes.md) · native Gemini: [phase-9-native-provider-sdks.md](./design/phase-9-native-provider-sdks.md).
 
 1. Sign up / sign in.  
 2. Add billing if the provider requires it.  

@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-# Canonical + Phase 8 aliases stored in config / accepted by ``repolens init``.
+# Canonical + Phase 8 aliases + Phase 9 native providers.
 ProviderName = Literal[
     "openai",
     "anthropic",
@@ -23,10 +23,11 @@ ProviderName = Literal[
     "openrouter",
     "together",
     "fireworks",
+    "gemini",
 ]
 
 CANONICAL_PROVIDERS = frozenset(
-    {"openai", "anthropic", "deepseek", "ollama", "openai_compatible"}
+    {"openai", "anthropic", "deepseek", "ollama", "openai_compatible", "gemini"}
 )
 
 # OpenAI-compatible chat + SSE path (everything except Anthropic Messages).
@@ -58,6 +59,7 @@ ALLOWED_KEY_ENVS = frozenset(
         "OPENROUTER_API_KEY",
         "TOGETHER_API_KEY",
         "FIREWORKS_API_KEY",
+        "GEMINI_API_KEY",
     }
 )
 
@@ -126,19 +128,22 @@ INIT_PROVIDERS = frozenset(
         "deepseek",
         "openai_compatible",
         "ollama",
+        "gemini",
         "none",
         *PROVIDER_ALIASES.keys(),
     }
 )
 
 # Recipe-only hosts (no new enum — document as openai_compatible).
+# Native Gemini AI Studio is ``provider=gemini`` (Phase 9); the OpenAI-shaped
+# Google gateway remains available as openai_compatible if preferred.
 RECIPE_ONLY_HOSTS: tuple[tuple[str, str, str], ...] = (
     ("LM Studio", "http://127.0.0.1:1234/v1", "Local OpenAI-compatible server"),
     ("vLLM / llama.cpp", "http://127.0.0.1:8000/v1", "Self-hosted chat completions"),
     (
-        "Gemini (OpenAI-compatible gateway)",
+        "Gemini OpenAI-compatible gateway",
         "https://generativelanguage.googleapis.com/v1beta/openai/",
-        "Use Google’s OpenAI-compatible endpoint if available; native SDK is Phase 9",
+        "Optional; prefer native ``repolens init --provider gemini`` (Phase 9)",
     ),
 )
 
@@ -158,6 +163,7 @@ def default_key_env_for(provider: str | None) -> str | None:
         "deepseek": "DEEPSEEK_API_KEY",
         "ollama": None,
         "openai_compatible": "REPOLENS_API_KEY",
+        "gemini": "GEMINI_API_KEY",
     }.get(provider)
 
 
@@ -172,6 +178,7 @@ def default_base_url_for(provider: str | None) -> str:
         "deepseek": "https://api.deepseek.com/v1",
         "ollama": "http://127.0.0.1:11434/v1",
         "openai_compatible": "http://127.0.0.1:11434/v1",
+        "gemini": "https://generativelanguage.googleapis.com/v1beta",
     }.get(provider or "", "https://api.openai.com/v1")
 
 
@@ -185,4 +192,5 @@ def default_model_for(provider: str | None) -> str | None:
         "deepseek": "deepseek-chat",
         "openai_compatible": None,
         "ollama": None,
+        "gemini": "gemini-2.0-flash",
     }.get(provider or "")

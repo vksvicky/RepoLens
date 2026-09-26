@@ -45,9 +45,15 @@ def analyze_raw(
             + " ".join(provider_setup_hints()[:3])
         )
 
-    # Anthropic uses its Messages API; others use OpenAI-compatible chat completions.
+    # Native / non–OpenAI-compatible transports first; aliases stay on OpenAI path.
     if model_cfg.provider == "anthropic":
         return _analyze_anthropic(
+            prompt, model_cfg, client=client, on_delta=on_delta
+        )
+    if model_cfg.provider == "gemini":
+        from repolens.llm.gemini import analyze_gemini
+
+        return analyze_gemini(
             prompt, model_cfg, client=client, on_delta=on_delta
         )
 
