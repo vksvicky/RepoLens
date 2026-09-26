@@ -87,12 +87,12 @@ def init_cmd(
         ...,
         "--provider",
         help=(
-            "openai | anthropic | deepseek | openai_compatible | ollama | none | "
+            "openai | anthropic | deepseek | openai_compatible | ollama | gemini | none | "
             "azure | mistral | groq | openrouter | together | fireworks"
         ),
         prompt=(
             "Provider (openai / anthropic / deepseek / openai_compatible / ollama / "
-            "azure / mistral / groq / openrouter / none)"
+            "gemini / azure / mistral / groq / openrouter / none)"
         ),
     ),
     model: str | None = typer.Option(None, "--model", help="Default model name"),
@@ -142,6 +142,11 @@ def init_cmd(
             "https://api.openai.com/v1",
         ),
         "ollama": (None, None, "http://127.0.0.1:11434/v1"),
+        "gemini": (
+            "gemini-2.0-flash",
+            "GEMINI_API_KEY",
+            "https://generativelanguage.googleapis.com/v1beta",
+        ),
     }
     for alias_name, alias in PROVIDER_ALIASES.items():
         defaults[alias_name] = (

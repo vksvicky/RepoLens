@@ -23,6 +23,7 @@ from repolens.llm.setup import (
     resolve_llm_timeout,
     resolve_ollama_model,
 )
+from repolens.llm.gemini import _parse_gemini_sse_text_delta
 from repolens.llm.transport import (
     _parse_anthropic_sse_text_delta,
     _parse_sse_chat_chunk,
@@ -53,5 +54,6 @@ __all__ = [
     "_coerce_report_payload",
     "_parse_sse_chat_chunk",
     "_parse_anthropic_sse_text_delta",
+    "_parse_gemini_sse_text_delta",
     "_stream_openai_compatible",
 ]
