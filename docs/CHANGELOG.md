@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Docs: competitive landscape 2026 (Sonar alternatives, SARIF-import strategy, zero-infra personas)
+- FAQ: why not a scanner shell script; air-gap Ollama vs private BYOK honesty
 - Tracker hygiene: Wave C G0–G4 and Phase 8/9 Gemini MVP marked complete in [phases.md](./phases.md) ([#18](https://github.com/vksvicky/RepoLens/issues/18) / PR #56).
 - Inventory ignores Rust/JVM `target/` build dirs (with existing `node_modules/`, `reports/`, `.repolens/`) to curb cold-cache inflation (#15)
 - FAQ / command atlas: fast vs iteration vs milestone deep profiles; `--changed` (fingerprint) vs `--git-diff` (git) (#15/#16)

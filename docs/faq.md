@@ -578,6 +578,27 @@ Use `repolens plugins install …` (consent download) or `pip install "repolens-
 
 Guide: [scanners.md](./scanners.md) · Design: [ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md).
 
+### Why not just `semgrep && trivy && gitleaks`?
+
+A shell script gives you disconnected JSON dumps, duplicated CVEs, no
+cross-tool dedupe, no import-graph cyclicity, no Critical/High remediation
+examples, and no unified `--fail-on` confidence gate. RepoLens merges
+scanner evidence into one prioritized P1→P2→P3 decision (and can import
+third-party SARIF into the same report).
+
+See [competitive landscape](./design/competitive-landscape-sonar-alternatives-2026.md).
+
+### Air-gapped Ollama vs private BYOK?
+
+**Fast Brain** (heuristics, grimp, scanners) runs on ordinary hardware in
+seconds. **Slow Brain** deep review needs a capable model: local Ollama
+typically wants **14B–32B+** (slow or OOM on thin laptops), while most
+enterprises use **private BYOK** (Bedrock / Vertex / Gemini / Anthropic)
+so code stays in approved cloud boundaries without a RepoLens server.
+
+Air-gap is *enabled* by Ollama — not “full deep audit instantly offline
+on every machine.”
+
 ---
 
 ## How do OWASP / CVE / security audits work?
