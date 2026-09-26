@@ -219,6 +219,25 @@ Sonar / other ASPM: ingest the same SARIF as an external issues file, or archive
 
 Design: [phase-6.x §6.4](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md)
 
+### Import external SARIF (companion gate)
+
+When CodeQL, SonarQube, ESLint, or another step already produces SARIF 2.1, merge it into one RepoLens gate instead of a custom jq/shell aggregator:
+
+```bash
+TARGET="${GITHUB_WORKSPACE:-.}"
+# Upstream jobs write e.g. codeql.sarif / sonar.sarif / eslint.sarif
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/codeql.sarif" \
+  --import-sarif "$TARGET/eslint.sarif" \
+  --format both --fail-on HIGH
+```
+
+- **`--fail-on`** controls whether the job exits **1** (machine gate). **`--format md` / `both` / PDF export** are for human or archival reports — independent of the gate.
+- Imported findings are `source=scanner`; Markdown **Automated scanners** lists each file as `sarif:<driver>` (e.g. `sarif:ESLint`).
+- Combine with native RepoLens scanners (`--scanners auto`) when you want gitleaks/semgrep/OSV in the same run.
+
+Details: [scanners.md](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-).
+
 ## Adaptive cache in CI
 
 Ephemeral agents usually start **cold**. Prefer:
