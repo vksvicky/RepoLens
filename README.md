@@ -20,6 +20,7 @@ RepoLens is an open-source CLI that runs structured code reviews against project
 | Actionable findings | Impact, fix plan, **code examples** on Critical/High |
 | Shareable audits | Markdown reports (PDF via pandoc / Print) |
 | Production honesty | Complements—does not replace—CI, tests, and scanners |
+| Python **cyclicity ratchet** | Baseline + `repolens check --diff` for fast CI (Rule 1 — debt must not rise); see [FAQ](./docs/faq.md#cyclicity-ratchet-baseline-g2) |
 
 RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your test suite. Those stay in CI. RepoLens adds a consistent, human-readable due-diligence layer you can run anywhere.
 
@@ -38,6 +39,8 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 | `repolens explain` | Deep-dive one finding by ID (solutions + diagram) |
 | `repolens export` | Export / convert a report (e.g. Markdown → PDF via pandoc) |
 | `repolens version` | Print package version |
+| `repolens baseline` | Snapshot import-graph cyclicity (`.repolens/baseline.json`) |
+| `repolens check --diff` | Rule 1 ratchet gate for CI / pre-commit |
 
 **What gets checked?** See **[docs/rules.md](./docs/rules.md)** — plain guide to rules, why they exist, and how to turn them on/off.
 

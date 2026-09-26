@@ -8,7 +8,7 @@ from pathlib import Path
 
 from repolens.coverage import parse_coverage_notes
 from repolens.disclaimer import disclaimer_markdown_lines
-from repolens.schema import FindingReport, Issue, Severity
+from repolens.schema import FindingReport, Issue, QualityScorecard, Severity
 
 _FENCED_BLOCK_RE = re.compile(
     r"^\s*```[^\n]*\n(?P<body>.*?)\n```\s*$",
@@ -260,7 +260,9 @@ def render_markdown(
         lines.append("_No scanners requested or configured._")
         lines.append("")
 
+    lines.extend(_render_quality_scorecard_section(report))
     lines.extend(_render_supply_chain_section(report))
+    lines.extend(_render_import_graph_section(report))
     lines.extend(_render_provenance_section(report))
     lines.extend(_render_suppressed_section(report))
 
@@ -308,6 +310,33 @@ def is_coverage_transport_gap(gap: str) -> bool:
     return bool(_COVERAGE_TRANSPORT_GAP_RE.match(gap.strip()))
 
 
+def _render_quality_scorecard_section(report: FindingReport) -> list[str]:
+    q: QualityScorecard | None = report.quality
+    if q is None:
+        return []
+    lines: list[str] = [
+        "## Quality scorecard (Fast Brain)",
+        "",
+        "| Signal | Count |",
+        "|--------|------:|",
+        f"| Mega-files | {q.megaFileCount} |",
+        f"| Deep nesting | {q.deepNestingCount} |",
+        f"| Near-clone clusters | {q.nearCloneClusters} |",
+        f"| Near-clone occurrences | {q.nearCloneOccurrences} |",
+        f"| Near-clone findings emitted | {q.nearCloneFindingsEmitted} |",
+        f"| Files scanned | {q.filesScanned} |",
+        "",
+    ]
+    for note in q.notes:
+        lines.append(f"_{note}._")
+        lines.append("")
+    lines.append(
+        "_Deterministic DRY/KISS signals — not an architecture certification._"
+    )
+    lines.append("")
+    return lines
+
+
 def _render_supply_chain_section(report: FindingReport) -> list[str]:
     """Phase 6.2 SBOM / license inventory (scanner-owned)."""
     sc = report.supplyChain
@@ -326,6 +355,28 @@ def _render_supply_chain_section(report: FindingReport) -> list[str]:
     if len(lines) == 2:
         lines.append("_No SBOM or license summary produced._")
     lines.append("")
+    return lines
+
+
+def _render_import_graph_section(report: FindingReport) -> list[str]:
+    """G1: deterministic Python import graph metrics (grimp)."""
+    block = report.graph
+    if block is None:
+        return []
+    lines: list[str] = [
+        "## Import graph",
+        "",
+        "| Metric | Value |",
+        "|--------|------:|",
+        f"| Status | {block.status} |",
+        f"| Packages | {block.packageCount} |",
+        f"| Modules | {block.moduleCount} |",
+        f"| Cycle groups | {block.cycleCount} |",
+        f"| Cyclicity | {block.cyclicity} |",
+        "",
+        "_Deterministic Python import cycles (grimp) — not an architecture certification._",
+        "",
+    ]
     return lines
 
 

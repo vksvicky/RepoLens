@@ -19,7 +19,7 @@ Priority = Literal["P1", "P2", "P3"]
 FixTiming = Literal["immediately", "before launch", "after launch", "if time permits"]
 
 
-IssueSource = Literal["scanner", "heuristic", "llm"]
+IssueSource = Literal["scanner", "heuristic", "llm", "graph"]
 
 
 class Issue(BaseModel):
@@ -118,6 +118,28 @@ class SupplyChainBlock(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class QualityScorecard(BaseModel):
+    """Fast Brain deterministic quality signals (optional on report)."""
+
+    megaFileCount: int = Field(ge=0, default=0)
+    deepNestingCount: int = Field(ge=0, default=0)
+    nearCloneClusters: int = Field(ge=0, default=0)
+    nearCloneOccurrences: int = Field(ge=0, default=0)
+    nearCloneFindingsEmitted: int = Field(ge=0, default=0)
+    filesScanned: int = Field(ge=0, default=0)
+    notes: list[str] = Field(default_factory=list)
+
+
+class GraphBlock(BaseModel):
+    """G1: deterministic Python import graph summary (optional)."""
+
+    status: str
+    cyclicity: int = 0
+    cycleCount: int = 0
+    moduleCount: int = 0
+    packageCount: int = 0
+
+
 class ProvenanceBlock(BaseModel):
     """Phase 6.3 report provenance for CI / audit trails."""
 
@@ -159,6 +181,7 @@ class FindingReport(BaseModel):
     coverage: CoverageBlock | None = None
     themes: list[ThemeEntry] | None = None
     supplyChain: SupplyChainBlock | None = None
+    graph: GraphBlock | None = None
     provenance: ProvenanceBlock | None = None
     # Phase 5.1 audit metrics (optional for backward compatibility with older reports).
     securityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
@@ -178,6 +201,7 @@ class FindingReport(BaseModel):
     # #14: raw finding tallies before cross-source SCA collapse (unique → summary).
     rawCriticalHighCount: int | None = Field(default=None, ge=0)
     rawTotalFindings: int | None = Field(default=None, ge=0)
+    quality: QualityScorecard | None = None
 
     @field_validator("confidence")
     @classmethod

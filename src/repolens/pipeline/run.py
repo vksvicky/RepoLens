@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from repolens.heuristics.runner import HeuristicResult
 from datetime import UTC
 from pathlib import Path
 
@@ -31,7 +35,13 @@ from repolens.progress import LlmGenerateProgress, ReviewProgress, null_progress
 from repolens.report import write_json_report, write_markdown_report
 from repolens.scanners.runner import missing_required, parse_scanners_flag, run_scanners
 from repolens.scanners.sca import build_supply_chain, dedupe_sca_issues
-from repolens.schema import FindingReport, ProvenanceBlock, Summary, SupplyChainBlock
+from repolens.schema import (
+    FindingReport,
+    GraphBlock,
+    ProvenanceBlock,
+    Summary,
+    SupplyChainBlock,
+)
 from repolens.triage import (
     fail_on_triggered as _fail_on_triggered,
 )
@@ -50,6 +60,25 @@ def fail_on_triggered(
 ) -> bool:
     """Re-export with Phase 6.3 scanner-only gate support."""
     return _fail_on_triggered(report, fail_on, scanner_only=scanner_only)
+
+
+def _attach_quality(
+    report: FindingReport,
+    *,
+    heur_result: HeuristicResult | None,
+    files_scanned: int,
+) -> None:
+    from repolens.quality import build_quality_scorecard_from_issues
+
+    if files_scanned <= 0 or heur_result is None:
+        return
+    report.quality = build_quality_scorecard_from_issues(
+        report.issues,
+        near_clone_clusters=heur_result.near_clone_clusters,
+        near_clone_occurrences=heur_result.near_clone_occurrences,
+        files_scanned=files_scanned,
+        notes=list(heur_result.near_clone_notes),
+    )
 
 
 def _git_sha(root: Path) -> str | None:
@@ -318,6 +347,7 @@ def run_review(
             mega_file_exclude_globs=cfg.deep.mega_file_exclude_globs or None,
             pack_ids=pack_ids or None,
             workers=cfg.fast_brain.parallel_workers,
+            near_clones_config=cfg.fast_brain.near_clones,
         )
         fast_brain_seconds = round(time.monotonic() - _fb_t0, 1)
         heur_issues = list(heur_result.issues)
@@ -325,6 +355,30 @@ def run_review(
             f"Fast brain: {len(heur_issues)} heuristic finding(s), "
             f"{len(heur_result.hot_paths)} hot path(s)"
         )
+        graph_issues: list = []
+        graph_block: GraphBlock | None = None
+        graph_gaps: list[str] = []
+        if any(Path(f.relative).suffix == ".py" for f in fast_files):
+            from repolens.graph import analyse_python_graph
+            from repolens.graph.findings import cycles_to_issues
+
+            gres = analyse_python_graph(root, config=cfg.graph)
+            graph_gaps = list(gres.durability_gaps)
+            graph_issues = cycles_to_issues(
+                gres, critical_scc_size=cfg.graph.critical_scc_size
+            )
+            graph_block = GraphBlock(
+                status=gres.status.value,
+                cyclicity=gres.cyclicity,
+                cycleCount=len(gres.cycles),
+                moduleCount=gres.module_count,
+                packageCount=len(gres.packages),
+            )
+            prog.detail(
+                f"Import graph: {graph_block.cycleCount} cycle group(s), "
+                f"{len(graph_issues)} finding(s), cyclicity={graph_block.cyclicity}"
+            )
+        non_llm_issues = list(scanner_issues) + heur_issues + graph_issues
         if not scanners_only and not dry_run and cfg.model.fallback:
             from repolens.config import resolve_api_key
             from repolens.llm.setup import detect_ollama, resolve_ollama_model
@@ -370,7 +424,7 @@ def run_review(
             report = FindingReport(
                 confidence=75 if all_ran else 55,
                 summary=Summary(),
-                issues=list(scanner_issues) + heur_issues,
+                issues=non_llm_issues,
                 durabilityGaps=list(scanner_gaps)
                 or (["scanners-only: no scanners selected"] if not tools else []),
                 scannerRuns=list(scanner_runs),
@@ -384,7 +438,7 @@ def run_review(
             report = FindingReport(
                 confidence=90,
                 summary=Summary(),
-                issues=list(scanner_issues) + heur_issues,
+                issues=non_llm_issues,
                 durabilityGaps=["No reviewable files found (check ignores / --mode diff)"]
                 + scanner_gaps,
                 scannerRuns=list(scanner_runs),
@@ -443,7 +497,7 @@ def run_review(
                     report = FindingReport(
                         confidence=80 if scanner_runs else 60,
                         summary=Summary(),
-                        issues=list(scanner_issues) + heur_issues,
+                        issues=non_llm_issues,
                         durabilityGaps=list(scanner_gaps) + list(triage_plan.notes),
                         scannerRuns=list(scanner_runs),
                         supplyChain=supply_chain,
@@ -482,7 +536,7 @@ def run_review(
                     prior, saved_at, prior_model = prior_bundle
                     report = merge_reused_report(
                         prior,
-                        scanner_issues=list(scanner_issues) + heur_issues,
+                        scanner_issues=non_llm_issues,
                         scanner_runs=list(scanner_runs),
                         scanner_gaps=list(scanner_gaps),
                         saved_at=saved_at,
@@ -523,7 +577,7 @@ def run_review(
                     report = FindingReport(
                         confidence=55,
                         summary=Summary(),
-                        issues=list(scanner_issues) + heur_issues,
+                        issues=non_llm_issues,
                         durabilityGaps=[gap] + list(scanner_gaps),
                         scannerRuns=list(scanner_runs),
                         llmSkipped=True,
@@ -689,7 +743,7 @@ def run_review(
                         report = FindingReport(
                             confidence=55,
                             summary=Summary(),
-                            issues=list(scanner_issues) + heur_issues,
+                            issues=non_llm_issues,
                             durabilityGaps=[
                                 f"Fallback: LLM execution failed ({exc}); "
                                 "report generated using local scanners and "
@@ -727,13 +781,16 @@ def run_review(
                 extra_issues: list = []
                 if use_deep:
                     # Scanners already merged + cross-source deduped in deep_exec.
+                    if graph_issues:
+                        report.issues = list(report.issues) + graph_issues
+                        report.summary = report.recount_summary()
                     if scanner_runs or scanner_gaps:
                         report.scannerRuns = list(scanner_runs)
                         report.durabilityGaps = list(report.durabilityGaps) + list(
                             scanner_gaps
                         )
                 else:
-                    extra_issues = list(scanner_issues) + list(heur_issues)
+                    extra_issues = list(non_llm_issues)
                     if extra_issues or scanner_runs or scanner_gaps:
                         report.issues = list(report.issues) + extra_issues
                         report.scannerRuns = list(scanner_runs)
@@ -762,6 +819,12 @@ def run_review(
                     )
 
         report.durationSeconds = round(time.time() - run_started, 1)
+        if graph_block is not None:
+            report.graph = graph_block
+        if graph_gaps:
+            report.durabilityGaps = list(report.durabilityGaps) + [
+                g for g in graph_gaps if g not in report.durabilityGaps
+            ]
         if supply_chain is not None:
             report.supplyChain = supply_chain
         if inventory_notes:
@@ -794,6 +857,11 @@ def run_review(
                 f"(ignore file / disable comments)"
             )
         report.summary = report.recount_summary()
+        _attach_quality(
+            report,
+            heur_result=heur_result,
+            files_scanned=fast_brain_file_count,
+        )
         report.provenance = ProvenanceBlock(
             repoLensVersion=__version__,
             gitSha=_git_sha(root),
