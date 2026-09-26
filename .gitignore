@@ -46,8 +46,7 @@ reports-dogfood/
 .cache/
 repolens-work/
 
-# Logs
-*.log
+# Local feature worktrees
 .worktrees/
 
 # Maintainer-only (local)
