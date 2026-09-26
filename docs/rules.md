@@ -107,7 +107,16 @@ Also: `// repolens:disable-next-line` (JS/TS/Go), and `# repolens:disable` … `
 
 ### Feedback calibrations
 
-`feedback down` also appends a local event under `.repolens/feedback.jsonl` (gitignored with `.repolens/`). On later reviews, matching **LLM/heuristic** false positives may be soft-demoted (same style as FP calibrations). Scanner findings are never auto-demoted this way. Turn off with:
+`feedback down` also appends a local event under `.repolens/feedback.jsonl` (gitignored with `.repolens/`). On later reviews, matching **LLM/heuristic** false positives may be soft-demoted (same style as FP calibrations):
+
+| Match | When |
+|-------|------|
+| Exact file + category | One dismissal |
+| Category + path pattern | One dismissal — auto `scripts/dev_*.py` from `scripts/dev_foo.py`, or `--path-pattern` |
+| Normalised title + category | ≥2 dismissals with the same title shape |
+| Category alone | ≥2 dismissals |
+
+Scanner findings are never auto-demoted this way. Local-only — not Sourcery-style cloud learning. Turn off with:
 
 ```toml
 [deep]
