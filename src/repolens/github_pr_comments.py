@@ -19,7 +19,7 @@ from typing import Any
 import httpx
 
 from repolens.pr_summary import _critical_high, _safe_annotation_file, _truncate_example
-from repolens.schema import FindingReport, Issue, Severity
+from repolens.schema import FindingReport, Issue
 
 _MAX_COMMENTS = 3
 _MARKER_RE = re.compile(
