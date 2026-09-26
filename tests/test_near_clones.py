@@ -26,8 +26,12 @@ def _entry(root: Path, relative: str, *, band: int = 3) -> FileEntry:
 
 
 def _entries_under(root: Path) -> list[FileEntry]:
-    paths = sorted(root.rglob("*.py"))
-    return [_entry(root, p.relative_to(root).as_posix()) for p in paths if p.is_file()]
+    paths = sorted(
+        p
+        for p in root.rglob("*")
+        if p.is_file() and p.suffix.lower() in {".py", ".go", ".rs", ".kt", ".js", ".ts"}
+    )
+    return [_entry(root, p.relative_to(root).as_posix()) for p in paths]
 
 
 def test_normalize_preserves_physical_lines() -> None:
@@ -117,6 +121,66 @@ def test_import_only_suppressed(tmp_path: Path) -> None:
     (tmp_path / "b.py").write_text(block + "\n", encoding="utf-8")
     result = find_near_clones(_entries_under(tmp_path), config=NearClonesConfig())
     assert result.issues == []
+
+
+def test_go_block_comment_header_suppressed(tmp_path: Path) -> None:
+    # /* … */ style header within header_comment_lines (default 15)
+    lines = ["/*"] + [f" * copyright line {i}" for i in range(10)] + [" */"]
+    header = "\n".join(lines) + "\n"
+    (tmp_path / "a.go").write_text(header, encoding="utf-8")
+    (tmp_path / "b.go").write_text(header, encoding="utf-8")
+    result = find_near_clones(_entries_under(tmp_path), config=NearClonesConfig())
+    assert result.issues == []
+
+
+def test_go_import_only_suppressed(tmp_path: Path) -> None:
+    block = "\n".join(
+        [
+            "import (",
+            '    "fmt"',
+            '    "os"',
+            '    "io"',
+            '    "net"',
+            '    "net/http"',
+            '    "path"',
+            '    "strings"',
+            '    "sync"',
+            '    "time"',
+            '    "context"',
+            '    "errors"',
+            ")",
+        ]
+    )
+    (tmp_path / "a.go").write_text(block + "\n", encoding="utf-8")
+    (tmp_path / "b.go").write_text(block + "\n", encoding="utf-8")
+    result = find_near_clones(_entries_under(tmp_path), config=NearClonesConfig())
+    assert result.issues == []
+
+
+def test_rust_use_only_suppressed(tmp_path: Path) -> None:
+    block = "\n".join(f"use std::collections::HashMap{i};" for i in range(12))
+    (tmp_path / "a.rs").write_text(block + "\n", encoding="utf-8")
+    (tmp_path / "b.rs").write_text(block + "\n", encoding="utf-8")
+    result = find_near_clones(_entries_under(tmp_path), config=NearClonesConfig())
+    assert result.issues == []
+
+
+def test_kotlin_import_only_suppressed(tmp_path: Path) -> None:
+    block = "\n".join(f"import com.example.pkg.Type{i}" for i in range(12))
+    (tmp_path / "a.kt").write_text(block + "\n", encoding="utf-8")
+    (tmp_path / "b.kt").write_text(block + "\n", encoding="utf-8")
+    result = find_near_clones(_entries_under(tmp_path), config=NearClonesConfig())
+    assert result.issues == []
+
+
+def test_go_string_literal_window_not_suppressed_as_import(tmp_path: Path) -> None:
+    """Bare quoted paths without an ``import`` keyword must still be findings."""
+    block = "\n".join(f'    "example.com/pkg/path{i}"' for i in range(12))
+    (tmp_path / "a.go").write_text(block + "\n", encoding="utf-8")
+    (tmp_path / "b.go").write_text(block + "\n", encoding="utf-8")
+    result = find_near_clones(_entries_under(tmp_path), config=NearClonesConfig())
+    assert len(result.issues) >= 1
+    assert result.issues[0].category == "quality.near_clone"
 
 
 def test_dual_cap_emits_ten_and_notes_omission(tmp_path: Path) -> None:
