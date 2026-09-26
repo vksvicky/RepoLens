@@ -140,6 +140,26 @@ def test_infer_and_stamp_issue_sources() -> None:
     assert infer_issue_source(stamped[2]) == "llm"
 
 
+def test_fail_on_graph_counts_when_scanner_only() -> None:
+    from repolens.schema import FindingReport, Summary
+
+    issue = Issue(
+        severity=Severity.HIGH,
+        priority="P3",
+        category="arch.import_cycle",
+        file="a.py",
+        line=1,
+        title="cycle",
+        explanation="x",
+        impact="breaks layering",
+        recommendedFix="extract interface",
+        codeExample="import b",
+        source="graph",
+    )
+    report = FindingReport(confidence=80, summary=Summary(high=1), issues=[issue])
+    assert fail_on_triggered(report, "HIGH", scanner_only=True) is True
+
+
 def test_fail_on_scanner_only_ignores_llm_findings() -> None:
     from repolens.schema import FindingReport, Summary
 

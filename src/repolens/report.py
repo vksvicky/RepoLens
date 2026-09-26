@@ -262,6 +262,7 @@ def render_markdown(
 
     lines.extend(_render_quality_scorecard_section(report))
     lines.extend(_render_supply_chain_section(report))
+    lines.extend(_render_import_graph_section(report))
     lines.extend(_render_provenance_section(report))
     lines.extend(_render_suppressed_section(report))
 
@@ -354,6 +355,28 @@ def _render_supply_chain_section(report: FindingReport) -> list[str]:
     if len(lines) == 2:
         lines.append("_No SBOM or license summary produced._")
     lines.append("")
+    return lines
+
+
+def _render_import_graph_section(report: FindingReport) -> list[str]:
+    """G1: deterministic Python import graph metrics (grimp)."""
+    block = report.graph
+    if block is None:
+        return []
+    lines: list[str] = [
+        "## Import graph",
+        "",
+        "| Metric | Value |",
+        "|--------|------:|",
+        f"| Status | {block.status} |",
+        f"| Packages | {block.packageCount} |",
+        f"| Modules | {block.moduleCount} |",
+        f"| Cycle groups | {block.cycleCount} |",
+        f"| Cyclicity | {block.cyclicity} |",
+        "",
+        "_Deterministic Python import cycles (grimp) — not an architecture certification._",
+        "",
+    ]
     return lines
 
 

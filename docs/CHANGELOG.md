@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Python import graph ratchet G2 #35)
+
+- **`repolens baseline set` / `show`** — git-friendly `.repolens/baseline.json` (cyclicity + sorted cycle fingerprints + config snapshot)
+- **`repolens check --diff --require-baseline`** — graph-only Rule 1 gate for CI and pre-commit (fail when runtime cyclicity rises)
+- **`repolens review --ratchet`** and **`[graph] ratchet`** — optional ratchet after review (combines with `--fail-on`)
+- Diff-anchored **`path:line`** hints on breach; GitHub Actions `::error` when `GITHUB_ACTIONS=true`
+- User docs: [FAQ ratchet ladder](./faq.md#cyclicity-ratchet-baseline-g2), [ci.md](./ci.md#python-cyclicity-ratchet-fast-gate-g2), [command atlas](./command-atlas.md#import-graph-ratchet-python-g2)
+
 ## [0.1.0a1] — 2026-09-24
 
 First public PyPI release. Distribution name **`repolens-audit`** (CLI / import: `repolens`).
@@ -169,7 +177,7 @@ repolens version
 ### Added (Phase 6.x design — remaining slices)
 
 - Roadmap for CI triage / anchored SARIF / suppressions before Phase 7 ([design](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md))
-- Implementation plan for enterprise CI triage routing ()
+- Implementation plan for enterprise CI triage routing (maintainer-local; see design umbrella)
 - Blog draft: enterprise scale vs full-LLM PR checks ([blog](./blog-ideas/enterprise-scale-llm-review-ci.md))
 - End-user [rules.md](./rules.md) + AppSec comparison note
 
