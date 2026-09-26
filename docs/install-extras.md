@@ -24,6 +24,8 @@ So this is **not** “project-to-project” for every repo on your machine. Only
 | **local-ml** | `pip install -e ".[local-ml]"` | `sentence-transformers` | Optional local learning embeddings |
 | **mcp** | `pip install -e ".[mcp]"` | `mcp` | Optional `repolens-mcp` graph query tools (G3) |
 | **architecture** | `pip install -e ".[architecture]"` | `PyYAML` | Architecture DSL YAML load (also a core dep; extra is explicit) |
+| **vertex** | `pip install -e ".[vertex]"` | `google-auth` | Optional ADC for `provider=vertex` (env token works without this) |
+| **bedrock** | `pip install -e ".[bedrock]"` | `botocore` | Optional Bedrock tooling; Converse stream + SigV4 work without it |
 
 Combine: `pip install -e ".[dev,scanners,mcp]"`.  
 Runtime only: `pip install -e .`
