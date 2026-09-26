@@ -2,7 +2,7 @@
 
 ## What this is (and is not)
 
-`[dev]`, `[scanners]`, and `[local-ml]` are **optional pip extras for the RepoLens package itself**.
+`[dev]`, `[scanners]`, `[local-ml]`, `[mcp]`, and `[architecture]` are **optional pip extras for the RepoLens package itself**.
 
 | | |
 |--|--|
@@ -22,8 +22,10 @@ So this is **not** “project-to-project” for every repo on your machine. Only
 | **dev** | `pip install -e ".[dev]"` | `pytest`, `pytest-cov`, `ruff`, `mypy` | Tests + lint for RepoLens contributors / dogfood |
 | **scanners** | `pip install -e ".[scanners]"` | `semgrep` only | Semgrep via pip — **not** gitleaks/osv |
 | **local-ml** | `pip install -e ".[local-ml]"` | `sentence-transformers` | Optional local learning embeddings |
+| **mcp** | `pip install -e ".[mcp]"` | `mcp` | Optional `repolens-mcp` graph query tools (G3) |
+| **architecture** | `pip install -e ".[architecture]"` | `PyYAML` | Architecture DSL YAML load (also a core dep; extra is explicit) |
 
-Combine: `pip install -e ".[dev,scanners]"`.  
+Combine: `pip install -e ".[dev,scanners,mcp]"`.  
 Runtime only: `pip install -e .`
 
 ### After PyPI (same extra names)
