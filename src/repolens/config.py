@@ -9,19 +9,12 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-ProviderName = Literal["openai", "anthropic", "deepseek", "ollama", "openai_compatible"]
+from repolens.providers import ALLOWED_KEY_ENVS, ProviderName, default_key_env_for
+
 AdaptiveMode = Literal["auto", "full", "changed"]
 
 # Project .repolens.toml must not silently redirect network / credential selection.
 PROJECT_MODEL_DENY = frozenset({"base_url", "api_key_env", "provider"})
-ALLOWED_KEY_ENVS = frozenset(
-    {
-        "OPENAI_API_KEY",
-        "ANTHROPIC_API_KEY",
-        "DEEPSEEK_API_KEY",
-        "REPOLENS_API_KEY",
-    }
-)
 
 
 class ModelConfig(BaseModel):
@@ -301,16 +294,7 @@ def load_config(
 
 
 def resolve_api_key(model: ModelConfig) -> str | None:
-    env_name = model.api_key_env
-    if not env_name:
-        defaults = {
-            "openai": "OPENAI_API_KEY",
-            "anthropic": "ANTHROPIC_API_KEY",
-            "deepseek": "DEEPSEEK_API_KEY",
-            "ollama": None,
-            "openai_compatible": "REPOLENS_API_KEY",
-        }
-        env_name = defaults.get(model.provider or "")
+    env_name = model.api_key_env or default_key_env_for(model.provider)
     if not env_name:
         return None
     if env_name not in ALLOWED_KEY_ENVS:

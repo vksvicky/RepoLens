@@ -16,10 +16,12 @@
 # max_files = 200           # Slow Brain LLM sample pool (priority-sorted)
 
 [model]
-# provider = "openai"       # or anthropic | deepseek | ollama | ...
+# provider = "openai"       # or anthropic | deepseek | ollama | groq | mistral | azure | openai_compatible | …
 # model = "gpt-4.1"
 # api_key_env = "OPENAI_API_KEY"   # BYOK — never commit real keys
+# Phase 8 aliases write provider = "groq" (etc.) with host base_url + key env
 # For local/self-sufficient: provider = "ollama", model = "qwen2.5:7b", base_url = "http://127.0.0.1:11434/v1"
+# Azure: provider = "azure", base_url = "https://<resource>.openai.azure.com/openai/v1", model = "<deployment>"
 # timeout_seconds = 900     # HTTP wait for one LLM call (ollama default 900; cloud 120)
 # Also: export REPOLENS_TIMEOUT=1800  or  repolens review --timeout 1800
 

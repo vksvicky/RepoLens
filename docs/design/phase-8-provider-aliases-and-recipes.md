@@ -1,6 +1,6 @@
 # Phase 8 — Provider aliases & setup recipes (design)
 
-**Status:** Design sketch (not implemented)  
+**Status:** Implemented (aliases + recipes; native SDKs remain Phase 9)  
 **Date:** 2026-08-05  
 **Depends on:** Current BYOK (`openai` / `anthropic` / `deepseek` / `openai_compatible` / `ollama`) + streamed wait UX  
 **Not Phase 7:** Enterprise CI stays Phase 7; this phase expands *how users point at more LLM hosts*.
@@ -96,10 +96,10 @@ Streaming wait UX: reuse existing OpenAI-compatible SSE path — no new progress
 
 ## 7. Exit criteria
 
-- [ ] `repolens init` accepts P0 aliases (Azure, Mistral, Groq, OpenRouter) with correct defaults  
-- [ ] Setup + FAQ list P0–P2 with “alias vs recipe vs Phase 9”  
-- [ ] At least one integration test or unit test per alias default map  
-- [ ] Gemini called out: OpenAI-compatible recipe **or** Phase 9 — no half-native adapter  
+- [x] `repolens init` accepts P0 aliases (Azure, Mistral, Groq, OpenRouter) with correct defaults  
+- [x] Setup + FAQ list P0–P2 with “alias vs recipe vs Phase 9”  
+- [x] At least one integration test or unit test per alias default map  
+- [x] Gemini called out: OpenAI-compatible recipe **or** Phase 9 — no half-native adapter  
 
 ## 8. Related
 
