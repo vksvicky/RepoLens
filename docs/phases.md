@@ -27,7 +27,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | ↳ G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [x] Merged via [PR #45](https://github.com/vksvicky/RepoLens/pull/45) |
 | ↳ G1 Python import graph | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [x] Merged via [PR #46](https://github.com/vksvicky/RepoLens/pull/46) |
 | ↳ G2 Cyclicity ratchet | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [x] Merged via [PR #48](https://github.com/vksvicky/RepoLens/pull/48) |
-| ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] Secondary — after CLI gates; do not block G4 |
+| ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [x] Optional `repolens-mcp` — cycles/reachability + G4 legal imports |
 | ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [x] `repolens.yaml` + `check architecture` + FAS candidates |
 | Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [x] Sourcery/CodeRabbit vs gate — see [repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit) |
 | 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 aliases shipped; Phase 9 later |
@@ -479,10 +479,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [x] | Merged [PR #45](https://github.com/vksvicky/RepoLens/pull/45) — near-clones + scorecard |
 | G1 Python graph + SCC (grimp) | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [x] | Merged [PR #46](https://github.com/vksvicky/RepoLens/pull/46) — `source=graph`; fail-on like scanner |
 | G2 Cyclicity baseline + diff-aware CI | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [x] | Merged [PR #48](https://github.com/vksvicky/RepoLens/pull/48) — Rule 1 cyclicity-only ratchet |
-| G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [ ] | Optional `repolens-mcp` — see [mcp.md](./mcp.md) |
+| G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [x] | Optional `repolens-mcp` — see [mcp.md](./mcp.md) |
 | G4 Architecture DSL + weighted FAS LLM cuts | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [x] | `repolens check architecture`; FAS = candidate |
 
-**Landed:** G0–G2 + G4 on this branch; G3 MCP follows. Maintainers keep detailed specs local (not in the free docs tree).
+**Landed:** G0–G4 + Phase 8 aliases on this branch. Maintainers keep detailed specs local (not in the free docs tree).
 
 ---
 
