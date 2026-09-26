@@ -210,6 +210,11 @@ def render_markdown(
             "- **LLM:** skipped (no fingerprint delta under `--changed` and "
             "no prior LLM snapshot to reuse)"
         )
+    if getattr(report, "llmRepairAttempts", None):
+        lines.append(
+            f"- **LLM JSON repairs:** {report.llmRepairAttempts} micro-repair "
+            "attempt(s) (hard cap 1 per pass)"
+        )
     lines.append("")
     lines.extend(_render_metrics_section(report))
 
@@ -262,6 +267,7 @@ def render_markdown(
 
     lines.extend(_render_quality_scorecard_section(report))
     lines.extend(_render_supply_chain_section(report))
+    lines.extend(_render_change_set_section(report))
     lines.extend(_render_import_graph_section(report))
     lines.extend(_render_provenance_section(report))
     lines.extend(_render_suppressed_section(report))
@@ -355,6 +361,36 @@ def _render_supply_chain_section(report: FindingReport) -> list[str]:
     if len(lines) == 2:
         lines.append("_No SBOM or license summary produced._")
     lines.append("")
+    return lines
+
+
+def _render_change_set_section(report: FindingReport) -> list[str]:
+    """#16: Slow Brain git change-set scope."""
+    block = getattr(report, "changeSet", None)
+    if block is None:
+        return []
+    lines: list[str] = [
+        "## Change-set scope",
+        "",
+        (
+            f"- **Base:** `{block.base}`"
+            if block.base
+            else "- **Base:** _(worktree / auto — no merge-base resolved)_"
+        ),
+        f"- **Git paths:** {block.pathCount}",
+        f"- **Note:** {block.note}",
+        "",
+    ]
+    if block.paths:
+        lines.append("Paths (capped list):")
+        lines.append("")
+        for p in block.paths:
+            lines.append(f"- `{p}`")
+        if block.pathCount > len(block.paths):
+            lines.append(
+                f"- _…and {block.pathCount - len(block.paths)} more_"
+            )
+        lines.append("")
     return lines
 
 

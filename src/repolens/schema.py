@@ -169,6 +169,17 @@ class SuppressedIssue(BaseModel):
     note: str = ""
 
 
+class ChangeSetBlock(BaseModel):
+    """#16: Slow Brain pack restricted to a git change-set (scanners/Fast Brain stay whole-tree)."""
+
+    base: str | None = None
+    pathCount: int = 0
+    paths: list[str] = Field(default_factory=list)
+    note: str = (
+        "Slow Brain restricted to git change-set; scanners and Fast Brain remain whole-tree"
+    )
+
+
 class FindingReport(BaseModel):
     schemaVersion: str = "1.0"
     confidence: int = Field(ge=0, le=100)
@@ -182,6 +193,7 @@ class FindingReport(BaseModel):
     themes: list[ThemeEntry] | None = None
     supplyChain: SupplyChainBlock | None = None
     graph: GraphBlock | None = None
+    changeSet: ChangeSetBlock | None = None
     provenance: ProvenanceBlock | None = None
     # Phase 5.1 audit metrics (optional for backward compatibility with older reports).
     securityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
@@ -201,6 +213,8 @@ class FindingReport(BaseModel):
     # #14: raw finding tallies before cross-source SCA collapse (unique → summary).
     rawCriticalHighCount: int | None = Field(default=None, ge=0)
     rawTotalFindings: int | None = Field(default=None, ge=0)
+    # #15: count of JSON micro-repair attempts across deep / single-shot LLM calls.
+    llmRepairAttempts: int | None = Field(default=None, ge=0)
     quality: QualityScorecard | None = None
 
     @field_validator("confidence")

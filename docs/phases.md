@@ -6,8 +6,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–7**, **Wave A/B**, and **Wave C (G0–G4)** complete; **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) = `repolens-audit==0.1.0a1`. Phase **8** aliases ([#4](https://github.com/vksvicky/RepoLens/issues/4)) and Phase **9** Gemini AI Studio MVP ([#5](https://github.com/vksvicky/RepoLens/issues/5) / [PR #52](https://github.com/vksvicky/RepoLens/pull/52)) shipped; Vertex/Bedrock remain follow-ups. **Next dogfood:** [#15](https://github.com/vksvicky/RepoLens/issues/15) (32B cost control) then [#16](https://github.com/vksvicky/RepoLens/issues/16) (`--git-diff` change-set deep).  
-**GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred residuals: [#11](https://github.com/vksvicky/RepoLens/issues/11). LogViewer umbrella: [#13](https://github.com/vksvicky/RepoLens/issues/13) (close after #15+#16).  
+**Current phase:** Phases **0–7**, **Wave A/B**, and **Wave C (G0–G4)** complete; **PyPI alpha** ([#1](https://github.com/vksvicky/RepoLens/issues/1)) = `repolens-audit==0.1.0a1`. Phase **8** aliases ([#4](https://github.com/vksvicky/RepoLens/issues/4)) and Phase **9** Gemini AI Studio MVP ([#5](https://github.com/vksvicky/RepoLens/issues/5) / [PR #52](https://github.com/vksvicky/RepoLens/pull/52)) shipped; Vertex/Bedrock remain follow-ups. **Dogfood (#15/#16):** deep cost knobs + `--git-diff` change-set Slow Brain restrict — closes LogViewer umbrella [#13](https://github.com/vksvicky/RepoLens/issues/13).  
+**GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12) (phase → issue map). Deferred residuals: [#11](https://github.com/vksvicky/RepoLens/issues/11).  
 **Parked:** **#17b** (local UI calibrations).
 
 **CLI language:** Python 3.11+

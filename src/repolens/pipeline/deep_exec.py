@@ -214,11 +214,23 @@ def _analyze_deep_passes(
         adaptive_paths=[e.relative for e in llm_files],
         chars_per_pass=cfg.deep.chars_per_pass,
         rules=rules,
+        max_passes=cfg.deep.max_passes,
     )
+
+    if not prog.quiet and passes:
+        from repolens.runtime_estimate import estimate_deep_runtime
+
+        est = estimate_deep_runtime(
+            files=len(passes[0].files) if passes else 0,
+            passes=len(passes),
+            provider=cfg.model.provider or "unknown",
+        )
+        prog.phase(est)
 
     parts: list[FindingReport] = []
     raw_by_pass: dict[str, str] = {}
     degraded_by_pass: dict[str, bool] = {}
+    repair_attempts_total = 0
     all_coverage_ids: list[str] = []
     raw_dir = root / ".repolens"
     n = len(passes)
@@ -274,6 +286,7 @@ def _analyze_deep_passes(
         degraded_by_pass[deep_pass.name] = (
             result.layer == "degraded" or result.report is None
         )
+        repair_attempts_total += int(getattr(result, "repair_attempts", 0) or 0)
         if result.layer == "degraded":
             prog.phase(
                 f"LLM: pass {deep_pass.name} degraded — merging partial/empty result"
@@ -292,6 +305,9 @@ def _analyze_deep_passes(
         all_coverage_ids.extend(deep_pass.coverage_ids)
 
     report = merge_reports(parts, heur.issues)
+    if repair_attempts_total:
+        report.llmRepairAttempts = repair_attempts_total
+        prog.detail(f"LLM JSON micro-repair attempts: {repair_attempts_total}")
     report.issues = coerce_issue_bands(report.issues)
     from repolens.fp_calibrations import apply_fp_calibrations
 

@@ -105,7 +105,9 @@ Set once in the shell: `TARGET=/Users/[username]/Development/[your-project]`
 | Adaptive deep (no `--full`) | Fast Brain ≈ tree; Slow Brain ≈ adaptive pack — check headline | `repolens review --path "$TARGET" --out "$TARGET/reports" --deep --verbose --timeout 3600` |
 | Force full Slow Brain pack (slow — not a speed demo) | Full LLM inventory; often **≥1 h** on local 32B | `repolens review --path "$TARGET" --out "$TARGET/reports" --full --deep --verbose --timeout 3600` |
 | Single-shot LLM | Faster, thinner coverage | `repolens review --path "$TARGET" --out "$TARGET/reports" --no-deep` |
-| Changed pack only | Smaller adaptive LLM pack | `repolens review --path "$TARGET" --out "$TARGET/reports" --changed` |
+| Deep P1-only iteration | Cap deep bands | `repolens review --path "$TARGET" --out "$TARGET/reports" --deep --deep-passes 1 --timeout 1800` |
+| Fingerprint changed pack | Adaptive SQLite delta (not git) | `repolens review --path "$TARGET" --out "$TARGET/reports" --changed` |
+| Git change-set Slow Brain | Restrict LLM pack to `git` delta | `repolens review --path "$TARGET" --out "$TARGET/reports" --git-diff auto --deep --deep-passes 1 --timeout 1800` |
 | Domain pack | Pack heuristics in `-v` detail | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only --pack azure-sentinel -v` |
 | SARIF | Also writes anchored SARIF | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only --sarif` |
 | Verify Criticals | Location re-check (non-fatal) | `repolens review --path "$TARGET" --out "$TARGET/reports" --verify-findings` |
