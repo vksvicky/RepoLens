@@ -378,7 +378,7 @@ Design: [phase-5.2-theme-coverage-and-report-breakdown.md](./design/phase-5.2-th
 
 If the model returns invalid JSON, RepoLens still writes a report (scanners + heuristics + any salvageable issues) and exits **0**.
 
-**Cloud tip (Phase A + Phase 8):** OpenAI / Anthropic / DeepSeek / `openai_compatible` and named aliases (`groq`, `mistral`, `openrouter`, `azure`, …) use the **same `--deep` pipeline** as Ollama — provider choice is quality/cost/privacy, not a separate review path. Pick via `repolens init --provider …`. Heartbeats stream completion chars for all of these (Ollama also shows `/api/ps` load). Native Gemini/Bedrock SDKs are **Phase 9**. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
+**Cloud tip (Phase A + Phase 8/9):** OpenAI / Anthropic / DeepSeek / `openai_compatible`, named aliases (`groq`, `mistral`, `openrouter`, `azure`, …), and native **`gemini`** use the **same `--deep` pipeline** as Ollama — provider choice is quality/cost/privacy, not a separate review path. Pick via `repolens init --provider …`. Heartbeats stream completion chars for all of these (Ollama also shows `/api/ps` load). Vertex AI / Bedrock native adapters remain Phase 9 follow-ups. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
 
 Guided wizard: `./scripts/repolens-guided.sh` prompts for deep (default **Y** on review / full-audit).
 
