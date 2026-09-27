@@ -143,7 +143,35 @@ Playbooks in chat and RepoLens share review *ideas*; they are not the same produ
 
 When more clusters exist than `max_findings`, the scorecard still tallies clusters (up to `max_clusters`) and an omission note appears. Tune or disable via `[fast_brain.near_clones]` in `.repolens.toml` — see [`.repolens.example.toml`](../.repolens.example.toml).
 
-**Quality scorecard (Fast Brain)** is a compact Markdown + JSON block (`report.quality`) with mega-files, deep nesting, near-clone tallies (clusters, occurrences, findings emitted), and files scanned. It is a **DRY/KISS posture signal**, not an architecture certification and **not** a Sonargraph-style clone explorer. **Import-cycle cyclicity is not on this scorecard** — that is the Python import-graph / ratchet path (G1 / G2).
+**Quality scorecard (Fast Brain)** is a compact Markdown + JSON block (`report.quality`) with mega-files, deep nesting, near-clone tallies (clusters, occurrences, findings emitted), and files scanned. It is a **DRY/KISS posture signal**, not an architecture certification and **not** a Sonargraph-style clone explorer. The Markdown legend maps Near-clones→DRY, Mega-files→KISS/SRP-proxy, Deep nesting→KISS. **Import-cycle cyclicity is not on this scorecard** — that is the Python import-graph / ratchet path (G1 / G2), framed as a DIP / layering signal.
+
+---
+
+## Do we check SOLID / KISS / DRY?
+
+**Honest answer: posture signals and checklist prompts — not certification.**
+
+| Layer | What you get |
+|-------|----------------|
+| Fast Brain scorecard | Near-clones (DRY), mega-files / nesting (KISS; mega-files also as a coarse SRP proxy) |
+| Import graph | Runtime cycles with Dependency Inversion (DIP) / module-boundary language |
+| Slow Brain (full audit) | Extended themes `arch.dry`, `arch.kiss`, `arch.solid_*` — concrete file/line findings only; playbooks forbid textbook lectures |
+
+RepoLens does **not** run a Sonar-style OOP rule engine or claim “SOLID certified.” Prefer named themes when evidence is concrete; otherwise Core themes (`arch.duplication`, `arch.structure_size`, …) remain correct.
+
+---
+
+## Do we measure complexity and test coverage?
+
+**Complexity (Fast Brain, Python MVP):** cyclomatic (McCabe) + cognitive complexity via stdlib `ast` (zero extra deps). Clean functions stay on the scorecard only; Issues start at cyclo ≥ 11 or cognitive ≥ 16. Markdown always shows a **Top-10 hotspots** table; Slow Brain gets detailed refactor help for at most **`top_n_ai_explanations`** (default **5**, max 10). See [complexity-and-cognitive-ai.md](./design/complexity-and-cognitive-ai.md).
+
+**Test inventory (Fast Brain):** counts **test files and test cases** (Python `def test_*` / `unittest.TestCase` methods), not a misleading file-only ratio. Scorecard: `Test files | Test cases | Ratio (tests/production function)`.
+
+**Line/branch coverage %:** import artifacts from **coverage.py**, Istanbul/nyc (LCOV), JaCoCo, etc. (v1 `--import-coverage`) — RepoLens does **not** reimplement tracers. Companion complexity tools (radon, ESLint `complexity`) → SARIF → `--import-sarif` ([ci.md recipes](./ci.md#companion-recipes-sonar--qodana--brakeman--pmd--bearer)).
+
+**Scenario adequacy (Slow Brain):** Right-BICEP-style gaps emphasise **B / E / Negative** paths; playbooks forbid speculative **P** (performance) lectures without evidence. **Line coverage ≠ scenario adequacy.**
+
+JS/TS/Java native complexity parsers: optional `pip install "repolens-audit[complexity]"` (v1+).
 
 ---
 

@@ -34,6 +34,11 @@ def test_one_finding_per_scc():
     assert "6 modules" in issues[0].title
     assert issues[0].impact.strip()
     assert issues[0].codeExample.strip()
+    text = (
+        f"{issues[0].explanation} {issues[0].impact} {issues[0].recommendedFix}"
+    ).lower()
+    assert "dependency inversion" in text or "dip" in text
+    assert "layer" in text
 
 
 def test_large_scc_critical():

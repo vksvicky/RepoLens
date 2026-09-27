@@ -34,6 +34,9 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) / [#58](https://github.com/vksvicky/RepoLens/issues/58) | Phase 8 done ([PR #51](https://github.com/vksvicky/RepoLens/pull/51)); Phase 9 Gemini + Vertex + Bedrock ([PR #52](https://github.com/vksvicky/RepoLens/pull/52) + #58) |
 | Dogfood: 32B cost / change-set | [#15](https://github.com/vksvicky/RepoLens/issues/15) / [#16](https://github.com/vksvicky/RepoLens/issues/16) | **Done** ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)); umbrella [#13](https://github.com/vksvicky/RepoLens/issues/13) closed |
 | Deferred residuals | formerly [#11](https://github.com/vksvicky/RepoLens/issues/11) | **Closed** — parked in phases header (heuristics / study / Trivy registry); SARIF **import** shipped (`--import-sarif`) |
+| Design principles (DRY/KISS/SOLID) | [#62](https://github.com/vksvicky/RepoLens/issues/62)–[#64](https://github.com/vksvicky/RepoLens/issues/64) | Themes + scorecard legend + graph DIP copy |
+| SARIF CI ergonomics | [#65](https://github.com/vksvicky/RepoLens/issues/65) / [#66](https://github.com/vksvicky/RepoLens/issues/66) | `--require-sarif-import` + companion recipes |
+| Complexity + cognitive + AI | [#67](https://github.com/vksvicky/RepoLens/issues/67)–[#74](https://github.com/vksvicky/RepoLens/issues/74) | Design: [complexity-and-cognitive-ai.md](./design/complexity-and-cognitive-ai.md) — MVP issues filed |
 | Community feedback | formerly [#6](https://github.com/vksvicky/RepoLens/issues/6) | **Closed** — [Discussions](https://github.com/vksvicky/RepoLens/discussions) + issue templates |
 | Local UI calibrations | #17b on [#17](https://github.com/vksvicky/RepoLens/issues/17) | Parked |
 ---

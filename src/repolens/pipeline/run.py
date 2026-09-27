@@ -81,18 +81,47 @@ def _attach_quality(
     )
 
 
+def _attach_complexity(report: FindingReport, complexity_result) -> None:
+    if complexity_result is None:
+        return
+    report.complexity = complexity_result.block
+
+
+def _attach_testing(report: FindingReport, testing_result) -> None:
+    if testing_result is None:
+        return
+    report.testing = testing_result.block
+
+
+def _complexity_ai_prefix(root: Path, complexity_result, cfg) -> str:
+    if complexity_result is None or not cfg.complexity.enabled:
+        return ""
+    from repolens.complexity.ai_pack import (
+        format_complexity_ai_section,
+        select_complexity_ai_targets,
+    )
+
+    targets = select_complexity_ai_targets(
+        complexity_result.functions,
+        top_n=cfg.complexity.top_n_ai_explanations,
+    )
+    return format_complexity_ai_section(root, targets)
+
+
 def _extend_from_import_sarif(
     import_sarif: list[Path] | None,
     root: Path,
     scanner_issues: list,
     scanner_runs: list,
     prog: ReviewProgress,
+    *,
+    require: bool = False,
 ) -> None:
     if not import_sarif:
         return
     from repolens.sarif_import import load_many_sarif, scanner_runs_from_imports
 
-    imported = load_many_sarif(list(import_sarif), root=root)
+    imported = load_many_sarif(list(import_sarif), root=root, require=require)
     for block in imported:
         scanner_issues.extend(block.issues)
         if block.skipped:
@@ -151,9 +180,14 @@ def run_review(
     packs: list[str] | None = None,
     fallback: bool | None = None,
     import_sarif: list[Path] | None = None,
+    require_sarif_import: bool = False,
 ) -> ReviewResult:
     if force_full and force_changed:
         raise ValueError("--full and --changed cannot be combined")
+    if require_sarif_import and not import_sarif:
+        raise ValueError(
+            "--require-sarif-import needs at least one --import-sarif path"
+        )
     if git_diff is not None and force_full:
         raise ValueError("--full and --git-diff cannot be combined")
     if git_diff is not None and force_changed:
@@ -263,6 +297,9 @@ def run_review(
     fast_brain_seconds: float | None = None
     llm_seconds_prov: float | None = None
     heur_result = None
+    complexity_result = None
+    complexity_issues: list = []
+    testing_result = None
 
     if out_dir is not None:
         out = out_dir
@@ -329,7 +366,12 @@ def run_review(
             prog.detail("Scanners: skipped (off / none selected)")
 
         _extend_from_import_sarif(
-            import_sarif, root, scanner_issues, scanner_runs, prog
+            import_sarif,
+            root,
+            scanner_issues,
+            scanner_runs,
+            prog,
+            require=require_sarif_import,
         )
 
         if tools or import_sarif:
@@ -407,6 +449,38 @@ def run_review(
             f"Fast brain: {len(heur_issues)} heuristic finding(s), "
             f"{len(heur_result.hot_paths)} hot path(s)"
         )
+
+        from repolens.complexity.runner import run_complexity
+
+        complexity_result = run_complexity(
+            root,
+            fast_files,
+            enabled=cfg.complexity.enabled,
+            hotspot_limit=cfg.complexity.hotspot_limit,
+        )
+        complexity_issues = list(complexity_result.issues)
+        if cfg.complexity.enabled:
+            prog.detail(
+                f"Complexity: {complexity_result.block.functionsAnalysed} function(s), "
+                f"{len(complexity_issues)} above threshold, "
+                f"top-{len(complexity_result.block.hotspots)} hotspots"
+            )
+
+        from repolens.testing.inventory import run_testing_inventory
+
+        testing_result = run_testing_inventory(
+            root,
+            fast_files,
+            enabled=cfg.testing.inventory,
+        )
+        if cfg.testing.inventory:
+            tb = testing_result.block
+            prog.detail(
+                f"Testing inventory: {tb.testFileCount} file(s), "
+                f"{tb.testCaseCount} case(s), "
+                f"ratio {tb.testsPerProductionFunction} tests/prod fn"
+            )
+
         graph_issues: list = []
         graph_block: GraphBlock | None = None
         graph_gaps: list[str] = []
@@ -430,7 +504,9 @@ def run_review(
                 f"Import graph: {graph_block.cycleCount} cycle group(s), "
                 f"{len(graph_issues)} finding(s), cyclicity={graph_block.cyclicity}"
             )
-        non_llm_issues = list(scanner_issues) + heur_issues + graph_issues
+        non_llm_issues = (
+            list(scanner_issues) + heur_issues + complexity_issues + graph_issues
+        )
         fallback_refreshed_scanners = False
         if not scanners_only and not dry_run and cfg.model.fallback:
             from repolens.config import resolve_api_key
@@ -467,6 +543,7 @@ def run_review(
                                 scanner_issues,
                                 scanner_runs,
                                 prog,
+                                require=require_sarif_import,
                             )
                             before_dedupe = len(scanner_issues)
                             scanner_issues = dedupe_sca_issues(scanner_issues)
@@ -488,7 +565,9 @@ def run_review(
                     )
 
         if fallback_refreshed_scanners:
-            non_llm_issues = list(scanner_issues) + heur_issues + graph_issues
+            non_llm_issues = (
+                list(scanner_issues) + heur_issues + complexity_issues + graph_issues
+            )
 
         if scanners_only:
             all_ran = bool(scanner_runs) and all(r.status == "ran" for r in scanner_runs)
@@ -761,7 +840,14 @@ def run_review(
                     ]
                     heur_ctx = "\n".join(lines)
                 prompt_prefix = "\n\n".join(
-                    part for part in (scanner_ctx, heur_ctx, local_ctx) if part
+                    part
+                    for part in (
+                        scanner_ctx,
+                        heur_ctx,
+                        local_ctx,
+                        _complexity_ai_prefix(root, complexity_result, cfg),
+                    )
+                    if part
                 )
 
                 provider = cfg.model.provider or "unknown"
@@ -989,6 +1075,8 @@ def run_review(
             heur_result=heur_result,
             files_scanned=fast_brain_file_count,
         )
+        _attach_complexity(report, complexity_result)
+        _attach_testing(report, testing_result)
         report.provenance = ProvenanceBlock(
             repoLensVersion=__version__,
             gitSha=_git_sha(root),

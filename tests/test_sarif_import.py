@@ -5,10 +5,14 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from repolens.config import ModelConfig, RepoLensConfig, ScannersConfig
 from repolens.pipeline import run_review
 from repolens.sarif_import import (
+    SarifImportError,
     SarifImportResult,
+    load_many_sarif,
     load_sarif_issues,
     scanner_runs_from_imports,
 )
@@ -248,6 +252,48 @@ def test_scanner_runs_from_imports_skipped_only() -> None:
     )
     assert runs[0].status == "ran"
     assert runs[0].detail == "skipped 2"
+
+
+def test_require_sarif_import_missing_path_raises(tmp_path: Path) -> None:
+    missing = tmp_path / "nope.sarif"
+    with pytest.raises(SarifImportError, match="missing"):
+        load_many_sarif([missing], root=tmp_path, require=True)
+
+
+def test_require_sarif_import_unreadable_raises(tmp_path: Path) -> None:
+    bad = tmp_path / "bad.sarif"
+    bad.write_text("{not-json", encoding="utf-8")
+    with pytest.raises(SarifImportError, match="unreadable"):
+        load_many_sarif([bad], root=tmp_path, require=True)
+
+
+def test_soft_fail_missing_path_without_require(tmp_path: Path) -> None:
+    missing = tmp_path / "nope.sarif"
+    results = load_many_sarif([missing], root=tmp_path, require=False)
+    assert len(results) == 1
+    assert results[0].issues == []
+    assert results[0].detail
+
+
+def test_run_review_require_sarif_import_propagates(tmp_path: Path) -> None:
+    cfg = RepoLensConfig(
+        model=ModelConfig(provider=None),
+        scanners=ScannersConfig(enabled=[]),
+    )
+    with (
+        patch("repolens.pipeline.run.run_scanners", return_value=([], [], [])),
+        pytest.raises(SarifImportError, match="missing"),
+    ):
+        run_review(
+            path=tmp_path,
+            mode="sentinel",
+            config=cfg,
+            out_dir=tmp_path / "r",
+            scanners_only=True,
+            scanners="off",
+            import_sarif=[tmp_path / "missing.sarif"],
+            require_sarif_import=True,
+        )
 
 
 def test_run_review_merges_import_sarif(tmp_path: Path) -> None:

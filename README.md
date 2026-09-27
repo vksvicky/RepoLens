@@ -21,6 +21,7 @@ RepoLens is an open-source CLI that runs structured code reviews against project
 | Shareable audits | Markdown reports (PDF via pandoc / Print) |
 | Production honesty | Complements—does not replace—CI, tests, and scanners |
 | Python **cyclicity ratchet** | Baseline + `repolens check --diff` for fast CI (Rule 1 — debt must not rise); see [FAQ](./docs/faq.md#cyclicity-ratchet-baseline-g2) |
+| **Complexity + test inventory** | Fast Brain McCabe/cognitive (Python) + Top-10 table; test file/case counts; AI refactor capped at top-5 — [design](./docs/design/complexity-and-cognitive-ai.md) · [FAQ](./docs/faq.md#do-we-measure-complexity-and-test-coverage) |
 
 RepoLens is **zero-infrastructure** — `pipx` or ephemeral CI runners; no SonarQube server and no PR-review SaaS. Built for **M&A auditors**, **fractional CTOs**, and **pre-release platform gates** who need portable dual-review evidence. See [competitive landscape 2026](./docs/design/competitive-landscape-sonar-alternatives-2026.md).
 
