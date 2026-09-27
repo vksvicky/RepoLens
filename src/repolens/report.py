@@ -267,6 +267,7 @@ def render_markdown(
 
     lines.extend(_render_quality_scorecard_section(report))
     lines.extend(_render_complexity_section(report))
+    lines.extend(_render_testing_inventory_section(report))
     lines.extend(_render_supply_chain_section(report))
     lines.extend(_render_change_set_section(report))
     lines.extend(_render_import_graph_section(report))
@@ -395,6 +396,30 @@ def _render_complexity_section(report: FindingReport) -> list[str]:
         "(default top 5)._"
     )
     lines.append("")
+    return lines
+
+
+def _render_testing_inventory_section(report: FindingReport) -> list[str]:
+    block = report.testing
+    if block is None:
+        return []
+    lines: list[str] = [
+        "## Testing inventory (Fast Brain)",
+        "",
+        "| Signal | Value |",
+        "|--------|------:|",
+        f"| Test files | {block.testFileCount} |",
+        f"| Test cases | {block.testCaseCount} |",
+        f"| Production functions | {block.productionFunctionCount} |",
+        f"| Ratio (tests/production function) | {block.testsPerProductionFunction} |",
+        "",
+        "_Counts test **functions/cases** (Python `ast`), not file-only ratios. "
+        "Line coverage is imported separately (v1); scenario adequacy ≠ coverage %._",
+        "",
+    ]
+    for note in block.notes:
+        lines.append(f"_{note}._")
+        lines.append("")
     return lines
 
 

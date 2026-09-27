@@ -196,6 +196,12 @@ class ComplexityConfig(BaseModel):
     top_n_ai_explanations: int = Field(default=5, ge=0, le=10)
 
 
+class TestingConfig(BaseModel):
+    """Fast Brain test inventory (Python ast case counts)."""
+
+    inventory: bool = True
+
+
 class RepoLensConfig(BaseModel):
     general: GeneralConfig = Field(default_factory=GeneralConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
@@ -210,6 +216,7 @@ class RepoLensConfig(BaseModel):
     fast_brain: FastBrainConfig = Field(default_factory=FastBrainConfig)
     graph: GraphConfig = Field(default_factory=GraphConfig)
     complexity: ComplexityConfig = Field(default_factory=ComplexityConfig)
+    testing: TestingConfig = Field(default_factory=TestingConfig)
 
 
 def user_config_path() -> Path:

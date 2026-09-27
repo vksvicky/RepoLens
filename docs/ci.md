@@ -290,6 +290,31 @@ repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
 
 ASPM portals (Aikido, Snyk AppRisk, …): keep RepoLens local; feed them RepoLens **`--sarif`** export + CycloneDX SBOM — do not expect a hosted RepoLens ASPM UI.
 
+### Companion recipes (radon / ESLint complexity)
+
+Native RepoLens complexity covers **Python** today. For other tools / languages, emit SARIF and import:
+
+**radon** (Python — optional cross-check alongside native Fast Brain):
+
+```bash
+# Example: convert radon JSON to SARIF via your preferred bridge, or run ESLint-style exporters.
+# Prefer native RepoLens complexity for Python; use import when radon is already in CI.
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/radon.sarif" --require-sarif-import \
+  --format both --fail-on HIGH
+```
+
+**ESLint** `complexity` rule (JS/TS):
+
+```bash
+npx eslint . --format @microsoft/eslint-formatter-sarif --output-file "$TARGET/eslint.sarif"
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/eslint.sarif" --require-sarif-import \
+  --format both --fail-on HIGH
+```
+
+Native multi-language complexity (tree-sitter) lands behind `pip install "repolens-audit[complexity]"` (v1). Until then, SARIF companions are the supported path.
+
 ## Adaptive cache in CI
 
 Ephemeral agents usually start **cold**. Prefer:

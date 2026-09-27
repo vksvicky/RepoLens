@@ -153,6 +153,18 @@ class ComplexityBlock(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class TestingInventoryBlock(BaseModel):
+    """Fast Brain test presence signal (files + cases, not file-only ratio)."""
+
+    __test__ = False  # not a pytest test class
+
+    testFileCount: int = Field(ge=0, default=0)
+    testCaseCount: int = Field(ge=0, default=0)
+    productionFunctionCount: int = Field(ge=0, default=0)
+    testsPerProductionFunction: float = Field(ge=0, default=0.0)
+    notes: list[str] = Field(default_factory=list)
+
+
 class GraphBlock(BaseModel):
     """G1: deterministic Python import graph summary (optional)."""
 
@@ -240,6 +252,7 @@ class FindingReport(BaseModel):
     llmRepairAttempts: int | None = Field(default=None, ge=0)
     quality: QualityScorecard | None = None
     complexity: ComplexityBlock | None = None
+    testing: TestingInventoryBlock | None = None
 
     @field_validator("confidence")
     @classmethod

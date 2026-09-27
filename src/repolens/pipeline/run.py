@@ -87,6 +87,27 @@ def _attach_complexity(report: FindingReport, complexity_result) -> None:
     report.complexity = complexity_result.block
 
 
+def _attach_testing(report: FindingReport, testing_result) -> None:
+    if testing_result is None:
+        return
+    report.testing = testing_result.block
+
+
+def _complexity_ai_prefix(root: Path, complexity_result, cfg) -> str:
+    if complexity_result is None or not cfg.complexity.enabled:
+        return ""
+    from repolens.complexity.ai_pack import (
+        format_complexity_ai_section,
+        select_complexity_ai_targets,
+    )
+
+    targets = select_complexity_ai_targets(
+        complexity_result.functions,
+        top_n=cfg.complexity.top_n_ai_explanations,
+    )
+    return format_complexity_ai_section(root, targets)
+
+
 def _extend_from_import_sarif(
     import_sarif: list[Path] | None,
     root: Path,
@@ -278,6 +299,7 @@ def run_review(
     heur_result = None
     complexity_result = None
     complexity_issues: list = []
+    testing_result = None
 
     if out_dir is not None:
         out = out_dir
@@ -442,6 +464,21 @@ def run_review(
                 f"Complexity: {complexity_result.block.functionsAnalysed} function(s), "
                 f"{len(complexity_issues)} above threshold, "
                 f"top-{len(complexity_result.block.hotspots)} hotspots"
+            )
+
+        from repolens.testing.inventory import run_testing_inventory
+
+        testing_result = run_testing_inventory(
+            root,
+            fast_files,
+            enabled=cfg.testing.inventory,
+        )
+        if cfg.testing.inventory:
+            tb = testing_result.block
+            prog.detail(
+                f"Testing inventory: {tb.testFileCount} file(s), "
+                f"{tb.testCaseCount} case(s), "
+                f"ratio {tb.testsPerProductionFunction} tests/prod fn"
             )
 
         graph_issues: list = []
@@ -803,7 +840,14 @@ def run_review(
                     ]
                     heur_ctx = "\n".join(lines)
                 prompt_prefix = "\n\n".join(
-                    part for part in (scanner_ctx, heur_ctx, local_ctx) if part
+                    part
+                    for part in (
+                        scanner_ctx,
+                        heur_ctx,
+                        local_ctx,
+                        _complexity_ai_prefix(root, complexity_result, cfg),
+                    )
+                    if part
                 )
 
                 provider = cfg.model.provider or "unknown"
@@ -1032,6 +1076,7 @@ def run_review(
             files_scanned=fast_brain_file_count,
         )
         _attach_complexity(report, complexity_result)
+        _attach_testing(report, testing_result)
         report.provenance = ProvenanceBlock(
             repoLensVersion=__version__,
             gitSha=_git_sha(root),
