@@ -10,6 +10,36 @@ from repolens.scanners.base import ScannerResult, resolve_binary
 from repolens.schema import Issue, ScannerRun, Severity
 
 
+def _issue_for_vulnerability(
+    *,
+    source: str,
+    pkg_name: str,
+    vuln_id: str,
+    summary: str,
+) -> Issue:
+    return Issue(
+        severity=Severity.HIGH,
+        priority="P1",
+        category="osv",
+        file=source,
+        line=1,
+        title=f"{vuln_id} in {pkg_name}",
+        explanation=summary,
+        impact="Known vulnerable dependency may be exploitable in production.",
+        recommendedFix=(
+            f"Upgrade {pkg_name} to a non-vulnerable version (see {vuln_id})."
+        ),
+        codeExample=(
+            f"# Upgrade dependency {pkg_name}\n"
+            f"# Refer to advisory {vuln_id} for fixed versions"
+        ),
+        fixTiming="before launch",
+        cwe=None,
+        packageName=pkg_name,
+        advisoryId=vuln_id,
+    )
+
+
 def run_osv(root: Path) -> ScannerResult:
     binary = resolve_binary("osv", candidates=("osv-scanner", "osv"))
     if binary is None:
@@ -49,27 +79,11 @@ def run_osv(root: Path) -> ScannerResult:
                 vuln_id = str(vuln.get("id") or "CVE")
                 summary = str(vuln.get("summary") or vuln_id)
                 issues.append(
-                    Issue(
-                        severity=Severity.HIGH,
-                        priority="P1",
-                        category="osv",
-                        file=str(source),
-                        line=1,
-                        title=f"{vuln_id} in {pkg_name}",
-                        explanation=summary,
-                        impact="Known vulnerable dependency may be exploitable in production.",
-                        recommendedFix=(
-                            f"Upgrade {pkg_name} to a non-vulnerable version "
-                            f"(see {vuln_id})."
-                        ),
-                        codeExample=(
-                            f"# Upgrade dependency {pkg_name}\n"
-                            f"# Refer to advisory {vuln_id} for fixed versions"
-                        ),
-                        fixTiming="before launch",
-                        cwe=None,
-                        packageName=pkg_name,
-                        advisoryId=vuln_id,
+                    _issue_for_vulnerability(
+                        source=str(source),
+                        pkg_name=pkg_name,
+                        vuln_id=vuln_id,
+                        summary=summary,
                     )
                 )
     return ScannerResult(

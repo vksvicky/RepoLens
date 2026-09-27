@@ -65,3 +65,25 @@ def test_run_complexity_disabled_returns_empty(tmp_path: Path) -> None:
     result = run_complexity(tmp_path, [e], enabled=False)
     assert result.block.functionsAnalysed == 0
     assert result.issues == []
+
+
+def test_review_entrypoints_are_not_critical_or_high() -> None:
+    """run_review and _run_mode must stay out of the Critical/High bands."""
+    from repolens.complexity.python_ast import analyse_python_file
+    from repolens.complexity.thresholds import band_for_scores
+    from repolens.schema import Severity
+
+    root = Path(__file__).resolve().parents[1]
+    hot: list[str] = []
+    for rel in (
+        "src/repolens/pipeline/run.py",
+        "src/repolens/cli/commands_review.py",
+    ):
+        for fn in analyse_python_file(str(root / rel)):
+            band = band_for_scores(cyclomatic=fn.cyclomatic, cognitive=fn.cognitive)
+            if band.severity in {Severity.HIGH, Severity.CRITICAL}:
+                hot.append(
+                    f"{rel}:{fn.name} cyclo={fn.cyclomatic} cog={fn.cognitive} "
+                    f"{band.severity.value}"
+                )
+    assert hot == []

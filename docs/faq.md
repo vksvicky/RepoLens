@@ -128,7 +128,7 @@ Playbooks in chat and RepoLens share review *ideas*; they are not the same produ
 
 ## Do scanners catch missing `.gitignore` rules?
 
-**Usually no — and we do not claim they do.** **gitleaks** (and similar) find **secret content** already present in the tree. **Missing `.env` / credential patterns in `.gitignore`** come from **Fast Brain heuristics** (`heuristic.gitignore_secrets`, etc.) — deterministic pattern checks, not a live secret scan. Treat those rows as hygiene hints; confirm with your policy and scanners. Heuristic and LLM twins on the same theme (e.g. gitignore + `sec.repo_hygiene_secrets`) are **clustered** so the report does not list three near-identical `.gitignore` issues.
+**Usually no — and we do not claim they do.** **gitleaks** finds **secret content** in the working tree and, when the path is a git checkout, in **commit history** (P1 `sec.repo_hygiene_secrets`). **Missing `.env` / credential patterns in `.gitignore`** come from **Fast Brain heuristics** (`heuristic.gitignore_secrets`) — a separate hygiene hint, not a live secret scan. Treat those rows as hygiene hints; confirm with your policy and scanners. Heuristic and LLM twins on the same theme (e.g. gitignore + `sec.repo_hygiene_secrets`) are **clustered** so the report does not list three near-identical `.gitignore` issues.
 
 ---
 

@@ -21,6 +21,48 @@ from repolens.schema import Issue, ScannerRun, Severity
 FIXTURES = Path(__file__).parent / "fixtures" / "sarif"
 
 
+def _location(uri: str, *, line: int = 1, uri_base: str | None = None) -> dict:
+    artifact: dict = {"uri": uri}
+    if uri_base is not None:
+        artifact["uriBaseId"] = uri_base
+    return {
+        "physicalLocation": {
+            "artifactLocation": artifact,
+            "region": {"startLine": line},
+        }
+    }
+
+
+def _finding(
+    *,
+    message: str,
+    uri: str,
+    level: str = "error",
+    rule_id: str | None = None,
+    rule: dict | None = None,
+    line: int = 1,
+    uri_base: str | None = None,
+) -> dict:
+    row: dict = {
+        "level": level,
+        "message": {"text": message},
+        "locations": [_location(uri, line=line, uri_base=uri_base)],
+    }
+    if rule_id is not None:
+        row["ruleId"] = rule_id
+    if rule is not None:
+        row["rule"] = rule
+    return row
+
+
+def _run(driver: str, *results: dict) -> dict:
+    return {"tool": {"driver": {"name": driver}}, "results": list(results)}
+
+
+def _sarif(*runs: dict) -> dict:
+    return {"version": "2.1.0", "runs": list(runs)}
+
+
 def test_import_eslint_relative_path(tmp_path: Path) -> None:
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "app.js").write_text("x\ny\neval(user)\n", encoding="utf-8")
@@ -42,29 +84,9 @@ def test_import_eslint_relative_path(tmp_path: Path) -> None:
 
 
 def test_import_skips_path_outside_root(tmp_path: Path) -> None:
-    payload = {
-        "version": "2.1.0",
-        "runs": [
-            {
-                "tool": {"driver": {"name": "X"}},
-                "results": [
-                    {
-                        "ruleId": "r",
-                        "level": "error",
-                        "message": {"text": "x"},
-                        "locations": [
-                            {
-                                "physicalLocation": {
-                                    "artifactLocation": {"uri": "../escape.py"},
-                                    "region": {"startLine": 1},
-                                }
-                            }
-                        ],
-                    }
-                ],
-            }
-        ],
-    }
+    payload = _sarif(
+        _run("X", _finding(rule_id="r", message="x", uri="../escape.py"))
+    )
     path = tmp_path / "bad.sarif.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     results = load_sarif_issues(path, root=tmp_path)
@@ -82,29 +104,16 @@ def test_import_tolerates_missing_snippet(tmp_path: Path) -> None:
 def test_rule_id_falls_back_to_nested_rule_id(tmp_path: Path) -> None:
     """CodeQL/Sonar sometimes omit result.ruleId and nest under result.rule.id."""
     (tmp_path / "x.py").write_text("pass\n", encoding="utf-8")
-    payload = {
-        "version": "2.1.0",
-        "runs": [
-            {
-                "tool": {"driver": {"name": "CodeQL"}},
-                "results": [
-                    {
-                        "rule": {"id": "py/sql-injection"},
-                        "level": "error",
-                        "message": {"text": "SQL injection"},
-                        "locations": [
-                            {
-                                "physicalLocation": {
-                                    "artifactLocation": {"uri": "x.py"},
-                                    "region": {"startLine": 1},
-                                }
-                            }
-                        ],
-                    }
-                ],
-            }
-        ],
-    }
+    payload = _sarif(
+        _run(
+            "CodeQL",
+            _finding(
+                rule={"id": "py/sql-injection"},
+                message="SQL injection",
+                uri="x.py",
+            ),
+        )
+    )
     path = tmp_path / "nested.sarif.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     issue = load_sarif_issues(path, root=tmp_path)[0].issues[0]
@@ -114,32 +123,18 @@ def test_rule_id_falls_back_to_nested_rule_id(tmp_path: Path) -> None:
 def test_srcroot_uri_prefix_normalises(tmp_path: Path) -> None:
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "a.py").write_text("x=1\n", encoding="utf-8")
-    payload = {
-        "version": "2.1.0",
-        "runs": [
-            {
-                "tool": {"driver": {"name": "CodeQL"}},
-                "results": [
-                    {
-                        "ruleId": "r",
-                        "level": "warning",
-                        "message": {"text": "m"},
-                        "locations": [
-                            {
-                                "physicalLocation": {
-                                    "artifactLocation": {
-                                        "uri": "%SRCROOT%/src/a.py",
-                                        "uriBaseId": "%SRCROOT%",
-                                    },
-                                    "region": {"startLine": 1},
-                                }
-                            }
-                        ],
-                    }
-                ],
-            }
-        ],
-    }
+    payload = _sarif(
+        _run(
+            "CodeQL",
+            _finding(
+                rule_id="r",
+                level="warning",
+                message="m",
+                uri="%SRCROOT%/src/a.py",
+                uri_base="%SRCROOT%",
+            ),
+        )
+    )
     path = tmp_path / "srcroot.sarif.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     issue = load_sarif_issues(path, root=tmp_path)[0].issues[0]
@@ -165,47 +160,16 @@ def test_import_codeql_absolute_file_uri(tmp_path: Path) -> None:
 def test_multi_run_keeps_per_tool_names(tmp_path: Path) -> None:
     (tmp_path / "a.js").write_text("1\n", encoding="utf-8")
     (tmp_path / "b.py").write_text("1\n", encoding="utf-8")
-    payload = {
-        "version": "2.1.0",
-        "runs": [
-            {
-                "tool": {"driver": {"name": "ESLint"}},
-                "results": [
-                    {
-                        "ruleId": "e1",
-                        "level": "warning",
-                        "message": {"text": "e"},
-                        "locations": [
-                            {
-                                "physicalLocation": {
-                                    "artifactLocation": {"uri": "a.js"},
-                                    "region": {"startLine": 1},
-                                }
-                            }
-                        ],
-                    }
-                ],
-            },
-            {
-                "tool": {"driver": {"name": "CodeQL"}},
-                "results": [
-                    {
-                        "ruleId": "c1",
-                        "level": "warning",
-                        "message": {"text": "c"},
-                        "locations": [
-                            {
-                                "physicalLocation": {
-                                    "artifactLocation": {"uri": "b.py"},
-                                    "region": {"startLine": 1},
-                                }
-                            }
-                        ],
-                    }
-                ],
-            },
-        ],
-    }
+    payload = _sarif(
+        _run(
+            "ESLint",
+            _finding(rule_id="e1", level="warning", message="e", uri="a.js"),
+        ),
+        _run(
+            "CodeQL",
+            _finding(rule_id="c1", level="warning", message="c", uri="b.py"),
+        ),
+    )
     path = tmp_path / "multi.sarif.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     results = load_sarif_issues(path, root=tmp_path)

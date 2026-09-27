@@ -197,3 +197,35 @@ def test_missing_dependabot_when_package_manifest_exists(tmp_path: Path) -> None
         )
     ]
     assert ci, f"expected CI gap issue, got: {[i.title for i in result.issues]}"
+
+
+def test_this_repo_clears_repeatable_hygiene_findings() -> None:
+    """Dogfood: permissions, Dependabot, CodeQL, and the detector's own source."""
+    from repolens.heuristics.ci_gaps import find_ci_gaps
+    from repolens.heuristics.deep_nesting import find_deep_nesting
+    from repolens.heuristics.mega_files import find_mega_files
+    from repolens.heuristics.scripts_hygiene import find_todo_density
+
+    root = Path(__file__).resolve().parents[1]
+    assert find_ci_gaps(root, []) == []
+
+    workflows = root / ".github" / "workflows"
+    for path in workflows.glob("*.yml"):
+        text = path.read_text(encoding="utf-8")
+        assert "write-all" not in text
+        preamble = text.split("jobs:", 1)[0]
+        assert "permissions:" in preamble
+
+    rels = [
+        "src/repolens/heuristics/scripts_hygiene.py",
+        "src/repolens/scanners/osv.py",
+        "src/repolens/github_pr_comments.py",
+        "tests/test_sarif_import.py",
+        "tests/test_trivy_checkov.py",
+        "tests/test_guided_script.py",
+    ]
+    entries = [_entry(root, rel) for rel in rels]
+    assert find_todo_density(entries) == []
+    assert find_deep_nesting(entries) == []
+    mega_issues, _hot = find_mega_files(entries)
+    assert mega_issues == []

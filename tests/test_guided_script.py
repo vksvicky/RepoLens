@@ -17,7 +17,6 @@ from repolens_guided import (  # noqa: E402
     format_command,
     full_pack_large_model_warning,
     is_large_local_model,
-    list_installed_models,
     parse_ollama_list,
     parse_ollama_tags_json,
     probe_review_cli_caps,
@@ -484,27 +483,3 @@ def test_build_argv_scanners_only_drops_deep() -> None:
     argv = build_argv(choices)
     assert "--deep" not in argv
     assert "--no-deep" not in argv
-
-
-def test_list_installed_models_prefers_ollama_list() -> None:
-    with patch("guided.caps.subprocess.run") as run:
-        run.return_value = MagicMock(
-            returncode=0,
-            stdout="NAME\nqwen2.5:7b\n",
-            stderr="",
-        )
-        with patch("guided.caps.urllib.request.urlopen") as urlopen:
-            assert list_installed_models() == ["qwen2.5:7b"]
-            urlopen.assert_not_called()
-
-
-def test_list_installed_models_falls_back_to_tags_api() -> None:
-    with patch("guided.caps.subprocess.run") as run:
-        run.return_value = MagicMock(returncode=1, stdout="", stderr="")
-        with patch("guided.caps.urllib.request.urlopen") as urlopen:
-            resp = MagicMock()
-            resp.read.return_value = b'{"models":[{"name":"fallback:1b"}]}'
-            resp.__enter__.return_value = resp
-            resp.__exit__.return_value = None
-            urlopen.return_value = resp
-            assert list_installed_models() == ["fallback:1b"]

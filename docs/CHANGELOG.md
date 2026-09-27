@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 
+- **CI durability** — least-privilege `permissions: contents: read` on workflows, Dependabot for pip and GitHub Actions, and a CodeQL Python workflow.
+- **Gitleaks git history** — inside a checkout, a second `gitleaks detect` walks the commit log (no `--no-git`) and files P1 `sec.repo_hygiene_secrets` hits separately from the `.gitignore` heuristic. Secret values are not copied into the report.
 - **Complexity Fast Brain (MVP)** — Python stdlib `ast` McCabe + cognitive scores; thresholded Issues (`quality.complexity`); Markdown **Top-10 hotspots** table + p95/max; `[complexity]` config ([#68](https://github.com/vksvicky/RepoLens/issues/68)–[#70](https://github.com/vksvicky/RepoLens/issues/70)); design: [complexity-and-cognitive-ai.md](./design/complexity-and-cognitive-ai.md)
 - **Complexity Slow Brain pack** — top-N (`top_n_ai_explanations`, default 5) hotspot slices in the LLM prompt ([#71](https://github.com/vksvicky/RepoLens/issues/71)); playbook refactor + Right-BICEP B/E/Negative focus ([#72](https://github.com/vksvicky/RepoLens/issues/72))
 - **Testing inventory** — Fast Brain test **files + cases** via `ast`; Markdown scorecard ([#74](https://github.com/vksvicky/RepoLens/issues/74))
@@ -23,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Review complexity** — `run_review` and `_run_mode` are split into phases so neither function is in the Critical or High complexity band.
 - Docs: competitive landscape 2026 (Sonar alternatives, SARIF-import strategy, zero-infra personas)
 - FAQ: why not a scanner shell script; air-gap Ollama vs private BYOK honesty
 - Tracker hygiene: Wave C G0–G4 and Phase 8/9 Gemini MVP marked complete in [phases.md](./phases.md) ([#18](https://github.com/vksvicky/RepoLens/issues/18) / PR #56).

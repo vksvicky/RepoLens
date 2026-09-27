@@ -10,6 +10,9 @@ on:
       - "src/repolens/ci_args.py"
       - ".github/workflows/repolens-example.yml"
 
+permissions:
+  contents: read
+
 jobs:
   repolens:
     name: RepoLens dry-run

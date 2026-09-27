@@ -79,6 +79,48 @@ def _ratchet_breached_for_review(root: Path, *, ratchet_flag: bool) -> bool:
     return ratchet.breached
 
 
+
+def _map_run_mode_error(exc: BaseException) -> None:
+    """Turn known review failures into typer exits. Unknown errors propagate."""
+    if isinstance(exc, FileNotFoundError):
+        console.print(f"[red]Config/source error:[/red] {exc}")
+        raise typer.Exit(code=2) from exc
+    if isinstance(exc, ValueError):
+        console.print(f"[red]Config/usage error:[/red] {exc}")
+        raise typer.Exit(code=2) from exc
+    if isinstance(exc, ScannerRequirementError):
+        console.print(f"[red]{exc}[/red]")
+        console.print(
+            "Install with [cyan]repolens plugins install[/cyan] or see docs/scanners.md"
+        )
+        raise typer.Exit(code=2) from exc
+    if isinstance(exc, SarifImportError):
+        console.print(f"[red]SARIF import:[/red] {exc}")
+        raise typer.Exit(code=2) from exc
+    if isinstance(exc, LlmError):
+        from repolens.llm import provider_setup_hints
+
+        console.print(f"[red]Model error:[/red] {exc}")
+        msg = str(exc).lower()
+        if "no model provider" in msg or "missing api key" in msg:
+            for line in provider_setup_hints():
+                console.print(f"[yellow]→[/yellow] {line}")
+        elif "timed out" in msg:
+            console.print(
+                "[yellow]→[/yellow] Tip: [cyan]--timeout 1800[/cyan], "
+                "[cyan]--mode diff --since HEAD~20[/cyan], or "
+                "[cyan]--scanners-only[/cyan] / [cyan]--dry-run[/cyan] first."
+            )
+        else:
+            console.print(
+                "Run [cyan]repolens init[/cyan] or see docs/setup-ai-and-scanners.md"
+            )
+        raise typer.Exit(code=4) from exc
+    if isinstance(exc, RuntimeError):
+        console.print(f"[red]Source error:[/red] {exc}")
+        raise typer.Exit(code=3) from None
+
+
 def _run_mode(
     mode: str,
     path: str | Path | None,
@@ -118,50 +160,46 @@ def _run_mode(
     import_sarif: list[Path] | None = None,
     require_sarif_import: bool = False,
 ) -> None:
-    if fmt not in {"md", "json", "both"}:
-        console.print("[red]--format must be md | json | both[/red]")
-        raise typer.Exit(code=2)
-
-    if require_sarif_import and not import_sarif:
-        console.print(
-            "[red]--require-sarif-import needs at least one --import-sarif path[/red]"
-        )
-        raise typer.Exit(code=2)
-
-    if scanners_only and dry_run:
-        console.print("[red]--scanners-only cannot be combined with --dry-run[/red]")
-        raise typer.Exit(code=2)
-
-    if force_full and force_changed:
-        console.print("[red]--full and --changed cannot be combined[/red]")
-        raise typer.Exit(code=2)
-
-    if git_diff is not None and force_full:
-        console.print("[red]--full and --git-diff cannot be combined[/red]")
-        raise typer.Exit(code=2)
-
-    if git_diff is not None and force_changed:
-        console.print("[red]--changed and --git-diff cannot be combined[/red]")
-        raise typer.Exit(code=2)
-
-    if deep_passes is not None and deep_passes < 1:
-        console.print("[red]--deep-passes must be >= 1[/red]")
-        raise typer.Exit(code=2)
-
-    if quiet and verbose:
-        console.print("[red]--quiet and --verbose cannot be combined[/red]")
-        raise typer.Exit(code=2)
-
-    progress = ReviewProgress(
-        quiet=quiet,
-        verbose=verbose,
-        heartbeat_seconds=heartbeat,
-        console=console,
-    )
-
     resolved = None
-    ratchet_breached = False
-    try:
+
+    def _reject_run_flags():
+        if fmt not in {"md", "json", "both"}:
+            console.print("[red]--format must be md | json | both[/red]")
+            raise typer.Exit(code=2)
+
+        if require_sarif_import and not import_sarif:
+            console.print(
+                "[red]--require-sarif-import needs at least one --import-sarif path[/red]"
+            )
+            raise typer.Exit(code=2)
+
+        if scanners_only and dry_run:
+            console.print("[red]--scanners-only cannot be combined with --dry-run[/red]")
+            raise typer.Exit(code=2)
+
+        if force_full and force_changed:
+            console.print("[red]--full and --changed cannot be combined[/red]")
+            raise typer.Exit(code=2)
+
+        if git_diff is not None and force_full:
+            console.print("[red]--full and --git-diff cannot be combined[/red]")
+            raise typer.Exit(code=2)
+
+        if git_diff is not None and force_changed:
+            console.print("[red]--changed and --git-diff cannot be combined[/red]")
+            raise typer.Exit(code=2)
+
+        if deep_passes is not None and deep_passes < 1:
+            console.print("[red]--deep-passes must be >= 1[/red]")
+            raise typer.Exit(code=2)
+
+        if quiet and verbose:
+            console.print("[red]--quiet and --verbose cannot be combined[/red]")
+            raise typer.Exit(code=2)
+
+    def _execute_run_mode():
+        nonlocal resolved
+        ratchet_breached = False
         try:
             local_path = _coerce_local_path(path)
             kind, value = select_source(
@@ -256,43 +294,22 @@ def _run_mode(
 
         if triggered or ratchet_breached:
             raise typer.Exit(code=1)
-    except FileNotFoundError as exc:
-        console.print(f"[red]Config/source error:[/red] {exc}")
-        raise typer.Exit(code=2) from exc
-    except ValueError as exc:
-        console.print(f"[red]Config/usage error:[/red] {exc}")
-        raise typer.Exit(code=2) from exc
-    except ScannerRequirementError as exc:
-        console.print(f"[red]{exc}[/red]")
-        console.print("Install with [cyan]repolens plugins install[/cyan] or see docs/scanners.md")
-        raise typer.Exit(code=2) from exc
-    except SarifImportError as exc:
-        console.print(f"[red]SARIF import:[/red] {exc}")
-        raise typer.Exit(code=2) from exc
-    except LlmError as exc:
-        from repolens.llm import provider_setup_hints
 
-        console.print(f"[red]Model error:[/red] {exc}")
-        msg = str(exc).lower()
-        if "no model provider" in msg or "missing api key" in msg:
-            for line in provider_setup_hints():
-                console.print(f"[yellow]→[/yellow] {line}")
-        elif "timed out" in msg:
-            console.print(
-                "[yellow]→[/yellow] Tip: [cyan]--timeout 1800[/cyan], "
-                "[cyan]--mode diff --since HEAD~20[/cyan], or "
-                "[cyan]--scanners-only[/cyan] / [cyan]--dry-run[/cyan] first."
-            )
-        else:
-            console.print(
-                "Run [cyan]repolens init[/cyan] or see docs/setup-ai-and-scanners.md"
-            )
-        raise typer.Exit(code=4) from exc
+
+    _reject_run_flags()
+    progress = ReviewProgress(
+        quiet=quiet,
+        verbose=verbose,
+        heartbeat_seconds=heartbeat,
+        console=console,
+    )
+    try:
+        _execute_run_mode()
     except typer.Exit:
         raise
-    except RuntimeError as exc:
-        console.print(f"[red]Source error:[/red] {exc}")
-        raise typer.Exit(code=3) from None
+    except Exception as exc:
+        _map_run_mode_error(exc)
+        raise
     finally:
         if resolved is not None:
             cleanup_source(resolved)

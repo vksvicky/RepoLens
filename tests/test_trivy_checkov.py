@@ -12,6 +12,29 @@ from repolens.scanners.trivy import parse_trivy_report, run_trivy
 from repolens.schema import Severity
 
 
+def _trivy_vuln() -> dict:
+    return {
+        "VulnerabilityID": "CVE-2024-0001",
+        "PkgName": "demo",
+        "InstalledVersion": "1.0.0",
+        "FixedVersion": "1.0.1",
+        "Severity": "HIGH",
+        "Title": "Demo vuln",
+        "Description": "Bad package",
+    }
+
+
+def _trivy_misconfig() -> dict:
+    return {
+        "ID": "DS002",
+        "Title": "Image user should not be root",
+        "Description": "Running as root",
+        "Severity": "MEDIUM",
+        "PrimaryURL": "https://example.com/ds002",
+        "CauseMetadata": {"StartLine": 12, "EndLine": 12},
+    }
+
+
 def test_parse_trivy_vulnerabilities_and_misconfigs() -> None:
     payload = {
         "Results": [
@@ -19,32 +42,13 @@ def test_parse_trivy_vulnerabilities_and_misconfigs() -> None:
                 "Target": "requirements.txt",
                 "Class": "lang-pkgs",
                 "Type": "pip",
-                "Vulnerabilities": [
-                    {
-                        "VulnerabilityID": "CVE-2024-0001",
-                        "PkgName": "demo",
-                        "InstalledVersion": "1.0.0",
-                        "FixedVersion": "1.0.1",
-                        "Severity": "HIGH",
-                        "Title": "Demo vuln",
-                        "Description": "Bad package",
-                    }
-                ],
+                "Vulnerabilities": [_trivy_vuln()],
             },
             {
                 "Target": "Dockerfile",
                 "Class": "config",
                 "Type": "dockerfile",
-                "Misconfigurations": [
-                    {
-                        "ID": "DS002",
-                        "Title": "Image user should not be root",
-                        "Description": "Running as root",
-                        "Severity": "MEDIUM",
-                        "PrimaryURL": "https://example.com/ds002",
-                        "CauseMetadata": {"StartLine": 12, "EndLine": 12},
-                    }
-                ],
+                "Misconfigurations": [_trivy_misconfig()],
             },
         ]
     }

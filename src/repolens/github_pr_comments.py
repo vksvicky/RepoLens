@@ -180,6 +180,93 @@ def _pull_head_sha(
     return str(sha)
 
 
+def _patch_review_comment(
+    client: httpx.Client,
+    *,
+    owner: str,
+    repo: str,
+    comment_id: int,
+    body: str,
+) -> httpx.Response:
+    return client.patch(
+        f"{_API}/repos/{owner}/{repo}/pulls/comments/{comment_id}",
+        json={"body": body},
+    )
+
+
+def _create_review_comment(
+    client: httpx.Client,
+    *,
+    owner: str,
+    repo: str,
+    pr_number: int,
+    body: str,
+    head_sha: str,
+    path: str,
+    line: int,
+) -> httpx.Response:
+    payload = {
+        "body": body,
+        "commit_id": head_sha,
+        "path": path,
+        "line": line,
+        "side": "RIGHT",
+    }
+    return client.post(
+        f"{_API}/repos/{owner}/{repo}/pulls/{pr_number}/comments",
+        json=payload,
+    )
+
+
+def _http_error(response: httpx.Response, *, label: str) -> str | None:
+    if response.status_code < 400:
+        return None
+    return f"{label}: HTTP {response.status_code} {response.text[:200]}"
+
+
+def _sync_one_comment(
+    client: httpx.Client,
+    *,
+    owner: str,
+    repo: str,
+    pr_number: int,
+    issue: Issue,
+    sid: str,
+    body: str,
+    path: str,
+    head_sha: str,
+    prior: dict[str, Any] | None,
+) -> tuple[int, int, int, str | None]:
+    """Return (created, updated, skipped, error) for one review comment."""
+    if prior and prior.get("id") is not None:
+        response = _patch_review_comment(
+            client,
+            owner=owner,
+            repo=repo,
+            comment_id=int(prior["id"]),
+            body=body,
+        )
+        detail = _http_error(response, label=f"update {sid}")
+        if detail is None:
+            return 0, 1, 0, None
+        return 0, 0, 1, detail
+    response = _create_review_comment(
+        client,
+        owner=owner,
+        repo=repo,
+        pr_number=pr_number,
+        body=body,
+        head_sha=head_sha,
+        path=path,
+        line=int(issue.line),
+    )
+    # Line may not be in the PR diff — skip quietly with note.
+    detail = _http_error(response, label=f"create {sid}@{path}:{issue.line}")
+    if detail is None:
+        return 1, 0, 0, None
+    return 0, 0, 1, detail
+
+
 def post_or_update_review_comments(
     report: FindingReport,
     *,
@@ -211,40 +298,23 @@ def post_or_update_review_comments(
             assert path is not None  # filtered above
             prior = existing.get(sid)
             try:
-                if prior and prior.get("id") is not None:
-                    cid = int(prior["id"])
-                    response = client.patch(
-                        f"{_API}/repos/{owner}/{repo}/pulls/comments/{cid}",
-                        json={"body": body},
-                    )
-                    if response.status_code >= 400:
-                        errors.append(
-                            f"update {sid}: HTTP {response.status_code} {response.text[:200]}"
-                        )
-                        skipped += 1
-                    else:
-                        updated += 1
-                else:
-                    payload = {
-                        "body": body,
-                        "commit_id": head_sha,
-                        "path": path,
-                        "line": int(issue.line),
-                        "side": "RIGHT",
-                    }
-                    response = client.post(
-                        f"{_API}/repos/{owner}/{repo}/pulls/{pr_number}/comments",
-                        json=payload,
-                    )
-                    if response.status_code >= 400:
-                        # Line may not be in the PR diff — skip quietly with note.
-                        errors.append(
-                            f"create {sid}@{path}:{issue.line}: "
-                            f"HTTP {response.status_code} {response.text[:200]}"
-                        )
-                        skipped += 1
-                    else:
-                        created += 1
+                created_n, updated_n, skipped_n, detail = _sync_one_comment(
+                    client,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=pr_number,
+                    issue=issue,
+                    sid=sid,
+                    body=body,
+                    path=path,
+                    head_sha=head_sha,
+                    prior=prior,
+                )
+                created += created_n
+                updated += updated_n
+                skipped += skipped_n
+                if detail:
+                    errors.append(detail)
             except (httpx.HTTPError, TypeError, ValueError) as exc:
                 errors.append(f"{sid}: {exc}")
                 skipped += 1
