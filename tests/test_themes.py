@@ -56,6 +56,9 @@ def test_canonicalize_and_heuristic_theme_map() -> None:
     assert theme_id_for_category("heuristic.ci_gaps") == "arch.ci_durability"
     assert theme_id_for_category("quality.near_clone") == "arch.dry"
     assert theme_id_for_category("arch.import_cycle") == "arch.solid_dip"
+    assert theme_id_for_category("quality.complexity") == "arch.kiss"
+    assert theme_id_for_category("testing.missing_tests") == "arch.testing"
+    assert theme_id_for_category("testing.scenario_gap") == "arch.testing"
     for principle in (
         "arch.dry",
         "arch.kiss",

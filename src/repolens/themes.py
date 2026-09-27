@@ -25,6 +25,10 @@ HEURISTIC_TO_THEME: dict[str, str] = {
     "heuristic.ci_gaps": "arch.ci_durability",
     "quality.near_clone": "arch.dry",
     "arch.import_cycle": "arch.solid_dip",
+    "quality.complexity": "arch.kiss",
+    "arch.complexity": "arch.kiss",
+    "testing.missing_tests": "arch.testing",
+    "testing.scenario_gap": "arch.testing",
 }
 
 CORE_THEME_IDS: frozenset[str] = frozenset(
