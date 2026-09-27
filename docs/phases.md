@@ -8,7 +8,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
 **Current phase:** Phases **0–7**, **Wave A/B**, **Wave C (G0–G4)**, Phase **8**, Phase **9** Gemini MVP, and LogViewer dogfood (**#15/#16/#13**) complete ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)). Vertex/Bedrock follow-up → [#58](https://github.com/vksvicky/RepoLens/issues/58).  
 **GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12).  
-**Parked (no sticky tracker):** light heuristics / formal Semgrep–CodeQL study cells / SARIF import stretch / full Trivy registry-auth matrix (formerly [#11](https://github.com/vksvicky/RepoLens/issues/11)); **#17b** local UI calibrations.  
+**Parked (no sticky tracker):** light heuristics / formal Semgrep–CodeQL study cells / full Trivy registry-auth matrix (formerly [#11](https://github.com/vksvicky/RepoLens/issues/11)); **#17b** local UI calibrations. SARIF import shipped (`--import-sarif`).  
 **Feedback:** [Discussions](https://github.com/vksvicky/RepoLens/discussions) + [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose) (feedback mega-thread [#6](https://github.com/vksvicky/RepoLens/issues/6) closed).
 
 **CLI language:** Python 3.11+
@@ -33,7 +33,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [x] Sourcery/CodeRabbit vs gate — see [repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit) |
 | 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 done ([PR #51](https://github.com/vksvicky/RepoLens/pull/51)); Phase 9 Gemini MVP done ([PR #52](https://github.com/vksvicky/RepoLens/pull/52)); Vertex/Bedrock → [#58](https://github.com/vksvicky/RepoLens/issues/58) |
 | Dogfood: 32B cost / change-set | [#15](https://github.com/vksvicky/RepoLens/issues/15) / [#16](https://github.com/vksvicky/RepoLens/issues/16) | **Done** ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)); umbrella [#13](https://github.com/vksvicky/RepoLens/issues/13) closed |
-| Deferred residuals | formerly [#11](https://github.com/vksvicky/RepoLens/issues/11) | **Closed** — parked in phases header (no sticky tracker) |
+| Deferred residuals | formerly [#11](https://github.com/vksvicky/RepoLens/issues/11) | **Closed** — parked in phases header (heuristics / study / Trivy registry); SARIF **import** shipped (`--import-sarif`) |
 | Community feedback | formerly [#6](https://github.com/vksvicky/RepoLens/issues/6) | **Closed** — [Discussions](https://github.com/vksvicky/RepoLens/discussions) + issue templates |
 | Local UI calibrations | #17b on [#17](https://github.com/vksvicky/RepoLens/issues/17) | Parked |
 ---
@@ -325,7 +325,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Prefer scanner locations when `source=scanner` | [x] | Trusted without quote |
 | Unresolved anchors omitted from SARIF (kept in MD flagged) | [x] | `locationVerified` |
 | SARIF export + CI recipes (GHAS / Sonar / external) | [x] | `--sarif` · [ci.md](./ci.md) |
-| Optional SARIF import (CodeQL/Semgrep) | [ ] | Stretch — out of 6.4 ship |
+| SARIF import (CodeQL/Sonar/ESLint companion) | [x] | `--import-sarif` · [scanners.md](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-) |
 
 **Exit:** SARIF never emits unverified LLM line numbers; GHAS recipe documented. → **Met (2026-08-06)**
 

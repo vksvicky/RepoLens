@@ -78,6 +78,35 @@ When Trivy is on `PATH` or in the plugin cache (or requested via `--scanners …
 | `--scanners gitleaks,osv` | Run only these |
 | `--require-scanners` | Exit 2 if an enabled/requested scanner is missing |
 | `--scanners-only` | Skip LLM; report scanner results only |
+| `--import-sarif PATH` | Merge findings from a SARIF 2.1 file (repeatable); `source=scanner`; tool run appears as `sarif:<driver>` in **Automated scanners** |
+
+## Import third-party SARIF (CodeQL, Sonar, ESLint, …)
+
+RepoLens does **not** replace your existing SAST fleet. When CodeQL, SonarQube, ESLint, or another tool already emits SARIF 2.1, merge those rows into the same gate report instead of maintaining a parallel shell pipeline:
+
+```bash
+TARGET=/path/to/your-repo
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/codeql.sarif" \
+  --import-sarif "$TARGET/eslint.sarif" \
+  --fail-on HIGH
+```
+
+- Repeat `--import-sarif` for each file; dialect-tolerant parsing (per-run driver name → `sarif:ESLint`, `sarif:CodeQL`, …).
+- Imported rows use `source=scanner` and participate in **`--fail-on`** like native gitleaks/semgrep output.
+- **`--fail-on`** is the **machine gate** (exit code 1). **`--format md`**, JSON, PDF/export, and LLM narrative are **reporting** — add `--format md` or `--format both` when you want an executive Markdown pack; they do not change the gate by themselves.
+
+Companion CI pattern (run upstream SARIF first, then RepoLens):
+
+```bash
+# After CodeQL / Sonar / ESLint steps write SARIF artifacts:
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/codeql.sarif" \
+  --import-sarif "$TARGET/eslint.sarif" \
+  --format both --fail-on HIGH
+```
+
+See [ci.md](./ci.md#import-external-sarif-companion-gate) · export (outbound) SARIF: [faq](./faq.md#does-repolens-export-sarif-for-github--sonar).
 
 ## Cache location
 
