@@ -1,6 +1,6 @@
 # Phase 9 — Native provider SDKs (design)
 
-**Status:** Gemini AI Studio MVP implemented; Vertex / Bedrock follow-ups open  
+**Status:** Gemini AI Studio + Vertex + Bedrock Converse shipped (Phase 9 complete for P0/P1 natives)  
 **Date:** 2026-08-05  
 **Depends on:** Phase 8 (aliases + recipes); streamed wait UX patterns from current LLM layer  
 **Not Phase 7 / 8:** Phase 7 = enterprise CI; Phase 8 = OpenAI-compatible aliases + docs. This phase is **Option 3** — first-party adapters where the wire protocol is not OpenAI chat completions.
@@ -72,8 +72,8 @@ Optional later: pluggable `ProviderAdapter` protocol if the `if provider ==` lad
 - [x] FAQ/setup mark native vs Phase 8 alias clearly  
 - [x] Fallback guidance: if native unavailable, Phase 8 `openai_compatible` / gateway still documented  
 - [x] No regression to OpenAI / Anthropic / DeepSeek / Ollama paths  
-- [ ] Vertex AI (ADC) — follow-up  
-- [ ] Bedrock Converse — follow-up  
+- [x] Vertex AI (hybrid env token + optional ADC) — [#58](https://github.com/vksvicky/RepoLens/issues/58)  
+- [x] Bedrock Converse stream (SigV4) — [#58](https://github.com/vksvicky/RepoLens/issues/58)  
 
 ## 8. Related
 

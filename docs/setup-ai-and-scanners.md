@@ -47,10 +47,22 @@ You create an account with an AI company, copy a **secret key**, and let RepoLen
 | `anthropic` | `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) → API keys | Streamed chars/chunks (Messages SSE) |
 | `deepseek` | `DEEPSEEK_API_KEY` | [platform.deepseek.com](https://platform.deepseek.com) → API keys | Streamed chars/chunks |
 | `gemini` | `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/apikey) | Streamed chars/chunks (native Generative Language SSE) |
+| `vertex` | `VERTEX_ACCESS_TOKEN` (or ADC via `[vertex]` extra) | GCP project + Vertex Gemini | Streamed SSE (same shape as Gemini); set `VERTEX_PROJECT` |
+| `bedrock` | `AWS_ACCESS_KEY_ID` (+ secret / region) | AWS Bedrock Converse | Streamed event-stream text deltas |
 
 ```bash
 repolens init --provider gemini --force
 export GEMINI_API_KEY=...
+
+repolens init --provider vertex --force
+export VERTEX_PROJECT=my-gcp-project
+export VERTEX_ACCESS_TOKEN=$(gcloud auth print-access-token)
+# or: pip install 'repolens-audit[vertex]' and use ADC
+
+repolens init --provider bedrock --force
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_REGION=us-east-1
 ```
 
 **Phase 8 aliases** (OpenAI-compatible transport; same streamed wait UX):
