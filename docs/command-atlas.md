@@ -109,7 +109,8 @@ Set once in the shell: `TARGET=/Users/[username]/Development/[your-project]`
 | Fingerprint changed pack | Adaptive SQLite delta (not git) | `repolens review --path "$TARGET" --out "$TARGET/reports" --changed` |
 | Git change-set Slow Brain | Restrict LLM pack to `git` delta | `repolens review --path "$TARGET" --out "$TARGET/reports" --git-diff auto --deep --deep-passes 1 --timeout 1800` |
 | Domain pack | Pack heuristics in `-v` detail | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only --pack azure-sentinel -v` |
-| SARIF | Also writes anchored SARIF | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only --sarif` |
+| SARIF export | Also writes anchored SARIF (outbound) | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only --sarif` |
+| SARIF import (companion gate) | Merges CodeQL/Sonar/ESLint SARIF; **Automated scanners** lists `sarif:<tool>`; no LLM | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only --import-sarif "$TARGET/codeql.sarif" --fail-on HIGH` |
 | Verify Criticals | Location re-check (non-fatal) | `repolens review --path "$TARGET" --out "$TARGET/reports" --verify-findings` |
 | Sentinel (P1) | Security-focused report name | `repolens sentinel --path "$TARGET" --out "$TARGET/reports" --scanners-only` |
 | Architecture | Architecture playbook path | `repolens architecture --path "$TARGET" --out "$TARGET/reports" --dry-run` |
@@ -411,8 +412,10 @@ Work top-down. Most “broken” first runs are install, PATH, or provider setup
 
 1. Read the Markdown **and** JSON under `reports/` (or Action artifact).
 2. With `--ci`, fail-on prefers **scanner** findings — LLM-only rows usually do not sole-fail.
-3. Suppress noise with `.repolens-ignore` / `repolens feedback down` — [rules.md](./rules.md).
-4. Action recipe: [ci.md](./ci.md).
+3. **`--fail-on`** = build gate (exit code). **`--format md` / PDF / `--sarif`** = artifacts for humans or ASPM — do not conflate; you can gate with `--fail-on HIGH` and skip Markdown (`--format json` only) or add `--format both` for an executive pack.
+4. External tool SARIF: `--import-sarif` (repeatable) — [scanners.md](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-).
+5. Suppress noise with `.repolens-ignore` / `repolens feedback down` — [rules.md](./rules.md).
+6. Action recipe: [ci.md](./ci.md).
 
 ### E. Remotes / clone failures
 
