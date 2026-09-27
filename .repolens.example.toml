@@ -1,145 +1,282 @@
-# Security note: project-local [model] provider/base_url/api_key_env are IGNORED
-# unless you pass --trust-project-config (prevents untrusted-repo exfiltration).
-# Safe project overrides: model name, report_dir (relative only).
+# RepoLens config template.
+# Copy to ./.repolens.toml (this repo) or ~/.config/repolens/config.toml (all repos).
+# Precedence: CLI flags > REPOLENS_* env > project .repolens.toml > user config.toml.
+# Do not commit real secrets. CLI runtime: Python 3.11+.
 #
-# Example config for the RepoLens CLI (Phases 1–4).
-# CLI runtime: Python 3.11+
-# Copy to ~/.config/repolens/config.toml or ./.repolens.toml and fill in values.
-# Do not commit real secrets.
+# Project .repolens.toml may set every field below EXCEPT [model] provider,
+# base_url, and api_key_env. Those three are ignored unless you pass
+# --trust-project-config (stops an untrusted repo from redirecting API calls).
+# Model *name* and timeout_seconds are safe in the project file.
 #
-# Target languages (what you review): see docs/faq.md — source-agnostic with
-# first-class JS/TS, Python, Go, JVM, C#, Ruby, PHP, Rust, Swift (+ IaC).
+# Lines below are commented so copying this file does not change defaults.
+# Uncomment a recommended profile, then uncomment individual fields to override.
+#
+# Languages reviewed: see docs/faq.md (JS/TS, Python, Go, JVM, C#, Ruby, PHP,
+# Rust, Swift, plus IaC).
+
+# --- Recommended profiles ---------------------------------------------------
+#
+# Daily / PR (defaults). Fast Brain scans the tree; Slow Brain sees the top 200
+# files by priority. Adaptive auto keeps changed files plus the P1 band.
+#
+# [general]
+# max_files = 200
+# [adaptive]
+# mode = "auto"
+# [deep]
+# max_passes = 1          # P1 security pass only; delete this line for P1→P3
+# [model]
+# timeout_seconds = 900   # one LLM call; raise if a pass is cut off
+#
+# Release audit (whole matched tree, all bands). On local qwen2.5-coder:32b
+# this is hours, not minutes. Also pass: --full --full-audit --deep --timeout 7200
+#
+# [general]
+# max_files = 0           # 0 = no Slow Brain cap (every matched file)
+# [model]
+# provider = "ollama"     # user config or --trust-project-config if project-local
+# model = "qwen2.5-coder:32b"
+# timeout_seconds = 7200
+# [adaptive]
+# mode = "full"           # do not shrink the pack to changed/P1 files
+# max_timeout_seconds = 7200
+# [scanners]
+# enabled = ["gitleaks", "semgrep", "osv", "trivy", "checkov"]
+# [deep]
+# # omit max_passes so P1, P2, and P3 all run
 
 [general]
-# default_mode = "review"   # review | sentinel | architecture
+# default_mode = "review"
+#   Default when you run `repolens review` without --mode.
+#   review = full P1→P3 review. sentinel = security-only. architecture = structure.
+#   Recommended: "review".
 # report_dir = "reports"
-# max_files = 200           # Slow Brain LLM sample pool (priority-sorted)
+#   Where Markdown/JSON reports are written, relative to the repo root.
+#   Absolute paths and `..` escapes are rejected. Recommended: "reports".
+# max_files = 200
+#   Slow Brain sample size after priority sort (band, then path). Fast Brain
+#   uses [fast_brain].max_files and is not limited by this.
+#   0 = no cap (every matched file goes to the model).
+#   Recommended: 200 for daily/PR; 0 for a release audit.
 
 [model]
-# provider = "openai"       # or anthropic | deepseek | ollama | gemini | groq | mistral | azure | openai_compatible | …
+# provider = "openai"
+#   openai | anthropic | deepseek | ollama | gemini | groq | mistral | azure |
+#   vertex | bedrock | openai_compatible.
+#   Ignored in project .repolens.toml unless --trust-project-config.
+#   Recommended for a local audit: "ollama".
 # model = "gpt-4.1"
-# api_key_env = "OPENAI_API_KEY"   # BYOK — never commit real keys
-# Phase 8 aliases write provider = "groq" (etc.) with host base_url + key env
-# Phase 9 native: provider = "gemini", api_key_env = "GEMINI_API_KEY", model = "gemini-2.0-flash"
-# For local/self-sufficient: provider = "ollama", model = "qwen2.5:7b", base_url = "http://127.0.0.1:11434/v1"
-# Azure: provider = "azure", base_url = "https://<resource>.openai.azure.com/openai/v1", model = "<deployment>"
-# timeout_seconds = 900     # HTTP wait for one LLM call (ollama default 900; cloud 120)
-# Also: export REPOLENS_TIMEOUT=1800  or  repolens review --timeout 1800
+#   Provider model id (Ollama tag, Azure deployment name, etc.). Safe in a
+#   project file. Recommended local quality: "qwen2.5-coder:32b".
+# api_key_env = "OPENAI_API_KEY"
+#   Env var that holds the key. Never put the key itself here.
+#   Ignored in project config unless --trust-project-config.
+#   Allowed names are the provider defaults (OPENAI_API_KEY, GEMINI_API_KEY, …).
+# base_url = "http://127.0.0.1:11434/v1"
+#   OpenAI-compatible endpoint. Ollama local: http://127.0.0.1:11434/v1.
+#   Ignored in project config unless --trust-project-config.
+# timeout_seconds = 900
+#   Wall-clock limit for one LLM stream, not the whole review.
+#   Ollama default 900; cloud default 120. Also: --timeout or REPOLENS_TIMEOUT.
+#   Recommended: 900 for a 200-file pass; 7200 when max_files = 0 on a 32B model.
+# fallback = true
+#   If the configured cloud model fails, try local Ollama, then scanners and
+#   heuristics. CLI: --fallback / --no-fallback. Recommended: true.
 
 [scanners]
-# enabled = ["gitleaks", "semgrep", "osv"]   # detect if on PATH or cache
-# Also available (Phase 6.1): "trivy", "checkov" — install via `repolens plugins install`
-# enabled = ["gitleaks", "semgrep", "osv", "trivy", "checkov"]
-# require = false                             # if true, exit 2 when a scanner is missing
-# sbom = true                                 # CycloneDX via Trivy when available (Phase 6.2)
-# licenses = true                             # license summary from SBOM when available
+# enabled = ["gitleaks", "semgrep", "osv"]
+#   Tools run on the full tree (not the Slow Brain cap). Missing binaries are
+#   skipped unless require = true. Install extras with `repolens plugins install`.
+#   Also available: "trivy", "checkov".
+#   Recommended daily: the three defaults.
+#   Recommended release audit: ["gitleaks", "semgrep", "osv", "trivy", "checkov"].
+# require = false
+#   true = exit 2 when a requested scanner is missing. CLI: --require-scanners.
+#   Recommended: false for laptops; true in CI once the tools are installed.
+# sbom = true
+#   Write a CycloneDX SBOM when Trivy is available. Recommended: true.
+# licenses = true
+#   License notes from that SBOM when present. Recommended: true.
 
 [ci]
-# triage_routing = false                      # or pass --ci (enables routing + changed pack)
-# llm_on_clean_diff = false                   # keep false in PR CI
+# triage_routing = false
+#   Same as --ci: scanners/Fast Brain on the whole tree; LLM only if the
+#   severity floor is hit, otherwise Slow Brain is bypassed.
+#   Recommended: false for an audit; true (or just pass --ci) for pull requests.
+# llm_on_clean_diff = false
+#   Still call the model when triage finds nothing. Recommended: false in CI.
 # max_triage_files = 8
+#   Cap on files sent to the LLM after a triage hit. Recommended: 8.
 # max_snippet_chars = 8000
+#   Snippet size included for those hit files. Recommended: 8000.
 # max_llm_passes_in_ci = 1
-# severity_floor = "HIGH"                     # scanner severities that count as triage hits
-# fail_on_scanner_only = true                 # --fail-on ignores LLM/heuristic rows when triage on
+#   Deep bands when --ci is on (1 = P1 only). Recommended: 1.
+# severity_floor = "HIGH"
+#   Scanner/heuristic severity that counts as a triage hit.
+#   CRITICAL | HIGH | MEDIUM | LOW. Recommended: "HIGH".
+# fail_on_scanner_only = true
+#   With triage on, --fail-on ignores LLM and heuristic rows.
+#   Recommended: true in CI so the gate is deterministic.
 
 [packs]
-# enabled = []                                # Phase 6.10 — off by default
-# enabled = ["azure-sentinel"]                # or: repolens review --pack azure-sentinel
-# See docs/packs.md — does not replace Checkov/ARM-TTK
+# enabled = []
+#   Optional domain playbooks (Phase 6.10). Does not replace Checkov.
+#   Example: ["azure-sentinel"]. CLI: --pack azure-sentinel.
+#   Recommended: [] unless you are reviewing that domain.
 
 [graph]
-# enabled = true                              # false skips import-graph analysis (durability note)
-# type_only = "ignore"                        # ignore | warn (TYPE_CHECKING-only edges)
-# local_imports = "exclude"                   # exclude | include (function-local imports)
-# critical_scc_size = 8                       # SCC size at or above → CRITICAL severity
-# packages = ["repolens"]                     # optional override; skips auto-discovery when set
-# ratchet = false                             # review: fail if cyclicity exceeds baseline
-# baseline_path = ".repolens/baseline.json"   # committed debt snapshot (see `repolens baseline set`)
-# require_baseline = false                    # check --diff may require baseline file
-# Architecture DSL (G4): place repolens.yaml at repo root (see docs/command-atlas.md)
-#   schemaVersion: 1
-#   boundaries: [{ name: domain, path: src/domain/**, allowed_imports: [] }]
-# Then: repolens check architecture --path .
+# enabled = true
+#   Python import-cycle analysis (grimp). false leaves a durability note.
+#   Recommended: true.
+# type_only = "ignore"
+#   TYPE_CHECKING-only edges: "ignore" | "warn". Recommended: "ignore".
+# local_imports = "exclude"
+#   Function-local imports: "exclude" | "include". Recommended: "exclude".
+# critical_scc_size = 8
+#   Cycle group at least this large is CRITICAL. Recommended: 8.
+# packages = ["repolens"]
+#   Override package discovery. Omit to infer from src/ and pyproject.toml.
+# ratchet = false
+#   Fail the review when cyclicity rises above the baseline. Recommended: false
+#   until `repolens baseline set` has been committed; then true in CI.
+# baseline_path = ".repolens/baseline.json"
+#   Debt snapshot used by the ratchet. Recommended: ".repolens/baseline.json".
+# require_baseline = false
+#   `repolens check --diff` fails if the baseline file is missing.
+#   Recommended: true in CI after the baseline exists; false locally.
 
 [fast_brain]
-# max_files = 10000                           # Fast Brain heuristics (0 = uncapped matched)
-# parallel_workers = 8                        # I/O thread pool for line/regex heuristics
-# triage_include_heuristics = true            # --ci: heuristic High+ can wake LLM
-# Line/regex heuristics + optional Python ast (complexity + test inventory)
-
-[complexity]
-# enabled = true                              # Python McCabe + cognitive via stdlib ast
-# hotspot_limit = 10                          # Markdown Top-N hotspot table
-# top_n_ai_explanations = 5                   # Slow Brain pack cap (hard max 10)
-
-[testing]
-# inventory = true                            # Count test files + test cases (ast)
+# max_files = 10000
+#   Whole-tree heuristics, complexity, and test inventory. 0 = uncapped
+#   (ignores and the ~200 KB per-file limit still apply). Recommended: 10000,
+#   or 0 on a monorepo you know is safe to walk.
+# parallel_workers = 8
+#   Threads for line/regex heuristics. Recommended: 8.
+# triage_include_heuristics = true
+#   Under --ci, heuristic High+ findings can wake the LLM. Recommended: true.
 
 [fast_brain.near_clones]
 # enabled = true
+#   Duplicate-window detection (DRY signal). Recommended: true.
 # window_lines = 12
+#   Lines hashed per window. Recommended: 12.
 # stride = 6
+#   How far the window steps. Recommended: 6.
 # min_occurrences = 2
-# max_clusters = 50          # scorecard cap
-# max_findings = 10          # emitted Issue cap
+#   Copies required before a cluster counts. Recommended: 2.
+# max_clusters = 50
+#   Scorecard cap. Recommended: 50.
+# max_findings = 10
+#   Issues actually emitted (scorecard can show more). Recommended: 10.
 # medium_at_occurrences = 4
-# header_comment_lines = 15  # suppress comment-only header windows
-# exclude_globs = []         # extra paths (defaults include migrations/, *_pb2.py, generated/)
+#   Cluster size that raises severity to MEDIUM. Recommended: 4.
+# header_comment_lines = 15
+#   Ignore comment-only headers of this length. Recommended: 15.
+# exclude_globs = []
+#   Extra paths. Defaults already skip migrations/, *_pb2.py, and generated/.
+
+[complexity]
+# enabled = true
+#   Python cyclomatic + cognitive scores via stdlib ast. Recommended: true.
+# hotspot_limit = 10
+#   Rows in the Markdown Top-N table (0–50). Recommended: 10.
+# top_n_ai_explanations = 5
+#   Hotspot slices added to the Slow Brain prompt (0–10, hard max 10).
+#   Recommended: 5. Raise toward 10 only on a release audit.
+
+[testing]
+# inventory = true
+#   Count Python test files and test cases (not line coverage).
+#   Recommended: true.
 
 [local_learning]
-# enabled = false           # opt-in; data stays on disk (see docs/local-learning.md)
-# cache_dir = ".repolens"   # also requires: repolens learn build --accept-local-learning
+# enabled = false
+#   On-disk retrieval for later reviews. Also requires
+#   `repolens learn build --accept-local-learning`. Recommended: false
+#   until you have opted in.
+# cache_dir = ".repolens"
+#   Where the local index lives. Recommended: ".repolens".
 
 [adaptive]
-# enabled = true            # Phase 5: fingerprint cache in .repolens/repolens.sqlite
-# mode = "auto"             # auto | full | changed
+# enabled = true
+#   Fingerprint cache in .repolens/repolens.sqlite. Recommended: true.
+# mode = "auto"
+#   auto = changed/added files plus P1-band (full pack when nothing changed).
+#   full = every file already in the Slow Brain pool.
+#   changed = only added/changed files (skip the LLM if none).
+#   CLI: --full or --changed overrides this. Recommended: "auto" daily;
+#   "full" for a release audit (or pass --full and leave this).
 # timeout_margin = 1.3
+#   Multiplier on the learned timeout recommendation. Recommended: 1.3.
 # min_timeout_seconds = 120
+#   Floor for that recommendation. Recommended: 120.
 # max_timeout_seconds = 3600
+#   Ceiling for that recommendation. Recommended: 3600 daily; 7200 when
+#   max_files = 0 so a long 32B pass is not capped at one hour.
 
 [coverage]
-# Project audit declarations for deep-mode checklist ids (loaded without --trust-project-config).
-# Lazy N/A reasons (e.g. "not reviewed") are still rejected; findings override seeds.
-# Seed strings appear in Theme Breakdown Notes in the Markdown report.
+# Declared checklist answers for deep mode. Loaded without --trust-project-config.
+# A real finding overrides a seed. Lazy reasons ("not reviewed") are rejected.
+# Seed text shows up in the Theme Breakdown notes.
 #
 # [coverage.na]
 # sec.xss_csrf = "Native desktop app; no web/DOM attack surface"
 #
 # [coverage.covered]
-# sec.injection = "Audited: no SQL or shell=True sinks in reviewed pack"
+# sec.injection = "Audited: no SQL or shell=True sinks in the reviewed pack"
 
 [deep]
-# enabled = true            # Multi-pass deep coverage (default on for LLM runs)
-# chars_per_pass = 100000   # Max file-size budget (bytes) packed into each pass
-# mega_file_lines = 500     # Heuristic LOC threshold for mega-file findings
+# enabled = true
+#   P1→P3 checklist passes. CLI: --deep / --no-deep. Recommended: true.
+#   --no-deep is one LLM call and a thinner report.
+# chars_per_pass = 100000
+#   Max bytes of file text packed into one pass. Recommended: 100000.
+# max_passes = 0
+#   How many bands run. 0 or omit = all bands for the mode (P1 then P2 then P3
+#   on a review). 1 = P1 only. CLI: --deep-passes.
+#   Recommended: omit for a release audit; 1 for a fast security iteration.
+# mega_file_lines = 500
+#   Fast Brain flags a file at or above this many lines. Recommended: 500.
 # mega_file_exclude_globs = ["**/*.md", "**/docs/**", "**/.superpowers/**", "**/xcuserdata/**", "**/*.xcuserstate", "**/*.pbxproj"]
-# fp_calibrations = {
-#   subprocess_list_not_injection = true,  # list-form subprocess ≠ injection (default on)
-#   test_fixture_secrets = true,           # demote secrets under tests/fixtures (default on)
-#   intentional_vuln_example = true,       # demote intentional demo vulns in examples/ (default on)
-# }
-# critical_consistency = "off"            # off | heuristic | llm (Phase 6.7; cost-aware)
-# critical_consistency_include_high = false  # when on, also check HIGH (default Critical only)
-# feedback_calibrations = true            # soft-demote LLM noise from local feedback.jsonl
-# usage_hints = true                      # SCA package name appears in source? (not reachability)
-# cluster_duplicates = true               # collapse near-duplicate findings
-# verify_findings = false                 # or --verify-findings: Critical location re-check
-# vacuous_pass_confidence_floor = 75  # None/omit = auto 75 if scanners ran else 55; 0 = off
-# CLI: --deep / --no-deep (None → this config; --no-deep restores single-shot)
+#   Paths that do not count as mega-files. Recommended: keep the defaults;
+#   add generated trees you do not want flagged.
+# fp_calibrations = { subprocess_list_not_injection = true, test_fixture_secrets = true, intentional_vuln_example = true }
+#   Set an id to false to stop that demotion. Unknown ids are ignored.
+#   Recommended: leave the three defaults on.
+# critical_consistency = "off"
+#   Second look at Critical findings: "off" | "heuristic" | "llm".
+#   Recommended: "off" daily; "heuristic" on a release audit.
+# critical_consistency_include_high = false
+#   Also re-check HIGH when consistency is on. Recommended: false (cost).
+# feedback_calibrations = true
+#   Soft-demote issues you marked false-positive in local feedback.jsonl.
+#   Recommended: true.
+# usage_hints = true
+#   Note when an SCA package name appears in source (not a reachability proof).
+#   Recommended: true.
+# cluster_duplicates = true
+#   Collapse near-duplicate findings. Recommended: true.
+# verify_findings = false
+#   Re-check Critical locations against the file. CLI: --verify-findings.
+#   Recommended: false daily; true on a release audit.
+# vacuous_pass_confidence_floor = 75
+#   Floor when a pass returns no findings. Omit = 75 if scanners ran, else 55.
+#   0 = off. 1–100 = pin that floor. Recommended: omit (auto).
 
 [explain]
-# enabled = true              # repolens explain / review --explain (IDs still stamped when false)
-# diagram = "mermaid"         # mermaid | off
-# render_image = "auto"       # auto | always | never (optional mmdc; never blocks exit 0)
+# enabled = true
+#   `repolens explain` and `review --explain`. Fingerprints are still stamped
+#   when this is false. Recommended: true.
+# diagram = "mermaid"
+#   "mermaid" | "off". Recommended: "mermaid".
+# render_image = "auto"
+#   "auto" | "always" | "never". Uses optional mmdc; never fails the run.
+#   Recommended: "auto".
 
 [sources]
-# Private remotes: env tokens (also accepts GH_TOKEN for GitHub),
-# then fall back to `gh auth token` if available.
+# Env var names for private remotes. GitHub also accepts GH_TOKEN, then
+# `gh auth token` if the env var is empty. Values are names, not tokens.
 # github_token_env = "GITHUB_TOKEN"
 # bitbucket_token_env = "BITBUCKET_TOKEN"
 # hf_token_env = "HF_TOKEN"
-
-[review]
-# require_code_examples_for = ["critical", "high"]
-# priority_order = ["p1", "p2", "p3"]
+# Recommended: leave the defaults; export the tokens in the environment.

@@ -77,6 +77,71 @@ def test_run_gitleaks_parses_findings(tmp_path: Path) -> None:
     assert result.run.findingCount == 1
     assert result.issues[0].severity.value == "HIGH"
     assert result.issues[0].file == "app.py"
+    assert result.issues[0].category == "gitleaks"
+
+
+def test_gitleaks_git_history_is_separate_p1_secret(tmp_path: Path) -> None:
+    """History secrets are P1 sec.repo_hygiene_secrets, not the gitignore heuristic."""
+    (tmp_path / ".git").mkdir()
+    tree = MagicMock(returncode=0, stdout="[]", stderr="")
+    history_payload = [
+        {
+            "File": "config.py",
+            "StartLine": 12,
+            "RuleID": "private-key",
+            "Description": "Private key",
+            "Commit": "abc123def4567890",
+            "Secret": "-----BEGIN PRIVATE KEY----- super-secret",
+            "Match": "-----BEGIN PRIVATE KEY----- super-secret",
+        }
+    ]
+    history = MagicMock(returncode=1, stdout=json.dumps(history_payload), stderr="")
+    with (
+        patch("repolens.scanners.gitleaks.resolve_binary", return_value=Path("/bin/gitleaks")),
+        patch("repolens.scanners.gitleaks.subprocess.run", side_effect=[tree, history]) as run,
+    ):
+        result = run_gitleaks(tmp_path)
+
+    assert run.call_count == 2
+    tree_cmd = run.call_args_list[0].args[0]
+    history_cmd = run.call_args_list[1].args[0]
+    assert "--no-git" in tree_cmd
+    assert "--no-git" not in history_cmd
+    assert "detect" in history_cmd
+
+    assert result.run.status == "ran"
+    assert result.run.findingCount == 1
+    issue = result.issues[0]
+    assert issue.priority == "P1"
+    assert issue.category == "sec.repo_hygiene_secrets"
+    assert issue.category != "heuristic.gitignore_secrets"
+    assert issue.severity.value == "HIGH"
+    assert issue.file == "config.py"
+    assert "Git history" in issue.title
+    assert "abc123def456" in issue.explanation
+    blob = f"{issue.title} {issue.explanation} {issue.impact} {issue.recommendedFix}"
+    assert "super-secret" not in blob
+    assert "BEGIN PRIVATE KEY" not in blob
+
+
+def test_gitleaks_history_failure_keeps_working_tree_findings(tmp_path: Path) -> None:
+    (tmp_path / ".git").mkdir()
+    tree_payload = [
+        {"File": "app.py", "StartLine": 2, "RuleID": "generic-api-key", "Description": "API key"}
+    ]
+    tree = MagicMock(returncode=1, stdout=json.dumps(tree_payload), stderr="")
+    history = MagicMock(returncode=2, stdout="", stderr="git log failed")
+    with (
+        patch("repolens.scanners.gitleaks.resolve_binary", return_value=Path("/bin/gitleaks")),
+        patch("repolens.scanners.gitleaks.subprocess.run", side_effect=[tree, history]),
+    ):
+        result = run_gitleaks(tmp_path)
+
+    assert result.run.status == "ran"
+    assert len(result.issues) == 1
+    assert result.issues[0].category == "gitleaks"
+    assert result.issues[0].file == "app.py"
+    assert "git history" in (result.run.detail or "").lower()
 
 
 def test_semgrep_config_env_override(monkeypatch) -> None:

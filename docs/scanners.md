@@ -41,7 +41,7 @@ Cross-OS CLI walkthrough: [try-on-your-repo.md](./try-on-your-repo.md).
 
 | Name | Role | Typical binary |
 |------|------|----------------|
-| `gitleaks` | Secrets | `gitleaks` |
+| `gitleaks` | Secrets in the working tree (`--no-git`) and in git history (commit log, all branches). History hits are P1 `sec.repo_hygiene_secrets`, separate from the `.gitignore` heuristic. The secret value is not copied into the report. | `gitleaks` |
 | `semgrep` | SAST / pattern rules | `semgrep` (pip or cache venv) |
 | `osv` | Dependency CVEs | `osv-scanner` |
 | `trivy` | FS vulns + misconfig (+ secrets) | `trivy` (pinned archive) |
