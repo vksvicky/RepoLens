@@ -227,6 +227,7 @@ Tracker: **[docs/phases.md](./docs/phases.md)** · Design: **[docs/design/](./do
 - [docs/CODE_OF_CONDUCT.md](./docs/CODE_OF_CONDUCT.md)
 - [docs/SECURITY.md](./docs/SECURITY.md) for vulnerability reports
 - [docs/SUPPORT.md](./docs/SUPPORT.md)
+- Feedback (teaching / shipping): [Discussions](https://github.com/vksvicky/RepoLens/discussions) · Bugs & features: [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose)
 
 ---
 
