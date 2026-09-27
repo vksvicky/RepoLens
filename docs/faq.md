@@ -161,6 +161,20 @@ RepoLens does **not** run a Sonar-style OOP rule engine or claim “SOLID certif
 
 ---
 
+## Do we measure complexity and test coverage?
+
+**Complexity (Fast Brain, Python MVP):** cyclomatic (McCabe) + cognitive complexity via stdlib `ast` (zero extra deps). Clean functions stay on the scorecard only; Issues start at cyclo ≥ 11 or cognitive ≥ 16. Markdown always shows a **Top-10 hotspots** table; Slow Brain gets detailed refactor help for at most **`top_n_ai_explanations`** (default **5**, max 10). See [complexity-and-cognitive-ai.md](./design/complexity-and-cognitive-ai.md).
+
+**Test inventory (Fast Brain):** counts **test files and test cases** (Python `def test_*` / `unittest.TestCase` methods), not a misleading file-only ratio. Scorecard: `Test files | Test cases | Ratio (tests/production function)`.
+
+**Line/branch coverage %:** import artifacts from **coverage.py**, Istanbul/nyc (LCOV), JaCoCo, etc. (v1 `--import-coverage`) — RepoLens does **not** reimplement tracers. Companion complexity tools (radon, ESLint `complexity`) → SARIF → `--import-sarif` ([ci.md recipes](./ci.md#companion-recipes-sonar--qodana--brakeman--pmd--bearer)).
+
+**Scenario adequacy (Slow Brain):** Right-BICEP-style gaps emphasise **B / E / Negative** paths; playbooks forbid speculative **P** (performance) lectures without evidence. **Line coverage ≠ scenario adequacy.**
+
+JS/TS/Java native complexity parsers: optional `pip install "repolens-audit[complexity]"` (v1+).
+
+---
+
 ## What is the adaptive cache (Phase 5)?
 
 On each review RepoLens can maintain `.repolens/repolens.sqlite` (local): file fingerprints + run timings + optional FTS content (opt-in). Later runs prefer **changed + P1** files (`adaptive.mode=auto`), and store a **recommended timeout** per project.

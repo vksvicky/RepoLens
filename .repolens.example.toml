@@ -66,7 +66,15 @@
 # max_files = 10000                           # Fast Brain heuristics (0 = uncapped matched)
 # parallel_workers = 8                        # I/O thread pool for line/regex heuristics
 # triage_include_heuristics = true            # --ci: heuristic High+ can wake LLM
-# No AST in Fast Brain — regex/line/stat/hash only (Phase 6.11)
+# Line/regex heuristics + optional Python ast (complexity + test inventory)
+
+[complexity]
+# enabled = true                              # Python McCabe + cognitive via stdlib ast
+# hotspot_limit = 10                          # Markdown Top-N hotspot table
+# top_n_ai_explanations = 5                   # Slow Brain pack cap (hard max 10)
+
+[testing]
+# inventory = true                            # Count test files + test cases (ast)
 
 [fast_brain.near_clones]
 # enabled = true
