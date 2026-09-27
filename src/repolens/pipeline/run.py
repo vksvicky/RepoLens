@@ -87,12 +87,14 @@ def _extend_from_import_sarif(
     scanner_issues: list,
     scanner_runs: list,
     prog: ReviewProgress,
+    *,
+    require: bool = False,
 ) -> None:
     if not import_sarif:
         return
     from repolens.sarif_import import load_many_sarif, scanner_runs_from_imports
 
-    imported = load_many_sarif(list(import_sarif), root=root)
+    imported = load_many_sarif(list(import_sarif), root=root, require=require)
     for block in imported:
         scanner_issues.extend(block.issues)
         if block.skipped:
@@ -151,9 +153,14 @@ def run_review(
     packs: list[str] | None = None,
     fallback: bool | None = None,
     import_sarif: list[Path] | None = None,
+    require_sarif_import: bool = False,
 ) -> ReviewResult:
     if force_full and force_changed:
         raise ValueError("--full and --changed cannot be combined")
+    if require_sarif_import and not import_sarif:
+        raise ValueError(
+            "--require-sarif-import needs at least one --import-sarif path"
+        )
     if git_diff is not None and force_full:
         raise ValueError("--full and --git-diff cannot be combined")
     if git_diff is not None and force_changed:
@@ -329,7 +336,12 @@ def run_review(
             prog.detail("Scanners: skipped (off / none selected)")
 
         _extend_from_import_sarif(
-            import_sarif, root, scanner_issues, scanner_runs, prog
+            import_sarif,
+            root,
+            scanner_issues,
+            scanner_runs,
+            prog,
+            require=require_sarif_import,
         )
 
         if tools or import_sarif:
@@ -467,6 +479,7 @@ def run_review(
                                 scanner_issues,
                                 scanner_runs,
                                 prog,
+                                require=require_sarif_import,
                             )
                             before_dedupe = len(scanner_issues)
                             scanner_issues = dedupe_sca_issues(scanner_issues)

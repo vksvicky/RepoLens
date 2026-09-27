@@ -54,6 +54,18 @@ def test_canonicalize_and_heuristic_theme_map() -> None:
         "sec.repo_hygiene_secrets"
     )
     assert theme_id_for_category("heuristic.ci_gaps") == "arch.ci_durability"
+    assert theme_id_for_category("quality.near_clone") == "arch.dry"
+    assert theme_id_for_category("arch.import_cycle") == "arch.solid_dip"
+    for principle in (
+        "arch.dry",
+        "arch.kiss",
+        "arch.solid_srp",
+        "arch.solid_ocp",
+        "arch.solid_lsp",
+        "arch.solid_isp",
+        "arch.solid_dip",
+    ):
+        assert principle in EXTENDED_THEME_IDS
     assert set(HEURISTIC_TO_THEME.values()) <= (CORE_THEME_IDS | EXTENDED_THEME_IDS)
 
 

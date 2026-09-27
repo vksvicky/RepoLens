@@ -101,6 +101,11 @@ def test_render_markdown_includes_quality_scorecard_section() -> None:
     assert "| Files scanned | 1840 |" in md
     assert "_40 additional clone clusters omitted from findings._" in md
     assert "Deterministic DRY/KISS signals" in md
+    assert "| Signal | Principle lens |" in md
+    assert "| Near-clone clusters | DRY |" in md
+    assert "| Mega-files | KISS / SRP proxy |" in md
+    assert "| Deep nesting | KISS |" in md
+    assert "not a SOLID/DRY/KISS certification" in md
 
 
 def test_render_markdown_omits_section_when_quality_missing() -> None:

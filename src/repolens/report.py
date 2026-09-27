@@ -332,12 +332,21 @@ def _render_quality_scorecard_section(report: FindingReport) -> list[str]:
         f"| Near-clone findings emitted | {q.nearCloneFindingsEmitted} |",
         f"| Files scanned | {q.filesScanned} |",
         "",
+        "| Signal | Principle lens |",
+        "|--------|----------------|",
+        "| Near-clone clusters | DRY |",
+        "| Mega-files | KISS / SRP proxy |",
+        "| Deep nesting | KISS |",
+        "",
+        "_Import-cycle cyclicity (DIP / layering) is reported under **Import graph**, "
+        "not this scorecard._",
+        "",
     ]
     for note in q.notes:
         lines.append(f"_{note}._")
         lines.append("")
     lines.append(
-        "_Deterministic DRY/KISS signals — not an architecture certification._"
+        "_Deterministic DRY/KISS signals — not a SOLID/DRY/KISS certification._"
     )
     lines.append("")
     return lines
@@ -410,7 +419,8 @@ def _render_import_graph_section(report: FindingReport) -> list[str]:
         f"| Cycle groups | {block.cycleCount} |",
         f"| Cyclicity | {block.cyclicity} |",
         "",
-        "_Deterministic Python import cycles (grimp) — not an architecture certification._",
+        "_Deterministic Python import cycles (grimp) — DIP / module-boundary "
+        "layering signal, not an architecture certification._",
         "",
     ]
     return lines

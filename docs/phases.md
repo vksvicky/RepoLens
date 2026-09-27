@@ -33,6 +33,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) | Phase 8 done ([PR #51](https://github.com/vksvicky/RepoLens/pull/51)); Phase 9 Gemini MVP done ([PR #52](https://github.com/vksvicky/RepoLens/pull/52)); Vertex/Bedrock → [#58](https://github.com/vksvicky/RepoLens/issues/58) |
 | Dogfood: 32B cost / change-set | [#15](https://github.com/vksvicky/RepoLens/issues/15) / [#16](https://github.com/vksvicky/RepoLens/issues/16) | **Done** ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)); umbrella [#13](https://github.com/vksvicky/RepoLens/issues/13) closed |
 | Deferred residuals | [#11](https://github.com/vksvicky/RepoLens/issues/11) | Parked (heuristics / study / Trivy registry); SARIF **import** shipped (`--import-sarif`) |
+| Design principles (DRY/KISS/SOLID) | [#62](https://github.com/vksvicky/RepoLens/issues/62)–[#64](https://github.com/vksvicky/RepoLens/issues/64) | Themes + scorecard legend + graph DIP copy |
+| SARIF CI ergonomics | [#65](https://github.com/vksvicky/RepoLens/issues/65) / [#66](https://github.com/vksvicky/RepoLens/issues/66) | `--require-sarif-import` + companion recipes |
 | Community feedback | [#6](https://github.com/vksvicky/RepoLens/issues/6) | Open channel |
 | Local UI calibrations | #17b on [#17](https://github.com/vksvicky/RepoLens/issues/17) | Parked |
 ---

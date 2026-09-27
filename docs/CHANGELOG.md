@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 
+- **Design principles themes** — Extended `arch.dry` / `arch.kiss` / `arch.solid_*` + architecture playbook anti-lecture rule; scorecard principle legend; import-cycle DIP/layering copy ([#62](https://github.com/vksvicky/RepoLens/issues/62)–[#64](https://github.com/vksvicky/RepoLens/issues/64))
+- **`--require-sarif-import`** — fail CI (exit 2) when a listed `--import-sarif` path is missing/unreadable ([#65](https://github.com/vksvicky/RepoLens/issues/65))
+- **CI companion recipes** — Sonar / Qodana / Brakeman / PMD / Bearer → SARIF → `--import-sarif` in [ci.md](./ci.md#companion-recipes-sonar--qodana--brakeman--pmd--bearer) ([#66](https://github.com/vksvicky/RepoLens/issues/66))
 - **`--import-sarif`** — defensive SARIF 2.1 import (repeatable); merges CodeQL/Sonar/ESLint (and similar) into one gate report as `source=scanner`; **Automated scanners** shows `sarif:<driver>`; docs in [scanners.md](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-) and [ci.md](./ci.md#import-external-sarif-companion-gate)
 - **`--deep-passes` / `[deep] max_passes`** — cap deep band passes (1 = P1-only iteration); pre-flight Slow Brain wall-time estimate (#15)
 - **`llmRepairAttempts`** on reports — JSON micro-repair hard-capped at 1 per pass (#15)

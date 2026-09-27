@@ -143,7 +143,21 @@ Playbooks in chat and RepoLens share review *ideas*; they are not the same produ
 
 When more clusters exist than `max_findings`, the scorecard still tallies clusters (up to `max_clusters`) and an omission note appears. Tune or disable via `[fast_brain.near_clones]` in `.repolens.toml` — see [`.repolens.example.toml`](../.repolens.example.toml).
 
-**Quality scorecard (Fast Brain)** is a compact Markdown + JSON block (`report.quality`) with mega-files, deep nesting, near-clone tallies (clusters, occurrences, findings emitted), and files scanned. It is a **DRY/KISS posture signal**, not an architecture certification and **not** a Sonargraph-style clone explorer. **Import-cycle cyclicity is not on this scorecard** — that is the Python import-graph / ratchet path (G1 / G2).
+**Quality scorecard (Fast Brain)** is a compact Markdown + JSON block (`report.quality`) with mega-files, deep nesting, near-clone tallies (clusters, occurrences, findings emitted), and files scanned. It is a **DRY/KISS posture signal**, not an architecture certification and **not** a Sonargraph-style clone explorer. The Markdown legend maps Near-clones→DRY, Mega-files→KISS/SRP-proxy, Deep nesting→KISS. **Import-cycle cyclicity is not on this scorecard** — that is the Python import-graph / ratchet path (G1 / G2), framed as a DIP / layering signal.
+
+---
+
+## Do we check SOLID / KISS / DRY?
+
+**Honest answer: posture signals and checklist prompts — not certification.**
+
+| Layer | What you get |
+|-------|----------------|
+| Fast Brain scorecard | Near-clones (DRY), mega-files / nesting (KISS; mega-files also as a coarse SRP proxy) |
+| Import graph | Runtime cycles with Dependency Inversion (DIP) / module-boundary language |
+| Slow Brain (full audit) | Extended themes `arch.dry`, `arch.kiss`, `arch.solid_*` — concrete file/line findings only; playbooks forbid textbook lectures |
+
+RepoLens does **not** run a Sonar-style OOP rule engine or claim “SOLID certified.” Prefer named themes when evidence is concrete; otherwise Core themes (`arch.duplication`, `arch.structure_size`, …) remain correct.
 
 ---
 
