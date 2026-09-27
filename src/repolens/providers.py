@@ -1,7 +1,7 @@
 """Named LLM provider aliases (Phase 8) and transport helpers.
 
 Aliases keep OpenAI-compatible chat-completions transport. Native Gemini /
-Bedrock SDKs remain Phase 9.
+Vertex / Bedrock are Phase 9.
 """
 
 from __future__ import annotations
@@ -24,13 +24,24 @@ ProviderName = Literal[
     "together",
     "fireworks",
     "gemini",
+    "vertex",
+    "bedrock",
 ]
 
 CANONICAL_PROVIDERS = frozenset(
-    {"openai", "anthropic", "deepseek", "ollama", "openai_compatible", "gemini"}
+    {
+        "openai",
+        "anthropic",
+        "deepseek",
+        "ollama",
+        "openai_compatible",
+        "gemini",
+        "vertex",
+        "bedrock",
+    }
 )
 
-# OpenAI-compatible chat + SSE path (everything except Anthropic Messages).
+# OpenAI-compatible chat + SSE path (everything except Anthropic Messages / natives).
 OPENAI_COMPAT_TRANSPORT = frozenset(
     {
         "openai",
@@ -60,6 +71,9 @@ ALLOWED_KEY_ENVS = frozenset(
         "TOGETHER_API_KEY",
         "FIREWORKS_API_KEY",
         "GEMINI_API_KEY",
+        # Vertex / Bedrock use token or AWS env keys — listed for config allow-list.
+        "VERTEX_ACCESS_TOKEN",
+        "AWS_ACCESS_KEY_ID",
     }
 )
 
@@ -129,14 +143,14 @@ INIT_PROVIDERS = frozenset(
         "openai_compatible",
         "ollama",
         "gemini",
+        "vertex",
+        "bedrock",
         "none",
         *PROVIDER_ALIASES.keys(),
     }
 )
 
 # Recipe-only hosts (no new enum — document as openai_compatible).
-# Native Gemini AI Studio is ``provider=gemini`` (Phase 9); the OpenAI-shaped
-# Google gateway remains available as openai_compatible if preferred.
 RECIPE_ONLY_HOSTS: tuple[tuple[str, str, str], ...] = (
     ("LM Studio", "http://127.0.0.1:1234/v1", "Local OpenAI-compatible server"),
     ("vLLM / llama.cpp", "http://127.0.0.1:8000/v1", "Self-hosted chat completions"),
@@ -164,6 +178,8 @@ def default_key_env_for(provider: str | None) -> str | None:
         "ollama": None,
         "openai_compatible": "REPOLENS_API_KEY",
         "gemini": "GEMINI_API_KEY",
+        "vertex": "VERTEX_ACCESS_TOKEN",
+        "bedrock": "AWS_ACCESS_KEY_ID",
     }.get(provider)
 
 
@@ -179,6 +195,8 @@ def default_base_url_for(provider: str | None) -> str:
         "ollama": "http://127.0.0.1:11434/v1",
         "openai_compatible": "http://127.0.0.1:11434/v1",
         "gemini": "https://generativelanguage.googleapis.com/v1beta",
+        "vertex": "",
+        "bedrock": "",
     }.get(provider or "", "https://api.openai.com/v1")
 
 
@@ -193,4 +211,6 @@ def default_model_for(provider: str | None) -> str | None:
         "openai_compatible": None,
         "ollama": None,
         "gemini": "gemini-2.0-flash",
+        "vertex": "gemini-2.0-flash",
+        "bedrock": "amazon.nova-lite-v1:0",
     }.get(provider or "")

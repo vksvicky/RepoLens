@@ -87,12 +87,13 @@ def init_cmd(
         ...,
         "--provider",
         help=(
-            "openai | anthropic | deepseek | openai_compatible | ollama | gemini | none | "
+            "openai | anthropic | deepseek | openai_compatible | ollama | gemini | "
+            "vertex | bedrock | none | "
             "azure | mistral | groq | openrouter | together | fireworks"
         ),
         prompt=(
             "Provider (openai / anthropic / deepseek / openai_compatible / ollama / "
-            "gemini / azure / mistral / groq / openrouter / none)"
+            "gemini / vertex / bedrock / azure / mistral / groq / openrouter / none)"
         ),
     ),
     model: str | None = typer.Option(None, "--model", help="Default model name"),
@@ -147,6 +148,16 @@ def init_cmd(
             "GEMINI_API_KEY",
             "https://generativelanguage.googleapis.com/v1beta",
         ),
+        "vertex": (
+            "gemini-2.0-flash",
+            "VERTEX_ACCESS_TOKEN",
+            None,
+        ),
+        "bedrock": (
+            "amazon.nova-lite-v1:0",
+            "AWS_ACCESS_KEY_ID",
+            None,
+        ),
     }
     for alias_name, alias in PROVIDER_ALIASES.items():
         defaults[alias_name] = (
@@ -197,6 +208,17 @@ def init_cmd(
     console.print(f"[green]Wrote[/green] {written}")
     if key_env:
         console.print(f"Export your key: [cyan]export {key_env}=...[/cyan]")
+    if provider == "vertex":
+        console.print(
+            "[dim]Also set VERTEX_PROJECT (or GOOGLE_CLOUD_PROJECT) and optional "
+            "VERTEX_LOCATION. Token: VERTEX_ACCESS_TOKEN=$(gcloud auth print-access-token) "
+            "or pip install 'repolens-audit[vertex]' for ADC.[/dim]"
+        )
+    if provider == "bedrock":
+        console.print(
+            "[dim]Also set AWS_SECRET_ACCESS_KEY, AWS_REGION "
+            "(and AWS_SESSION_TOKEN if using temporary creds).[/dim]"
+        )
     if alias and alias.notes:
         console.print(f"[dim]{alias.notes}[/dim]")
     if provider == "ollama":
