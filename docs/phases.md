@@ -35,6 +35,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Deferred residuals | [#11](https://github.com/vksvicky/RepoLens/issues/11) | Parked (heuristics / study / Trivy registry); SARIF **import** shipped (`--import-sarif`) |
 | Design principles (DRY/KISS/SOLID) | [#62](https://github.com/vksvicky/RepoLens/issues/62)–[#64](https://github.com/vksvicky/RepoLens/issues/64) | Themes + scorecard legend + graph DIP copy |
 | SARIF CI ergonomics | [#65](https://github.com/vksvicky/RepoLens/issues/65) / [#66](https://github.com/vksvicky/RepoLens/issues/66) | `--require-sarif-import` + companion recipes |
+| Complexity + cognitive + AI | [#67](https://github.com/vksvicky/RepoLens/issues/67)–[#74](https://github.com/vksvicky/RepoLens/issues/74) | Design: [complexity-and-cognitive-ai.md](./design/complexity-and-cognitive-ai.md) — MVP issues filed |
 | Community feedback | [#6](https://github.com/vksvicky/RepoLens/issues/6) | Open channel |
 | Local UI calibrations | #17b on [#17](https://github.com/vksvicky/RepoLens/issues/17) | Parked |
 ---

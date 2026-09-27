@@ -130,6 +130,29 @@ class QualityScorecard(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class ComplexityHotspot(BaseModel):
+    """One function row for the Top-10 complexity table (Fast Brain)."""
+
+    file: str
+    function: str
+    line: int = Field(ge=1)
+    cyclomatic: int = Field(ge=0)
+    cognitive: int = Field(ge=0)
+
+
+class ComplexityBlock(BaseModel):
+    """Fast Brain cyclomatic + cognitive summary (optional on report)."""
+
+    functionsAnalysed: int = Field(ge=0, default=0)
+    issueCount: int = Field(ge=0, default=0)
+    maxCyclomatic: int = Field(ge=0, default=0)
+    maxCognitive: int = Field(ge=0, default=0)
+    p95Cyclomatic: int = Field(ge=0, default=0)
+    p95Cognitive: int = Field(ge=0, default=0)
+    hotspots: list[ComplexityHotspot] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
 class GraphBlock(BaseModel):
     """G1: deterministic Python import graph summary (optional)."""
 
@@ -216,6 +239,7 @@ class FindingReport(BaseModel):
     # #15: count of JSON micro-repair attempts across deep / single-shot LLM calls.
     llmRepairAttempts: int | None = Field(default=None, ge=0)
     quality: QualityScorecard | None = None
+    complexity: ComplexityBlock | None = None
 
     @field_validator("confidence")
     @classmethod
