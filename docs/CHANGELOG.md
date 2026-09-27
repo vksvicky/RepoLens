@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 
+- **Phase 9 Vertex + Bedrock** — `repolens init --provider vertex|bedrock`; Vertex Gemini SSE (hybrid `VERTEX_ACCESS_TOKEN` / optional `[vertex]` ADC); Bedrock Converse stream (SigV4 over httpx); mocked stream unit tests (#58)
 - **`--import-sarif`** — defensive SARIF 2.1 import (repeatable); merges CodeQL/Sonar/ESLint (and similar) into one gate report as `source=scanner`; **Automated scanners** shows `sarif:<driver>`; docs in [scanners.md](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-) and [ci.md](./ci.md#import-external-sarif-companion-gate)
 - **`--deep-passes` / `[deep] max_passes`** — cap deep band passes (1 = P1-only iteration); pre-flight Slow Brain wall-time estimate (#15)
 - **`llmRepairAttempts`** on reports — JSON micro-repair hard-capped at 1 per pass (#15)

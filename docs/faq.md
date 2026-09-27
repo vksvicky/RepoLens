@@ -378,7 +378,7 @@ Design: [phase-5.2-theme-coverage-and-report-breakdown.md](./design/phase-5.2-th
 
 If the model returns invalid JSON, RepoLens still writes a report (scanners + heuristics + any salvageable issues) and exits **0**.
 
-**Cloud tip (Phase A + Phase 8/9):** OpenAI / Anthropic / DeepSeek / `openai_compatible`, named aliases (`groq`, `mistral`, `openrouter`, `azure`, …), and native **`gemini`** use the **same `--deep` pipeline** as Ollama — provider choice is quality/cost/privacy, not a separate review path. Pick via `repolens init --provider …`. Heartbeats stream completion chars for all of these (Ollama also shows `/api/ps` load). Vertex AI / Bedrock native adapters remain Phase 9 follow-ups. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
+**Cloud tip (Phase A + Phase 8/9):** OpenAI / Anthropic / DeepSeek / `openai_compatible`, named aliases (`groq`, `mistral`, `openrouter`, `azure`, …), and natives **`gemini` / `vertex` / `bedrock`** use the **same `--deep` pipeline** as Ollama — provider choice is quality/cost/privacy, not a separate review path. Pick via `repolens init --provider …`. Heartbeats stream completion chars for all of these (Ollama also shows `/api/ps` load). See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
 
 Guided wizard: `./scripts/repolens-guided.sh` prompts for deep (default **Y** on review / full-audit).
 
@@ -726,13 +726,15 @@ Each report also records **Duration** (wall clock for the whole command).
 | `anthropic` | `ANTHROPIC_API_KEY` | Anthropic Messages API | Yes |
 | `deepseek` | `DEEPSEEK_API_KEY` | OpenAI-compatible | Yes |
 | `gemini` | `GEMINI_API_KEY` | **Native** Generative Language SSE (Phase 9) | Yes |
+| `vertex` | `VERTEX_ACCESS_TOKEN` (+ project) | **Native** Vertex AI SSE (Phase 9; optional `[vertex]` ADC) | Yes |
+| `bedrock` | `AWS_ACCESS_KEY_ID` (+ secret/region) | **Native** Bedrock Converse stream (Phase 9) | Yes |
 | `groq` / `mistral` / `openrouter` / `together` / `fireworks` | Host-specific (`GROQ_API_KEY`, …) | OpenAI-compatible (Phase 8 alias) | Yes |
 | `azure` / `azure_openai` | `AZURE_OPENAI_API_KEY` | OpenAI-compatible; **`--base-url` required** | Yes |
 | `openai_compatible` | `REPOLENS_API_KEY` | Your `--base-url` (LM Studio, vLLM, …) | Yes |
 | `ollama` | _(none)_ | Local OpenAI-compatible | Yes + `/api/ps` |
 | `none` | — | No LLM | N/A |
 
-**Phase 9 follow-ups (not yet):** Vertex AI (ADC) and Amazon Bedrock (SigV4) — [design](./design/phase-9-native-provider-sdks.md). Prefer native `gemini` over Google’s OpenAI-compatible gateway unless you specifically need that shape. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
+**Phase 9 natives:** `gemini` (AI Studio key), `vertex` (GCP project + access token or `[vertex]` ADC), `bedrock` (AWS keys + region). Prefer native `gemini`/`vertex` over Google’s OpenAI-compatible gateway unless you specifically need that shape. See [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
 
 ---
 
