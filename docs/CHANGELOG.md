@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 
+- **Complexity Fast Brain (MVP)** — Python stdlib `ast` McCabe + cognitive scores; thresholded Issues (`quality.complexity`); Markdown **Top-10 hotspots** table + p95/max; `[complexity]` config ([#68](https://github.com/vksvicky/RepoLens/issues/68)–[#70](https://github.com/vksvicky/RepoLens/issues/70)); design: [complexity-and-cognitive-ai.md](./design/complexity-and-cognitive-ai.md)
 - **Design principles themes** — Extended `arch.dry` / `arch.kiss` / `arch.solid_*` + architecture playbook anti-lecture rule; scorecard principle legend; import-cycle DIP/layering copy ([#62](https://github.com/vksvicky/RepoLens/issues/62)–[#64](https://github.com/vksvicky/RepoLens/issues/64))
 - **`--require-sarif-import`** — fail CI (exit 2) when a listed `--import-sarif` path is missing/unreadable ([#65](https://github.com/vksvicky/RepoLens/issues/65))
 - **CI companion recipes** — Sonar / Qodana / Brakeman / PMD / Bearer → SARIF → `--import-sarif` in [ci.md](./ci.md#companion-recipes-sonar--qodana--brakeman--pmd--bearer) ([#66](https://github.com/vksvicky/RepoLens/issues/66))
