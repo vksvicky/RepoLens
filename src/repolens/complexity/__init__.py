@@ -15,4 +15,13 @@ __all__ = [
     "FunctionComplexity",
     "band_for_scores",
     "should_emit_issue",
+    "run_complexity",
 ]
+
+
+def __getattr__(name: str):
+    if name == "run_complexity":
+        from repolens.complexity.runner import run_complexity
+
+        return run_complexity
+    raise AttributeError(name)

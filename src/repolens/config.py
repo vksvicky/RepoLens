@@ -188,6 +188,14 @@ class GraphConfig(BaseModel):
     require_baseline: bool = False
 
 
+class ComplexityConfig(BaseModel):
+    """Fast Brain cyclomatic + cognitive (Python stdlib ast at MVP)."""
+
+    enabled: bool = True
+    hotspot_limit: int = Field(default=10, ge=0, le=50)
+    top_n_ai_explanations: int = Field(default=5, ge=0, le=10)
+
+
 class RepoLensConfig(BaseModel):
     general: GeneralConfig = Field(default_factory=GeneralConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
@@ -201,6 +209,7 @@ class RepoLensConfig(BaseModel):
     packs: PacksConfig = Field(default_factory=PacksConfig)
     fast_brain: FastBrainConfig = Field(default_factory=FastBrainConfig)
     graph: GraphConfig = Field(default_factory=GraphConfig)
+    complexity: ComplexityConfig = Field(default_factory=ComplexityConfig)
 
 
 def user_config_path() -> Path:

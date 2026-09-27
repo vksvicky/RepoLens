@@ -266,6 +266,7 @@ def render_markdown(
         lines.append("")
 
     lines.extend(_render_quality_scorecard_section(report))
+    lines.extend(_render_complexity_section(report))
     lines.extend(_render_supply_chain_section(report))
     lines.extend(_render_change_set_section(report))
     lines.extend(_render_import_graph_section(report))
@@ -347,6 +348,51 @@ def _render_quality_scorecard_section(report: FindingReport) -> list[str]:
         lines.append("")
     lines.append(
         "_Deterministic DRY/KISS signals — not a SOLID/DRY/KISS certification._"
+    )
+    lines.append("")
+    return lines
+
+
+def _render_complexity_section(report: FindingReport) -> list[str]:
+    """Fast Brain cyclomatic + cognitive — Top-10 table (LLM detail is separate)."""
+    block = report.complexity
+    if block is None:
+        return []
+    lines: list[str] = [
+        "## Complexity (Fast Brain)",
+        "",
+        "| Metric | Value |",
+        "|--------|------:|",
+        f"| Functions analysed | {block.functionsAnalysed} |",
+        f"| Issues (above threshold) | {block.issueCount} |",
+        f"| Max cyclomatic | {block.maxCyclomatic} |",
+        f"| Max cognitive | {block.maxCognitive} |",
+        f"| P95 cyclomatic | {block.p95Cyclomatic} |",
+        f"| P95 cognitive | {block.p95Cognitive} |",
+        "",
+    ]
+    if block.hotspots:
+        lines.extend(
+            [
+                "### Top complexity hotspots",
+                "",
+                "| File | Function | Line | Cyclomatic | Cognitive |",
+                "|------|----------|-----:|----------:|----------:|",
+            ]
+        )
+        for h in block.hotspots:
+            lines.append(
+                f"| `{h.file}` | `{h.function}` | {h.line} | "
+                f"{h.cyclomatic} | {h.cognitive} |"
+            )
+        lines.append("")
+    for note in block.notes:
+        lines.append(f"_{note}._")
+        lines.append("")
+    lines.append(
+        "_Deterministic McCabe + cognitive complexity — not a Sonar server "
+        "or architecture certification. LLM refactor detail is capped separately "
+        "(default top 5)._"
     )
     lines.append("")
     return lines

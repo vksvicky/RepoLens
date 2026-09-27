@@ -81,6 +81,12 @@ def _attach_quality(
     )
 
 
+def _attach_complexity(report: FindingReport, complexity_result) -> None:
+    if complexity_result is None:
+        return
+    report.complexity = complexity_result.block
+
+
 def _extend_from_import_sarif(
     import_sarif: list[Path] | None,
     root: Path,
@@ -270,6 +276,8 @@ def run_review(
     fast_brain_seconds: float | None = None
     llm_seconds_prov: float | None = None
     heur_result = None
+    complexity_result = None
+    complexity_issues: list = []
 
     if out_dir is not None:
         out = out_dir
@@ -419,6 +427,23 @@ def run_review(
             f"Fast brain: {len(heur_issues)} heuristic finding(s), "
             f"{len(heur_result.hot_paths)} hot path(s)"
         )
+
+        from repolens.complexity.runner import run_complexity
+
+        complexity_result = run_complexity(
+            root,
+            fast_files,
+            enabled=cfg.complexity.enabled,
+            hotspot_limit=cfg.complexity.hotspot_limit,
+        )
+        complexity_issues = list(complexity_result.issues)
+        if cfg.complexity.enabled:
+            prog.detail(
+                f"Complexity: {complexity_result.block.functionsAnalysed} function(s), "
+                f"{len(complexity_issues)} above threshold, "
+                f"top-{len(complexity_result.block.hotspots)} hotspots"
+            )
+
         graph_issues: list = []
         graph_block: GraphBlock | None = None
         graph_gaps: list[str] = []
@@ -442,7 +467,9 @@ def run_review(
                 f"Import graph: {graph_block.cycleCount} cycle group(s), "
                 f"{len(graph_issues)} finding(s), cyclicity={graph_block.cyclicity}"
             )
-        non_llm_issues = list(scanner_issues) + heur_issues + graph_issues
+        non_llm_issues = (
+            list(scanner_issues) + heur_issues + complexity_issues + graph_issues
+        )
         fallback_refreshed_scanners = False
         if not scanners_only and not dry_run and cfg.model.fallback:
             from repolens.config import resolve_api_key
@@ -501,7 +528,9 @@ def run_review(
                     )
 
         if fallback_refreshed_scanners:
-            non_llm_issues = list(scanner_issues) + heur_issues + graph_issues
+            non_llm_issues = (
+                list(scanner_issues) + heur_issues + complexity_issues + graph_issues
+            )
 
         if scanners_only:
             all_ran = bool(scanner_runs) and all(r.status == "ran" for r in scanner_runs)
@@ -1002,6 +1031,7 @@ def run_review(
             heur_result=heur_result,
             files_scanned=fast_brain_file_count,
         )
+        _attach_complexity(report, complexity_result)
         report.provenance = ProvenanceBlock(
             repoLensVersion=__version__,
             gitSha=_git_sha(root),
