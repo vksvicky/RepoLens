@@ -5,10 +5,10 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from repolens.config import ModelConfig, RepoLensConfig, ScannersConfig
-from repolens.pipeline import run_review
 import pytest
 
+from repolens.config import ModelConfig, RepoLensConfig, ScannersConfig
+from repolens.pipeline import run_review
 from repolens.sarif_import import (
     SarifImportError,
     SarifImportResult,

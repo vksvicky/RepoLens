@@ -7,7 +7,6 @@ from pathlib import Path
 
 from repolens.complexity.runner import run_complexity
 from repolens.inventory import FileEntry
-from repolens.schema import Severity
 
 
 def _entry(tmp: Path, relative: str, source: str) -> FileEntry:
