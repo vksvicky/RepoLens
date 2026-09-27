@@ -3,9 +3,9 @@ contact_links:
   - name: Security vulnerability
     url: https://github.com/vksvicky/RepoLens/security/advisories/new
     about: Report security issues privately via GitHub Security Advisories.
-  - name: Teaching / shipping feedback thread
-    url: https://github.com/vksvicky/RepoLens/issues/6
-    about: Open discussion for mentoring, teaching, and real-repo feedback (not a bug).
+  - name: Teaching / shipping feedback (Discussions)
+    url: https://github.com/vksvicky/RepoLens/discussions
+    about: Mentoring, teaching, and real-repo feedback — not a bug or feature request.
   - name: Using playbooks without the CLI
     url: https://github.com/vksvicky/RepoLens/blob/main/docs/using-playbooks.md
     about: Guidance for running reviews via playbooks and an LLM today.
