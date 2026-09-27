@@ -47,6 +47,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) | CLI UX, exit codes, finding/report schema |
 | [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) | AI keys, OWASP/CVE layers, bundled vs optional scanners, local ML |
 | [design/repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md) | Honest comparison vs Checkmarx, Snyk, Semgrep, CodeQL, Trivy, … (product positioning) |
+| [design/competitive-landscape-sonar-alternatives-2026.md](./design/competitive-landscape-sonar-alternatives-2026.md) | Sonar/Qodana/Macroscope/CodeRabbit/DeepSource + PMD/ESLint/Bearer/… — adopt / refuse matrix (2026) |
 | [adr/](./adr/) | ADRs + diagram legend (how analysis works) |
 | [adr/01_analysis_runtime_architecture.md](./adr/01_analysis_runtime_architecture.md) | Pipeline, modes, security zones (diagrams) |
 | [using-playbooks.md](./using-playbooks.md) | Run reviews via playbooks (with or without the CLI) |

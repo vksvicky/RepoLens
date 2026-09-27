@@ -578,6 +578,28 @@ Use `repolens plugins install …` (consent download) or `pip install "repolens-
 
 Guide: [scanners.md](./scanners.md) · Design: [ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md).
 
+### Why not just `semgrep && trivy && gitleaks`?
+
+A shell script gives you disconnected JSON dumps, duplicated CVEs, no
+cross-tool dedupe, no import-graph cyclicity, no Critical/High remediation
+examples, and no unified `--fail-on` confidence gate. RepoLens merges
+scanner evidence into one prioritized P1→P2→P3 decision; use
+[`--import-sarif`](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-)
+to fold CodeQL/Sonar/ESLint SARIF into the same gate report.
+
+See [competitive landscape](./design/competitive-landscape-sonar-alternatives-2026.md).
+
+### Air-gapped Ollama vs private BYOK?
+
+**Fast Brain** (heuristics, grimp, scanners) runs on ordinary hardware in
+seconds. **Slow Brain** deep review needs a capable model: local Ollama
+typically wants **14B–32B+** (slow or OOM on thin laptops), while most
+enterprises use **private BYOK** (Bedrock / Vertex / Gemini / Anthropic)
+so code stays in approved cloud boundaries without a RepoLens server.
+
+Air-gap is *enabled* by Ollama — not “full deep audit instantly offline
+on every machine.”
+
 ---
 
 ## How do OWASP / CVE / security audits work?
@@ -759,7 +781,7 @@ No. Use RepoLens as a due-diligence layer **plus** tests, CI, and mature scanner
 
 ## Does RepoLens export SARIF for GitHub / Sonar?
 
-Yes (`--sarif`, Phase 6.4). Export is **anchored**: scanner locations are trusted; LLM/heuristic findings need a resolvable `anchorQuote` in the cited file. Unverified locations stay in Markdown/JSON only — never in SARIF — so GHAS highlighting is not fed hallucinated lines. See [ci.md](./ci.md#anchored-sarif--sbom-phase-64--62).
+Yes (`--sarif`, Phase 6.4). Export is **anchored**: scanner locations are trusted; LLM/heuristic findings need a resolvable `anchorQuote` in the cited file. Unverified locations stay in Markdown/JSON only — never in SARIF — so GHAS highlighting is not fed hallucinated lines. See [ci.md](./ci.md#anchored-sarif--sbom-phase-64--62). **Inbound** SARIF from other tools: [`--import-sarif`](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-) (companion gate; separate from `--fail-on` vs `--format md` reporting).
 
 ## How do I stop the same finding failing every PR?
 

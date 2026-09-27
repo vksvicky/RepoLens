@@ -81,6 +81,28 @@ def _attach_quality(
     )
 
 
+def _extend_from_import_sarif(
+    import_sarif: list[Path] | None,
+    root: Path,
+    scanner_issues: list,
+    scanner_runs: list,
+    prog: ReviewProgress,
+) -> None:
+    if not import_sarif:
+        return
+    from repolens.sarif_import import load_many_sarif, scanner_runs_from_imports
+
+    imported = load_many_sarif(list(import_sarif), root=root)
+    for block in imported:
+        scanner_issues.extend(block.issues)
+        if block.skipped:
+            prog.detail(
+                f"SARIF import ({block.tool_name}): "
+                f"skipped {block.skipped} result(s)"
+            )
+    scanner_runs.extend(scanner_runs_from_imports(imported))
+
+
 def _git_sha(root: Path) -> str | None:
     import subprocess
 
@@ -128,6 +150,7 @@ def run_review(
     verify_findings: bool | None = None,
     packs: list[str] | None = None,
     fallback: bool | None = None,
+    import_sarif: list[Path] | None = None,
 ) -> ReviewResult:
     if force_full and force_changed:
         raise ValueError("--full and --changed cannot be combined")
@@ -302,6 +325,14 @@ def run_review(
                 prog.detail(
                     f"{run.tool}: {run.status}" + (f" — {run.detail}" if run.detail else "")
                 )
+        else:
+            prog.detail("Scanners: skipped (off / none selected)")
+
+        _extend_from_import_sarif(
+            import_sarif, root, scanner_issues, scanner_runs, prog
+        )
+
+        if tools or import_sarif:
             before_dedupe = len(scanner_issues)
             scanner_issues = dedupe_sca_issues(scanner_issues)
             if len(scanner_issues) < before_dedupe:
@@ -309,6 +340,8 @@ def run_review(
                     f"SCA: deduped {before_dedupe - len(scanner_issues)} "
                     "duplicate OSV/Trivy advisory row(s)"
                 )
+
+        if tools:
             if cfg.deep.usage_hints:
                 from repolens.scanners.usage_hints import apply_usage_hints
 
@@ -328,8 +361,6 @@ def run_review(
                 missing = missing_required(tools, scanner_runs)
                 if missing:
                     raise ScannerRequirementError(missing)
-        else:
-            prog.detail("Scanners: skipped (off / none selected)")
 
         want_supply = cfg.scanners.sbom or cfg.scanners.licenses
         trivy_requested = bool(tools) and "trivy" in tools
@@ -400,6 +431,7 @@ def run_review(
                 f"{len(graph_issues)} finding(s), cyclicity={graph_block.cyclicity}"
             )
         non_llm_issues = list(scanner_issues) + heur_issues + graph_issues
+        fallback_refreshed_scanners = False
         if not scanners_only and not dry_run and cfg.model.fallback:
             from repolens.config import resolve_api_key
             from repolens.llm.setup import detect_ollama, resolve_ollama_model
@@ -429,6 +461,21 @@ def run_review(
                             scanner_runs, scanner_issues, scanner_gaps = run_scanners(
                                 root, tools
                             )
+                            _extend_from_import_sarif(
+                                import_sarif,
+                                root,
+                                scanner_issues,
+                                scanner_runs,
+                                prog,
+                            )
+                            before_dedupe = len(scanner_issues)
+                            scanner_issues = dedupe_sca_issues(scanner_issues)
+                            if len(scanner_issues) < before_dedupe:
+                                prog.detail(
+                                    f"SCA: deduped {before_dedupe - len(scanner_issues)} "
+                                    "duplicate OSV/Trivy advisory row(s)"
+                                )
+                            fallback_refreshed_scanners = True
                     prog.phase(
                         "Fallback: Cloud AI key & Ollama unavailable → "
                         "degraded to SAST scanners & heuristics"
@@ -440,6 +487,9 @@ def run_review(
                         "Fast-Brain heuristics.",
                     )
 
+        if fallback_refreshed_scanners:
+            non_llm_issues = list(scanner_issues) + heur_issues + graph_issues
+
         if scanners_only:
             all_ran = bool(scanner_runs) and all(r.status == "ran" for r in scanner_runs)
             report = FindingReport(
@@ -447,7 +497,11 @@ def run_review(
                 summary=Summary(),
                 issues=non_llm_issues,
                 durabilityGaps=list(scanner_gaps)
-                or (["scanners-only: no scanners selected"] if not tools else []),
+                or (
+                    ["scanners-only: no scanners selected"]
+                    if not tools and not import_sarif
+                    else []
+                ),
                 scannerRuns=list(scanner_runs),
                 supplyChain=supply_chain,
                 llmSkipped=True,
