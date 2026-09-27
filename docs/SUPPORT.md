@@ -6,6 +6,7 @@
 |------|--------|
 | Bug in docs/playbooks/CLI | [GitHub Issues](../../issues) — Bug report template |
 | Feature idea | [GitHub Issues](../../issues) — Feature request template |
+| Teaching / mentoring / shipping feedback | [Discussions](https://github.com/vksvicky/RepoLens/discussions) |
 | How to run reviews today | [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) · [using-playbooks.md](./using-playbooks.md) · [rules.md](./rules.md) |
 | CI / GitHub Action | [ci.md](./ci.md) |
 | Scanners / local learning | [scanners.md](./scanners.md) · [local-learning.md](./local-learning.md) |

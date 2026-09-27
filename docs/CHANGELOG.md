@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Design principles themes** — Extended `arch.dry` / `arch.kiss` / `arch.solid_*` + architecture playbook anti-lecture rule; scorecard principle legend; import-cycle DIP/layering copy ([#62](https://github.com/vksvicky/RepoLens/issues/62)–[#64](https://github.com/vksvicky/RepoLens/issues/64))
 - **`--require-sarif-import`** — fail CI (exit 2) when a listed `--import-sarif` path is missing/unreadable ([#65](https://github.com/vksvicky/RepoLens/issues/65))
 - **CI companion recipes** — Sonar / Qodana / Brakeman / PMD / Bearer → SARIF → `--import-sarif` in [ci.md](./ci.md#companion-recipes-sonar--qodana--brakeman--pmd--bearer) ([#66](https://github.com/vksvicky/RepoLens/issues/66))
+- **Phase 9 Vertex + Bedrock** — `repolens init --provider vertex|bedrock`; Vertex Gemini SSE (hybrid `VERTEX_ACCESS_TOKEN` / optional `[vertex]` ADC); Bedrock Converse stream (SigV4 over httpx); mocked stream unit tests (#58)
 - **`--import-sarif`** — defensive SARIF 2.1 import (repeatable); merges CodeQL/Sonar/ESLint (and similar) into one gate report as `source=scanner`; **Automated scanners** shows `sarif:<driver>`; docs in [scanners.md](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-) and [ci.md](./ci.md#import-external-sarif-companion-gate)
 - **`--deep-passes` / `[deep] max_passes`** — cap deep band passes (1 = P1-only iteration); pre-flight Slow Brain wall-time estimate (#15)
 - **`llmRepairAttempts`** on reports — JSON micro-repair hard-capped at 1 per pass (#15)
@@ -25,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docs: competitive landscape 2026 (Sonar alternatives, SARIF-import strategy, zero-infra personas)
 - FAQ: why not a scanner shell script; air-gap Ollama vs private BYOK honesty
 - Tracker hygiene: Wave C G0–G4 and Phase 8/9 Gemini MVP marked complete in [phases.md](./phases.md) ([#18](https://github.com/vksvicky/RepoLens/issues/18) / PR #56).
+- Tracker hygiene: close residual deferred tracker [#11](https://github.com/vksvicky/RepoLens/issues/11); route teaching/shipping feedback to [Discussions](https://github.com/vksvicky/RepoLens/discussions) + issue templates (closes [#6](https://github.com/vksvicky/RepoLens/issues/6)).
 - Inventory ignores Rust/JVM `target/` build dirs (with existing `node_modules/`, `reports/`, `.repolens/`) to curb cold-cache inflation (#15)
 - FAQ / command atlas: fast vs iteration vs milestone deep profiles; `--changed` (fingerprint) vs `--git-diff` (git) (#15/#16)
 - Ollama Slow Brain pre-flight estimate calibrated from LogViewer dogfood (prompt-eval heavy); roadmap index post-dogfood (#12 / #58 Vertex·Bedrock)
