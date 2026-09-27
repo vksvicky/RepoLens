@@ -114,6 +114,7 @@ def _run_mode(
     packs: list[str] | None = None,
     fallback: bool = True,
     ratchet: bool = False,
+    import_sarif: list[Path] | None = None,
 ) -> None:
     if fmt not in {"md", "json", "both"}:
         console.print("[red]--format must be md | json | both[/red]")
@@ -203,6 +204,7 @@ def _run_mode(
             verify_findings=verify_findings,
             packs=packs,
             fallback=fallback,
+            import_sarif=import_sarif or [],
         )
 
         _print_summary(
@@ -414,6 +416,11 @@ def review(
             "(also enabled by [graph].ratchet; combines with --fail-on)"
         ),
     ),
+    import_sarif: list[Path] | None = typer.Option(
+        None,
+        "--import-sarif",
+        help="Merge findings from a SARIF 2.1 file (repeatable). Treated as scanner evidence.",
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -452,6 +459,7 @@ def review(
         pack,
         fallback,
         ratchet,
+        import_sarif,
     )
 
 
@@ -563,6 +571,11 @@ def sentinel(
             "when Cloud AI is unavailable"
         ),
     ),
+    import_sarif: list[Path] | None = typer.Option(
+        None,
+        "--import-sarif",
+        help="Merge findings from a SARIF 2.1 file (repeatable). Treated as scanner evidence.",
+    ),
 ) -> None:
     """Security-only review (P1 playbook)."""
     _run_mode(
@@ -600,6 +613,7 @@ def sentinel(
         verify_findings,
         pack,
         fallback,
+        import_sarif,
     )
 
 
@@ -711,6 +725,11 @@ def architecture(
             "when Cloud AI is unavailable"
         ),
     ),
+    import_sarif: list[Path] | None = typer.Option(
+        None,
+        "--import-sarif",
+        help="Merge findings from a SARIF 2.1 file (repeatable). Treated as scanner evidence.",
+    ),
 ) -> None:
     """Architecture / production-readiness audit."""
     _run_mode(
@@ -748,4 +767,5 @@ def architecture(
         verify_findings,
         pack,
         fallback,
+        import_sarif,
     )
