@@ -229,14 +229,91 @@ TARGET="${GITHUB_WORKSPACE:-.}"
 repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
   --import-sarif "$TARGET/codeql.sarif" \
   --import-sarif "$TARGET/eslint.sarif" \
+  --require-sarif-import \
   --format both --fail-on HIGH
 ```
 
 - **`--fail-on`** controls whether the job exits **1** (machine gate). **`--format md` / `both` / PDF export** are for human or archival reports — independent of the gate.
+- **`--require-sarif-import`** exits **2** if any listed SARIF path is missing or unreadable (default without the flag: soft-fail and continue).
 - Imported findings are `source=scanner`; Markdown **Automated scanners** lists each file as `sarif:<driver>` (e.g. `sarif:ESLint`).
 - Combine with native RepoLens scanners (`--scanners auto`) when you want gitleaks/semgrep/OSV in the same run.
 
 Details: [scanners.md](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-).
+
+### Companion recipes (Sonar / Qodana / Brakeman / PMD / Bearer)
+
+RepoLens **refuses native** Sonar, Qodana, Brakeman, and PMD engines. Generate SARIF upstream, then import. Optional: add `repolens check --diff` (cyclicity ratchet) and a Slow Brain executive pack on milestones.
+
+**SonarQube / SonarCloud** (export SARIF via your scanner/CI plugin; names vary):
+
+```bash
+# After sonar-scanner (or CI step) writes sonar.sarif
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/sonar.sarif" --require-sarif-import \
+  --format both --fail-on HIGH
+```
+
+**JetBrains Qodana** (`qodana.sarif.json` is the usual artifact):
+
+```bash
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/qodana.sarif.json" --require-sarif-import \
+  --format both --fail-on HIGH
+```
+
+**Brakeman** (Ruby):
+
+```bash
+brakeman -o "$TARGET/brakeman.sarif" -f sarif
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/brakeman.sarif" --require-sarif-import \
+  --format both --fail-on HIGH
+```
+
+**PMD** (Java / Apex / …):
+
+```bash
+pmd check -d "$TARGET" -f sarif -r "$TARGET/pmd.sarif"
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/pmd.sarif" --require-sarif-import \
+  --format both --fail-on HIGH
+```
+
+**Bearer** (document-only path; no RepoLens plugin required):
+
+```bash
+bearer scan "$TARGET" --format=sarif --output="$TARGET/bearer.sarif"
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/bearer.sarif" --require-sarif-import \
+  --format both --fail-on HIGH
+```
+
+ASPM portals (Aikido, Snyk AppRisk, …): keep RepoLens local; feed them RepoLens **`--sarif`** export + CycloneDX SBOM — do not expect a hosted RepoLens ASPM UI.
+
+### Companion recipes (radon / ESLint complexity)
+
+Native RepoLens complexity covers **Python** today. For other tools / languages, emit SARIF and import:
+
+**radon** (Python — optional cross-check alongside native Fast Brain):
+
+```bash
+# Example: convert radon JSON to SARIF via your preferred bridge, or run ESLint-style exporters.
+# Prefer native RepoLens complexity for Python; use import when radon is already in CI.
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/radon.sarif" --require-sarif-import \
+  --format both --fail-on HIGH
+```
+
+**ESLint** `complexity` rule (JS/TS):
+
+```bash
+npx eslint . --format @microsoft/eslint-formatter-sarif --output-file "$TARGET/eslint.sarif"
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/eslint.sarif" --require-sarif-import \
+  --format both --fail-on HIGH
+```
+
+Native multi-language complexity (tree-sitter) lands behind `pip install "repolens-audit[complexity]"` (v1). Until then, SARIF companions are the supported path.
 
 ## Adaptive cache in CI
 

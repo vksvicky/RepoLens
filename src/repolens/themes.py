@@ -14,7 +14,7 @@ COVERAGE_ID_ALIASES: dict[str, str] = {
     "sec.deps_config": "sec.deps_supply_chain",
 }
 
-# Heuristic issue categories → theme coverage ids.
+# Heuristic / graph issue categories → theme coverage ids.
 HEURISTIC_TO_THEME: dict[str, str] = {
     "heuristic.mega_file": "arch.structure_size",
     "heuristic.sibling_duplication": "arch.duplication",
@@ -23,6 +23,12 @@ HEURISTIC_TO_THEME: dict[str, str] = {
     "heuristic.scripts_hygiene": "arch.dead_code",
     "heuristic.todo_density": "arch.dead_code",
     "heuristic.ci_gaps": "arch.ci_durability",
+    "quality.near_clone": "arch.dry",
+    "arch.import_cycle": "arch.solid_dip",
+    "quality.complexity": "arch.kiss",
+    "arch.complexity": "arch.kiss",
+    "testing.missing_tests": "arch.testing",
+    "testing.scenario_gap": "arch.testing",
 }
 
 CORE_THEME_IDS: frozenset[str] = frozenset(
@@ -69,6 +75,13 @@ EXTENDED_THEME_IDS: frozenset[str] = frozenset(
         "sec.rate_abuse",
         "sec.build_release",
         "arch.documentation",
+        "arch.dry",
+        "arch.kiss",
+        "arch.solid_srp",
+        "arch.solid_ocp",
+        "arch.solid_lsp",
+        "arch.solid_isp",
+        "arch.solid_dip",
     }
 )
 

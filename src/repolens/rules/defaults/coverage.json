@@ -389,6 +389,69 @@
       "playbook_anchor": "Theme: Documentation & onboarding"
     },
     {
+      "id": "arch.dry",
+      "rule_id": "architecture",
+      "band": "p3",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "DRY (Don't Repeat Yourself)",
+      "playbook_anchor": "Theme: DRY (Don't Repeat Yourself)"
+    },
+    {
+      "id": "arch.kiss",
+      "rule_id": "architecture",
+      "band": "p3",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "KISS (Keep It Simple)",
+      "playbook_anchor": "Theme: KISS (Keep It Simple)"
+    },
+    {
+      "id": "arch.solid_srp",
+      "rule_id": "architecture",
+      "band": "p3",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "SOLID — Single Responsibility",
+      "playbook_anchor": "Theme: SOLID — Single Responsibility"
+    },
+    {
+      "id": "arch.solid_ocp",
+      "rule_id": "architecture",
+      "band": "p3",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "SOLID — Open/Closed",
+      "playbook_anchor": "Theme: SOLID — Open/Closed"
+    },
+    {
+      "id": "arch.solid_lsp",
+      "rule_id": "architecture",
+      "band": "p3",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "SOLID — Liskov Substitution",
+      "playbook_anchor": "Theme: SOLID — Liskov Substitution"
+    },
+    {
+      "id": "arch.solid_isp",
+      "rule_id": "architecture",
+      "band": "p3",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "SOLID — Interface Segregation",
+      "playbook_anchor": "Theme: SOLID — Interface Segregation"
+    },
+    {
+      "id": "arch.solid_dip",
+      "rule_id": "architecture",
+      "band": "p3",
+      "pack": "extended",
+      "full_audit_only": true,
+      "title": "SOLID — Dependency Inversion",
+      "playbook_anchor": "Theme: SOLID — Dependency Inversion"
+    },
+    {
       "id": "arch.scores",
       "rule_id": "architecture",
       "band": "p3",

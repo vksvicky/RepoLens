@@ -327,4 +327,57 @@ Extended (full audit or N/A when out of scope):
 * Theme: Scalability & capacity (`arch.scalability`)
 * Theme: Documentation & onboarding (`arch.documentation`)
 
+## Design principles (DRY / KISS / SOLID)
+
+These are **checklist prompts**, not certification metrics. Fast Brain already
+surfaces near-clones, mega-files, and deep nesting; the import graph surfaces
+cycles. Use the theme ids below when a Slow Brain finding is primarily about
+a principle — otherwise keep Core themes (`arch.duplication`,
+`arch.structure_size`, …).
+
+**Mandatory for all `arch.solid_*` findings (and this section generally):**
+Do not lecture on textbook theory; flag only concrete violations with specific
+file/line evidence.
+
+* Theme: DRY (Don't Repeat Yourself) (`arch.dry`) — near-clone / copy-paste
+  clusters with concrete paths; prefer this over vague “duplication smells”
+* Theme: KISS (Keep It Simple) (`arch.kiss`) — mega-files, deep nesting, or
+  unnecessary abstraction layers with file/line evidence
+* Theme: SOLID — Single Responsibility (`arch.solid_srp`)
+* Theme: SOLID — Open/Closed (`arch.solid_ocp`)
+* Theme: SOLID — Liskov Substitution (`arch.solid_lsp`)
+* Theme: SOLID — Interface Segregation (`arch.solid_isp`)
+* Theme: SOLID — Dependency Inversion (`arch.solid_dip`) — import cycles and
+  layering violations (graph findings use `arch.import_cycle`; map narrative
+  to DIP / module boundaries)
+
 Prefer these theme ids in `category` when a finding maps cleanly.
+
+
+## Complexity hotspots (Slow Brain — capped pack)
+
+When the prompt includes **Complexity hotspots for AI explanation**, treat those
+as the only complexity targets for narrative (Fast Brain already scored all
+functions; Markdown lists Top-10 without LLM cost).
+
+For each listed hotspot:
+* Explain concrete control-flow / nesting that drives the scores (do **not** invent metrics).
+* Prefer category `quality.complexity` (theme `arch.kiss`).
+* For HIGH/CRITICAL: include a short refactor `codeExample` (guard clauses, extract helpers).
+* Do not lecture on textbook complexity theory.
+
+## Testing strategy & Right-BICEP (scenario gaps)
+
+Prefer category `testing.scenario_gap` or `testing.missing_tests` (theme `arch.testing`).
+
+When suggesting missing tests, focus heavily on:
+* **B** — Boundary conditions (nulls, empties, off-by-one)
+* **E** — Error & exception handling
+* **Negative** paths (invalid input, auth denial, empty collections)
+
+Also cover happy path and Right/Inverse/Cross-check/Edge when evidence warrants.
+
+**Performance (P) guardrail:** Do **not** speculate on hypothetical latency or
+micro-benchmarks unless obvious quadratic O(n^2) (or worse) scaling is
+evident in the code under review.
+

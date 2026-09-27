@@ -19,6 +19,10 @@ _LEVEL = {
 _URI_BASE_PREFIXES = ("%SRCROOT%/", "%PROJECTROOT%/", "%SRCROOT%", "%PROJECTROOT%")
 
 
+class SarifImportError(Exception):
+    """Hard-fail when ``--require-sarif-import`` and a path is missing/unreadable."""
+
+
 @dataclass(frozen=True)
 class SarifImportResult:
     tool_name: str
@@ -165,10 +169,18 @@ def _issues_from_run(
     return tool_name, issues, skipped
 
 
-def load_sarif_issues(path: Path, *, root: Path) -> list[SarifImportResult]:
+def load_sarif_issues(
+    path: Path, *, root: Path, require: bool = False
+) -> list[SarifImportResult]:
+    if require and not path.is_file():
+        raise SarifImportError(f"SARIF import required but missing: {path}")
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        if require:
+            raise SarifImportError(
+                f"SARIF import required but unreadable: {path}: {exc}"
+            ) from exc
         return [
             SarifImportResult(
                 tool_name="sarif", issues=[], skipped=0, detail=str(exc)[:300]
@@ -200,10 +212,12 @@ def load_sarif_issues(path: Path, *, root: Path) -> list[SarifImportResult]:
     ]
 
 
-def load_many_sarif(paths: list[Path], *, root: Path) -> list[SarifImportResult]:
+def load_many_sarif(
+    paths: list[Path], *, root: Path, require: bool = False
+) -> list[SarifImportResult]:
     merged: list[SarifImportResult] = []
     for p in paths:
-        merged.extend(load_sarif_issues(p, root=root))
+        merged.extend(load_sarif_issues(p, root=root, require=require))
     return merged
 
 

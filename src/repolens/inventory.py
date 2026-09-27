@@ -29,6 +29,8 @@ IGNORE_DIR_NAMES = {
     ".vscode",
     # Agent / SDD scratch — not product source (self-review noise).
     ".superpowers",
+    ".worktrees",
+    ".cursor",
 }
 
 IGNORE_SUFFIXES = {
