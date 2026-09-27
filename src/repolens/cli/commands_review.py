@@ -17,6 +17,7 @@ from repolens.graph.types import GraphStatus
 from repolens.llm import LlmError
 from repolens.pipeline import ScannerRequirementError, fail_on_triggered, run_review
 from repolens.progress import ReviewProgress
+from repolens.sarif_import import SarifImportError
 from repolens.sources import SourceError, cleanup_source, resolve_source, select_source
 
 
@@ -115,9 +116,16 @@ def _run_mode(
     fallback: bool = True,
     ratchet: bool = False,
     import_sarif: list[Path] | None = None,
+    require_sarif_import: bool = False,
 ) -> None:
     if fmt not in {"md", "json", "both"}:
         console.print("[red]--format must be md | json | both[/red]")
+        raise typer.Exit(code=2)
+
+    if require_sarif_import and not import_sarif:
+        console.print(
+            "[red]--require-sarif-import needs at least one --import-sarif path[/red]"
+        )
         raise typer.Exit(code=2)
 
     if scanners_only and dry_run:
@@ -205,6 +213,7 @@ def _run_mode(
             packs=packs,
             fallback=fallback,
             import_sarif=import_sarif or [],
+            require_sarif_import=require_sarif_import,
         )
 
         _print_summary(
@@ -256,6 +265,9 @@ def _run_mode(
     except ScannerRequirementError as exc:
         console.print(f"[red]{exc}[/red]")
         console.print("Install with [cyan]repolens plugins install[/cyan] or see docs/scanners.md")
+        raise typer.Exit(code=2) from exc
+    except SarifImportError as exc:
+        console.print(f"[red]SARIF import:[/red] {exc}")
         raise typer.Exit(code=2) from exc
     except LlmError as exc:
         from repolens.llm import provider_setup_hints
@@ -421,6 +433,14 @@ def review(
         "--import-sarif",
         help="Merge findings from a SARIF 2.1 file (repeatable). Treated as scanner evidence.",
     ),
+    require_sarif_import: bool = typer.Option(
+        False,
+        "--require-sarif-import",
+        help=(
+            "Exit 2 if any --import-sarif path is missing or unreadable "
+            "(default: soft-fail and continue)"
+        ),
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -460,6 +480,7 @@ def review(
         fallback,
         ratchet,
         import_sarif,
+        require_sarif_import,
     )
 
 
@@ -576,6 +597,14 @@ def sentinel(
         "--import-sarif",
         help="Merge findings from a SARIF 2.1 file (repeatable). Treated as scanner evidence.",
     ),
+    require_sarif_import: bool = typer.Option(
+        False,
+        "--require-sarif-import",
+        help=(
+            "Exit 2 if any --import-sarif path is missing or unreadable "
+            "(default: soft-fail and continue)"
+        ),
+    ),
 ) -> None:
     """Security-only review (P1 playbook)."""
     _run_mode(
@@ -613,7 +642,9 @@ def sentinel(
         verify_findings,
         pack,
         fallback,
+        False,
         import_sarif,
+        require_sarif_import,
     )
 
 
@@ -730,6 +761,14 @@ def architecture(
         "--import-sarif",
         help="Merge findings from a SARIF 2.1 file (repeatable). Treated as scanner evidence.",
     ),
+    require_sarif_import: bool = typer.Option(
+        False,
+        "--require-sarif-import",
+        help=(
+            "Exit 2 if any --import-sarif path is missing or unreadable "
+            "(default: soft-fail and continue)"
+        ),
+    ),
 ) -> None:
     """Architecture / production-readiness audit."""
     _run_mode(
@@ -767,5 +806,7 @@ def architecture(
         verify_findings,
         pack,
         fallback,
+        False,
         import_sarif,
+        require_sarif_import,
     )

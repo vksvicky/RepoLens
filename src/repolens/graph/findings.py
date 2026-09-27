@@ -35,16 +35,19 @@ def _cycle_group_to_issue(group: CycleGroup, *, severity: Severity) -> Issue:
         explanation=(
             f"The analysed import graph contains a strongly connected group of {n} "
             f"modules with mutual runtime dependencies: {members}. "
-            "Every module in the group can reach every other via import edges."
+            "Every module in the group can reach every other via import edges, "
+            "which breaks clear module-boundary layering (a Dependency Inversion / "
+            "DIP smell: high-level and low-level modules pull on each other)."
         ),
         impact=(
             "Mutual imports make initialisation order unpredictable, hide layering "
-            "violations, and increase the cost of testing and refactors."
+            "and DIP violations across package boundaries, and increase the cost of "
+            "testing and refactors."
         ),
         recommendedFix=(
-            "Break the cycle by moving shared contracts to a neutral module or "
-            "introducing dependency inversion so members depend on abstractions "
-            "rather than on each other."
+            "Break the cycle by moving shared contracts to a neutral module at a "
+            "stable layer, or applying dependency inversion (DIP) so members depend "
+            "on abstractions rather than on each other across module boundaries."
         ),
         codeExample=code_example,
         fixTiming="before launch",
