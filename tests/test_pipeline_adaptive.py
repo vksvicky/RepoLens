@@ -79,9 +79,10 @@ def test_llm_pack_shrinks_on_second_run(tmp_path: Path) -> None:
             deep=False,
         )
         second_prompt = mocked.call_args[0][0]
-        assert "auth.py" in second_prompt
-        # util unchanged and not P1 → omitted in auto mode
-        assert "util.py" not in second_prompt
+        assert "### auth.py (" in second_prompt
+        # Unchanged, non-P1 source is omitted. The filename may still appear
+        # inside a prior report packed as a new file (complexity hotspots).
+        assert "### util.py (" not in second_prompt
 
 
 def test_force_changed_reuses_last_llm_when_unchanged(tmp_path: Path) -> None:
