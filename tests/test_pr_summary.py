@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+from typer.testing import CliRunner
+
+from repolens.cli import app
 from repolens.pr_summary import (
     find_newest_report_json,
     render_pr_summary,
@@ -35,6 +39,30 @@ def _issue(
     if severity in {Severity.CRITICAL, Severity.HIGH}:
         kwargs["impact"] = "Attacker may exploit this."
     return Issue(**kwargs)
+
+
+def test_pr_summary_command_missing_report_exits_2(tmp_path: Path) -> None:
+    result = CliRunner().invoke(
+        app, ["pr-summary", "--reports-dir", str(tmp_path / "empty")]
+    )
+    assert result.exit_code == 2
+    assert "No gate_review_report_" in (result.stdout + result.stderr + result.output)
+
+
+def test_pr_summary_command_writes_markdown(tmp_path: Path) -> None:
+    report = FindingReport(
+        confidence=70,
+        summary=Summary(low=1),
+        issues=[_issue(severity=Severity.LOW, title="nit", code="")],
+    )
+    src = tmp_path / "gate_review_report_demo.json"
+    src.write_text(report.model_dump_json(), encoding="utf-8")
+    dest = tmp_path / "out" / "summary.md"
+    result = CliRunner().invoke(app, ["pr-summary", str(src), "--out", str(dest)])
+    assert result.exit_code == 0, result.stdout
+    assert dest.is_file()
+    assert "RepoLens PR summary" in dest.read_text(encoding="utf-8")
+    json.loads(src.read_text(encoding="utf-8"))
 
 
 def test_render_pr_summary_includes_critical_fix() -> None:

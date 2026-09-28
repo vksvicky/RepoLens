@@ -9,9 +9,9 @@ from zoneinfo import ZoneInfo
 
 from repolens.report import (
     GATE_ADEQUACY_ONE_LINER,
+    format_collapsed_duplicates,
     format_duration,
     format_two_lane_headline,
-    format_unique_critical_high,
     is_coverage_transport_gap,
     render_code_example_fenced,
     render_markdown,
@@ -182,12 +182,19 @@ def test_render_markdown_includes_gate_adequacy_note() -> None:
     assert '"% secure"' in md or "% secure" in md
 
 
-def test_format_unique_critical_high_shows_raw_when_collapsed() -> None:
+def test_collapsed_duplicates_note_only_when_tools_overlap() -> None:
     plain = FindingReport(
         confidence=50,
         summary=Summary(critical=0, high=2, medium=0, low=0),
     )
-    assert format_unique_critical_high(plain) == "2"
+    assert format_collapsed_duplicates(plain) is None
+
+    same = FindingReport(
+        confidence=50,
+        summary=Summary(critical=1, high=1, medium=0, low=0),
+        rawCriticalHighCount=2,
+    )
+    assert format_collapsed_duplicates(same) is None
 
     collapsed = FindingReport(
         confidence=50,
@@ -195,12 +202,10 @@ def test_format_unique_critical_high_shows_raw_when_collapsed() -> None:
         rawCriticalHighCount=4,
         rawTotalFindings=6,
     )
-    assert format_unique_critical_high(collapsed) == (
-        "2 unique (4 raw across tools)"
-    )
+    assert format_collapsed_duplicates(collapsed) == "4 tool rows → 2 Critical/High"
 
 
-def test_render_markdown_surfaces_unique_vs_raw_critical_high() -> None:
+def test_render_markdown_mentions_merge_without_a_combined_severity() -> None:
     report = FindingReport(
         confidence=60,
         summary=Summary(critical=0, high=2, medium=1, low=0),
@@ -211,8 +216,52 @@ def test_render_markdown_surfaces_unique_vs_raw_critical_high() -> None:
     md = render_markdown(
         report, mode="review", commit_go="go", push_go="no-go"
     )
-    assert "2 unique (4 raw across tools)" in md
-    assert "Unique Critical/High" in md
+    assert "4 tool rows → 2 Critical/High" in md
+    assert "Unique Critical/High" not in md
+    assert "High 2" in md
+    assert "Medium 1" in md
+
+
+def test_model_note_is_visible_and_not_counted() -> None:
+    from repolens.schema import Issue
+
+    measured = Issue(
+        severity="MEDIUM",
+        priority="P2",
+        category="heuristic.mega_file",
+        file="tests/test_deep.py",
+        line=1,
+        title="Mega-file",
+        explanation="513 lines",
+        recommendedFix="split",
+        source="heuristic",
+    )
+    note = Issue(
+        severity="HIGH",
+        priority="P2",
+        category="arch.readability_complexity",
+        file="src/repolens/report.py",
+        line=407,
+        title="Function is overly complex",
+        explanation="The model estimated a high score.",
+        impact="harder to change",
+        recommendedFix="split",
+        codeExample="def smaller():\n    return 1\n",
+        source="llm",
+    )
+    report = FindingReport(
+        confidence=95,
+        summary=Summary(),
+        issues=[measured, note],
+    )
+    report.summary = report.recount_summary()
+    md = render_markdown(report, mode="review", commit_go="go", push_go="go")
+    assert report.summary.high == 0
+    assert report.summary.medium == 1
+    assert report.summary.low == 0
+    assert "Function is overly complex" in md
+    assert "## Model notes" in md
+    assert "do not change Critical, High, Medium, or Low" in md
 
 
 def test_metrics_includes_fast_brain_without_band_audits(tmp_path: Path) -> None:
@@ -249,11 +298,14 @@ def test_metrics_and_coverage_explain_formulas(tmp_path: Path) -> None:
         encoding="utf-8"
     )
     assert "How these % are calculated" in text
-    assert "Weakest scored pass/band" in text
-    assert "honestly out of scope" in text
+    assert "Why a score is low" in text
+    assert "[Why](#why-a-score-is-low)" in text
+    assert "[Checklist](#coverage)" in text
+    assert "Reliability audit 55%" in text
+    assert "Medium and Low findings do not change" in text
     assert "`sec.injection`" in text
     assert "`sec.xss_csrf`" in text
-    assert "`arch.blast_radius`" in text
+    assert "arch.blast_radius had no finding and no N/A line" in text
 
 
 def test_markdown_notes_llm_skipped_but_keeps_counts(tmp_path: Path) -> None:

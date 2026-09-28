@@ -16,6 +16,11 @@ _COVERAGE_NA_RE = re.compile(
     r"^coverage:(?P<id>[^\s:]+)\s*:\s*N/A\s*[—\-]\s*(?P<reason>.+)$",
     re.IGNORECASE,
 )
+# The model often drops the coverage: prefix. Same id and N/A marker still counts.
+_BARE_NA_RE = re.compile(
+    r"^(?P<id>(?:sec|rel|arch)\.[^\s:]+)\s*:\s*N/A\s*[—\-]\s*(?P<reason>.+)$",
+    re.IGNORECASE,
+)
 
 _PASS_TO_BAND = {
     "p1": "p1",
@@ -181,13 +186,61 @@ def coverage_ids_for_pass(
 
 
 def parse_coverage_notes(gaps: Iterable[str]) -> dict[str, str]:
+    """Map checklist id → N/A reason.
+
+    A later lazy reason does not replace an earlier concrete one.
+    """
     notes: dict[str, str] = {}
     for gap in gaps:
         text = gap.strip()
-        match = _COVERAGE_NA_RE.match(text)
-        if match:
-            notes[match.group("id")] = match.group("reason").strip()
+        match = _COVERAGE_NA_RE.match(text) or _BARE_NA_RE.match(text)
+        if not match:
+            continue
+        cid = match.group("id")
+        reason = match.group("reason").strip()
+        previous = notes.get(cid)
+        if previous is None or (
+            is_lazy_na_reason(previous) and not is_lazy_na_reason(reason)
+        ):
+            notes[cid] = reason
+        elif is_lazy_na_reason(previous) and is_lazy_na_reason(reason):
+            notes[cid] = reason
     return notes
+
+
+def explain_missed_id(cid: str, gaps: Iterable[str]) -> str:
+    """One plain sentence for a checklist id that stayed missed."""
+    counted = f"coverage:{cid}: N/A — <what is actually true in this repo>"
+    related = [gap.strip() for gap in gaps if cid in gap]
+    bare = next((gap for gap in related if _BARE_NA_RE.match(gap)), None)
+    if bare is not None:
+        return (
+            f"{cid} was answered without the coverage: prefix, so it did not count. "
+            f"The line that counts is `{counted}`."
+        )
+    lazy = next(
+        (
+            gap
+            for gap in related
+            if "lazy N/A rejected" in gap or "not reviewed" in gap.lower()
+        ),
+        None,
+    )
+    if lazy is not None:
+        return (
+            f"{cid} was marked N/A with “not reviewed”. That wording does not count. "
+            f"The line that counts is `{counted}`."
+        )
+    shaped = next((gap for gap in related if gap.lower().startswith("coverage:")), None)
+    if shaped is not None and "N/A" not in shaped:
+        return (
+            f"{cid} was mentioned, but the line had no `N/A —`. It did not count. "
+            f"The line that counts is `{counted}`."
+        )
+    return (
+        f"{cid} had no finding and no N/A line. "
+        f"The line that counts is `{counted}`."
+    )
 
 
 def _issue_addresses(cov_id: str, issues: Iterable[Issue]) -> bool:

@@ -10,7 +10,6 @@ from repolens.deep import (
     DeepPass,
     budget_files,
     build_deep_prompt,
-    merge_reports,
     plan_deep_passes,
 )
 from repolens.inventory import FileEntry
@@ -233,57 +232,6 @@ def test_plan_deep_passes_uses_coverage_ids_for_enabled_rules() -> None:
     assert all(cid.startswith("arch.") for cid in passes[2].coverage_ids)
 
 
-def test_merge_reports_dedupes_file_title_and_uses_min_confidence() -> None:
-    shared = _issue(file="auth.py", title="Missing check", severity="MEDIUM")
-    a = _report(
-        confidence=80,
-        issues=[shared, _issue(file="a.py", title="A only")],
-        gaps=["gap-a"],
-    )
-    b = _report(
-        confidence=55,
-        issues=[
-            _issue(file="auth.py", title="Missing check", severity="HIGH"),
-            _issue(file="b.py", title="B only"),
-        ],
-        gaps=["gap-b", "gap-a"],
-    )
-    heuristic = [_issue(file="h.py", title="Heuristic")]
-    merged = merge_reports([a, b], heuristic)
-
-    titles = {(i.file, i.title) for i in merged.issues}
-    assert ("auth.py", "Missing check") in titles
-    dupes = [
-        i
-        for i in merged.issues
-        if i.file == "auth.py" and i.title == "Missing check"
-    ]
-    assert len(dupes) == 1
-    assert merged.confidence == 55
-    assert "gap-a" in merged.durabilityGaps
-    assert "gap-b" in merged.durabilityGaps
-    assert any(i.file == "h.py" for i in merged.issues)
-    assert merged.summary == merged.recount_summary()
-    assert merged.summary.medium + merged.summary.high + merged.summary.low == len(
-        merged.issues
-    )
-
-
-def test_merge_reports_ignores_empty_parts_for_confidence() -> None:
-    empty = _report(confidence=90, issues=[], gaps=[])
-    solid = _report(confidence=40, issues=[_issue()], gaps=[])
-    merged = merge_reports([empty, solid], [])
-    assert merged.confidence == 40
-
-
-def test_merge_reports_empty_parts_list_uses_heuristics() -> None:
-    heuristic = [_issue(file="h.py", title="Only heuristic")]
-    merged = merge_reports([], heuristic)
-    assert len(merged.issues) == 1
-    assert merged.confidence == 0
-    assert merged.summary.low == 1
-
-
 def test_build_deep_prompt_includes_rule_bodies_and_coverage_contract() -> None:
     rules = [
         _rule("security", "p1", body="## Security checklist\n- auth"),
@@ -330,3 +278,89 @@ def test_plan_deep_passes_skips_disabled_and_unknown_mode() -> None:
             chars_per_pass=100,
             rules=rules,
         )
+
+
+def test_deep_helpers_cover_degraded_passes_and_metrics(monkeypatch) -> None:
+    """Extracted deep-pass helpers keep degraded, duplicate, and metric paths."""
+    from types import SimpleNamespace
+
+    from repolens.config import RepoLensConfig
+    from repolens.coverage import CoverageResult
+    from repolens.heuristics import HeuristicResult
+    from repolens.pipeline.deep_exec import (
+        _announce_deep_runtime,
+        _fold_scanners,
+        _load_deep_heuristics,
+        _ollama_wait_bits,
+        _ordered_unique,
+        _pass_report,
+        _phase_coverage_metrics,
+    )
+    from repolens.progress import LlmGenerateProgress, ReviewProgress
+
+    cfg = RepoLensConfig()
+    verbose = ReviewProgress(verbose=True)
+    heur = _load_deep_heuristics(
+        root=Path("."),
+        files=[],
+        cfg=cfg,
+        prog=verbose,
+        heur_result=HeuristicResult(hot_paths=["a.py"]),
+        pack_ids=[],
+    )
+    assert heur.hot_paths == ["a.py"]
+
+    _announce_deep_runtime(
+        ReviewProgress(quiet=True),
+        [SimpleNamespace(files=["a.py"])],
+        cfg,
+    )
+    _announce_deep_runtime(ReviewProgress(), [SimpleNamespace(files=["a.py"])], cfg)
+
+    monkeypatch.setattr(
+        "repolens.provider_status.ollama_running_summary",
+        lambda base: "ollama up" if base else None,
+    )
+    progress = LlmGenerateProgress()
+    assert "ollama up" in " | ".join(_ollama_wait_bits(progress, "http://127.0.0.1:11434"))
+    assert _ollama_wait_bits(progress, None)
+
+    empty = _pass_report(SimpleNamespace(layer="degraded", report=None), "p1", verbose)
+    assert empty.confidence == 0
+    assert "llm.schema_invalid:p1" in empty.durabilityGaps
+    kept = FindingReport(confidence=4, summary=Summary(), issues=[])
+    assert _pass_report(SimpleNamespace(layer="ok", report=kept), "p2", verbose) is kept
+
+    assert _ordered_unique(["a", "a", "b"]) == ["a", "b"]
+
+    scanner_issue = Issue(
+        severity="LOW",
+        priority="P3",
+        category="trivy",
+        file="go.mod",
+        line=1,
+        title="noise",
+        explanation="x",
+        impact="",
+        recommendedFix="upgrade",
+        codeExample="",
+    )
+    folded = _fold_scanners(
+        FindingReport(confidence=10, summary=Summary(), issues=[]),
+        [scanner_issue],
+        cfg,
+        verbose,
+    )
+    assert any(i.category == "trivy" for i in folded.issues)
+
+    report = FindingReport(confidence=10, summary=Summary(), issues=[])
+    report.securityAuditConfidence = 20
+    report.reliabilityAuditConfidence = 30
+    report.architectureAuditConfidence = 40
+    coverage = CoverageResult(
+        covered=["sec.auth"],
+        na={"sec.na": "out of scope"},
+        missed=["sec.miss"],
+    )
+    _phase_coverage_metrics(verbose, report, coverage, ["sec.auth"])
+    _phase_coverage_metrics(verbose, report, coverage, [])

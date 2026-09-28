@@ -249,5 +249,37 @@ def test_print_summary_includes_gate_adequacy_one_liner() -> None:
         export_mod._print_summary(75, 10, report, dry_run=False)
     out = buf.getvalue()
     assert GATE_ADEQUACY_ONE_LINER in out or "review-package adequacy" in out
-    assert "Unique Critical/High" in out
-    assert "1 unique (3 raw across tools)" in out
+    assert "Unique Critical/High" not in out
+    assert "3 tool rows → 1 Critical/High" in out
+    assert "Critical" in out
+    assert "High" in out
+
+
+def test_print_summary_explains_each_missed_checklist_id() -> None:
+    from io import StringIO
+
+    from rich.console import Console
+
+    from repolens.cli import export as export_mod
+    from repolens.schema import CoverageBlock, FindingReport, Summary
+
+    report = FindingReport(
+        confidence=19,
+        summary=Summary(),
+        architectureAuditConfidence=57,
+        coverage=CoverageBlock(
+            missed=["arch.dry"],
+            missedNotes={
+                "arch.dry": (
+                    "arch.dry was answered without the coverage: prefix, so it did not count."
+                )
+            },
+        ),
+    )
+    buf = StringIO()
+    fake = Console(file=buf, force_terminal=False, width=160)
+    with patch.object(export_mod, "console", fake):
+        export_mod._print_summary(19, 10, report, dry_run=False)
+    out = buf.getvalue()
+    assert "Checklist ids that did not count:" in out
+    assert "without the coverage: prefix" in out

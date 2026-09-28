@@ -54,6 +54,42 @@ def discover_packages(
     return [], gaps
 
 
+def _setuptools_package_names(root: Path, tool: dict) -> list[str]:
+    setuptools = tool.get("setuptools") or {}
+    names: list[str] = []
+    explicit = setuptools.get("packages")
+    if isinstance(explicit, list):
+        names.extend(str(p) for p in explicit)
+    pkg_find = _setuptools_find_table(setuptools)
+    if pkg_find:
+        names.extend(_packages_from_setuptools_find(root, pkg_find))
+    return names
+
+
+def _setuptools_find_table(setuptools: dict) -> dict:
+    pkg_find = setuptools.get("packages.find")
+    if isinstance(pkg_find, dict):
+        return pkg_find
+    packages = setuptools.get("packages")
+    if not isinstance(packages, dict):
+        return {}
+    nested = packages.get("find")
+    return nested if isinstance(nested, dict) else {}
+
+
+def _hatch_package_names(tool: dict) -> list[str]:
+    wheel = ((tool.get("hatch") or {}).get("build") or {}).get("targets") or {}
+    hatch_pkgs = (wheel.get("wheel") or {}).get("packages")
+    if isinstance(hatch_pkgs, list):
+        return [str(p) for p in hatch_pkgs]
+    if not isinstance(hatch_pkgs, dict):
+        return []
+    names: list[str] = []
+    for key, value in hatch_pkgs.items():
+        names.append(value if isinstance(value, str) else str(key))
+    return names
+
+
 def _packages_from_pyproject(root: Path, gaps: list[str]) -> list[str]:
     pyproject = root / "pyproject.toml"
     if not pyproject.is_file():
@@ -67,38 +103,8 @@ def _packages_from_pyproject(root: Path, gaps: list[str]) -> list[str]:
         return []
 
     tool = data.get("tool") or {}
-    names: list[str] = []
-
-    setuptools = tool.get("setuptools") or {}
-    explicit = setuptools.get("packages")
-    if isinstance(explicit, list):
-        names.extend(str(p) for p in explicit)
-
-    pkg_find = setuptools.get("packages.find")
-    if not isinstance(pkg_find, dict):
-        packages = setuptools.get("packages")
-        if isinstance(packages, dict):
-            nested = packages.get("find")
-            pkg_find = nested if isinstance(nested, dict) else {}
-        else:
-            pkg_find = {}
-    if pkg_find:
-        names.extend(_packages_from_setuptools_find(root, pkg_find))
-
-    hatch = tool.get("hatch") or {}
-    build = hatch.get("build") or {}
-    targets = build.get("targets") or {}
-    wheel = targets.get("wheel") or {}
-    hatch_pkgs = wheel.get("packages")
-    if isinstance(hatch_pkgs, list):
-        names.extend(str(p) for p in hatch_pkgs)
-    elif isinstance(hatch_pkgs, dict):
-        for key, value in hatch_pkgs.items():
-            if isinstance(value, str):
-                names.append(value)
-            else:
-                names.append(str(key))
-
+    names = _setuptools_package_names(root, tool)
+    names.extend(_hatch_package_names(tool))
     return [n for n in names if n and not n.startswith("_")]
 
 

@@ -26,13 +26,15 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from repolens.coverage import CoverageResult
-from repolens.schema import Issue, ScannerRun, Severity
+from repolens.schema import FindingReport, Issue, ScannerRun, Severity
 
 _MISSED_PENALTY = 4
 _MISSED_CAP = 40
 _INVALID_NA_PENALTY = 3
 _INVALID_NA_CAP = 30
 _SCANNER_ALL_RAN_BONUS = 5
+# Bands and the gate below this get a plain-language breakdown in the report.
+LOW_AUDIT_BELOW = 70
 
 _CRITICAL_PENALTY = 20
 _CRITICAL_CAP = 60
@@ -94,7 +96,7 @@ def severity_finding_penalty(issues: Iterable[Issue], *, band: str) -> int:
     critical = 0
     high = 0
     for issue in issues:
-        if not pred(issue):
+        if issue.source == "llm" or not pred(issue):
             continue
         if issue.severity == Severity.CRITICAL:
             critical += 1
@@ -217,3 +219,166 @@ def compute_audit_metrics(
         architecture_audit_confidence=architecture,
         reliability_audit_confidence=reliability,
     )
+
+
+def _titles(issues: Iterable[Issue], pred, severity: Severity) -> list[str]:
+    return [
+        issue.title
+        for issue in issues
+        if pred(issue) and issue.severity == severity
+    ]
+
+
+def _missed_clause(ids: list[str]) -> str | None:
+    if not ids:
+        return None
+    noun = (
+        "checklist id was not counted"
+        if len(ids) == 1
+        else "checklist ids were not counted"
+    )
+    return f"{len(ids)} {noun}"
+
+
+def _finding_clause(critical: int, high: int) -> str | None:
+    parts: list[str] = []
+    if critical:
+        noun = "Critical finding" if critical == 1 else "Critical findings"
+        parts.append(f"{critical} {noun}")
+    if high:
+        noun = "High finding" if high == 1 else "High findings"
+        parts.append(f"{high} {noun}")
+    if not parts:
+        return None
+    return " and ".join(parts)
+
+
+def _band_sentence(
+    label: str,
+    score: int,
+    *,
+    missed: list[str],
+    issues: list[Issue],
+    pred,
+    detail: bool,
+) -> str:
+    critical = _titles(issues, pred, Severity.CRITICAL)
+    high = _titles(issues, pred, Severity.HIGH)
+    clauses = [
+        clause
+        for clause in (
+            _missed_clause(missed),
+            _finding_clause(len(critical), len(high)),
+        )
+        if clause
+    ]
+    if clauses:
+        body = "; ".join(clauses)
+    else:
+        body = (
+            "no missed checklist ids and no Critical/High findings in this band, "
+            "so the pass base was already under 70%"
+        )
+    sentence = f"{label} audit {score}%: {body}."
+    if not detail:
+        return sentence
+    extras: list[str] = []
+    if missed:
+        extras.append("Each missed id is explained under Coverage.")
+    named = critical + high
+    if named:
+        shown = "; ".join(named[:8])
+        extras.append(f"Open Critical/High in this band: {shown}.")
+        extras.append("Clearing those findings raises this score.")
+    if extras:
+        sentence = f"{sentence} {' '.join(extras)}"
+    return sentence
+
+
+def _scored_bands(report: FindingReport) -> list[tuple[str, str, int]]:
+    rows = [
+        ("Security", "sec.", report.securityAuditConfidence),
+        ("Reliability", "rel.", report.reliabilityAuditConfidence),
+        ("Architecture", "arch.", report.architectureAuditConfidence),
+    ]
+    return [(label, prefix, score) for label, prefix, score in rows if score is not None]
+
+
+def _band_predicate(prefix: str):
+    return {
+        "sec.": _is_security_issue,
+        "rel.": _is_reliability_issue,
+        "arch.": _is_architecture_issue,
+    }[prefix]
+
+
+def _gate_sentence(report: FindingReport, bands: list[tuple[str, str, int]]) -> str | None:
+    if report.confidence >= LOW_AUDIT_BELOW or not bands:
+        return None
+    label, _prefix, lowest = min(bands, key=lambda row: row[2])
+    missed = report.coverage.missed if report.coverage is not None else []
+    prefixes = [prefix for _label, prefix, _score in bands]
+    scoped = [item for item in missed if any(item.startswith(p) for p in prefixes)]
+    if scoped and report.confidence < lowest:
+        return (
+            f"Gate {report.confidence}%: {label.lower()} is the lowest band at "
+            f"{lowest}%, and checklist ids that were not counted lower it further. "
+            "See Coverage."
+        )
+    if report.confidence == lowest:
+        return f"Gate {report.confidence}% matches the lowest band, {label.lower()}."
+    return (
+        f"Gate {report.confidence}%: the lowest band is {label.lower()} at {lowest}%."
+    )
+
+
+def low_audit_explanations(report: FindingReport) -> list[str]:
+    """Why a band or the gate is under 70%, with the ids and findings involved.
+
+    Medium and Low findings are omitted: they do not change these percentages.
+    A Critical/High finding is listed on every band it matches.
+    """
+    missed = report.coverage.missed if report.coverage is not None else []
+    bands = _scored_bands(report)
+    lines: list[str] = []
+    for label, prefix, score in bands:
+        if score >= LOW_AUDIT_BELOW:
+            continue
+        lines.append(
+            _band_sentence(
+                label,
+                score,
+                missed=[item for item in missed if item.startswith(prefix)],
+                issues=list(report.issues),
+                pred=_band_predicate(prefix),
+                detail=True,
+            )
+        )
+    gate = _gate_sentence(report, bands)
+    if gate is not None:
+        lines.append(gate)
+    return lines
+
+
+def low_audit_brief(report: FindingReport) -> list[str]:
+    """Same deductions as the report, without the checklist-id list."""
+    missed = report.coverage.missed if report.coverage is not None else []
+    bands = _scored_bands(report)
+    lines: list[str] = []
+    for label, prefix, score in bands:
+        if score >= LOW_AUDIT_BELOW:
+            continue
+        lines.append(
+            _band_sentence(
+                label,
+                score,
+                missed=[item for item in missed if item.startswith(prefix)],
+                issues=list(report.issues),
+                pred=_band_predicate(prefix),
+                detail=False,
+            )
+        )
+    gate = _gate_sentence(report, bands)
+    if gate is not None:
+        lines.append(gate)
+    return lines

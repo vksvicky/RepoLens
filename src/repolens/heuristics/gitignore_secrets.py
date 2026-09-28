@@ -17,8 +17,12 @@ _REQUIRED_GITIGNORE_PATTERNS = (
     ".env",
     ".env.*",
     "*.pem",
+    "*.key",
     "*.p12",
+    "*.pfx",
     "credentials.json",
+    "id_rsa",
+    ".netrc",
 )
 
 
@@ -83,11 +87,9 @@ def find_gitignore_secret_gaps(root: Path, entries: list[FileEntry]) -> list[Iss
         for pattern in _REQUIRED_GITIGNORE_PATTERNS
         if not _gitignore_covers(gitignore_text, pattern)
     ]
-    # Require at least .env gap to fire (core signal from acceptance criteria).
-    if ".env" not in missing and ".env.*" not in missing:
+    if not missing:
         return []
 
-    missing_env = [p for p in missing if p.startswith(".env")]
     sample = ", ".join(secret_scripts[:3])
     return [
         Issue(
@@ -96,10 +98,10 @@ def find_gitignore_secret_gaps(root: Path, entries: list[FileEntry]) -> list[Iss
             category="heuristic.gitignore_secrets",
             file=".gitignore" if gitignore_path.is_file() else secret_scripts[0],
             line=1,
-            title="Gitignore missing .env / secret patterns",
+            title="Gitignore missing secret patterns",
             explanation=(
                 f"Secret-touching scripts exist ({sample}) but .gitignore does not "
-                f"ignore {', '.join(missing_env)}. Local env files may be committed."
+                f"ignore {', '.join(missing)}. Local secret files may be committed."
             ),
             recommendedFix=(
                 "Add `.env`, `.env.*`, and other secret file patterns to `.gitignore`, "

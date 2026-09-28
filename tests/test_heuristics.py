@@ -72,6 +72,79 @@ def test_gitignore_missing_env_when_notarize_mentions_password(tmp_path: Path) -
     assert any(".env" in (i.explanation + i.recommendedFix + i.title) for i in secrets)
 
 
+def test_gitignore_gap_fires_when_only_pem_is_missing(tmp_path: Path) -> None:
+    """A covered .env does not hide other required secret patterns."""
+    from repolens.heuristics.gitignore_secrets import find_gitignore_secret_gaps
+
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "notarize.sh").write_text(
+        'export APPLE_ID_PASSWORD="$NOTARIZE_PASSWORD"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / ".gitignore").write_text(
+        ".env\n.env.*\n*.key\n*.p12\n*.pfx\ncredentials.json\nid_rsa\n.netrc\n",
+        encoding="utf-8",
+    )
+    entries = _entries_for(tmp_path, "scripts/notarize.sh", ".gitignore")
+
+    issues = find_gitignore_secret_gaps(tmp_path, entries)
+
+    assert issues
+    assert "*.pem" in issues[0].explanation
+
+
+def test_gitignore_complete_secret_patterns_emit_nothing(tmp_path: Path) -> None:
+    from repolens.heuristics.gitignore_secrets import (
+        _REQUIRED_GITIGNORE_PATTERNS,
+        find_gitignore_secret_gaps,
+    )
+
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "notarize.sh").write_text(
+        'export APPLE_ID_PASSWORD="$NOTARIZE_PASSWORD"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / ".gitignore").write_text(
+        "\n".join(_REQUIRED_GITIGNORE_PATTERNS) + "\n",
+        encoding="utf-8",
+    )
+    entries = _entries_for(tmp_path, "scripts/notarize.sh")
+
+    assert find_gitignore_secret_gaps(tmp_path, entries) == []
+
+
+def test_gitignore_covers_prefixed_env_and_non_notarize_scripts(tmp_path: Path) -> None:
+    from repolens.heuristics.gitignore_secrets import (
+        _gitignore_covers,
+        find_gitignore_secret_gaps,
+    )
+
+    assert _gitignore_covers(".env.local\n", ".env")
+    assert _gitignore_covers("secrets/.env\n", ".env")
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "deploy.sh").write_text("API_KEY=local\n", encoding="utf-8")
+    (tmp_path / "tool.sh").write_text("echo password\n", encoding="utf-8")
+    (tmp_path / "notes.md").write_text("password in docs\n", encoding="utf-8")
+    entries = _entries_for(tmp_path, "scripts/deploy.sh", "tool.sh", "notes.md")
+    entries.append(
+        FileEntry(
+            path=tmp_path / "missing-dir",
+            relative="missing-dir",
+            size=0,
+            priority_band=3,
+        )
+    )
+
+    issues = find_gitignore_secret_gaps(tmp_path, entries)
+
+    assert issues
+    assert "deploy.sh" in issues[0].explanation
+    assert "tool.sh" in issues[0].explanation
+
+
 def test_extract_replace_sibling_pair_emits_medium_duplication(tmp_path: Path) -> None:
     views = tmp_path / "Views"
     views.mkdir()
@@ -225,7 +298,8 @@ def test_this_repo_clears_repeatable_hygiene_findings() -> None:
         "tests/test_guided_script.py",
     ]
     entries = [_entry(root, rel) for rel in rels]
+    nesting = entries + [_entry(root, "src/repolens/pipeline/run.py")]
     assert find_todo_density(entries) == []
-    assert find_deep_nesting(entries) == []
+    assert find_deep_nesting(nesting) == []
     mega_issues, _hot = find_mega_files(entries)
     assert mega_issues == []

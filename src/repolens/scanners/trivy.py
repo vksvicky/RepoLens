@@ -23,6 +23,86 @@ def _severity(raw: str | None) -> Severity:
     return _SEV.get((raw or "MEDIUM").upper(), Severity.MEDIUM)
 
 
+def _vulnerability_fix(pkg: str, installed: str, fixed: str, vuln_id: str) -> str:
+    upgrade = f"Upgrade {pkg}"
+    if installed:
+        upgrade += f" from {installed}"
+    if fixed:
+        upgrade += f" to {fixed}"
+    else:
+        upgrade += " to a non-vulnerable version"
+    return f"{upgrade} (see {vuln_id})."
+
+
+def _vulnerability_issue(target: str, vuln: dict[str, Any]) -> Issue:
+    vuln_id = str(vuln.get("VulnerabilityID") or "CVE")
+    pkg = str(vuln.get("PkgName") or "package")
+    title = str(vuln.get("Title") or vuln_id)
+    fixed = str(vuln.get("FixedVersion") or "").strip()
+    installed = str(vuln.get("InstalledVersion") or "").strip()
+    desc = str(vuln.get("Description") or title)
+    return Issue(
+        severity=_severity(str(vuln.get("Severity") or "")),
+        priority="P1",
+        category="trivy",
+        file=target,
+        line=1,
+        title=f"{vuln_id} in {pkg}: {title}"[:200],
+        explanation=desc[:2000],
+        impact=(
+            "Known vulnerable dependency or package may be exploitable in production."
+        ),
+        recommendedFix=_vulnerability_fix(pkg, installed, fixed, vuln_id),
+        codeExample=(
+            f"# Upgrade {pkg}"
+            + (f" to {fixed}" if fixed else "")
+            + f"\n# Advisory: {vuln_id}"
+        ),
+        fixTiming="before launch",
+        cwe=None,
+        packageName=pkg,
+        installedVersion=installed or None,
+        fixedVersion=fixed or None,
+        advisoryId=vuln_id,
+    )
+
+
+def _misconfig_line(mis: dict[str, Any]) -> int:
+    cause = mis.get("CauseMetadata") or {}
+    if not isinstance(cause, dict):
+        return 1
+    try:
+        return max(int(cause.get("StartLine") or 1), 1)
+    except (TypeError, ValueError):
+        return 1
+
+
+def _misconfig_issue(target: str, mis: dict[str, Any]) -> Issue:
+    mis_id = str(mis.get("ID") or mis.get("AvdID") or "misconfig")
+    title = str(mis.get("Title") or mis_id)
+    desc = str(mis.get("Description") or title)
+    url = str(mis.get("PrimaryURL") or "").strip()
+    return Issue(
+        severity=_severity(str(mis.get("Severity") or "")),
+        priority="P1",
+        category="trivy",
+        file=target,
+        line=_misconfig_line(mis),
+        title=f"{mis_id}: {title}"[:200],
+        explanation=desc[:2000] + (f"\n{url}" if url else ""),
+        impact="Infrastructure or container misconfiguration increases attack surface.",
+        recommendedFix=(
+            f"Remediate {mis_id} in {target}" + (f" (see {url})" if url else ".")
+        ),
+        codeExample=(
+            f"# Fix misconfiguration {mis_id} in {target}\n"
+            f"# Follow scanner guidance"
+            + (f": {url}" if url else "")
+        ),
+        fixTiming="before launch",
+    )
+
+
 def parse_trivy_report(data: dict[str, Any]) -> list[Issue]:
     """Map Trivy JSON (``trivy fs --format json``) into RepoLens Issues."""
     issues: list[Issue] = []
@@ -31,83 +111,11 @@ def parse_trivy_report(data: dict[str, Any]) -> list[Issue]:
             continue
         target = str(result.get("Target") or "unknown")
         for vuln in result.get("Vulnerabilities") or []:
-            if not isinstance(vuln, dict):
-                continue
-            vuln_id = str(vuln.get("VulnerabilityID") or "CVE")
-            pkg = str(vuln.get("PkgName") or "package")
-            title = str(vuln.get("Title") or vuln_id)
-            fixed = str(vuln.get("FixedVersion") or "").strip()
-            installed = str(vuln.get("InstalledVersion") or "").strip()
-            desc = str(vuln.get("Description") or title)
-            fix = (
-                f"Upgrade {pkg}"
-                + (f" from {installed}" if installed else "")
-                + (f" to {fixed}" if fixed else " to a non-vulnerable version")
-                + f" (see {vuln_id})."
-            )
-            issues.append(
-                Issue(
-                    severity=_severity(str(vuln.get("Severity") or "")),
-                    priority="P1",
-                    category="trivy",
-                    file=target,
-                    line=1,
-                    title=f"{vuln_id} in {pkg}: {title}"[:200],
-                    explanation=desc[:2000],
-                    impact=(
-                        "Known vulnerable dependency or package may be "
-                        "exploitable in production."
-                    ),
-                    recommendedFix=fix,
-                    codeExample=(
-                        f"# Upgrade {pkg}"
-                        + (f" to {fixed}" if fixed else "")
-                        + f"\n# Advisory: {vuln_id}"
-                    ),
-                    fixTiming="before launch",
-                    cwe=None,
-                    packageName=pkg,
-                    installedVersion=installed or None,
-                    fixedVersion=fixed or None,
-                    advisoryId=vuln_id,
-                )
-            )
+            if isinstance(vuln, dict):
+                issues.append(_vulnerability_issue(target, vuln))
         for mis in result.get("Misconfigurations") or []:
-            if not isinstance(mis, dict):
-                continue
-            mis_id = str(mis.get("ID") or mis.get("AvdID") or "misconfig")
-            title = str(mis.get("Title") or mis_id)
-            desc = str(mis.get("Description") or title)
-            cause = mis.get("CauseMetadata") or {}
-            line = 1
-            if isinstance(cause, dict):
-                try:
-                    line = max(int(cause.get("StartLine") or 1), 1)
-                except (TypeError, ValueError):
-                    line = 1
-            url = str(mis.get("PrimaryURL") or "").strip()
-            issues.append(
-                Issue(
-                    severity=_severity(str(mis.get("Severity") or "")),
-                    priority="P1",
-                    category="trivy",
-                    file=target,
-                    line=line,
-                    title=f"{mis_id}: {title}"[:200],
-                    explanation=desc[:2000] + (f"\n{url}" if url else ""),
-                    impact="Infrastructure or container misconfiguration increases attack surface.",
-                    recommendedFix=(
-                        f"Remediate {mis_id} in {target}"
-                        + (f" (see {url})" if url else ".")
-                    ),
-                    codeExample=(
-                        f"# Fix misconfiguration {mis_id} in {target}\n"
-                        f"# Follow scanner guidance"
-                        + (f": {url}" if url else "")
-                    ),
-                    fixTiming="before launch",
-                )
-            )
+            if isinstance(mis, dict):
+                issues.append(_misconfig_issue(target, mis))
     return issues
 
 

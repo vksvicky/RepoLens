@@ -25,6 +25,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Summary counts** — Critical, High, Medium, and Low count scanner and Fast Brain findings. The model’s writing stays in the report under Model notes and does not change those four numbers or the gate.
+- **Generic measurements** — the checklist prompt shows the line shape and asks for a fact from the repository under review. Testing findings on CI pipeline files (GitHub, GitLab, Jenkins, CircleCI, Azure Pipelines, Buildkite, and the other common pipeline names) are left out. A model claim that `.gitignore` is missing secret patterns is left to Fast Brain; a secret finding in any other file still counts. Python outlines include symbols wrapped in a conditional. A Bedrock payload that is not a JSON object is ignored, and an empty stream still raises.
+- **Findings the model does not own** — complexity, `heuristic.*`, and “no unit tests” on a workflow file are left to Fast Brain. The model can still file other findings.
+- **Report wording** — the summary, Markdown, and JSON explain each missed checklist id in one sentence and link the percentages to that section. A checklist line written as `arch.<id>: N/A — <fact>` counts the same as `coverage:<id>: N/A — <fact>`. “Not reviewed” still does not count.
+- **Complexity** — split `triage_llm_plan`, `run_heuristics`, `score_actionability`, `_stream_openai_compatible`, and `build_argv` out of the High band. An empty `changed_files` list is an empty diff and matches no triage hits.
+- **Complexity** — split `_render_provenance_section`, `_load_review_inventory`, `_issues_from_run`, `_cog_node`, and `apply_llm_consistency` so they are no longer medium-band hotspots the model was promoting to High.
+- **Complexity and file size** — split the High-band stream, pyproject, report, and test-inventory functions, and moved review, explain, report, SCA, and deep-pass helpers into modules under the 500-line mega-file bar.
+- **Review summary** — Critical, High, Medium, and Low are the only severity counts. A **Duplicates merged** note appears only when two tools cited the same advisory (`4 tool rows → 2 Critical/High`).
+- **Low audit scores** — when a band or the gate is under 70%, the report and CLI name the missed checklist ids and the Critical/High findings that were subtracted. Medium and Low findings are left out of that breakdown.
+- **Checklist closure** — each deep pass repeats its coverage ids after the source files, and one short follow-up asks only for ids the band passes left unanswered. Ids that are still blank stay missed.
+- **Complexity** — split `find_near_clones`, the SCA dedupe and license helpers, `build_supply_chain`, and `pr_summary_cmd` out of the High band.
+- **Review phases** — `run_review` passes an explicit `ReviewRun` state object into each phase instead of sharing locals with `nonlocal`.
+- **Complexity** — split `parse_trivy_report`, `_collect_choices`, `parse_markdown_report`, `_analyze_deep_passes`, and `apply_feedback_calibrations` out of the High band, and flattened the provider-fallback branch in `run.py`.
+- **Gitignore secrets** — the heuristic now requires `*.pem`, `*.key`, `*.p12`, `*.pfx`, `credentials.json`, `id_rsa`, and `.netrc` as well as `.env`, and reports any missing pattern.
+- **CodeQL** — `github/codeql-action` steps are pinned to the v3.38.2 commit.
 - **Review complexity** — `run_review` and `_run_mode` are split into phases so neither function is in the Critical or High complexity band.
 - Docs: competitive landscape 2026 (Sonar alternatives, SARIF-import strategy, zero-infra personas)
 - FAQ: why not a scanner shell script; air-gap Ollama vs private BYOK honesty

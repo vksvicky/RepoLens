@@ -103,6 +103,64 @@ def _snippet(loc: dict[str, Any]) -> str:
     return ""
 
 
+def _first_location(result: dict[str, Any]) -> dict[str, Any] | None:
+    locations = result.get("locations") or []
+    if not locations or not isinstance(locations[0], dict):
+        return None
+    return locations[0]
+
+
+def _high_impact(tool_name: str, rule_id: str, message: str, snippet: str) -> tuple[str, str]:
+    impact = (
+        f"Imported {tool_name} finding ({rule_id}); "
+        "confirm exploitability in this codebase."
+    )
+    code = f"# Address {tool_name} / {rule_id}\n# {message[:200]}\n"
+    if snippet:
+        code += f"# snippet: {snippet[:120]}\n"
+    return impact, code
+
+
+def _issue_from_sarif_result(
+    result: dict[str, Any],
+    *,
+    root: Path,
+    tool_name: str,
+    path_name: str,
+) -> Issue | None:
+    loc0 = _first_location(result)
+    if loc0 is None:
+        return None
+    uri = ((loc0.get("physicalLocation") or {}).get("artifactLocation") or {}).get("uri") or ""
+    rel = _norm_uri_to_rel(str(uri), root=root)
+    if rel is None:
+        return None
+    severity = _level(result)
+    rule_id = _rule_id(result)
+    message = _message(result) or rule_id
+    snippet = _snippet(loc0)
+    serious = severity in {Severity.CRITICAL, Severity.HIGH}
+    impact, code = ("", "")
+    if serious:
+        impact, code = _high_impact(tool_name, rule_id, message, snippet)
+    return Issue(
+        severity=severity,
+        priority="P1" if serious else "P2",
+        category=f"sarif.{tool_name}".replace(" ", "_")[:80],
+        file=rel,
+        line=_region_line(loc0),
+        title=f"{tool_name}: {rule_id}",
+        explanation=message,
+        impact=impact,
+        recommendedFix=f"Remediate per {tool_name} rule `{rule_id}`, then re-scan.",
+        codeExample=code,
+        fixTiming="before launch" if serious else "if time permits",
+        source="scanner",
+        anchorQuote=snippet or None,
+        evidenceSources=[f"sarif:{tool_name}", path_name],
+    )
+
+
 def _issues_from_run(
     run: dict[str, Any], *, root: Path, path_name: str
 ) -> tuple[str, list[Issue], int]:
@@ -114,58 +172,13 @@ def _issues_from_run(
         if not isinstance(result, dict):
             skipped += 1
             continue
-        locations = result.get("locations") or []
-        if not locations:
-            skipped += 1
-            continue
-        loc0 = locations[0] if isinstance(locations[0], dict) else {}
-        uri = ((loc0.get("physicalLocation") or {}).get("artifactLocation") or {}).get(
-            "uri"
-        ) or ""
-        rel = _norm_uri_to_rel(str(uri), root=root)
-        if rel is None:
-            skipped += 1
-            continue
-        severity = _level(result)
-        rule_id = _rule_id(result)
-        message = _message(result) or rule_id
-        snippet = _snippet(loc0)
-        impact = ""
-        code = ""
-        if severity in {Severity.CRITICAL, Severity.HIGH}:
-            impact = (
-                f"Imported {tool_name} finding ({rule_id}); "
-                "confirm exploitability in this codebase."
-            )
-            code = (
-                f"# Address {tool_name} / {rule_id}\n"
-                f"# {message[:200]}\n"
-                + (f"# snippet: {snippet[:120]}\n" if snippet else "")
-            )
-        issues.append(
-            Issue(
-                severity=severity,
-                priority="P1"
-                if severity in {Severity.CRITICAL, Severity.HIGH}
-                else "P2",
-                category=f"sarif.{tool_name}".replace(" ", "_")[:80],
-                file=rel,
-                line=_region_line(loc0),
-                title=f"{tool_name}: {rule_id}",
-                explanation=message,
-                impact=impact,
-                recommendedFix=(
-                    f"Remediate per {tool_name} rule `{rule_id}`, then re-scan."
-                ),
-                codeExample=code,
-                fixTiming="before launch"
-                if severity in {Severity.CRITICAL, Severity.HIGH}
-                else "if time permits",
-                source="scanner",
-                anchorQuote=snippet or None,
-                evidenceSources=[f"sarif:{tool_name}", path_name],
-            )
+        issue = _issue_from_sarif_result(
+            result, root=root, tool_name=tool_name, path_name=path_name
         )
+        if issue is None:
+            skipped += 1
+            continue
+        issues.append(issue)
     return tool_name, issues, skipped
 
 

@@ -6,9 +6,22 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-from repolens.coverage import parse_coverage_notes
 from repolens.disclaimer import disclaimer_markdown_lines
-from repolens.schema import FindingReport, Issue, QualityScorecard, Severity
+from repolens.report_sections import (
+    _render_change_set_section,
+    _render_complexity_section,
+    _render_coverage_section,
+    _render_durability_gaps_section,
+    _render_import_graph_section,
+    _render_metrics_section,
+    _render_provenance_section,
+    _render_quality_scorecard_section,
+    _render_supply_chain_section,
+    _render_suppressed_section,
+    _render_testing_inventory_section,
+    _render_theme_breakdown,
+)
+from repolens.schema import FindingReport, Issue, Severity
 
 _FENCED_BLOCK_RE = re.compile(
     r"^\s*```[^\n]*\n(?P<body>.*?)\n```\s*$",
@@ -28,13 +41,17 @@ GATE_ADEQUACY_ONE_LINER = (
 )
 
 
-def format_unique_critical_high(report: FindingReport) -> str:
-    """Human label for open Critical/High, with raw count when #14 collapsed rows."""
+def format_collapsed_duplicates(report: FindingReport) -> str | None:
+    """How many extra Critical/High rows were merged, or None when nothing merged.
+
+    Critical and High are already listed on their own. This note exists only
+    when two tools cited the same advisory, so the raw row count was higher.
+    """
     unique = report.summary.critical + report.summary.high
     raw = report.rawCriticalHighCount
-    if raw is not None and raw > unique:
-        return f"{unique} unique ({raw} raw across tools)"
-    return str(unique)
+    if raw is None or raw <= unique:
+        return None
+    return f"{raw} tool rows → {unique} Critical/High"
 
 
 def report_timestamp(when: datetime | None = None) -> datetime:
@@ -143,16 +160,16 @@ def write_json_report(
     return path
 
 
-def render_markdown(
+def _markdown_heading(
     report: FindingReport,
     *,
     mode: str,
     commit_go: str,
     push_go: str,
-    when: datetime | None = None,
-) -> str:
+    when: datetime | None,
+) -> list[str]:
     heading_time = report_heading_time(when)
-    lines: list[str] = [
+    lines = [
         f"# Gate review report — {heading_time}",
         "",
         f"**Mode:** `{mode}`",
@@ -166,10 +183,6 @@ def render_markdown(
             f"**Gate confidence:** {report.confidence}%",
             f"**Commit go/no-go:** {commit_go}",
             f"**Push go/no-go:** {push_go}",
-        ]
-    )
-    lines.extend(
-        [
             "",
             "> [!NOTE]",
             "> **Audit confidence & gate interpretation**",
@@ -180,68 +193,86 @@ def render_markdown(
     headline = format_two_lane_headline(report)
     if headline:
         lines.extend(["", f"**Two-Lane:** {headline}", ""])
-    unique_ch = format_unique_critical_high(report)
-    lines.extend(
-        [
-            "",
-            "## Gate verdict",
-            "",
-            f"- **Gate confidence:** {report.confidence}% "
-            "(review-package adequacy — not “% secure”)",
-            f"- **Unique Critical/High:** {unique_ch}",
-            (
-                f"- **Counts:** Critical {report.summary.critical} · "
-                f"High {report.summary.high} · Medium {report.summary.medium} · "
-                f"Low {report.summary.low}"
-            ),
-        ]
-    )
-    if getattr(report, "llmReusedFrom", None):
-        lines.append(
+    return lines
+
+
+def _llm_status_line(report: FindingReport) -> str | None:
+    reused = getattr(report, "llmReusedFrom", None)
+    if reused:
+        return (
             f"- **LLM:** reused from last successful AI pass "
-            f"(`{report.llmReusedFrom}`) — not a fresh deep review"
+            f"(`{reused}`) — not a fresh deep review"
         )
-    elif getattr(report, "llmBypassed", False):
-        lines.append(
-            "- **LLM:** bypassed (scanners clean at triage floor)"
-        )
-    elif getattr(report, "llmSkipped", False):
-        lines.append(
+    if getattr(report, "llmBypassed", False):
+        return "- **LLM:** bypassed (scanners clean at triage floor)"
+    if getattr(report, "llmSkipped", False):
+        return (
             "- **LLM:** skipped (no fingerprint delta under `--changed` and "
             "no prior LLM snapshot to reuse)"
         )
-    if getattr(report, "llmRepairAttempts", None):
+    return None
+
+
+def _markdown_verdict(report: FindingReport) -> list[str]:
+    lines = [
+        "",
+        "## Gate verdict",
+        "",
+        f"- **Gate confidence:** {report.confidence}% "
+        "(review-package adequacy — not “% secure”)",
+        (
+            f"- **Counts:** Critical {report.summary.critical} · "
+            f"High {report.summary.high} · Medium {report.summary.medium} · "
+            f"Low {report.summary.low}"
+        ),
+    ]
+    collapsed = format_collapsed_duplicates(report)
+    if collapsed is not None:
         lines.append(
-            f"- **LLM JSON repairs:** {report.llmRepairAttempts} micro-repair "
+            f"- **Duplicates merged:** {collapsed} "
+            "(same advisory from more than one scanner or the model)"
+        )
+    status = _llm_status_line(report)
+    if status is not None:
+        lines.append(status)
+    repairs = getattr(report, "llmRepairAttempts", None)
+    if repairs:
+        lines.append(
+            f"- **LLM JSON repairs:** {repairs} micro-repair "
             "attempt(s) (hard cap 1 per pass)"
         )
     lines.append("")
-    lines.extend(_render_metrics_section(report))
+    return lines
 
-    lines.extend(
-        [
-            "## Finding fields",
-            "",
-            "- **Priority:** P1 security · P2 bugs/reliability · P3 architecture/quality.",
-            "- **Fingerprint:** identity of the issue across runs — **prefer this** for "
-            "`repolens explain` and for ignore / `feedback down`.",
-            "- **Occurrence:** this appearance in *this* report only (also accepted by "
-            "`explain`; changes every run).",
-            "- **Source:** `scanner` · `heuristic` (Fast Brain) · `llm`.",
-            "- **Location:** verified → SARIF-eligible; unverified → Markdown/JSON only.",
-            "",
-            "Full glossary: RepoLens `docs/faq.md` → *What do finding fields mean?*",
-            "",
-        ]
-    )
 
+def _markdown_finding_fields() -> list[str]:
+    return [
+        "## Finding fields",
+        "",
+        "- **Priority:** P1 security · P2 bugs/reliability · P3 architecture/quality.",
+        "- **Fingerprint:** identity of the issue across runs — **prefer this** for "
+        "`repolens explain` and for ignore / `feedback down`.",
+        "- **Occurrence:** this appearance in *this* report only (also accepted by "
+        "`explain`; changes every run).",
+        "- **Source:** `scanner` · `heuristic` (Fast Brain) · `llm`.",
+        "- **Location:** verified → SARIF-eligible; unverified → Markdown/JSON only.",
+        "",
+        "Full glossary: RepoLens `docs/faq.md` → *What do finding fields mean?*",
+        "",
+    ]
+
+
+def _markdown_priority_bands(report: FindingReport) -> list[str]:
+    lines: list[str] = []
     bands = (
         ("P1", "P1 — Security"),
         ("P2", "P2 — Bugs, reliability, performance"),
         ("P3", "P3 — Architecture & quality"),
     )
     for band, label in bands:
-        band_issues = [i for i in report.issues if i.priority == band]
+        band_issues = [
+            i for i in report.issues if i.priority == band and i.source != "llm"
+        ]
         lines.append(f"## {label}")
         lines.append("")
         if not band_issues:
@@ -251,20 +282,92 @@ def render_markdown(
         for issue in band_issues:
             lines.extend(_render_issue(issue))
             lines.append("")
+    return lines
 
-    lines.extend(["## Automated scanners", ""])
-    if report.scannerRuns:
-        for run in report.scannerRuns:
-            lines.append(
-                f"- **{run.tool}**: `{run.status}`"
-                + (f" — {run.detail}" if run.detail else "")
-                + (f" ({run.findingCount} finding(s))" if run.status == "ran" else "")
-            )
-        lines.append("")
-    else:
-        lines.append("_No scanners requested or configured._")
-        lines.append("")
 
+def _markdown_model_notes(report: FindingReport) -> list[str]:
+    """Model writing stays visible and does not change the four counts."""
+    notes = [issue for issue in report.issues if issue.source == "llm"]
+    if not notes:
+        return []
+    lines = [
+        "## Model notes",
+        "",
+        "The model wrote these. They do not change Critical, High, Medium, or Low.",
+        "",
+    ]
+    for issue in notes:
+        lines.append(
+            f"- **{issue.title}** (`{issue.file}:{issue.line}`). {issue.explanation}"
+        )
+    lines.append("")
+    return lines
+
+
+def _markdown_scanners(report: FindingReport) -> list[str]:
+    lines = ["## Automated scanners", ""]
+    if not report.scannerRuns:
+        lines.extend(["_No scanners requested or configured._", ""])
+        return lines
+    for run in report.scannerRuns:
+        detail = f" — {run.detail}" if run.detail else ""
+        count = f" ({run.findingCount} finding(s))" if run.status == "ran" else ""
+        lines.append(f"- **{run.tool}**: `{run.status}`{detail}{count}")
+    lines.append("")
+    return lines
+
+
+def _markdown_plan(report: FindingReport) -> list[str]:
+    lines = ["## Plan to fix", ""]
+    immediate = [i for i in report.issues if i.fixTiming == "immediately"]
+    if not immediate:
+        lines.extend(["_No immediate-priority findings._", ""])
+        return lines
+    for issue in immediate:
+        lines.append(
+            f"1. **{issue.title}** (`{issue.file}:{issue.line}`) — "
+            f"{issue.recommendedFix}"
+        )
+    lines.append("")
+    return lines
+
+
+def _markdown_scores(report: FindingReport) -> list[str]:
+    if report.scores is None:
+        return []
+    score = report.scores
+    return [
+        "## Architecture scores",
+        "",
+        "| Dimension | Score (1–10) |",
+        "|-----------|--------------|",
+        f"| Architecture | {score.architecture} |",
+        f"| Security | {score.security} |",
+        f"| Maintainability | {score.maintainability} |",
+        f"| Performance | {score.performance} |",
+        f"| Scalability | {score.scalability} |",
+        f"| Production readiness | {score.productionReadiness} |",
+        "",
+    ]
+
+
+def render_markdown(
+    report: FindingReport,
+    *,
+    mode: str,
+    commit_go: str,
+    push_go: str,
+    when: datetime | None = None,
+) -> str:
+    lines = _markdown_heading(
+        report, mode=mode, commit_go=commit_go, push_go=push_go, when=when
+    )
+    lines.extend(_markdown_verdict(report))
+    lines.extend(_render_metrics_section(report))
+    lines.extend(_markdown_finding_fields())
+    lines.extend(_markdown_priority_bands(report))
+    lines.extend(_markdown_model_notes(report))
+    lines.extend(_markdown_scanners(report))
     lines.extend(_render_quality_scorecard_section(report))
     lines.extend(_render_complexity_section(report))
     lines.extend(_render_testing_inventory_section(report))
@@ -273,42 +376,11 @@ def render_markdown(
     lines.extend(_render_import_graph_section(report))
     lines.extend(_render_provenance_section(report))
     lines.extend(_render_suppressed_section(report))
-
-    lines.extend(["## Plan to fix", ""])
-    immediate = [i for i in report.issues if i.fixTiming == "immediately"]
-    if immediate:
-        for issue in immediate:
-            lines.append(
-                f"1. **{issue.title}** (`{issue.file}:{issue.line}`) — "
-                f"{issue.recommendedFix}"
-            )
-    else:
-        lines.append("_No immediate-priority findings._")
-    lines.append("")
-
+    lines.extend(_markdown_plan(report))
     lines.extend(_render_durability_gaps_section(report))
-
     lines.extend(_render_coverage_section(report))
     lines.extend(_render_theme_breakdown(report))
-
-    if report.scores is not None:
-        s = report.scores
-        lines.extend(
-            [
-                "## Architecture scores",
-                "",
-                "| Dimension | Score (1–10) |",
-                "|-----------|--------------|",
-                f"| Architecture | {s.architecture} |",
-                f"| Security | {s.security} |",
-                f"| Maintainability | {s.maintainability} |",
-                f"| Performance | {s.performance} |",
-                f"| Scalability | {s.scalability} |",
-                f"| Production readiness | {s.productionReadiness} |",
-                "",
-            ]
-        )
-
+    lines.extend(_markdown_scores(report))
     lines.extend(disclaimer_markdown_lines())
     return "\n".join(lines)
 
@@ -318,449 +390,6 @@ def is_coverage_transport_gap(gap: str) -> bool:
     return bool(_COVERAGE_TRANSPORT_GAP_RE.match(gap.strip()))
 
 
-def _render_quality_scorecard_section(report: FindingReport) -> list[str]:
-    q: QualityScorecard | None = report.quality
-    if q is None:
-        return []
-    lines: list[str] = [
-        "## Quality scorecard (Fast Brain)",
-        "",
-        "| Signal | Count |",
-        "|--------|------:|",
-        f"| Mega-files | {q.megaFileCount} |",
-        f"| Deep nesting | {q.deepNestingCount} |",
-        f"| Near-clone clusters | {q.nearCloneClusters} |",
-        f"| Near-clone occurrences | {q.nearCloneOccurrences} |",
-        f"| Near-clone findings emitted | {q.nearCloneFindingsEmitted} |",
-        f"| Files scanned | {q.filesScanned} |",
-        "",
-        "| Signal | Principle lens |",
-        "|--------|----------------|",
-        "| Near-clone clusters | DRY |",
-        "| Mega-files | KISS / SRP proxy |",
-        "| Deep nesting | KISS |",
-        "",
-        "_Import-cycle cyclicity (DIP / layering) is reported under **Import graph**, "
-        "not this scorecard._",
-        "",
-    ]
-    for note in q.notes:
-        lines.append(f"_{note}._")
-        lines.append("")
-    lines.append(
-        "_Deterministic DRY/KISS signals — not a SOLID/DRY/KISS certification._"
-    )
-    lines.append("")
-    return lines
-
-
-def _render_complexity_section(report: FindingReport) -> list[str]:
-    """Fast Brain cyclomatic + cognitive — Top-10 table (LLM detail is separate)."""
-    block = report.complexity
-    if block is None:
-        return []
-    lines: list[str] = [
-        "## Complexity (Fast Brain)",
-        "",
-        "| Metric | Value |",
-        "|--------|------:|",
-        f"| Functions analysed | {block.functionsAnalysed} |",
-        f"| Issues (above threshold) | {block.issueCount} |",
-        f"| Max cyclomatic | {block.maxCyclomatic} |",
-        f"| Max cognitive | {block.maxCognitive} |",
-        f"| P95 cyclomatic | {block.p95Cyclomatic} |",
-        f"| P95 cognitive | {block.p95Cognitive} |",
-        "",
-    ]
-    if block.hotspots:
-        lines.extend(
-            [
-                "### Top complexity hotspots",
-                "",
-                "| File | Function | Line | Cyclomatic | Cognitive |",
-                "|------|----------|-----:|----------:|----------:|",
-            ]
-        )
-        for h in block.hotspots:
-            lines.append(
-                f"| `{h.file}` | `{h.function}` | {h.line} | "
-                f"{h.cyclomatic} | {h.cognitive} |"
-            )
-        lines.append("")
-    for note in block.notes:
-        lines.append(f"_{note}._")
-        lines.append("")
-    lines.append(
-        "_Deterministic McCabe + cognitive complexity — not a Sonar server "
-        "or architecture certification. LLM refactor detail is capped separately "
-        "(default top 5)._"
-    )
-    lines.append("")
-    return lines
-
-
-def _render_testing_inventory_section(report: FindingReport) -> list[str]:
-    block = report.testing
-    if block is None:
-        return []
-    lines: list[str] = [
-        "## Testing inventory (Fast Brain)",
-        "",
-        "| Signal | Value |",
-        "|--------|------:|",
-        f"| Test files | {block.testFileCount} |",
-        f"| Test cases | {block.testCaseCount} |",
-        f"| Production functions | {block.productionFunctionCount} |",
-        f"| Ratio (tests/production function) | {block.testsPerProductionFunction} |",
-        "",
-        "_Counts test **functions/cases** (Python `ast`), not file-only ratios. "
-        "Line coverage is imported separately (v1); scenario adequacy ≠ coverage %._",
-        "",
-    ]
-    for note in block.notes:
-        lines.append(f"_{note}._")
-        lines.append("")
-    return lines
-
-
-def _render_supply_chain_section(report: FindingReport) -> list[str]:
-    """Phase 6.2 SBOM / license inventory (scanner-owned)."""
-    sc = report.supplyChain
-    if sc is None:
-        return []
-    lines: list[str] = ["## Supply chain", ""]
-    if sc.sbomPath:
-        fmt = f" ({sc.sbomFormat})" if sc.sbomFormat else ""
-        lines.append(f"- **SBOM**{fmt}: `{sc.sbomPath}`")
-    if sc.licenses:
-        preview = ", ".join(sc.licenses[:40])
-        more = f" (+{len(sc.licenses) - 40} more)" if len(sc.licenses) > 40 else ""
-        lines.append(f"- **Licenses observed**: {preview}{more}")
-    for note in sc.notes:
-        lines.append(f"- {note}")
-    if len(lines) == 2:
-        lines.append("_No SBOM or license summary produced._")
-    lines.append("")
-    return lines
-
-
-def _render_change_set_section(report: FindingReport) -> list[str]:
-    """#16: Slow Brain git change-set scope."""
-    block = getattr(report, "changeSet", None)
-    if block is None:
-        return []
-    lines: list[str] = [
-        "## Change-set scope",
-        "",
-        (
-            f"- **Base:** `{block.base}`"
-            if block.base
-            else "- **Base:** _(worktree / auto — no merge-base resolved)_"
-        ),
-        f"- **Git paths:** {block.pathCount}",
-        f"- **Note:** {block.note}",
-        "",
-    ]
-    if block.paths:
-        lines.append("Paths (capped list):")
-        lines.append("")
-        for p in block.paths:
-            lines.append(f"- `{p}`")
-        if block.pathCount > len(block.paths):
-            lines.append(
-                f"- _…and {block.pathCount - len(block.paths)} more_"
-            )
-        lines.append("")
-    return lines
-
-
-def _render_import_graph_section(report: FindingReport) -> list[str]:
-    """G1: deterministic Python import graph metrics (grimp)."""
-    block = report.graph
-    if block is None:
-        return []
-    lines: list[str] = [
-        "## Import graph",
-        "",
-        "| Metric | Value |",
-        "|--------|------:|",
-        f"| Status | {block.status} |",
-        f"| Packages | {block.packageCount} |",
-        f"| Modules | {block.moduleCount} |",
-        f"| Cycle groups | {block.cycleCount} |",
-        f"| Cyclicity | {block.cyclicity} |",
-        "",
-        "_Deterministic Python import cycles (grimp) — DIP / module-boundary "
-        "layering signal, not an architecture certification._",
-        "",
-    ]
-    return lines
-
-
-def _render_provenance_section(report: FindingReport) -> list[str]:
-    """Phase 6.3 CI provenance / triage outcome."""
-    prov = report.provenance
-    if prov is None and not report.llmBypassed and report.triageHits is None:
-        return []
-    lines: list[str] = ["## Provenance", ""]
-    if prov is not None:
-        if prov.repoLensVersion:
-            lines.append(f"- **RepoLens**: `{prov.repoLensVersion}`")
-        if prov.gitSha:
-            lines.append(f"- **Git SHA**: `{prov.gitSha}`")
-        if prov.provider or prov.model:
-            lines.append(
-                f"- **Model**: `{prov.provider or 'n/a'}` / `{prov.model or 'n/a'}`"
-            )
-        if prov.scannerTools:
-            lines.append(f"- **Scanners**: {', '.join(prov.scannerTools)}")
-        lines.append(
-            f"- **Triage routing**: {'on' if prov.triageRouting else 'off'}"
-        )
-        lines.append(
-            f"- **LLM bypassed**: {'yes' if prov.llmBypassed else 'no'}"
-            + (f" (hits: {prov.triageHits})" if prov.triageRouting else "")
-        )
-        if prov.failOnScannerOnly:
-            lines.append("- **Fail-on gate**: scanner findings only")
-        for note in prov.notes:
-            lines.append(f"- {note}")
-    else:
-        lines.append(
-            f"- **LLM bypassed**: {'yes' if report.llmBypassed else 'no'}"
-        )
-    lines.append("")
-    return lines
-
-
-def _render_suppressed_section(report: FindingReport) -> list[str]:
-    """Phase 6.7: audit list of findings excluded from gates/SARIF."""
-    rows = report.suppressedIssues
-    if not rows:
-        return []
-    lines: list[str] = [
-        "## Suppressed",
-        "",
-        "_Excluded from fail-on and SARIF; kept here for audit._",
-        "",
-    ]
-    for row in rows:
-        issue = row.issue
-        sid = f" `{issue.stableId}`" if issue.stableId else ""
-        note = f" — {row.note}" if row.note else ""
-        lines.append(
-            f"- **{issue.title}** (`{issue.file}:{issue.line}`){sid} — "
-            f"{row.mechanism} / `{row.reason}`{note}"
-        )
-    lines.append("")
-    return lines
-
-
-
-def _render_durability_gaps_section(report: FindingReport) -> list[str]:
-    """Render actionable durability gaps as checkboxes; omit coverage transport notes."""
-    real_gaps = [
-        g for g in report.durabilityGaps if not is_coverage_transport_gap(g)
-    ]
-    lines: list[str] = ["## Durability gaps", ""]
-    if real_gaps:
-        for gap in real_gaps:
-            lines.append(f"- [ ] {gap}")
-    else:
-        lines.append("_None called out._")
-    lines.append("")
-    return lines
-
-
-def _render_metrics_section(report: FindingReport) -> list[str]:
-    """Glossary + band audit confidences (Phase 5.1) + Two-Lane counts (6.11)."""
-    has_bands = (
-        report.securityAuditConfidence is not None
-        or report.architectureAuditConfidence is not None
-        or report.reliabilityAuditConfidence is not None
-    )
-    prov = report.provenance
-    has_fast_brain = prov is not None and prov.fastBrainFiles is not None
-    if not has_bands and not has_fast_brain:
-        return []
-    lines = [
-        "## Metrics",
-        "",
-        (
-            "**Gate** = adequacy of *this review package* (findings + checklist "
-            "coverage + scanners) for a go/no-go style decision — **not** "
-            "“% secure” or an architecture grade. Band audits score checklist "
-            "honesty per P1/`sec.*`, P2/`rel.*`, P3/`arch.*`. See FAQ: "
-            "*What do report metrics mean?*"
-        ),
-        "",
-        "| Metric | Value | Meaning |",
-        "|--------|-------|---------|",
-        (
-            f"| Gate confidence | {report.confidence}% | Weakest scored pass/band, "
-            "then −4/missed id and −3/invalid N/A (global, capped) — **not** "
-            "“% secure” |"
-        ),
-    ]
-    if prov is not None and prov.fastBrainFiles is not None:
-        lines.append(
-            f"| Fast Brain files | {prov.fastBrainFiles} | Inventory used for "
-            "whole-tree heuristics (Phase 6.11 Two-Lane) |"
-        )
-        if prov.llmPackFiles is not None:
-            lines.append(
-                f"| LLM pack files | {prov.llmPackFiles} | Files sent to the model "
-                "(0 if bypassed / scanners-only) |"
-            )
-        if prov.fastBrainSeconds is not None:
-            lines.append(
-                f"| Fast Brain seconds | {prov.fastBrainSeconds:.1f}s | Wall time "
-                "for whole-tree heuristics |"
-            )
-        if prov.llmSeconds is not None:
-            lines.append(
-                f"| Slow Brain seconds | {prov.llmSeconds:.1f}s | Wall time for "
-                "LLM / deep analysis |"
-            )
-    if report.securityAuditConfidence is not None:
-        lines.append(
-            f"| Security audit confidence | {report.securityAuditConfidence}% | "
-            "P1/`sec.*` base − missed/invalid N/A + scanner bonus − Critical/High "
-            "**security** findings (P1 or `sec.*`) — **not** a posture score |"
-        )
-    if report.reliabilityAuditConfidence is not None:
-        lines.append(
-            f"| Reliability audit confidence | {report.reliabilityAuditConfidence}% | "
-            "P2/`rel.*` base − missed/invalid N/A − Critical/High in that band |"
-        )
-    if report.architectureAuditConfidence is not None:
-        lines.append(
-            f"| Architecture audit confidence | {report.architectureAuditConfidence}% | "
-            "P3/`arch.*` base − missed/invalid N/A − Critical/High in that band |"
-        )
-    lines.append(
-        f"| Unique Critical/High | {format_unique_critical_high(report)} | "
-        "Open Critical+High after cross-source collapse; raw shown when #14 "
-        "deduped scanner/LLM rows |"
-    )
-    lines.append(
-        "| Severity counts | (above) | Finding tallies — independent of confidence % |"
-    )
-    if has_bands:
-        lines.extend(
-            [
-                "| Coverage | (below) | Checklist ids: covered / honest N/A / missed |",
-                "",
-                "### How these % are calculated",
-                "",
-                "1. Each deep pass supplies a **base** confidence.",
-                "2. Band % = base − **4×missed** ids in band (cap −40) − **3×invalid N/A** "
-                "(cap −30); security also **+5** if all scanners `ran`; then "
-                "−**20**/Critical and −**10**/High attributed to that band.",
-                "3. **Gate** = min(ran pass bases + scored band %) − the same missed / "
-                "invalid-N/A penalties across scored bands (clamp 0–100).",
-                "",
-                "High security audit + lower gate usually means reliability/architecture "
-                "or **missed** checklist ids are the weak link — not that security is "
-                "perfect in absolute terms.",
-                "",
-            ]
-        )
-    else:
-        lines.append("")
-    return lines
-
-
-def _render_coverage_section(report: FindingReport) -> list[str]:
-    """Render checklist coverage when deep-mode coverage or coverage gaps exist."""
-    cov = report.coverage
-    na_from_gaps = parse_coverage_notes(report.durabilityGaps)
-    missed_from_gaps = [
-        g.split(":", 2)[1]
-        for g in report.durabilityGaps
-        if g.startswith("coverage:") and "missed" in g.lower()
-    ]
-
-    if cov is None and not na_from_gaps and not missed_from_gaps:
-        return []
-
-    covered = list(cov.covered) if cov is not None else []
-    na = dict(cov.na) if cov is not None else dict(na_from_gaps)
-    if cov is None:
-        for cid, reason in na_from_gaps.items():
-            na.setdefault(cid, reason)
-    missed = list(cov.missed) if cov is not None else list(missed_from_gaps)
-
-    lines: list[str] = [
-        "## Coverage",
-        "",
-        (
-            "Deep-mode checklist accountability (`sec.*` / `rel.*` / `arch.*` rule ids). "
-            "**Covered** = addressed (issue and/or explicit note). "
-            "**N/A** = honestly out of scope for this repo (with reason). "
-            "**Missed** = in scope but neither covered nor a valid N/A — lowers "
-            "gate/band confidence. Details: FAQ *What do report metrics mean?*"
-        ),
-        "",
-        (
-            f"- **Covered:** {len(covered)} · **N/A:** {len(na)} · "
-            f"**Missed:** {len(missed)}"
-        ),
-        "",
-    ]
-    if covered:
-        lines.append("### Covered")
-        lines.append("")
-        for cid in covered:
-            lines.append(f"- `{cid}`")
-        lines.append("")
-    if na:
-        lines.append("### N/A")
-        lines.append("")
-        for cid, reason in na.items():
-            lines.append(f"- `{cid}`: {reason}")
-        lines.append("")
-    if missed:
-        lines.append("### Missed")
-        lines.append("")
-        for cid in missed:
-            lines.append(f"- `{cid}`")
-        lines.append("")
-    return lines
-
-
-def _render_theme_breakdown(report: FindingReport) -> list[str]:
-    """Render Core / Extended theme table when themes are present (Phase 5.2)."""
-    themes = report.themes
-    if not themes:
-        return []
-
-    core = [t for t in themes if t.pack == "core"]
-    extended = [t for t in themes if t.pack == "extended"]
-    lines: list[str] = ["## Theme breakdown", ""]
-
-    def _table(rows: list) -> list[str]:
-        out = [
-            "| Theme | Coverage | Findings | Notes |",
-            "|-------|----------|----------|-------|",
-        ]
-        for t in rows:
-            notes = (t.notes or "").replace("|", "\\|")
-            out.append(
-                f"| {t.title} | {t.status} | {t.findingCount} | {notes} |"
-            )
-        out.append("")
-        return out
-
-    if core:
-        lines.append("### Core")
-        lines.append("")
-        lines.extend(_table(core))
-    if extended:
-        lines.append("### Extended")
-        lines.append("")
-        lines.extend(_table(extended))
-    return lines
 
 
 def render_code_example_fenced(code_example: str) -> list[str]:

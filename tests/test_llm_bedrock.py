@@ -28,6 +28,28 @@ def test_bedrock_defaults() -> None:
     assert default_model_for("bedrock") == "amazon.nova-lite-v1:0"
 
 
+def test_extract_text_ignores_non_object_payloads() -> None:
+    assert extract_text_from_bedrock_payload(b"[]") is None
+    assert extract_text_from_bedrock_payload(b"null") is None
+    assert extract_text_from_bedrock_payload(b'{"contentBlockDelta":"nope"}') is None
+    assert extract_text_from_bedrock_payload(b"not-json") is None
+
+
+def test_analyze_raw_bedrock_empty_stream_raises(monkeypatch) -> None:
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "AKIATEST")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "secret")
+    cfg = ModelConfig(provider="bedrock", model="amazon.nova-lite-v1:0")
+    response = MagicMock()
+    response.status_code = 200
+    response.iter_bytes.return_value = iter([b""])
+    response.__enter__ = MagicMock(return_value=response)
+    response.__exit__ = MagicMock(return_value=False)
+    client = MagicMock()
+    client.stream.return_value = response
+    with pytest.raises(LlmError, match="empty content"):
+        analyze_raw("prompt", cfg, client=client)
+
+
 def test_extract_text_from_bedrock_payload() -> None:
     payload = json.dumps(
         {"contentBlockDelta": {"delta": {"text": "hello"}, "contentBlockIndex": 0}}

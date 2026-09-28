@@ -86,6 +86,104 @@ def stamp_issue_sources(
     return out
 
 
+def _changed_path_set(changed_files: list[str] | None) -> set[str] | None:
+    """None means no diff filter. An empty list matches no files."""
+    if changed_files is None:
+        return None
+    return {_norm_path(path) for path in changed_files}
+
+
+def _counts_as_triage_hit(
+    issue: Issue,
+    *,
+    include_heuristics: bool,
+    floor: str,
+    changed_set: set[str] | None,
+) -> bool:
+    source = infer_issue_source(issue)
+    if source == "scanner":
+        allowed = True
+    elif include_heuristics and source == "heuristic":
+        allowed = True
+    else:
+        allowed = False
+    if not allowed or not _meets_floor(issue, floor):
+        return False
+    path = _norm_path(issue.file)
+    return changed_set is None or path in changed_set
+
+
+def _collect_triage_hits(
+    scanner_issues: list[Issue],
+    heuristic_issues: list[Issue] | None,
+    *,
+    include_heuristics: bool,
+    floor: str,
+    changed_set: set[str] | None,
+) -> list[Issue]:
+    pool = list(scanner_issues)
+    if include_heuristics and heuristic_issues:
+        pool.extend(heuristic_issues)
+    return [
+        issue
+        for issue in pool
+        if _counts_as_triage_hit(
+            issue,
+            include_heuristics=include_heuristics,
+            floor=floor,
+            changed_set=changed_set,
+        )
+    ]
+
+
+def _clean_triage_plan(
+    config: CiConfig,
+    available: list[str],
+    *,
+    include_heuristics: bool,
+) -> TriagePlan:
+    if config.llm_on_clean_diff:
+        return TriagePlan(
+            should_invoke_llm=True,
+            llm_bypassed=False,
+            pack_files=list(available),
+            triage_hits=0,
+            notes=["triage: llm_on_clean_diff — LLM allowed despite clean scanners"],
+        )
+    clean_what = "scanners/heuristics" if include_heuristics else "scanners"
+    return TriagePlan(
+        should_invoke_llm=False,
+        llm_bypassed=True,
+        pack_files=[],
+        triage_hits=0,
+        notes=[f"triage: {clean_what} clean at severity floor — LLM bypassed"],
+    )
+
+
+def _ordered_hit_paths(hits: list[Issue]) -> list[str]:
+    """First-seen hit paths. Kept even when they are outside the inventory pack."""
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for issue in hits:
+        path = _norm_path(issue.file)
+        if path in seen:
+            continue
+        seen.add(path)
+        ordered.append(path)
+    return ordered
+
+
+def _cap_triage_pack(ordered: list[str], max_files: int) -> tuple[list[str], bool, list[str]]:
+    limit = max(1, int(max_files))
+    if len(ordered) <= limit:
+        return ordered, False, []
+    note = (
+        f"triage: truncated pack to max_triage_files={limit} "
+        f"(had {len(ordered)} hit file(s))"
+    )
+    return ordered[:limit], True, [note]
+
+
 def triage_llm_plan(
     scanner_issues: list[Issue],
     *,
@@ -102,10 +200,9 @@ def triage_llm_plan(
 
     Phase 6.11: optional Fast Brain heuristic hits can join scanner hits when
     ``include_heuristics`` is True (fail-on remains scanner-preferring in CI).
+    ``changed_files=[]`` is an empty diff and matches no hit paths.
     """
-    available = [_norm_path(p) for p in available_files]
-    available_set = set(available)
-
+    available = [_norm_path(path) for path in available_files]
     if not config.triage_routing:
         return TriagePlan(
             should_invoke_llm=True,
@@ -114,73 +211,21 @@ def triage_llm_plan(
             notes=[],
         )
 
-    hits: list[Issue] = []
-    changed_set = (
-        {_norm_path(p) for p in changed_files} if changed_files is not None else None
+    hits = _collect_triage_hits(
+        scanner_issues,
+        heuristic_issues,
+        include_heuristics=include_heuristics,
+        floor=config.severity_floor,
+        changed_set=_changed_path_set(changed_files),
     )
-    pool: list[Issue] = list(scanner_issues)
-    if include_heuristics and heuristic_issues:
-        pool.extend(heuristic_issues)
-    for issue in pool:
-        src = infer_issue_source(issue)
-        if src == "scanner":
-            pass
-        elif include_heuristics and src == "heuristic":
-            pass
-        else:
-            continue
-        if not _meets_floor(issue, config.severity_floor):
-            continue
-        path = _norm_path(issue.file)
-        if changed_set is not None and path not in changed_set:
-            continue
-        hits.append(issue)
-
     if not hits:
-        if config.llm_on_clean_diff:
-            return TriagePlan(
-                should_invoke_llm=True,
-                llm_bypassed=False,
-                pack_files=list(available),
-                triage_hits=0,
-                notes=["triage: llm_on_clean_diff — LLM allowed despite clean scanners"],
-            )
-        clean_what = (
-            "scanners/heuristics" if include_heuristics else "scanners"
-        )
-        return TriagePlan(
-            should_invoke_llm=False,
-            llm_bypassed=True,
-            pack_files=[],
-            triage_hits=0,
-            notes=[f"triage: {clean_what} clean at severity floor — LLM bypassed"],
+        return _clean_triage_plan(
+            config, available, include_heuristics=include_heuristics
         )
 
-    # Preserve first-seen file order from hits, then intersect available pack
-    ordered: list[str] = []
-    seen: set[str] = set()
-    for issue in hits:
-        path = _norm_path(issue.file)
-        if path in seen:
-            continue
-        seen.add(path)
-        if path in available_set or not available_set:
-            ordered.append(path)
-        elif path not in available_set:
-            # Still include hit path so pack is not empty when inventory differs
-            ordered.append(path)
-
-    truncated = False
-    notes: list[str] = []
-    max_files = max(1, int(config.max_triage_files))
-    if len(ordered) > max_files:
-        truncated = True
-        notes.append(
-            f"triage: truncated pack to max_triage_files={max_files} "
-            f"(had {len(ordered)} hit file(s))"
-        )
-        ordered = ordered[:max_files]
-
+    ordered, truncated, notes = _cap_triage_pack(
+        _ordered_hit_paths(hits), config.max_triage_files
+    )
     return TriagePlan(
         should_invoke_llm=True,
         llm_bypassed=False,

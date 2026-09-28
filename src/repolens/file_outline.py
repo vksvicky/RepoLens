@@ -20,44 +20,54 @@ class SymbolSpan:
         return max(1, self.end_line - self.start_line + 1)
 
 
+def _span(kind: str, name: str, node: ast.AST) -> SymbolSpan:
+    end = getattr(node, "end_lineno", None) or node.lineno
+    return SymbolSpan(kind, name, node.lineno, int(end))
+
+
+def _append_def(node: ast.AST, out: list[SymbolSpan]) -> None:
+    if isinstance(node, ast.ClassDef):
+        out.append(_span("class", node.name, node))
+        for child in node.body:
+            if isinstance(child, ast.FunctionDef):
+                out.append(_span("method", f"{node.name}.{child.name}", child))
+            elif isinstance(child, ast.AsyncFunctionDef):
+                out.append(_span("async_method", f"{node.name}.{child.name}", child))
+    elif isinstance(node, ast.FunctionDef):
+        out.append(_span("function", node.name, node))
+    elif isinstance(node, ast.AsyncFunctionDef):
+        out.append(_span("async_function", node.name, node))
+
+
+def _walk_suite(stmts: list[ast.stmt], out: list[SymbolSpan]) -> None:
+    """Collect module-level symbols, including ones wrapped in a conditional."""
+    for stmt in stmts:
+        _append_def(stmt, out)
+        if isinstance(stmt, (ast.If, ast.For, ast.While)):
+            _walk_suite(stmt.body, out)
+            _walk_suite(stmt.orelse, out)
+        elif isinstance(stmt, (ast.With, ast.AsyncWith)):
+            _walk_suite(stmt.body, out)
+        elif isinstance(stmt, ast.Try):
+            _walk_suite(stmt.body, out)
+            _walk_suite(stmt.orelse, out)
+            _walk_suite(stmt.finalbody, out)
+            for handler in stmt.handlers:
+                _walk_suite(handler.body, out)
+        elif isinstance(stmt, ast.Match):
+            for case in stmt.cases:
+                _walk_suite(case.body, out)
+
+
 def _python_symbols(text: str) -> list[SymbolSpan]:
+    if not text.strip():
+        return []
     try:
         tree = ast.parse(text)
     except SyntaxError:
         return []
     out: list[SymbolSpan] = []
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef):
-            end = getattr(node, "end_lineno", None) or node.lineno
-            out.append(
-                SymbolSpan("class", node.name, node.lineno, int(end))
-            )
-            for child in node.body:
-                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    cend = getattr(child, "end_lineno", None) or child.lineno
-                    kind = (
-                        "async_method"
-                        if isinstance(child, ast.AsyncFunctionDef)
-                        else "method"
-                    )
-                    out.append(
-                        SymbolSpan(
-                            kind,
-                            f"{node.name}.{child.name}",
-                            child.lineno,
-                            int(cend),
-                        )
-                    )
-        elif isinstance(node, ast.FunctionDef):
-            end = getattr(node, "end_lineno", None) or node.lineno
-            out.append(
-                SymbolSpan("function", node.name, node.lineno, int(end))
-            )
-        elif isinstance(node, ast.AsyncFunctionDef):
-            end = getattr(node, "end_lineno", None) or node.lineno
-            out.append(
-                SymbolSpan("async_function", node.name, node.lineno, int(end))
-            )
+    _walk_suite(tree.body, out)
     return out
 
 

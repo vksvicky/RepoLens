@@ -2,15 +2,25 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import re
-import subprocess
-from pathlib import Path
-from typing import Any
 
-from repolens.scanners.base import resolve_binary
-from repolens.schema import FindingReport, Issue, Severity, SupplyChainBlock
+from repolens.scanners.sca_sbom import (
+    build_supply_chain as build_supply_chain,
+)
+from repolens.scanners.sca_sbom import (
+    collect_license_ids as collect_license_ids,
+)
+from repolens.scanners.sca_sbom import (
+    load_license_summary_from_sbom as load_license_summary_from_sbom,
+)
+from repolens.scanners.sca_sbom import (
+    parse_cyclonedx_license_summary as parse_cyclonedx_license_summary,
+)
+from repolens.scanners.sca_sbom import (
+    write_trivy_sbom as write_trivy_sbom,
+)
+from repolens.schema import FindingReport, Issue, Severity
 
 logger = logging.getLogger(__name__)
 
@@ -30,16 +40,6 @@ _PKG_IN_TITLE_RE = re.compile(
     r"\b(?:in|for)\s+([A-Za-z0-9_.@/+\-]+)",
     re.I,
 )
-_COPYLEFT_MARKERS = (
-    "GPL",
-    "AGPL",
-    "LGPL",
-    "SSPL",
-    "OSL",
-    "CPAL",
-    "EUPL",
-)
-
 
 def extract_advisory_id(text: str) -> str | None:
     """Return the first canonical advisory id in ``text``, or ``None``."""
@@ -213,6 +213,77 @@ def _identity_key(issue: Issue) -> tuple[str, str, str] | None:
     return (_resolve_ecosystem(issue), _resolve_package(issue), advisory)
 
 
+def _llm_row_matches(
+    scanner: Issue,
+    other: Issue,
+    *,
+    advisory: str,
+    package: str,
+    ecosystem: str,
+) -> bool:
+    if not _is_llm_issue(other):
+        return False
+    other_key = _identity_key(other)
+    if other_key is None:
+        return False
+    other_eco, other_pkg, other_adv = other_key
+    if other_adv != advisory or other_pkg != package:
+        return False
+    return _ecosystems_compatible(
+        ecosystem,
+        other_eco,
+        path_a=scanner.file,
+        path_b=other.file,
+    )
+
+
+def _collapse_scanner_row(
+    issues: list[Issue],
+    index: int,
+    scanner: Issue,
+    slots: list[Issue | None],
+    consumed: set[int],
+) -> None:
+    identity = _identity_key(scanner)
+    if identity is None:
+        return
+    ecosystem, package, advisory = identity
+    evidence = [_evidence_tag(scanner)]
+    primary = scanner
+    merged_any = False
+    for other_index, other in enumerate(issues):
+        if other_index == index or other_index in consumed:
+            continue
+        if not _llm_row_matches(
+            scanner,
+            other,
+            advisory=advisory,
+            package=package,
+            ecosystem=ecosystem,
+        ):
+            continue
+        tag = _evidence_tag(other)
+        if tag not in evidence:
+            evidence.append(tag)
+        other_eco = _identity_key(other)
+        if other_eco is not None and not ecosystem and other_eco[0]:
+            ecosystem = other_eco[0]
+        consumed.add(other_index)
+        slots[other_index] = None
+        merged_any = True
+    if not merged_any:
+        return
+    if _prefer_cross_source_primary(scanner, primary):
+        primary = scanner
+    slots[index] = primary.model_copy(
+        update={
+            "evidenceSources": list(evidence),
+            "advisoryId": primary.advisoryId or advisory,
+            "packageName": primary.packageName or (package or None),
+        }
+    )
+
+
 def dedupe_cross_source_sca_issues(
     issues: list[Issue],
 ) -> tuple[list[Issue], int, int]:
@@ -229,63 +300,14 @@ def dedupe_cross_source_sca_issues(
         for issue in issues
         if issue.severity in {Severity.CRITICAL, Severity.HIGH}
     )
-
     slots: list[Issue | None] = list(issues)
     consumed: set[int] = set()
-
-    for i, scanner in enumerate(issues):
-        if i in consumed or not _is_scanner_sca_issue(scanner):
+    for index, scanner in enumerate(issues):
+        if index in consumed or not _is_scanner_sca_issue(scanner):
             continue
-        s_key = _identity_key(scanner)
-        if s_key is None:
-            continue
-        s_eco, s_pkg, s_adv = s_key
-        evidence = [_evidence_tag(scanner)]
-        primary = scanner
-        merged_any = False
-
-        for j, other in enumerate(issues):
-            if j == i or j in consumed:
-                continue
-            if not _is_llm_issue(other):
-                continue
-            o_key = _identity_key(other)
-            if o_key is None:
-                continue
-            o_eco, o_pkg, o_adv = o_key
-            if o_adv != s_adv or o_pkg != s_pkg:
-                continue
-            if not _ecosystems_compatible(
-                s_eco,
-                o_eco,
-                path_a=scanner.file,
-                path_b=other.file,
-            ):
-                continue
-            tag = _evidence_tag(other)
-            if tag not in evidence:
-                evidence.append(tag)
-            if not s_eco and o_eco:
-                s_eco = o_eco
-            consumed.add(j)
-            slots[j] = None
-            merged_any = True
-
-        if not merged_any:
-            continue
-        # Prefer osv over other scanners if somehow both present (rare here).
-        if _prefer_cross_source_primary(scanner, primary):
-            primary = scanner
-        slots[i] = primary.model_copy(
-            update={
-                "evidenceSources": list(evidence),
-                "advisoryId": primary.advisoryId or s_adv,
-                "packageName": primary.packageName or (s_pkg or None),
-            }
-        )
-
-    out = [issue for issue in slots if issue is not None]
-    return out, raw_critical_high, raw_total
+        _collapse_scanner_row(issues, index, scanner, slots, consumed)
+    kept = [issue for issue in slots if issue is not None]
+    return kept, raw_critical_high, raw_total
 
 
 def apply_cross_source_sca_dedupe(report: FindingReport) -> FindingReport:
@@ -298,175 +320,3 @@ def apply_cross_source_sca_dedupe(report: FindingReport) -> FindingReport:
     return report
 
 
-def parse_cyclonedx_license_summary(
-    bom: dict[str, Any],
-    *,
-    limit: int = 40,
-) -> list[str]:
-    """Compact license lines from a CycloneDX JSON document."""
-    notes: list[str] = []
-    components = bom.get("components") or []
-    if not isinstance(components, list):
-        return notes
-    for comp in components:
-        if not isinstance(comp, dict):
-            continue
-        name = str(comp.get("name") or "package")
-        version = str(comp.get("version") or "").strip()
-        label = f"{name}@{version}" if version else name
-        licenses = comp.get("licenses") or []
-        if not isinstance(licenses, list) or not licenses:
-            continue
-        ids: list[str] = []
-        for entry in licenses:
-            if not isinstance(entry, dict):
-                continue
-            lic = entry.get("license") or entry.get("expression")
-            if isinstance(lic, str):
-                ids.append(lic)
-            elif isinstance(lic, dict):
-                ids.append(str(lic.get("id") or lic.get("name") or "unknown"))
-        if not ids:
-            continue
-        joined = ", ".join(ids)
-        risk = ""
-        upper = joined.upper()
-        if any(marker in upper for marker in _COPYLEFT_MARKERS):
-            risk = " [copyleft — review distribution obligations]"
-        notes.append(f"{label}: {joined}{risk}")
-        if len(notes) >= limit:
-            break
-    return notes
-
-
-def write_trivy_sbom(
-    root: Path,
-    out_dir: Path,
-    *,
-    filename: str = "sbom.cdx.json",
-) -> tuple[Path | None, str]:
-    """Write a CycloneDX SBOM via ``trivy fs --format cyclonedx``.
-
-    Returns ``(path, detail)``. Path is None when skipped/failed.
-    """
-    binary = resolve_binary("trivy")
-    if binary is None:
-        return None, "trivy not found on PATH or cache"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    dest = out_dir / filename
-    completed = subprocess.run(
-        [
-            str(binary),
-            "fs",
-            "--format",
-            "cyclonedx",
-            "--quiet",
-            "-o",
-            str(dest),
-            str(root),
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-        cwd=root,
-    )
-    if completed.returncode not in {0, 1} or not dest.is_file():
-        detail = (completed.stderr or completed.stdout or "trivy sbom failed")[:300]
-        return None, detail
-    return dest, f"CycloneDX SBOM written ({dest.name})"
-
-
-def load_license_summary_from_sbom(sbom_path: Path) -> list[str]:
-    """Read license notes from an on-disk CycloneDX JSON SBOM."""
-    try:
-        data = json.loads(sbom_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError, UnicodeError):
-        return []
-    if not isinstance(data, dict):
-        return []
-    return parse_cyclonedx_license_summary(data)
-
-
-def collect_license_ids(bom: dict[str, Any], *, limit: int = 80) -> list[str]:
-    """Distinct license ids/names from a CycloneDX document (sorted)."""
-    seen: set[str] = set()
-    components = bom.get("components") or []
-    if not isinstance(components, list):
-        return []
-    for comp in components:
-        if not isinstance(comp, dict):
-            continue
-        licenses = comp.get("licenses") or []
-        if not isinstance(licenses, list):
-            continue
-        for entry in licenses:
-            if not isinstance(entry, dict):
-                continue
-            lic = entry.get("license") or entry.get("expression")
-            if isinstance(lic, str) and lic.strip():
-                seen.add(lic.strip())
-            elif isinstance(lic, dict):
-                label = str(lic.get("id") or lic.get("name") or "").strip()
-                if label:
-                    seen.add(label)
-            if len(seen) >= limit:
-                break
-        if len(seen) >= limit:
-            break
-    return sorted(seen)
-
-
-def build_supply_chain(
-    root: Path,
-    out_dir: Path,
-    *,
-    sbom: bool = True,
-    licenses: bool = True,
-) -> tuple[SupplyChainBlock | None, list[str]]:
-    """Write SBOM (when Trivy available) and populate license summary.
-
-    Returns ``(block, gaps)``. Block is None when both features are off or
-    nothing could be produced.
-    """
-    if not sbom and not licenses:
-        return None, []
-    gaps: list[str] = []
-    notes: list[str] = []
-    license_ids: list[str] = []
-    sbom_path: Path | None = None
-    detail = ""
-
-    if sbom or licenses:
-        sbom_path, detail = write_trivy_sbom(root, out_dir)
-        if sbom_path is None:
-            if sbom:
-                gaps.append(f"SBOM skipped: {detail}")
-                logger.info("SBOM skipped: %s", detail)
-        else:
-            notes.append(detail)
-
-    if licenses and sbom_path is not None:
-        try:
-            data = json.loads(sbom_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError, UnicodeError) as exc:
-            gaps.append(f"License summary failed: {exc}")
-            data = None
-        if isinstance(data, dict):
-            license_ids = collect_license_ids(data)
-            notes.extend(parse_cyclonedx_license_summary(data))
-            if not license_ids and not any(":" in n for n in notes):
-                notes.append("No component licenses found in SBOM")
-
-    if sbom_path is None and not notes and not license_ids:
-        return None, gaps
-
-    rel = sbom_path.name if sbom_path is not None else None
-    return (
-        SupplyChainBlock(
-            sbomPath=rel if sbom else None,
-            sbomFormat="cyclonedx" if sbom and sbom_path is not None else None,
-            licenses=license_ids if licenses else [],
-            notes=notes,
-        ),
-        gaps,
-    )

@@ -107,63 +107,37 @@ def _cog_visit(nodes: list[ast.AST], *, nesting: int) -> int:
     return total
 
 
-def _cog_node(node: ast.AST, *, nesting: int) -> int:
-    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-        return 0
-
-    if isinstance(node, ast.If):
-        # if / elif chain
-        score = 1 + nesting
-        score += _cog_visit(node.body, nesting=nesting + 1)
-        current_orelse = node.orelse
-        while len(current_orelse) == 1 and isinstance(current_orelse[0], ast.If):
-            # elif
-            elif_node = current_orelse[0]
-            score += 1 + nesting
-            score += _cog_visit(elif_node.body, nesting=nesting + 1)
-            current_orelse = elif_node.orelse
-        if current_orelse:
-            # else — +1, nest body
-            score += 1
-            score += _cog_visit(current_orelse, nesting=nesting + 1)
+def _cog_if(node: ast.If, *, nesting: int) -> int:
+    score = 1 + nesting + _cog_visit(node.body, nesting=nesting + 1)
+    orelse = node.orelse
+    while len(orelse) == 1 and isinstance(orelse[0], ast.If):
+        elif_node = orelse[0]
+        score += 1 + nesting + _cog_visit(elif_node.body, nesting=nesting + 1)
+        orelse = elif_node.orelse
+    if not orelse:
         return score
+    return score + 1 + _cog_visit(orelse, nesting=nesting + 1)
 
-    if isinstance(node, (ast.For, ast.AsyncFor, ast.While)):
-        score = 1 + nesting
-        score += _cog_visit(node.body, nesting=nesting + 1)
-        if node.orelse:
-            score += 1
-            score += _cog_visit(node.orelse, nesting=nesting + 1)
+
+def _cog_loop(node: ast.For | ast.AsyncFor | ast.While, *, nesting: int) -> int:
+    score = 1 + nesting + _cog_visit(node.body, nesting=nesting + 1)
+    if not node.orelse:
         return score
+    return score + 1 + _cog_visit(node.orelse, nesting=nesting + 1)
 
-    if isinstance(node, (ast.With, ast.AsyncWith)):
-        score = 1 + nesting
-        score += _cog_visit(node.body, nesting=nesting + 1)
-        return score
 
-    if isinstance(node, ast.Try):
-        score = 0
-        score += _cog_visit(node.body, nesting=nesting)
-        for handler in node.handlers:
-            score += 1 + nesting
-            score += _cog_visit(handler.body, nesting=nesting + 1)
-        if node.orelse:
-            score += _cog_visit(node.orelse, nesting=nesting)
-        if node.finalbody:
-            score += _cog_visit(node.finalbody, nesting=nesting)
-        return score
+def _cog_try(node: ast.Try, *, nesting: int) -> int:
+    score = _cog_visit(node.body, nesting=nesting)
+    for handler in node.handlers:
+        score += 1 + nesting + _cog_visit(handler.body, nesting=nesting + 1)
+    if node.orelse:
+        score += _cog_visit(node.orelse, nesting=nesting)
+    if node.finalbody:
+        score += _cog_visit(node.finalbody, nesting=nesting)
+    return score
 
-    if isinstance(node, ast.BoolOp):
-        # sequence of boolean operators: +1 per additional operand beyond first
-        return max(0, len(node.values) - 1)
 
-    if isinstance(node, ast.IfExp):
-        score = 1 + nesting
-        score += _cog_node(node.body, nesting=nesting + 1)
-        score += _cog_node(node.orelse, nesting=nesting + 1)
-        return score
-
-    # Generic: recurse into children that aren't nested defs
+def _cog_children(node: ast.AST, *, nesting: int) -> int:
     score = 0
     for child in ast.iter_child_nodes(node):
         if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
@@ -172,3 +146,26 @@ def _cog_node(node: ast.AST, *, nesting: int) -> int:
             continue
         score += _cog_node(child, nesting=nesting)
     return score
+
+
+def _cog_node(node: ast.AST, *, nesting: int) -> int:
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return 0
+    if isinstance(node, ast.If):
+        return _cog_if(node, nesting=nesting)
+    if isinstance(node, (ast.For, ast.AsyncFor, ast.While)):
+        return _cog_loop(node, nesting=nesting)
+    if isinstance(node, (ast.With, ast.AsyncWith)):
+        return 1 + nesting + _cog_visit(node.body, nesting=nesting + 1)
+    if isinstance(node, ast.Try):
+        return _cog_try(node, nesting=nesting)
+    if isinstance(node, ast.BoolOp):
+        return max(0, len(node.values) - 1)
+    if isinstance(node, ast.IfExp):
+        return (
+            1
+            + nesting
+            + _cog_node(node.body, nesting=nesting + 1)
+            + _cog_node(node.orelse, nesting=nesting + 1)
+        )
+    return _cog_children(node, nesting=nesting)

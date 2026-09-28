@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from repolens.schema import FindingReport, Severity
+from repolens.schema import FindingReport, Issue, Severity
 
 
 @dataclass(frozen=True)
@@ -39,62 +39,86 @@ class ActionabilityScores:
         return asdict(self)
 
 
+@dataclass
+class _ActionabilityTally:
+    critical_high: int = 0
+    critical_high_with_code_example: int = 0
+    medium_low: int = 0
+    medium_low_with_code_example: int = 0
+    issues_with_code_example: int = 0
+    issues_with_impact: int = 0
+    scanner_sourced: int = 0
+    llm_sourced: int = 0
+    heuristic_sourced: int = 0
+    location_verified: int = 0
+    location_unverified: int = 0
+
+
+def _has_code_example(issue: Issue) -> bool:
+    return bool((issue.codeExample or "").strip())
+
+
+def _count_severity_examples(
+    issue: Issue, has_example: bool, tally: _ActionabilityTally
+) -> None:
+    if issue.severity in {Severity.CRITICAL, Severity.HIGH}:
+        tally.critical_high += 1
+        if has_example:
+            tally.critical_high_with_code_example += 1
+        return
+    tally.medium_low += 1
+    if has_example:
+        tally.medium_low_with_code_example += 1
+
+
+def _count_source(issue: Issue, tally: _ActionabilityTally) -> None:
+    if issue.source == "scanner":
+        tally.scanner_sourced += 1
+    elif issue.source == "heuristic":
+        tally.heuristic_sourced += 1
+    elif issue.source == "llm":
+        tally.llm_sourced += 1
+
+
+def _count_location(issue: Issue, tally: _ActionabilityTally) -> None:
+    if issue.locationVerified is True:
+        tally.location_verified += 1
+    elif issue.locationVerified is False:
+        tally.location_unverified += 1
+
+
+def _tally_issue(issue: Issue, tally: _ActionabilityTally) -> None:
+    has_example = _has_code_example(issue)
+    if has_example:
+        tally.issues_with_code_example += 1
+    if (issue.impact or "").strip():
+        tally.issues_with_impact += 1
+    _count_severity_examples(issue, has_example, tally)
+    _count_source(issue, tally)
+    _count_location(issue, tally)
+
+
 def score_actionability(report: FindingReport) -> ActionabilityScores:
     """Compute supporting actionability metrics for one report."""
-    total = len(report.issues)
-    crit_high = 0
-    crit_high_ex = 0
-    medium_low = 0
-    medium_low_ex = 0
-    with_ex = 0
-    with_impact = 0
-    scanner = 0
-    llm = 0
-    heur = 0
-    verified = 0
-    unverified = 0
-
+    tally = _ActionabilityTally()
     for issue in report.issues:
-        has_ex = bool((issue.codeExample or "").strip())
-        if has_ex:
-            with_ex += 1
-        if (issue.impact or "").strip():
-            with_impact += 1
-        if issue.severity in {Severity.CRITICAL, Severity.HIGH}:
-            crit_high += 1
-            if has_ex:
-                crit_high_ex += 1
-        else:
-            medium_low += 1
-            if has_ex:
-                medium_low_ex += 1
-        src = issue.source
-        if src == "scanner":
-            scanner += 1
-        elif src == "heuristic":
-            heur += 1
-        elif src == "llm":
-            llm += 1
-        if issue.locationVerified is True:
-            verified += 1
-        elif issue.locationVerified is False:
-            unverified += 1
-
-    readiness = (with_ex / total) if total else None
+        _tally_issue(issue, tally)
+    total = len(report.issues)
+    readiness = (tally.issues_with_code_example / total) if total else None
     return ActionabilityScores(
         total_issues=total,
-        critical_high=crit_high,
-        critical_high_with_code_example=crit_high_ex,
-        medium_low=medium_low,
-        medium_low_with_code_example=medium_low_ex,
-        issues_with_code_example=with_ex,
+        critical_high=tally.critical_high,
+        critical_high_with_code_example=tally.critical_high_with_code_example,
+        medium_low=tally.medium_low,
+        medium_low_with_code_example=tally.medium_low_with_code_example,
+        issues_with_code_example=tally.issues_with_code_example,
         suggested_fix_readiness=readiness,
-        issues_with_impact=with_impact,
-        scanner_sourced=scanner,
-        llm_sourced=llm,
-        heuristic_sourced=heur,
-        location_verified=verified,
-        location_unverified=unverified,
+        issues_with_impact=tally.issues_with_impact,
+        scanner_sourced=tally.scanner_sourced,
+        llm_sourced=tally.llm_sourced,
+        heuristic_sourced=tally.heuristic_sourced,
+        location_verified=tally.location_verified,
+        location_unverified=tally.location_unverified,
     )
 
 

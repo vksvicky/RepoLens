@@ -8,7 +8,6 @@ Auth is a single ``GEMINI_API_KEY`` via ``x-goog-api-key``. Vertex reuses
 from __future__ import annotations
 
 import json
-import time
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import quote
@@ -18,6 +17,13 @@ import httpx
 from repolens.config import ModelConfig, resolve_api_key
 from repolens.llm.errors import LlmError
 from repolens.llm.setup import SYSTEM_PROMPT, default_model, resolve_llm_timeout
+from repolens.llm.sse import (
+    consume_sse_lines,
+    raise_for_http_status,
+    require_stream_text,
+    stream_deadline,
+    timeout_message,
+)
 
 GEMINI_API_ROOT = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_GEMINI_MODEL = "gemini-2.0-flash"
@@ -76,7 +82,7 @@ def stream_gemini_sse(
 ) -> str:
     """Accumulate Gemini-family SSE text deltas (``alt=sse``). Shared by AI Studio + Vertex."""
     parts: list[str] = []
-    deadline = time.monotonic() + max(0.0, float(timeout))
+    deadline = stream_deadline(timeout)
     try:
         with client.stream(
             "POST",
@@ -85,46 +91,19 @@ def stream_gemini_sse(
             params={"alt": "sse"},
             json=payload,
         ) as response:
-            if response.status_code >= 400:
-                detail = (
-                    response.read().decode("utf-8", errors="replace") or ""
-                ).strip()
-                if len(detail) > 300:
-                    detail = detail[:300] + "…"
-                raise LlmError(
-                    f"{label} error {response.status_code}"
-                    + (f": {detail}" if detail else "")
-                )
-            for line in response.iter_lines():
-                if time.monotonic() >= deadline:
-                    raise LlmError(
-                        f"{label} timed out after {timeout:g}s. "
-                        f"Try `--timeout {int(timeout * 2)}` or set "
-                        "timeout_seconds in config."
-                    )
-                if not line:
-                    continue
-                piece = parse_gemini_sse_text_delta(line)
-                if piece is None:
-                    continue
-                parts.append(piece)
-                if on_delta is not None:
-                    on_delta(piece)
-                if time.monotonic() >= deadline:
-                    raise LlmError(
-                        f"{label} timed out after {timeout:g}s. "
-                        f"Try `--timeout {int(timeout * 2)}` or set "
-                        "timeout_seconds in config."
-                    )
+            raise_for_http_status(response, label)
+            consume_sse_lines(
+                response,
+                parse_line=parse_gemini_sse_text_delta,
+                parts=parts,
+                deadline=deadline,
+                timeout=timeout,
+                label=label,
+                on_delta=on_delta,
+            )
     except httpx.TimeoutException as exc:
-        raise LlmError(
-            f"{label} timed out after {timeout:g}s. "
-            f"Try `--timeout {int(timeout * 2)}` or set timeout_seconds in config."
-        ) from exc
-    content = "".join(parts)
-    if not content.strip():
-        raise LlmError(f"{label} stream completed with empty content")
-    return content
+        raise LlmError(timeout_message(label, timeout)) from exc
+    return require_stream_text(parts, label)
 
 
 def analyze_gemini(

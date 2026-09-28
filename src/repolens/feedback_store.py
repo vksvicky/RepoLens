@@ -134,6 +134,72 @@ def _demote_feedback(issue: Issue, *, provenance: str) -> Issue:
     )
 
 
+def _index_false_positives(
+    events: list[dict],
+) -> tuple[
+    set[tuple[str, str]],
+    set[str],
+    set[tuple[str, str]],
+    set[tuple[str, str]],
+]:
+    file_cat: set[tuple[str, str]] = set()
+    cat_counts: dict[str, int] = {}
+    path_pat_counts: dict[tuple[str, str], int] = {}
+    title_counts: dict[tuple[str, str], int] = {}
+
+    for event in events:
+        cat = str(event.get("category") or "").strip().lower()
+        file_ = _norm_file(str(event.get("file") or ""))
+        title_n = str(
+            event.get("titleNorm") or normalize_title(str(event.get("title") or ""))
+        )
+        pattern = str(event.get("pathPattern") or "").strip()
+        if not pattern and file_:
+            pattern = derive_path_pattern(file_) or ""
+        if cat and file_:
+            file_cat.add((file_, cat))
+        if cat:
+            cat_counts[cat] = cat_counts.get(cat, 0) + 1
+        if cat and pattern:
+            key = (cat, pattern.lower().lstrip("./"))
+            path_pat_counts[key] = path_pat_counts.get(key, 0) + 1
+        if cat and title_n:
+            title_counts[(cat, title_n)] = title_counts.get((cat, title_n), 0) + 1
+
+    hot_categories = {c for c, n in cat_counts.items() if n >= _CATEGORY_THRESHOLD}
+    hot_path_patterns = {
+        k for k, n in path_pat_counts.items() if n >= _PATH_PATTERN_THRESHOLD
+    }
+    hot_titles = {k for k, n in title_counts.items() if n >= _TITLE_CLUSTER_THRESHOLD}
+    return file_cat, hot_categories, hot_path_patterns, hot_titles
+
+
+def _calibrated_issue(
+    issue: Issue,
+    *,
+    file_cat: set[tuple[str, str]],
+    hot_categories: set[str],
+    hot_path_patterns: set[tuple[str, str]],
+    hot_titles: set[tuple[str, str]],
+) -> Issue:
+    """First matching rule wins. Scanner issues are left unchanged."""
+    if infer_issue_source(issue) == "scanner":
+        return issue
+    cat = (issue.category or "").strip().lower()
+    file_ = _norm_file(issue.file or "")
+    title_n = normalize_title(issue.title or "")
+    if (file_, cat) in file_cat:
+        return _demote_feedback(issue, provenance="file+category")
+    for pcat, pattern in hot_path_patterns:
+        if pcat == cat and _path_matches(file_, pattern):
+            return _demote_feedback(issue, provenance=f"path_pattern:{pattern}")
+    if (cat, title_n) in hot_titles:
+        return _demote_feedback(issue, provenance="title_cluster")
+    if cat in hot_categories:
+        return _demote_feedback(issue, provenance="category_cluster")
+    return issue
+
+
 def apply_feedback_calibrations(
     issues: list[Issue],
     root: Path,
@@ -150,80 +216,25 @@ def apply_feedback_calibrations(
     if deep.feedback_calibrations is False:
         return issues
     events = [
-        e
-        for e in load_feedback_events(root)
-        if str(e.get("reason", "")).strip() == "false_positive"
+        event
+        for event in load_feedback_events(root)
+        if str(event.get("reason", "")).strip() == "false_positive"
     ]
     if not events:
         return issues
-
-    file_cat: set[tuple[str, str]] = set()
-    cat_counts: dict[str, int] = {}
-    path_pat_counts: dict[tuple[str, str], int] = {}
-    title_counts: dict[tuple[str, str], int] = {}
-
-    for e in events:
-        cat = str(e.get("category") or "").strip().lower()
-        file_ = _norm_file(str(e.get("file") or ""))
-        title_n = str(e.get("titleNorm") or normalize_title(str(e.get("title") or "")))
-        pattern = str(e.get("pathPattern") or "").strip()
-        if not pattern and file_:
-            pattern = derive_path_pattern(file_) or ""
-
-        if cat and file_:
-            file_cat.add((file_, cat))
-        if cat:
-            cat_counts[cat] = cat_counts.get(cat, 0) + 1
-        if cat and pattern:
-            key = (cat, pattern.lower().lstrip("./"))
-            path_pat_counts[key] = path_pat_counts.get(key, 0) + 1
-        if cat and title_n:
-            title_counts[(cat, title_n)] = title_counts.get((cat, title_n), 0) + 1
-
-    hot_categories = {
-        c for c, n in cat_counts.items() if n >= _CATEGORY_THRESHOLD
-    }
-    hot_path_patterns = {
-        k for k, n in path_pat_counts.items() if n >= _PATH_PATTERN_THRESHOLD
-    }
-    hot_titles = {
-        k for k, n in title_counts.items() if n >= _TITLE_CLUSTER_THRESHOLD
-    }
-
-    out: list[Issue] = []
-    for issue in issues:
-        if infer_issue_source(issue) == "scanner":
-            out.append(issue)
-            continue
-        cat = (issue.category or "").strip().lower()
-        file_ = _norm_file(issue.file or "")
-        title_n = normalize_title(issue.title or "")
-
-        if (file_, cat) in file_cat:
-            out.append(_demote_feedback(issue, provenance="file+category"))
-            continue
-
-        matched_pat = False
-        for pcat, pattern in hot_path_patterns:
-            if pcat == cat and _path_matches(file_, pattern):
-                out.append(
-                    _demote_feedback(issue, provenance=f"path_pattern:{pattern}")
-                )
-                matched_pat = True
-                break
-        if matched_pat:
-            continue
-
-        if (cat, title_n) in hot_titles:
-            out.append(_demote_feedback(issue, provenance="title_cluster"))
-            continue
-
-        if cat in hot_categories:
-            out.append(_demote_feedback(issue, provenance="category_cluster"))
-            continue
-
-        out.append(issue)
-    return out
+    file_cat, hot_categories, hot_path_patterns, hot_titles = _index_false_positives(
+        events
+    )
+    return [
+        _calibrated_issue(
+            issue,
+            file_cat=file_cat,
+            hot_categories=hot_categories,
+            hot_path_patterns=hot_path_patterns,
+            hot_titles=hot_titles,
+        )
+        for issue in issues
+    ]
 
 
 def lookup_issue_meta(root: Path, stable_id: str) -> dict[str, str]:

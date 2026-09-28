@@ -95,7 +95,7 @@ def test_parse_cyclonedx_license_summary() -> None:
 
 
 def test_write_trivy_sbom_skipped_without_binary(tmp_path: Path) -> None:
-    with patch("repolens.scanners.sca.resolve_binary", return_value=None):
+    with patch("repolens.scanners.sca_sbom.resolve_binary", return_value=None):
         path, detail = write_trivy_sbom(tmp_path, tmp_path / "out")
     assert path is None
     assert "not found" in detail
@@ -115,8 +115,8 @@ def test_write_trivy_sbom_writes_file(tmp_path: Path) -> None:
         return MagicMock(returncode=0, stdout="", stderr="")
 
     with (
-        patch("repolens.scanners.sca.resolve_binary", return_value=fake_bin),
-        patch("repolens.scanners.sca.subprocess.run", side_effect=fake_run),
+        patch("repolens.scanners.sca_sbom.resolve_binary", return_value=fake_bin),
+        patch("repolens.scanners.sca_sbom.subprocess.run", side_effect=fake_run),
     ):
         path, detail = write_trivy_sbom(tmp_path / "repo", out)
     assert path is not None
@@ -169,8 +169,8 @@ def test_build_supply_chain_writes_block(tmp_path: Path) -> None:
         return MagicMock(returncode=0, stdout="", stderr="")
 
     with (
-        patch("repolens.scanners.sca.resolve_binary", return_value=fake_bin),
-        patch("repolens.scanners.sca.subprocess.run", side_effect=fake_run),
+        patch("repolens.scanners.sca_sbom.resolve_binary", return_value=fake_bin),
+        patch("repolens.scanners.sca_sbom.subprocess.run", side_effect=fake_run),
     ):
         block, gaps = build_supply_chain(tmp_path / "repo", out)
     assert not gaps

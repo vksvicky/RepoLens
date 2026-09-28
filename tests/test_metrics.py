@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 from repolens.coverage import CoverageResult
-from repolens.metrics import AuditMetrics, compute_audit_metrics, compute_band_confidence
-from repolens.schema import FindingReport, ScannerRun, Summary
+from repolens.metrics import (
+    AuditMetrics,
+    compute_audit_metrics,
+    compute_band_confidence,
+    low_audit_brief,
+    low_audit_explanations,
+)
+from repolens.schema import CoverageBlock, FindingReport, Issue, ScannerRun, Severity, Summary
 
 
 def test_security_audit_confidence_drops_on_missed_sec_ids() -> None:
@@ -268,8 +274,8 @@ def test_cross_source_sca_dedupe_before_security_penalty() -> None:
             package="ttf-parser",
         ),
     ]
-    assert severity_finding_penalty(raw, band="security") == 60  # 2 Crit capped + …
-    # Actually 2 Crit * 20 = 40, 2 High * 10 = 20 → 60. Good.
+    # The two LLM Critical rows do not add a penalty. The two scanner Highs do.
+    assert severity_finding_penalty(raw, band="security") == 20
 
     deduped, raw_ch, raw_total = dedupe_cross_source_sca_issues(raw)
     assert raw_total == 4
@@ -289,3 +295,90 @@ def test_cross_source_sca_dedupe_before_security_penalty() -> None:
     )
     # 75 + 5 scanner − 20 (2 High) = 60
     assert metrics.security_audit_confidence == 60
+
+
+def _high(title: str, *, category: str, priority: str = "P2") -> Issue:
+    return Issue(
+        severity=Severity.HIGH,
+        priority=priority,  # type: ignore[arg-type]
+        category=category,
+        file="src/example.py",
+        line=1,
+        title=title,
+        explanation="complex",
+        impact="harder to change safely",
+        recommendedFix="split the function",
+        codeExample="def smaller():\n    return 1\n",
+    )
+
+
+def test_model_high_does_not_lower_the_band() -> None:
+    from repolens.metrics import severity_finding_penalty
+
+    model = _high(
+        "model said this is complex", category="arch.readability_complexity"
+    ).model_copy(update={"source": "llm"})
+    measured = _high("nested", category="heuristic.deep_nesting").model_copy(
+        update={"source": "heuristic"}
+    )
+    assert severity_finding_penalty([model], band="architecture") == 0
+    assert severity_finding_penalty([measured], band="architecture") == 10
+
+
+def test_low_audit_notes_name_misses_and_highs() -> None:
+    """A band under 70% lists the deductions; Medium findings do not."""
+    missed = [f"arch.item{i}" for i in range(14)]
+    report = FindingReport(
+        confidence=0,
+        summary=Summary(critical=0, high=4, medium=2, low=0),
+        securityAuditConfidence=96,
+        reliabilityAuditConfidence=55,
+        architectureAuditConfidence=35,
+        coverage=CoverageBlock(missed=["sec.repo_hygiene_secrets", *missed]),
+        issues=[
+            _high("memory in find_near_clones", category="rel.edge_cases"),
+            _high("cleanup in _run_mode", category="rel.error_recovery"),
+            _high("find_near_clones is complex", category="arch.kiss"),
+            _high("dedupe is complex", category="arch.kiss"),
+            Issue(
+                severity=Severity.MEDIUM,
+                priority="P3",
+                category="arch.structure_size",
+                file="src/repolens/report.py",
+                line=1,
+                title="mega-file",
+                explanation="long",
+                recommendedFix="split",
+            ),
+        ],
+    )
+    text = "\n".join(low_audit_explanations(report))
+    assert "Security audit" not in text
+    assert "Reliability audit 55%" in text
+    assert "4 High findings" in text
+    assert "(−" not in text
+    assert "mega-file" not in text
+    assert "Architecture audit 35%" in text
+    assert "14 checklist ids were not counted" in text
+    assert "Each missed id is explained under Coverage." in text
+    assert "2 High findings" in text
+    assert "find_near_clones is complex" in text
+    assert "Gate 0%" in text
+    assert "architecture is the lowest band at 35%" in text
+    brief = low_audit_brief(report)
+    assert any("Reliability audit 55%" in line for line in brief)
+    assert all("`arch.item0`" not in line for line in brief)
+
+
+def test_low_audit_notes_stay_empty_when_scores_are_high() -> None:
+    report = FindingReport(
+        confidence=88,
+        summary=Summary(),
+        securityAuditConfidence=96,
+        reliabilityAuditConfidence=90,
+        architectureAuditConfidence=91,
+        coverage=CoverageBlock(missed=[]),
+        issues=[],
+    )
+    assert low_audit_explanations(report) == []
+    assert low_audit_brief(report) == []

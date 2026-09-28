@@ -95,6 +95,8 @@ class CoverageBlock(BaseModel):
     covered: list[str] = Field(default_factory=list)
     na: dict[str, str] = Field(default_factory=dict)
     missed: list[str] = Field(default_factory=list)
+    # One plain sentence per missed id. Same text as the Markdown coverage section.
+    missedNotes: dict[str, str] = Field(default_factory=dict)
 
 
 class ThemeEntry(BaseModel):
@@ -234,6 +236,8 @@ class FindingReport(BaseModel):
     securityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
     architectureAuditConfidence: int | None = Field(default=None, ge=0, le=100)
     reliabilityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
+    # Plain sentences for a band or the gate under 70%. Same text as Markdown.
+    scoreNotes: list[str] = Field(default_factory=list)
     # Wall-clock seconds for the full review command (inventory → report write).
     durationSeconds: float | None = Field(default=None, ge=0)
     # True when this report came from a fresh successful LLM call (not reuse).
@@ -264,6 +268,9 @@ class FindingReport(BaseModel):
     def recount_summary(self) -> Summary:
         counts = Summary()
         for issue in self.issues:
+            # Model prose does not change the four counts. Scanners and Fast Brain do.
+            if issue.source == "llm":
+                continue
             if issue.severity == Severity.CRITICAL:
                 counts.critical += 1
             elif issue.severity == Severity.HIGH:

@@ -198,26 +198,29 @@ def iter_event_stream_payloads(blob: bytes) -> Iterator[bytes]:
         offset += total_len
 
 
+def _delta_text(node: object) -> str | None:
+    if not isinstance(node, dict):
+        return None
+    text = node.get("text")
+    if isinstance(text, str) and text:
+        return text
+    return None
+
+
 def extract_text_from_bedrock_payload(payload: bytes) -> str | None:
     """Pull assistant text from a Converse stream event JSON payload."""
     try:
         data = json.loads(payload.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
         return None
-    # Direct contentBlockDelta shape
-    delta = data.get("delta") or data.get("contentBlockDelta", {}).get("delta")
-    if isinstance(delta, dict):
-        text = delta.get("text")
-        if isinstance(text, str) and text:
-            return text
-    # Wrapped: {"contentBlockDelta":{"delta":{"text":"…"}}}
+    if not isinstance(data, dict):
+        return None
+    text = _delta_text(data.get("delta"))
+    if text:
+        return text
     block = data.get("contentBlockDelta")
     if isinstance(block, dict):
-        inner = block.get("delta") or {}
-        if isinstance(inner, dict):
-            text = inner.get("text")
-            if isinstance(text, str) and text:
-                return text
+        return _delta_text(block.get("delta"))
     return None
 
 
