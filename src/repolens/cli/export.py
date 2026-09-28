@@ -48,11 +48,12 @@ def llm_status_label(report: FindingReport) -> str | None:
 
 
 def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_run: bool) -> None:
+    from repolens.metrics import low_audit_brief
     from repolens.report import (
         GATE_ADEQUACY_ONE_LINER,
+        format_collapsed_duplicates,
         format_duration,
         format_two_lane_headline,
-        format_unique_critical_high,
     )
 
     table = Table(title="RepoLens summary")
@@ -82,7 +83,9 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     llm_label = llm_status_label(report)
     if llm_label is not None:
         table.add_row("LLM", llm_label)
-    table.add_row("Unique Critical/High", format_unique_critical_high(report))
+    collapsed = format_collapsed_duplicates(report)
+    if collapsed is not None:
+        table.add_row("Duplicates merged", collapsed)
     table.add_row("Critical", str(report.summary.critical))
     table.add_row("High", str(report.summary.high))
     table.add_row("Medium", str(report.summary.medium))
@@ -94,4 +97,17 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     if headline:
         console.print(f"[bold]Two-Lane[/bold]: {headline}")
     console.print(table)
+    notes = list(report.scoreNotes) or low_audit_brief(report)
+    for reason in notes:
+        console.print(reason)
+    cov = report.coverage
+    if cov is not None and cov.missed:
+        from repolens.coverage import explain_missed_id
+
+        console.print("Checklist ids that did not count:")
+        for cid in cov.missed:
+            sentence = cov.missedNotes.get(cid) or explain_missed_id(
+                cid, report.durabilityGaps
+            )
+            console.print(f"- {sentence}")
     console.print(f"* {GATE_ADEQUACY_ONE_LINER}")

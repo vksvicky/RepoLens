@@ -10,18 +10,31 @@ from repolens.config import RepoLensConfig
 from repolens.coverage import (
     CoverageResult,
     evaluate_coverage,
+    explain_missed_id,
     is_lazy_na_reason,
     parse_coverage_notes,
 )
-from repolens.deep import build_deep_prompt, merge_reports, plan_deep_passes
+from repolens.deep import (
+    merge_reports,
+    plan_deep_passes,
+)
 from repolens.heuristics import HeuristicResult, run_heuristics
 from repolens.inventory import FileEntry
 from repolens.llm import default_model, resolve_llm_timeout
-from repolens.metrics import compute_audit_metrics
-from repolens.pipeline.prompt import _append_source_files
-from repolens.progress import LlmGenerateProgress, ReviewProgress
+from repolens.metrics import compute_audit_metrics, low_audit_explanations
+from repolens.pipeline.deep_pass import (
+    _apply_coverage_closure,
+    _run_deep_pass,
+)
+from repolens.pipeline.deep_pass import (
+    _ollama_wait_bits as _ollama_wait_bits,
+)
+from repolens.pipeline.deep_pass import (
+    _pass_report as _pass_report,
+)
+from repolens.progress import ReviewProgress
 from repolens.rules.registry import Rule, load_enabled_rules
-from repolens.schema import CoverageBlock, FindingReport, ScannerRun, Summary
+from repolens.schema import CoverageBlock, FindingReport, ScannerRun
 from repolens.vacuous_floor import PassFloorInput, apply_vacuous_pass_floors
 
 
@@ -166,27 +179,18 @@ def _apply_coverage_metrics(
     return report
 
 
-def _analyze_deep_passes(
+def _load_deep_heuristics(
     *,
     root: Path,
-    mode: str,
-    full_audit: bool,
     files: list[FileEntry],
-    llm_files: list[FileEntry],
     cfg: RepoLensConfig,
     prog: ReviewProgress,
-    prompt_prefix: str = "",
-    scanner_runs: list | None = None,
-    scanner_issues: list | None = None,
-    heur_result: HeuristicResult | None = None,
-) -> FindingReport:
-    """Heuristics → plan passes → structured LLM per pass → merge + coverage."""
-    from repolens.llm_structured import analyze_structured
-
-    pack_ids = list(cfg.packs.enabled)
+    heur_result: HeuristicResult | None,
+    pack_ids: list,
+) -> HeuristicResult:
     if heur_result is not None:
-        heur = heur_result
         prog.phase("→ Deep: using Fast Brain heuristics…")
+        heur = heur_result
     else:
         prog.phase("→ Deep: heuristics…")
         heur = run_heuristics(
@@ -203,9 +207,127 @@ def _analyze_deep_passes(
             f"heuristics: {len(heur.issues)} issue(s), "
             f"{len(heur.hot_paths)} hot path(s)"
         )
+    return heur
 
+
+def _announce_deep_runtime(
+    prog: ReviewProgress, passes: list, cfg: RepoLensConfig
+) -> None:
+    if prog.quiet or not passes:
+        return
+    from repolens.runtime_estimate import estimate_deep_runtime
+
+    est = estimate_deep_runtime(
+        files=len(passes[0].files) if passes else 0,
+        passes=len(passes),
+        provider=cfg.model.provider or "unknown",
+    )
+    prog.phase(est)
+
+
+
+
+def _ordered_unique(ids: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique: list[str] = []
+    for cid in ids:
+        if cid in seen:
+            continue
+        seen.add(cid)
+        unique.append(cid)
+    return unique
+
+
+def _fold_scanners(
+    report: FindingReport,
+    scanner_issues: list | None,
+    cfg: RepoLensConfig,
+    prog: ReviewProgress,
+) -> FindingReport:
+    from repolens.fp_calibrations import apply_fp_calibrations
+    from repolens.scanners.sca import apply_cross_source_sca_dedupe
+
+    report.issues = coerce_issue_bands(report.issues)
+    report.issues = apply_fp_calibrations(report.issues, cfg.deep)
+    if scanner_issues:
+        report.issues = list(report.issues) + list(scanner_issues)
+    before_cross = len(report.issues)
+    report = apply_cross_source_sca_dedupe(report)
+    if len(report.issues) < before_cross:
+        prog.detail(
+            f"SCA: collapsed {before_cross - len(report.issues)} "
+            "cross-source advisory duplicate(s)"
+        )
+    report.summary = report.recount_summary()
+    return report
+
+
+def _pass_outcomes(
+    passes,
+    parts: list[FindingReport],
+    raw_by_pass: dict[str, str],
+    degraded_by_pass: dict[str, bool],
+) -> list[PassFloorInput]:
+    return [
+        PassFloorInput(
+            name=deep_pass.name,
+            report=part,
+            raw_text=raw_by_pass.get(deep_pass.name, ""),
+            degraded=degraded_by_pass.get(deep_pass.name, False),
+        )
+        for deep_pass, part in zip(passes, parts, strict=False)
+    ]
+
+
+def _phase_coverage_metrics(
+    prog: ReviewProgress,
+    report: FindingReport,
+    coverage: CoverageResult,
+    unique_ids: list[str],
+) -> None:
+    if not unique_ids:
+        return
+    prog.phase(
+        f"Coverage: {len(coverage.covered)} covered · "
+        f"{len(coverage.na)} N/A · {len(coverage.missed)} missed"
+    )
+    metric_bits = [f"gate {report.confidence}%"]
+    if report.securityAuditConfidence is not None:
+        metric_bits.append(f"security audit {report.securityAuditConfidence}%")
+    if report.reliabilityAuditConfidence is not None:
+        metric_bits.append(f"reliability audit {report.reliabilityAuditConfidence}%")
+    if report.architectureAuditConfidence is not None:
+        metric_bits.append(f"architecture audit {report.architectureAuditConfidence}%")
+    prog.phase("Metrics: " + " · ".join(metric_bits))
+
+
+
+
+def _analyze_deep_passes(
+    *,
+    root: Path,
+    mode: str,
+    full_audit: bool,
+    files: list[FileEntry],
+    llm_files: list[FileEntry],
+    cfg: RepoLensConfig,
+    prog: ReviewProgress,
+    prompt_prefix: str = "",
+    scanner_runs: list | None = None,
+    scanner_issues: list | None = None,
+    heur_result: HeuristicResult | None = None,
+) -> FindingReport:
+    """Heuristics → plan passes → structured LLM per pass → merge + coverage."""
+    pack_ids = list(cfg.packs.enabled)
+    heur = _load_deep_heuristics(
+        root=root,
+        files=files,
+        cfg=cfg,
+        prog=prog,
+        heur_result=heur_result,
+        pack_ids=pack_ids,
+    )
     rules: list[Rule] = load_enabled_rules(project_root=root)
-    # Deep passes pack from LLM slice; hot paths may point outside that slice.
     passes = plan_deep_passes(
         mode,
         full_audit=full_audit,
@@ -216,16 +338,7 @@ def _analyze_deep_passes(
         rules=rules,
         max_passes=cfg.deep.max_passes,
     )
-
-    if not prog.quiet and passes:
-        from repolens.runtime_estimate import estimate_deep_runtime
-
-        est = estimate_deep_runtime(
-            files=len(passes[0].files) if passes else 0,
-            passes=len(passes),
-            provider=cfg.model.provider or "unknown",
-        )
-        prog.phase(est)
+    _announce_deep_runtime(prog, passes, cfg)
 
     parts: list[FindingReport] = []
     raw_by_pass: dict[str, str] = {}
@@ -238,103 +351,32 @@ def _analyze_deep_passes(
     model_name = cfg.model.model or default_model(cfg.model.provider)
     timeout = resolve_llm_timeout(cfg.model)
     for idx, deep_pass in enumerate(passes, start=1):
-        prog.phase(f"→ Deep pass {idx}/{n} ({deep_pass.name})…")
-        prompt = build_deep_prompt(
-            deep_pass, rules, deep_pass.coverage_ids, pack_ids=pack_ids
+        part, raw, degraded, attempts = _run_deep_pass(
+            idx=idx,
+            n=n,
+            deep_pass=deep_pass,
+            rules=rules,
+            pack_ids=pack_ids,
+            prompt_prefix=prompt_prefix,
+            cfg=cfg,
+            prog=prog,
+            raw_dir=raw_dir,
+            model_name=model_name,
+            provider=provider,
+            timeout=timeout,
         )
-        prompt = _append_source_files(prompt, deep_pass.files)
-        if prompt_prefix:
-            prompt = prompt_prefix + "\n\n" + prompt
-        wait_label = (
-            f"Deep pass {idx}/{n} ({deep_pass.name}) — {model_name} via {provider} "
-            f"(timeout {timeout:g}s — large repos can take several minutes)"
-        )
-        wait_hint = (
-            f"streaming chat completions; "
-            f"prompt ≈ {len(prompt):,} chars; "
-            f"{len(deep_pass.files)} file(s); "
-            f"{len(deep_pass.coverage_ids)} coverage id(s)"
-        )
-        gen = LlmGenerateProgress()
-        ollama_base = cfg.model.base_url if provider == "ollama" else None
-
-        def status_fn(
-            progress: LlmGenerateProgress = gen,
-            base: str | None = ollama_base,
-            use_ollama: bool = provider == "ollama",
-        ) -> str | None:
-            bits = [progress.summary()]
-            if use_ollama:
-                from repolens.provider_status import ollama_running_summary
-
-                live = ollama_running_summary(base)
-                if live:
-                    bits.append(live)
-            return " | ".join(bits)
-
-        with prog.waiting(wait_label, hint=wait_hint, status_fn=status_fn):
-            result = analyze_structured(
-                prompt,
-                cfg.model,
-                pass_id=deep_pass.name,
-                progress=prog,
-                raw_dir=raw_dir,
-                on_delta=gen.note_delta,
-            )
-        gen.mark_done()
-        raw_by_pass[deep_pass.name] = result.raw_text or ""
-        degraded_by_pass[deep_pass.name] = (
-            result.layer == "degraded" or result.report is None
-        )
-        repair_attempts_total += int(getattr(result, "repair_attempts", 0) or 0)
-        if result.layer == "degraded":
-            prog.phase(
-                f"LLM: pass {deep_pass.name} degraded — merging partial/empty result"
-            )
-        if result.report is None:
-            parts.append(
-                FindingReport(
-                    confidence=0,
-                    summary=Summary(),
-                    issues=[],
-                    durabilityGaps=[f"llm.schema_invalid:{deep_pass.name}"],
-                )
-            )
-        else:
-            parts.append(result.report)
+        parts.append(part)
+        raw_by_pass[deep_pass.name] = raw
+        degraded_by_pass[deep_pass.name] = degraded
+        repair_attempts_total += attempts
         all_coverage_ids.extend(deep_pass.coverage_ids)
 
     report = merge_reports(parts, heur.issues)
     if repair_attempts_total:
         report.llmRepairAttempts = repair_attempts_total
         prog.detail(f"LLM JSON micro-repair attempts: {repair_attempts_total}")
-    report.issues = coerce_issue_bands(report.issues)
-    from repolens.fp_calibrations import apply_fp_calibrations
-
-    # Calibrate LLM-merged issues only (heuristics are already mixed in;
-    # calibrations match injection/subprocess text patterns, not heuristic cats).
-    report.issues = apply_fp_calibrations(report.issues, cfg.deep)
-    # #14: fold scanners in before metrics so Crit/High penalties use unique advisories.
-    if scanner_issues:
-        report.issues = list(report.issues) + list(scanner_issues)
-    from repolens.scanners.sca import apply_cross_source_sca_dedupe
-
-    before_cross = len(report.issues)
-    report = apply_cross_source_sca_dedupe(report)
-    if len(report.issues) < before_cross:
-        prog.detail(
-            f"SCA: collapsed {before_cross - len(report.issues)} "
-            "cross-source advisory duplicate(s)"
-        )
-    report.summary = report.recount_summary()
-    # Deduplicate coverage id list while preserving order
-    seen_ids: set[str] = set()
-    unique_ids: list[str] = []
-    for cid in all_coverage_ids:
-        if cid not in seen_ids:
-            seen_ids.add(cid)
-            unique_ids.append(cid)
-
+    report = _fold_scanners(report, scanner_issues, cfg, prog)
+    unique_ids = _ordered_unique(all_coverage_ids)
     coverage = evaluate_coverage(
         unique_ids,
         report.issues,
@@ -342,10 +384,28 @@ def _analyze_deep_passes(
         seeded_na=cfg.coverage.na,
         seeded_covered=cfg.coverage.covered,
     )
+    if coverage.missed:
+        report = _apply_coverage_closure(
+            report,
+            list(coverage.missed),
+            cfg=cfg,
+            prog=prog,
+            raw_dir=raw_dir,
+        )
+        coverage = evaluate_coverage(
+            unique_ids,
+            report.issues,
+            report.durabilityGaps,
+            seeded_na=cfg.coverage.na,
+            seeded_covered=cfg.coverage.covered,
+        )
     report.coverage = CoverageBlock(
         covered=list(coverage.covered),
         na=dict(coverage.na),
         missed=list(coverage.missed),
+        missedNotes={
+            cid: explain_missed_id(cid, report.durabilityGaps) for cid in coverage.missed
+        },
     )
     from repolens.themes import build_theme_breakdown
 
@@ -355,17 +415,8 @@ def _analyze_deep_passes(
         mode=mode,
         full_audit=full_audit,
     )
-    outcomes = [
-        PassFloorInput(
-            name=deep_pass.name,
-            report=part,
-            raw_text=raw_by_pass.get(deep_pass.name, ""),
-            degraded=degraded_by_pass.get(deep_pass.name, False),
-        )
-        for deep_pass, part in zip(passes, parts, strict=False)
-    ]
     report, pass_confidences = build_pass_confidences_with_floors(
-        outcomes,
+        _pass_outcomes(passes, parts, raw_by_pass, degraded_by_pass),
         coverage=coverage,
         scanner_runs=scanner_runs,
         config_floor=cfg.deep.vacuous_pass_confidence_floor,
@@ -377,22 +428,6 @@ def _analyze_deep_passes(
         pass_confidences=pass_confidences,
         scanner_runs=scanner_runs,
     )
-    if unique_ids:
-        prog.phase(
-            f"Coverage: {len(coverage.covered)} covered · "
-            f"{len(coverage.na)} N/A · {len(coverage.missed)} missed"
-        )
-        metric_bits = [f"gate {report.confidence}%"]
-        if report.securityAuditConfidence is not None:
-            metric_bits.append(f"security audit {report.securityAuditConfidence}%")
-        if report.reliabilityAuditConfidence is not None:
-            metric_bits.append(
-                f"reliability audit {report.reliabilityAuditConfidence}%"
-            )
-        if report.architectureAuditConfidence is not None:
-            metric_bits.append(
-                f"architecture audit {report.architectureAuditConfidence}%"
-            )
-        prog.phase("Metrics: " + " · ".join(metric_bits))
+    report.scoreNotes = low_audit_explanations(report)
+    _phase_coverage_metrics(prog, report, coverage, unique_ids)
     return report
-

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -65,6 +66,33 @@ def test_parse_trivy_vulnerabilities_and_misconfigs() -> None:
     assert mis.line == 12
 
 
+def test_parse_trivy_skips_bad_rows_and_fills_missing_fix() -> None:
+    """Non-dict rows are ignored; missing versions and bad line metadata stay safe."""
+    payload = {
+        "Results": [
+            "not-a-result",
+            {
+                "Target": "go.mod",
+                "Vulnerabilities": [
+                    "skip",
+                    {"Severity": "LOW", "Description": "unfixed"},
+                ],
+                "Misconfigurations": [
+                    {"CauseMetadata": "bad", "Description": "no url"},
+                    {"CauseMetadata": {"StartLine": "nope"}, "AvdID": "AVD-1"},
+                ],
+            },
+        ]
+    }
+    issues = parse_trivy_report(payload)
+    assert len(issues) == 3
+    vuln = next(i for i in issues if i.advisoryId == "CVE")
+    assert "non-vulnerable version" in vuln.recommendedFix
+    assert vuln.installedVersion is None
+    assert vuln.fixedVersion is None
+    assert all(i.line == 1 for i in issues if i.advisoryId is None)
+
+
 def test_parse_checkov_failed_checks() -> None:
     payload = {
         "results": {
@@ -96,6 +124,72 @@ def test_run_trivy_skipped_when_missing() -> None:
         result = run_trivy(Path("."))
     assert result.run.status == "skipped"
     assert result.issues == []
+
+
+def _completed(code: int, stdout: str = "", stderr: str = "") -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess(
+        args=["trivy"], returncode=code, stdout=stdout, stderr=stderr
+    )
+
+
+def test_run_trivy_reports_process_and_json_failures(tmp_path: Path) -> None:
+    binary = tmp_path / "trivy"
+    with (
+        patch("repolens.scanners.trivy.resolve_binary", return_value=binary),
+        patch(
+            "repolens.scanners.trivy.subprocess.run",
+            return_value=_completed(2, stderr="boom"),
+        ),
+    ):
+        failed = run_trivy(tmp_path)
+    assert failed.run.status == "failed"
+    assert "boom" in (failed.run.detail or "")
+
+    with (
+        patch("repolens.scanners.trivy.resolve_binary", return_value=binary),
+        patch("repolens.scanners.trivy.subprocess.run", return_value=_completed(0, stdout="")),
+    ):
+        empty = run_trivy(tmp_path)
+    assert empty.run.status == "ran"
+    assert empty.run.findingCount == 0
+
+    with (
+        patch("repolens.scanners.trivy.resolve_binary", return_value=binary),
+        patch(
+            "repolens.scanners.trivy.subprocess.run",
+            return_value=_completed(0, stdout="not-json"),
+        ),
+    ):
+        bad = run_trivy(tmp_path)
+    assert bad.run.status == "failed"
+    assert bad.run.detail == "invalid JSON output"
+
+    with (
+        patch("repolens.scanners.trivy.resolve_binary", return_value=binary),
+        patch(
+            "repolens.scanners.trivy.subprocess.run",
+            return_value=_completed(1, stdout="[]"),
+        ),
+    ):
+        listed = run_trivy(tmp_path)
+    assert listed.run.status == "ran"
+    assert listed.run.findingCount == 0
+
+    payload = (
+        '{"Results":[{"Target":"req.txt","Vulnerabilities":['
+        '{"VulnerabilityID":"CVE-1","PkgName":"demo","Severity":"HIGH"}]}]}'
+    )
+    with (
+        patch("repolens.scanners.trivy.resolve_binary", return_value=binary),
+        patch(
+            "repolens.scanners.trivy.subprocess.run",
+            return_value=_completed(0, stdout=payload),
+        ),
+    ):
+        found = run_trivy(tmp_path)
+    assert found.run.status == "ran"
+    assert found.run.findingCount == 1
+    assert found.issues[0].advisoryId == "CVE-1"
 
 
 def test_run_checkov_skipped_when_missing() -> None:

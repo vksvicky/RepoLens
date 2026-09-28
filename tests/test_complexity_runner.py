@@ -87,3 +87,85 @@ def test_review_entrypoints_are_not_critical_or_high() -> None:
                     f"{band.severity.value}"
                 )
     assert hot == []
+
+
+def test_reported_hotspots_are_not_critical_or_high() -> None:
+    """Functions the 2026-09-27 deep review flagged must stay out of High."""
+    from repolens.complexity.python_ast import analyse_python_file
+    from repolens.complexity.thresholds import band_for_scores
+    from repolens.schema import Severity
+
+    root = Path(__file__).resolve().parents[1]
+    targets = {
+        "src/repolens/scanners/trivy.py": {"parse_trivy_report"},
+        "scripts/guided/prompts.py": {"_collect_choices"},
+        "src/repolens/report_parse.py": {"parse_markdown_report"},
+        "src/repolens/pipeline/deep_exec.py": {"_analyze_deep_passes"},
+        "src/repolens/feedback_store.py": {"apply_feedback_calibrations"},
+        "src/repolens/heuristics/near_clones.py": {"find_near_clones"},
+        "src/repolens/scanners/sca.py": {"dedupe_cross_source_sca_issues"},
+        "src/repolens/scanners/sca_sbom.py": {
+            "parse_cyclonedx_license_summary",
+            "collect_license_ids",
+            "build_supply_chain",
+        },
+        "src/repolens/cli/commands_pr_summary.py": {"pr_summary_cmd"},
+        "src/repolens/llm/gemini.py": {"stream_gemini_sse"},
+        "src/repolens/llm/transport.py": {
+            "_stream_anthropic",
+            "_stream_openai_compatible",
+        },
+        "src/repolens/graph/discover.py": {"_packages_from_pyproject"},
+        "src/repolens/report.py": {"render_markdown"},
+        "src/repolens/testing/inventory.py": {"_count_production_functions"},
+        "src/repolens/triage.py": {"triage_llm_plan"},
+        "src/repolens/heuristics/runner.py": {"run_heuristics"},
+        "src/repolens/benchmark.py": {"score_actionability"},
+        "scripts/guided/argv.py": {"build_argv"},
+        "src/repolens/report_sections.py": {"_render_provenance_section"},
+        "src/repolens/pipeline/run_collect.py": {"_load_review_inventory"},
+        "src/repolens/sarif_import.py": {"_issues_from_run"},
+        "src/repolens/complexity/python_ast.py": {"_cog_node"},
+        "src/repolens/consistency.py": {"apply_llm_consistency"},
+    }
+    hot: list[str] = []
+    for rel, names in targets.items():
+        found = {fn.name: fn for fn in analyse_python_file(str(root / rel))}
+        for name in names:
+            fn = found[name]
+            band = band_for_scores(cyclomatic=fn.cyclomatic, cognitive=fn.cognitive)
+            if band.severity in {Severity.HIGH, Severity.CRITICAL}:
+                hot.append(
+                    f"{rel}:{name} cyclo={fn.cyclomatic} cog={fn.cognitive} "
+                    f"{band.severity.value}"
+                )
+    assert hot == []
+
+
+def test_dogfood_modules_stay_under_mega_file_cap() -> None:
+    """The 2026-09-28 review flagged these modules at the 500-line mega-file bar."""
+    root = Path(__file__).resolve().parents[1]
+    rels = [
+        "src/repolens/cli/commands_review.py",
+        "src/repolens/cli/commands_review_support.py",
+        "src/repolens/cli/commands_modes.py",
+        "src/repolens/explain.py",
+        "src/repolens/explain_render.py",
+        "src/repolens/pipeline/deep_exec.py",
+        "src/repolens/pipeline/deep_pass.py",
+        "src/repolens/pipeline/run.py",
+        "src/repolens/pipeline/run_support.py",
+        "src/repolens/pipeline/run_collect.py",
+        "src/repolens/pipeline/run_route.py",
+        "src/repolens/pipeline/run_finish.py",
+        "src/repolens/report.py",
+        "src/repolens/report_sections.py",
+        "src/repolens/scanners/sca.py",
+        "src/repolens/scanners/sca_sbom.py",
+    ]
+    over = []
+    for rel in rels:
+        count = len((root / rel).read_text(encoding="utf-8").splitlines())
+        if count >= 500:
+            over.append(f"{rel}:{count}")
+    assert over == []

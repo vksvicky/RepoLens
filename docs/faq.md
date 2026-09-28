@@ -297,8 +297,9 @@ Post-parse **FP calibrations** (default on) demote patterns such as list-form `s
 | **Security audit confidence** | Honesty/completeness of the **P1 / `sec.*`** checklist + scanners, **reduced** when Critical/High **security** findings remain (P1 or `sec.*` / scanner cats) | A CleanVibes-style “% secure” posture score, or CVE completeness |
 | **Reliability audit confidence** | Honesty/completeness of the **P2 / `rel.*`** checklist, minus open Critical/High in that band | “App is X% reliable” |
 | **Architecture audit confidence** | Honesty/completeness of the **P3 / `arch.*`** checklist, minus open Critical/High in that band | The 1–10 architecture `scores` block |
-| **Critical / High / Medium / Low** | Finding severity counts (all bands) | Confidence % |
-| **Unique Critical/High** | Open Critical+High after cross-source SCA collapse (#14); may show `N unique (M raw across tools)` when scanner and LLM both cited the same advisory | “There are M independent Critical/High risks” when raw > unique |
+| **Critical / High / Medium / Low** | Finding severity counts after the same advisory is merged into one issue | A separate “Unique Critical/High” total. Critical + High is not shown again |
+| **Duplicates merged** | Shown only when OSV, Trivy, or the model cited the same advisory more than once, e.g. `4 tool rows → 2 Critical/High` | Another severity, or a count of open issues |
+| **Why a score is low** | For a band or the gate under 70%: the missed checklist ids and the Critical/High findings that were subtracted | Medium/Low findings, or a “% well architected” grade |
 | **Coverage** covered / N/A / missed | Checklist accountability for deep-mode rule ids | “N/A = ignored forever” — lazy N/A are rejected in 5.1 |
 | **Theme breakdown** | Per-theme covered / N/A / missed + finding counts | “% clean” per theme |
 | **Duration** | Wall-clock for the whole command | Per-pass LLM time alone |
@@ -311,7 +312,7 @@ Deep mode asks the model (plus heuristics) to account for each checklist id in t
 |--------|---------|----------------------------------|
 | **Covered** | The id was addressed (issue filed and/or explicit coverage note) | `sec.injection`, `arch.structure_size` |
 | **N/A** | Honestly out of scope for *this* codebase, with a reason | `sec.xss_csrf` — no web request/response surface |
-| **Missed** | In scope for the pass, but neither covered nor a valid N/A | `arch.consistency_style`, `arch.blast_radius` |
+| **Missed** | In scope for the pass, but neither covered nor a valid N/A. Deep mode asks once more, without re-sending the source pack, then leaves any id that is still unanswered as missed | `arch.consistency_style`, `arch.blast_radius` |
 
 N/A is **good** when true (don’t invent web XSS findings for a pure CLI). Missed **lowers** gate / band confidence. Full lists appear under **## Coverage** in the Markdown report (and Theme breakdown maps the same ideas to product themes).
 

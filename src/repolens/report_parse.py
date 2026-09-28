@@ -60,6 +60,91 @@ def _field_map(block: str) -> dict[str, str]:
     return fields
 
 
+_SECTION_STOPPERS = (
+    "\n## P1",
+    "\n## P2",
+    "\n## P3",
+    "\n## Automated scanners",
+    "\n## Plan to fix",
+    "\n## Durability",
+    "\n## Coverage",
+    "\n## Theme",
+    "\n## Disclaimer",
+)
+_PRIORITIES = {"P1", "P2", "P3"}
+_FIX_TIMINGS = {
+    "immediately",
+    "before launch",
+    "after launch",
+    "if time permits",
+}
+_PLACEHOLDER_CODE = "# example missing from imported report\npass"
+
+
+def _section_until_stopper(section: str) -> str:
+    for stopper in _SECTION_STOPPERS:
+        idx = section.find(stopper)
+        if idx != -1:
+            return section[:idx]
+    return section
+
+
+def _parsed_line(fields: dict[str, str]) -> int:
+    try:
+        line = int(fields.get("line", "1") or "1")
+    except ValueError:
+        return 1
+    return line if line >= 1 else 1
+
+
+def _normalized_impact_and_code(
+    sev: Severity, impact: str, code: str
+) -> tuple[str, str]:
+    if impact in {"_n/a_", "n/a"}:
+        impact = ""
+    if code.startswith("_MISSING"):
+        code = _PLACEHOLDER_CODE
+    if sev not in {Severity.CRITICAL, Severity.HIGH}:
+        return impact, code
+    if not impact.strip():
+        impact = "See explanation (imported from prior markdown report)."
+    if not code.strip():
+        code = _PLACEHOLDER_CODE
+    return impact, code
+
+
+def _imported_issue(sev: Severity, title: str, section: str) -> Issue | None:
+    fields = _field_map(section)
+    priority = fields.get("priority", "P3")
+    if priority not in _PRIORITIES:
+        priority = "P3"
+    timing = fields.get("fix timing", "before launch")
+    if timing not in _FIX_TIMINGS:
+        timing = "before launch"
+    impact, code = _normalized_impact_and_code(
+        sev, fields.get("impact", ""), fields.get("code example", "")
+    )
+    file_raw = fields.get("file", "unknown").strip("`")
+    try:
+        return Issue(
+            severity=sev,
+            priority=priority,  # type: ignore[arg-type]
+            category=fields.get("category", "imported") or "imported",
+            file=file_raw or "unknown",
+            line=_parsed_line(fields),
+            title=title,
+            explanation=fields.get("explanation", "") or title,
+            impact=impact,
+            recommendedFix=fields.get("recommended fix", "") or "See prior report",
+            codeExample=code,
+            fixTiming=timing,  # type: ignore[arg-type]
+            owasp=fields.get("owasp") or None,
+            cwe=fields.get("cwe") or None,
+        )
+    except Exception:  # noqa: BLE001 — skip malformed issue blocks
+        return None
+
+
 def parse_markdown_report(text: str) -> FindingReport | None:
     """Best-effort parse of a RepoLens markdown report. None if unusable."""
     if any(m in text for m in _SKIP_MARKERS) and "### [" not in text:
@@ -71,78 +156,12 @@ def parse_markdown_report(text: str) -> FindingReport | None:
     issues: list[Issue] = []
     heads = list(_ISSUE_HEAD_RE.finditer(text))
     for i, head in enumerate(heads):
-        sev = Severity(head.group(1))
-        title = head.group(2).strip()
         start = head.end()
         end = heads[i + 1].start() if i + 1 < len(heads) else len(text)
-        # Stop at next major section if no more issues
-        section = text[start:end]
-        for stopper in (
-            "\n## P1",
-            "\n## P2",
-            "\n## P3",
-            "\n## Automated scanners",
-            "\n## Plan to fix",
-            "\n## Durability",
-            "\n## Coverage",
-            "\n## Theme",
-            "\n## Disclaimer",
-        ):
-            idx = section.find(stopper)
-            if idx != -1:
-                section = section[:idx]
-                break
-        fields = _field_map(section)
-        priority = fields.get("priority", "P3")
-        if priority not in {"P1", "P2", "P3"}:
-            priority = "P3"
-        file_raw = fields.get("file", "unknown").strip("`")
-        try:
-            line = int(fields.get("line", "1") or "1")
-        except ValueError:
-            line = 1
-        if line < 1:
-            line = 1
-        impact = fields.get("impact", "")
-        if impact in {"_n/a_", "n/a"}:
-            impact = ""
-        code = fields.get("code example", "")
-        if code.startswith("_MISSING"):
-            code = "# example missing from imported report\npass"
-        timing = fields.get("fix timing", "before launch")
-        if timing not in {
-            "immediately",
-            "before launch",
-            "after launch",
-            "if time permits",
-        }:
-            timing = "before launch"
-        # Schema requires impact+code for Critical/High
-        if sev in {Severity.CRITICAL, Severity.HIGH}:
-            if not impact.strip():
-                impact = "See explanation (imported from prior markdown report)."
-            if not code.strip():
-                code = "# example missing from imported report\npass"
-        try:
-            issues.append(
-                Issue(
-                    severity=sev,
-                    priority=priority,  # type: ignore[arg-type]
-                    category=fields.get("category", "imported") or "imported",
-                    file=file_raw or "unknown",
-                    line=line,
-                    title=title,
-                    explanation=fields.get("explanation", "") or title,
-                    impact=impact,
-                    recommendedFix=fields.get("recommended fix", "") or "See prior report",
-                    codeExample=code,
-                    fixTiming=timing,  # type: ignore[arg-type]
-                    owasp=fields.get("owasp") or None,
-                    cwe=fields.get("cwe") or None,
-                )
-            )
-        except Exception:  # noqa: BLE001 — skip malformed issue blocks
-            continue
+        section = _section_until_stopper(text[start:end])
+        issue = _imported_issue(Severity(head.group(1)), head.group(2).strip(), section)
+        if issue is not None:
+            issues.append(issue)
 
     if not issues:
         return None

@@ -96,6 +96,13 @@ def test_deep_mode_merges_three_passes_heuristics_and_lists_coverage(
                 priority="P3",
                 coverage_na=["arch.structure"],
             )
+        if pass_id == "coverage":
+            return _pass_report(
+                title="Coverage closure",
+                file="auth.py",
+                priority="P3",
+                coverage_na=[],
+            )
         raise AssertionError(f"unexpected pass_id {pass_id!r}")
 
     with patch(
@@ -110,8 +117,8 @@ def test_deep_mode_merges_three_passes_heuristics_and_lists_coverage(
             deep=True,
         )
 
-    assert mocked.call_count == 3
-    assert call_pass_ids == ["p1", "p2", "p3"]
+    assert mocked.call_count == 4
+    assert call_pass_ids == ["p1", "p2", "p3", "coverage"]
 
     titles = {i.title for i in result.report.issues}
     assert "P1 finding" in titles
@@ -268,9 +275,9 @@ def test_deep_default_on_for_llm_runs(tmp_path: Path) -> None:
             # deep=None → config default (on)
         )
 
-    assert mocked.call_count == 3
+    assert mocked.call_count == 4
     pass_ids = [c.kwargs.get("pass_id") for c in mocked.call_args_list]
-    assert pass_ids == ["p1", "p2", "p3"]
+    assert pass_ids == ["p1", "p2", "p3", "coverage"]
 
 
 def test_deep_metrics_penalize_lazy_na_and_render_glossary(tmp_path: Path) -> None:
@@ -373,3 +380,57 @@ def test_degraded_pass_still_merges(tmp_path: Path) -> None:
     assert "p2 ok" in titles
     assert "p3 ok" in titles
     assert any("llm.schema_invalid" in g for g in result.report.durabilityGaps)
+
+
+def test_coverage_closure_records_ids_the_band_passes_skipped(tmp_path: Path) -> None:
+    """A deep scan asks again for checklist ids the band passes left blank."""
+    (tmp_path / "a.py").write_text("print(1)\n", encoding="utf-8")
+    cfg = RepoLensConfig(
+        model=ModelConfig(provider="ollama", model="mock", timeout_seconds=30),
+        adaptive=AdaptiveConfig(enabled=False),
+        deep=DeepConfig(enabled=True),
+    )
+    prompts: dict[str, str] = {}
+
+    def fake_analyze(
+        prompt, model_cfg, *, pass_id, progress=None, raw_dir=None, on_delta=None, **_
+    ):
+        prompts[pass_id] = prompt
+        if pass_id != "coverage":
+            return _pass_report(
+                title=f"{pass_id} finding",
+                file="a.py",
+                priority="P1" if pass_id == "p1" else "P2" if pass_id == "p2" else "P3",
+                coverage_na=[],
+            )
+        missed = [
+            line[2:].strip()
+            for line in prompt.splitlines()
+            if line.startswith("- ")
+        ]
+        return _pass_report(
+            title="Coverage closure",
+            file="a.py",
+            priority="P3",
+            coverage_na=missed,
+        )
+
+    with patch("repolens.llm_structured.analyze_structured", side_effect=fake_analyze):
+        result = run_review(
+            path=tmp_path,
+            mode="review",
+            config=cfg,
+            out_dir=tmp_path / "out",
+            scanners="off",
+            deep=True,
+            full_audit=True,
+        )
+
+    p3 = prompts["p3"]
+    assert p3.index("## Source files") < p3.index("## Coverage checklist (required before JSON)")
+    assert "arch.testing" in prompts["coverage"]
+    assert result.report.coverage is not None
+    assert "arch.testing" not in result.report.coverage.missed
+    assert any(
+        g.startswith("coverage:arch.testing: N/A") for g in result.report.durabilityGaps
+    )

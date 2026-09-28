@@ -19,7 +19,11 @@ Thumbs.db
 .repolens/
 *.pem
 *.key
+*.p12
+*.pfx
 credentials.json
+id_rsa
+.netrc
 
 # Python (when Phase 1 lands)
 __pycache__/

@@ -19,6 +19,13 @@ from repolens.llm.setup import (
     provider_setup_hints,
     resolve_llm_timeout,
 )
+from repolens.llm.sse import (
+    consume_sse_lines,
+    raise_for_http_status,
+    require_stream_text,
+    stream_deadline,
+    timeout_message,
+)
 from repolens.schema import FindingReport
 
 
@@ -184,6 +191,60 @@ def _analyze_openai_compatible(
             client.close()
 
 
+def _raise_openai_http_status(
+    response: httpx.Response,
+    *,
+    provider: str | None,
+    model: str,
+) -> None:
+    if response.status_code < 400:
+        return
+    detail = (response.read().decode("utf-8", errors="replace") or "").strip()
+    if len(detail) > 300:
+        detail = detail[:300] + "…"
+    raise LlmError(
+        _provider_error_hint(
+            status_code=response.status_code,
+            detail=detail,
+            provider=provider,
+            model=model,
+        )
+    )
+
+
+def _raise_openai_deadline(
+    deadline: float,
+    timeout: float,
+    model: str,
+    provider: str | None,
+) -> None:
+    if time.monotonic() >= deadline:
+        raise _timeout_error(timeout, model, provider)
+
+
+def _consume_openai_sse(
+    response: httpx.Response,
+    parts: list[str],
+    *,
+    deadline: float,
+    timeout: float,
+    model: str,
+    provider: str | None,
+    on_delta: Callable[[str], None] | None,
+) -> None:
+    for line in response.iter_lines():
+        _raise_openai_deadline(deadline, timeout, model, provider)
+        if not line:
+            continue
+        piece = _parse_sse_chat_chunk(line)
+        if piece is None:
+            continue
+        parts.append(piece)
+        if on_delta is not None:
+            on_delta(piece)
+        _raise_openai_deadline(deadline, timeout, model, provider)
+
+
 def _stream_openai_compatible(
     client: httpx.Client,
     *,
@@ -210,31 +271,16 @@ def _stream_openai_compatible(
             headers=headers,
             json=payload,
         ) as response:
-            if response.status_code >= 400:
-                detail = (response.read().decode("utf-8", errors="replace") or "").strip()
-                if len(detail) > 300:
-                    detail = detail[:300] + "…"
-                raise LlmError(
-                    _provider_error_hint(
-                        status_code=response.status_code,
-                        detail=detail,
-                        provider=provider,
-                        model=model,
-                    )
-                )
-            for line in response.iter_lines():
-                if time.monotonic() >= deadline:
-                    raise _timeout_error(timeout, model, provider)
-                if not line:
-                    continue
-                piece = _parse_sse_chat_chunk(line)
-                if piece is None:
-                    continue
-                parts.append(piece)
-                if on_delta is not None:
-                    on_delta(piece)
-                if time.monotonic() >= deadline:
-                    raise _timeout_error(timeout, model, provider)
+            _raise_openai_http_status(response, provider=provider, model=model)
+            _consume_openai_sse(
+                response,
+                parts,
+                deadline=deadline,
+                timeout=timeout,
+                model=model,
+                provider=provider,
+                on_delta=on_delta,
+            )
     except httpx.TimeoutException as exc:
         raise _timeout_error(timeout, model, provider) from exc
     content = "".join(parts)
@@ -322,8 +368,9 @@ def _stream_anthropic(
     on_delta: Callable[[str], None] | None,
 ) -> str:
     """Accumulate Anthropic Messages SSE ``text_delta`` chunks."""
+    label = "Anthropic"
     parts: list[str] = []
-    deadline = time.monotonic() + max(0.0, float(timeout))
+    deadline = stream_deadline(timeout)
     try:
         with client.stream(
             "POST",
@@ -331,45 +378,18 @@ def _stream_anthropic(
             headers=headers,
             json=payload,
         ) as response:
-            if response.status_code >= 400:
-                detail = (
-                    response.read().decode("utf-8", errors="replace") or ""
-                ).strip()
-                if len(detail) > 300:
-                    detail = detail[:300] + "…"
-                raise LlmError(
-                    f"Anthropic error {response.status_code}"
-                    + (f": {detail}" if detail else "")
-                )
-            for line in response.iter_lines():
-                if time.monotonic() >= deadline:
-                    raise LlmError(
-                        f"Anthropic timed out after {timeout:g}s. "
-                        f"Try `--timeout {int(timeout * 2)}` or set "
-                        "timeout_seconds in config."
-                    )
-                if not line:
-                    continue
-                piece = _parse_anthropic_sse_text_delta(line)
-                if piece is None:
-                    continue
-                parts.append(piece)
-                if on_delta is not None:
-                    on_delta(piece)
-                if time.monotonic() >= deadline:
-                    raise LlmError(
-                        f"Anthropic timed out after {timeout:g}s. "
-                        f"Try `--timeout {int(timeout * 2)}` or set "
-                        "timeout_seconds in config."
-                    )
+            raise_for_http_status(response, label)
+            consume_sse_lines(
+                response,
+                parse_line=_parse_anthropic_sse_text_delta,
+                parts=parts,
+                deadline=deadline,
+                timeout=timeout,
+                label=label,
+                on_delta=on_delta,
+            )
     except httpx.TimeoutException as exc:
-        raise LlmError(
-            f"Anthropic timed out after {timeout:g}s. "
-            f"Try `--timeout {int(timeout * 2)}` or set timeout_seconds in config."
-        ) from exc
-    content = "".join(parts)
-    if not content.strip():
-        raise LlmError("Anthropic stream completed with empty content")
-    return content
+        raise LlmError(timeout_message(label, timeout)) from exc
+    return require_stream_text(parts, label)
 
 

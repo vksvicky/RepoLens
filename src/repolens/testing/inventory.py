@@ -54,6 +54,23 @@ def _count_test_cases(source: str) -> int:
     return count
 
 
+def _is_counted_method(name: str) -> bool:
+    if name.startswith("test") or name.startswith("_"):
+        return False
+    return not (name.startswith("__") and name.endswith("__"))
+
+
+def _count_public_methods(node: ast.ClassDef) -> int:
+    if _is_unittest_testcase(node.bases):
+        return 0
+    return sum(
+        1
+        for child in node.body
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and _is_counted_method(child.name)
+    )
+
+
 def _count_production_functions(source: str) -> int:
     try:
         tree = ast.parse(source)
@@ -64,13 +81,8 @@ def _count_production_functions(source: str) -> int:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if not node.name.startswith("test"):
                 count += 1
-        elif isinstance(node, ast.ClassDef) and not _is_unittest_testcase(node.bases):
-            for child in node.body:
-                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    if not child.name.startswith("test") and not child.name.startswith("_"):
-                        # count public-ish methods; skip dunder-heavy noise lightly
-                        if not (child.name.startswith("__") and child.name.endswith("__")):
-                            count += 1
+        elif isinstance(node, ast.ClassDef):
+            count += _count_public_methods(node)
     return count
 
 

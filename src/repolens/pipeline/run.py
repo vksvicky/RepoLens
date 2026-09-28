@@ -7,47 +7,50 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from repolens.heuristics.runner import HeuristicResult
-from datetime import UTC
+    pass
 from pathlib import Path
 
 from repolens.adaptive import (
     recommend_timeout,
-    resolve_effective_timeout,
-    select_pack_paths,
 )
-from repolens.config import ModelConfig, RepoLensConfig, load_config, resolve_report_dir
-from repolens.last_llm import (
-    bootstrap_from_out_dir,
-    load_last_llm_report,
-    merge_reused_report,
-    save_last_llm_report,
-)
-from repolens.llm import LlmError, default_model, resolve_llm_timeout
+from repolens.config import ModelConfig, RepoLensConfig, load_config
+from repolens.llm import LlmError
 from repolens.pipeline.deep_exec import (
     _analyze_deep_passes,
-    _maybe_sync_fts,
-    _sync_adaptive_cache,
 )
 from repolens.pipeline.prompt import build_prompt
-from repolens.pipeline.types import ReviewResult, ScannerRequirementError
+from repolens.pipeline.review_state import ReviewRun
+from repolens.pipeline.run_collect import (
+    _collect_supply_chain,
+    _load_review_inventory,
+    _postprocess_scanner_issues,
+    _run_fast_brain_phase,
+    _run_scanner_tools,
+    _write_dry_run,
+)
+from repolens.pipeline.run_finish import (
+    _merge_llm_report,
+    _stamp_finished_report,
+    _write_finished_report,
+)
+from repolens.pipeline.run_route import (
+    _apply_git_diff_scope,
+    _apply_provider_fallback,
+    _apply_triage_routing,
+    _prepare_llm_prompt,
+    _report_empty_inventory,
+    _report_scanners_only,
+    _reuse_or_skip_llm,
+    _select_adaptive_pack,
+)
+from repolens.pipeline.types import ReviewResult
 from repolens.progress import LlmGenerateProgress, ReviewProgress, null_progress
-from repolens.report import write_json_report, write_markdown_report
-from repolens.scanners.runner import missing_required, parse_scanners_flag, run_scanners
-from repolens.scanners.sca import build_supply_chain, dedupe_sca_issues
 from repolens.schema import (
     FindingReport,
-    GraphBlock,
-    ProvenanceBlock,
     Summary,
 )
 from repolens.triage import (
     fail_on_triggered as _fail_on_triggered,
-)
-from repolens.triage import (
-    select_pack_entries,
-    stamp_issue_sources,
-    triage_llm_plan,
 )
 
 
@@ -61,93 +64,185 @@ def fail_on_triggered(
     return _fail_on_triggered(report, fail_on, scanner_only=scanner_only)
 
 
-def _attach_quality(
-    report: FindingReport,
-    *,
-    heur_result: HeuristicResult | None,
-    files_scanned: int,
-) -> None:
-    from repolens.quality import build_quality_scorecard_from_issues
-
-    if files_scanned <= 0 or heur_result is None:
-        return
-    report.quality = build_quality_scorecard_from_issues(
-        report.issues,
-        near_clone_clusters=heur_result.near_clone_clusters,
-        near_clone_occurrences=heur_result.near_clone_occurrences,
-        files_scanned=files_scanned,
-        notes=list(heur_result.near_clone_notes),
-    )
 
 
-def _attach_complexity(report: FindingReport, complexity_result) -> None:
-    if complexity_result is None:
-        return
-    report.complexity = complexity_result.block
-
-
-def _attach_testing(report: FindingReport, testing_result) -> None:
-    if testing_result is None:
-        return
-    report.testing = testing_result.block
-
-
-def _complexity_ai_prefix(root: Path, complexity_result, cfg) -> str:
-    if complexity_result is None or not cfg.complexity.enabled:
-        return ""
-    from repolens.complexity.ai_pack import (
-        format_complexity_ai_section,
-        select_complexity_ai_targets,
-    )
-
-    targets = select_complexity_ai_targets(
-        complexity_result.functions,
-        top_n=cfg.complexity.top_n_ai_explanations,
-    )
-    return format_complexity_ai_section(root, targets)
-
-
-def _extend_from_import_sarif(
-    import_sarif: list[Path] | None,
-    root: Path,
-    scanner_issues: list,
-    scanner_runs: list,
-    prog: ReviewProgress,
-    *,
-    require: bool = False,
-) -> None:
-    if not import_sarif:
-        return
-    from repolens.sarif_import import load_many_sarif, scanner_runs_from_imports
-
-    imported = load_many_sarif(list(import_sarif), root=root, require=require)
-    for block in imported:
-        scanner_issues.extend(block.issues)
-        if block.skipped:
-            prog.detail(
-                f"SARIF import ({block.tool_name}): "
-                f"skipped {block.skipped} result(s)"
-            )
-    scanner_runs.extend(scanner_runs_from_imports(imported))
-
-
-def _git_sha(root: Path) -> str | None:
-    import subprocess
-
-    try:
-        completed = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=root,
-            check=False,
-            capture_output=True,
-            text=True,
+def _bind_review_config(state: ReviewRun) -> None:
+    if state.force_full and state.force_changed:
+        raise ValueError("--full and --changed cannot be combined")
+    if state.require_sarif_import and not state.import_sarif:
+        raise ValueError(
+            "--require-sarif-import needs at least one --import-sarif path"
         )
-    except OSError:
-        return None
-    if completed.returncode != 0:
-        return None
-    sha = (completed.stdout or "").strip()
-    return sha or None
+    if state.git_diff is not None and state.force_full:
+        raise ValueError("--full and --git-diff cannot be combined")
+    if state.git_diff is not None and state.force_changed:
+        raise ValueError("--changed and --git-diff cannot be combined")
+    state.prog = state.progress or null_progress()
+    state.root = state.path.resolve()
+    state.run_started = time.time()
+    state.cfg = state.config or load_config(state.root, trust_project=state.trust_project)
+    if state.fallback is not None:
+        state.cfg.model.fallback = state.fallback
+    if state.model_override:
+        state.cfg.model.model = state.model_override
+    if state.timeout_override is not None:
+        if state.timeout_override <= 0:
+            raise ValueError("--timeout must be a positive number of seconds")
+        state.cfg.model.timeout_seconds = state.timeout_override
+    if state.deep_passes is not None:
+        if state.deep_passes < 1:
+            raise ValueError("--deep-passes must be >= 1")
+        state.cfg.deep.max_passes = state.deep_passes
+    if state.verify_findings is True:
+        state.cfg.deep.verify_findings = True
+    elif state.verify_findings is False:
+        state.cfg.deep.verify_findings = False
+    from repolens.packs.registry import resolve_enabled_packs
+
+    state.pack_ids = resolve_enabled_packs([*state.cfg.packs.enabled, *(state.packs or [])])
+    state.cfg.packs.enabled = list(state.pack_ids)
+
+    state.change_set_block = None
+    state.git_diff_requested = state.git_diff is not None
+
+
+
+
+
+
+def _invoke_llm(state: ReviewRun) -> None:
+    try:
+        if state.use_deep:
+            # Per-pass waiting lives inside _analyze_deep_passes.
+            state.report = _analyze_deep_passes(
+                root=state.root,
+                mode=state.mode,
+                full_audit=state.full_audit,
+                files=state.fast_files,
+                llm_files=state.llm_files,
+                cfg=state.cfg,
+                prog=state.prog,
+                prompt_prefix=state.prompt_prefix,
+                scanner_runs=state.scanner_runs,
+                scanner_issues=list(state.scanner_issues),
+                heur_result=state.heur_result,
+            )
+        else:
+            gen = LlmGenerateProgress()
+            ollama_base = (
+                state.cfg.model.base_url if state.provider == "ollama" else None
+            )
+
+            def status_fn(
+                tick: LlmGenerateProgress = gen,
+                base: str | None = ollama_base,
+                use_ollama: bool = state.provider == "ollama",
+            ) -> str | None:
+                bits = [tick.summary()]
+                if use_ollama:
+                    from repolens.provider_status import (
+                        ollama_running_summary,
+                    )
+
+                    live = ollama_running_summary(base)
+                    if live:
+                        bits.append(live)
+                return " | ".join(bits)
+
+            with state.prog.waiting(
+                state.llm_label,
+                hint="streaming chat completions",
+                status_fn=status_fn,
+            ):
+                state.prog.phase("Building LLM prompt…")
+                prompt = build_prompt(
+                    state.mode,
+                    state.root,
+                    state.llm_files,
+                    full_audit=state.full_audit,
+                    pack_ids=state.pack_ids,
+                )
+                if state.prompt_prefix:
+                    prompt = state.prompt_prefix + "\n\n" + prompt
+                state.prog.detail(f"prompt size ≈ {len(prompt):,} characters")
+                state.report = _analyze_with_repair(
+                    prompt,
+                    state.cfg.model,
+                    progress=state.prog,
+                    root=state.root,
+                    on_delta=gen.note_delta,
+                )
+                from repolens.consistency import apply_llm_consistency
+                from repolens.fp_calibrations import apply_fp_calibrations
+
+                state.report.issues = apply_fp_calibrations(
+                    state.report.issues, state.cfg.deep
+                )
+                if (state.cfg.deep.critical_consistency or "").lower() == "llm":
+                    state.prog.phase("Critical consistency (LLM confirm)…")
+                    state.report.issues = apply_llm_consistency(
+                        state.report.issues, state.cfg.deep, state.cfg.model
+                    )
+                state.report.summary = state.report.recount_summary()
+            gen.mark_done()
+    except BaseException as exc:
+        if state.store is not None:
+            state.store.record_run(
+                started_at=state.started,
+                finished_at=time.time(),
+                mode=state.mode,
+                provider=state.cfg.model.provider,
+                model=state.model_name,
+                files_in_prompt=len(state.llm_files),
+                llm_seconds=None,
+                timeout_used=state.timeout,
+                outcome="error",
+            )
+        if isinstance(exc, LlmError) and state.cfg.model.fallback:
+            state.prog.phase(
+                f"Fallback: LLM error ({exc}) → "
+                "degraded to SAST scanners & heuristics"
+            )
+            state.report = FindingReport(
+                confidence=55,
+                summary=Summary(),
+                issues=state.non_llm_issues,
+                durabilityGaps=[
+                    f"Fallback: LLM execution failed ({exc}); "
+                    "report generated using local scanners and "
+                    "Fast-Brain heuristics."
+                ]
+                + list(state.scanner_gaps),
+                scannerRuns=list(state.scanner_runs),
+                supplyChain=state.supply_chain,
+                llmSkipped=True,
+            )
+            state.report.summary = state.report.recount_summary()
+        else:
+            raise
+    else:
+        llm_seconds = time.time() - state.started
+        state.llm_seconds_prov = round(time.monotonic() - state._llm_t0, 1)
+        if state.store is not None:
+            state.store.record_run(
+                started_at=state.started,
+                finished_at=time.time(),
+                mode=state.mode,
+                provider=state.cfg.model.provider,
+                model=state.model_name,
+                files_in_prompt=len(state.llm_files),
+                llm_seconds=llm_seconds,
+                timeout_used=state.timeout,
+                outcome="ok",
+            )
+            hist = state.store.successful_llm_seconds()
+            rec = recommend_timeout(
+                hist, adaptive=state.cfg.adaptive, file_count=len(state.llm_files)
+            )
+            state.store.set_meta("recommended_timeout_seconds", f"{rec:g}")
+
+
+
 
 
 def run_review(
@@ -181,1114 +276,67 @@ def run_review(
     import_sarif: list[Path] | None = None,
     require_sarif_import: bool = False,
 ) -> ReviewResult:
-    _llm_t0 = None
-    before_dedupe = None
-    cfg = None
-    change_set_block = None
-    complexity_issues = None
-    complexity_result = None
-    diff = None
-    f = None
-    fast_brain_file_count = None
-    fast_brain_seconds = None
-    fast_files = None
-    files = None
-    git_changed_paths = None
-    git_diff_base_cli = None
-    git_diff_requested = None
-    graph_block = None
-    graph_gaps = None
-    graph_issues = None
-    heur_issues = None
-    heur_result = None
-    i = None
-    inventory_notes = None
-    js = None
-    llm_files = None
-    llm_label = None
-    llm_pack_file_count = None
-    llm_seconds_prov = None
-    md = None
-    model_name = None
-    n = None
-    non_llm_issues = None
-    note = None
-    out = None
-    pack_ids = None
-    pack_mode = None
-    prog = None
-    prompt_prefix = None
-    provider = None
-    r = None
-    report = None
-    report_when = None
-    root = None
-    run_started = None
-    scanner_gaps = None
-    scanner_issues = None
-    scanner_runs = None
-    started = None
-    store = None
-    supply_chain = None
-    testing_result = None
-    timeout = None
-    tools = None
-    triage_bypassed = None
-    triage_plan = None
-    use_deep = None
 
-    def _bind_review_config():
-        nonlocal cfg, change_set_block, git_diff_requested, pack_ids, prog, root, run_started
-        if force_full and force_changed:
-            raise ValueError("--full and --changed cannot be combined")
-        if require_sarif_import and not import_sarif:
-            raise ValueError(
-                "--require-sarif-import needs at least one --import-sarif path"
-            )
-        if git_diff is not None and force_full:
-            raise ValueError("--full and --git-diff cannot be combined")
-        if git_diff is not None and force_changed:
-            raise ValueError("--changed and --git-diff cannot be combined")
-        prog = progress or null_progress()
-        root = path.resolve()
-        run_started = time.time()
-        cfg = config or load_config(root, trust_project=trust_project)
-        if fallback is not None:
-            cfg.model.fallback = fallback
-        if model_override:
-            cfg.model.model = model_override
-        if timeout_override is not None:
-            if timeout_override <= 0:
-                raise ValueError("--timeout must be a positive number of seconds")
-            cfg.model.timeout_seconds = timeout_override
-        if deep_passes is not None:
-            if deep_passes < 1:
-                raise ValueError("--deep-passes must be >= 1")
-            cfg.deep.max_passes = deep_passes
-        if verify_findings is True:
-            cfg.deep.verify_findings = True
-        elif verify_findings is False:
-            cfg.deep.verify_findings = False
-        from repolens.packs.registry import resolve_enabled_packs
-
-        pack_ids = resolve_enabled_packs([*cfg.packs.enabled, *(packs or [])])
-        cfg.packs.enabled = list(pack_ids)
-
-        change_set_block = None
-        git_diff_requested = git_diff is not None
-
-    def _load_review_inventory():
-        nonlocal complexity_issues, complexity_result, deep, diff, f, fast_brain_file_count
-        nonlocal fast_brain_seconds, fast_files, files, force_changed, git_changed_paths
-        nonlocal git_diff_base_cli, heur_result, inventory_notes, llm_pack_file_count
-        nonlocal llm_seconds_prov, note, out, scanners, store, testing_result
-        git_diff_base_cli = None
-        git_changed_paths = []
-        if git_diff_requested:
-            raw = (git_diff or "").strip()
-            if raw.lower() in {"", "auto"}:
-                git_diff_base_cli = None
-            else:
-                git_diff_base_cli = raw
-
-        # Phase 6.3: --ci enables triage routing + changed pack + single-shot LLM
-        if ci:
-            cfg.ci.triage_routing = True
-            if not force_full and not force_changed:
-                force_changed = True
-            if deep is None and cfg.ci.max_llm_passes_in_ci <= 1:
-                deep = False
-            prog.detail(
-                "CI mode: triage routing on "
-                "(LLM bypass when scanners/heuristics clean; snippet pack on hits)"
-            )
-
-        # Sentinel prefers scanners evidence; keep enabled list (opt-out via --scanners off)
-        if mode == "sentinel" and scanners is None:
-            scanners = "auto"
-
-        prog.phase("Inventory: scanning files…")
-        from repolens.inventory import scan_inventory
-
-        fast_max = cfg.fast_brain.max_files
-        fast_inv = scan_inventory(
-            root, mode=review_mode, since=since, max_files=fast_max
-        )
-        fast_files = fast_inv.files
-        llm_cap = cfg.general.max_files
-        if llm_cap <= 0:
-            files = list(fast_files)
-        else:
-            files = list(fast_files[:llm_cap])
-
-        if fast_inv.truncated:
-            prog.phase(
-                f"Fast brain inventory: {len(fast_files)} of {fast_inv.total_matched} "
-                f"matched (cap max_files={fast_inv.max_files})"
-            )
-        else:
-            prog.phase(f"Fast brain inventory: {len(fast_files)} matched file(s)")
-        if len(files) < len(fast_files):
-            prog.detail(
-                f"Slow brain LLM pool: top {len(files)} by priority "
-                f"(general.max_files={llm_cap}); Fast Brain heuristics use all "
-                f"{len(fast_files)}"
-            )
-            inventory_notes = [
-                (
-                    f"Two-Lane: Fast Brain sees {len(fast_files)} file(s); "
-                    f"LLM sample pool is {len(files)} "
-                    f"(general.max_files={llm_cap}). "
-                    "Deterministic scanners still cover the full tree."
-                )
-            ]
-        else:
-            inventory_notes = []
-            note = fast_inv.truncation_note()
-            if note:
-                inventory_notes.append(note)
-        if prog.verbose and fast_files:
-            sample = ", ".join(f.relative for f in fast_files[:8])
-            more = f" (+{len(fast_files) - 8} more)" if len(fast_files) > 8 else ""
-            prog.detail(f"sample: {sample}{more}")
-
-        # Fingerprints track Fast Brain set (not LLM slice alone).
-        store, diff = _sync_adaptive_cache(root, fast_files, cfg=cfg, prog=prog)
-
-        fast_brain_file_count = len(fast_files)
-        llm_pack_file_count = 0
-        fast_brain_seconds = None
-        llm_seconds_prov = None
-        heur_result = None
-        complexity_result = None
-        complexity_issues = []
-        testing_result = None
-
-        if out_dir is not None:
-            out = out_dir
-        else:
-            out = resolve_report_dir(root, cfg.general.report_dir)
-
-    def _write_dry_run():
-        nonlocal js, md, report_when
-        from datetime import datetime
-
-        from repolens import __version__
-
-        prog.phase("Dry-run: writing inventory report (no scanners / LLM)…")
-        empty = FindingReport(
-            confidence=0,
-            summary=Summary(),
-            issues=[],
-            durabilityGaps=["dry-run: no LLM call"] + list(inventory_notes),
-            durationSeconds=round(time.time() - run_started, 1),
-            provenance=ProvenanceBlock(
-                repoLensVersion=__version__,
-                gitSha=_git_sha(root),
-                fastBrainFiles=fast_brain_file_count,
-                llmPackFiles=0,
-            ),
-        )
-        report_when = datetime.now(UTC)
-        md = (
-            write_markdown_report(empty, out, mode=mode, when=report_when)
-            if fmt in {"md", "both"}
-            else None
-        )
-        js = (
-            write_json_report(empty, out, mode=mode, when=report_when)
-            if fmt in {"json", "both"}
-            else None
-        )
-        prog.phase("Done (dry-run)")
-        return ReviewResult(
-            report=empty,
-            markdown_path=md,
-            json_path=js,
-            files_scanned=fast_brain_file_count,
-            dry_run=True,
-        )
-
-    def _run_scanner_tools():
-        nonlocal scanner_gaps, scanner_issues, scanner_runs, supply_chain, tools, triage_plan
-        tools = parse_scanners_flag(scanners, config_enabled=cfg.scanners.enabled)
-        if scanners_only and tools is None:
-            tools = list(cfg.scanners.enabled)
-
-        scanner_runs = []
-        scanner_issues = []
-        scanner_gaps = []
-        supply_chain = None
-        triage_plan = None
-
-    def _postprocess_scanner_issues():
-        nonlocal before_dedupe, i, r, scanner_gaps, scanner_issues, scanner_runs
-        if tools:
-            prog.phase(f"Scanners: running {', '.join(tools)}…")
-            scanner_runs, scanner_issues, scanner_gaps = run_scanners(root, tools)
-            for run in scanner_runs:
-                prog.detail(
-                    f"{run.tool}: {run.status}" + (f" — {run.detail}" if run.detail else "")
-                )
-        else:
-            prog.detail("Scanners: skipped (off / none selected)")
-
-        _extend_from_import_sarif(
-            import_sarif,
-            root,
-            scanner_issues,
-            scanner_runs,
-            prog,
-            require=require_sarif_import,
-        )
-
-        if tools or import_sarif:
-            before_dedupe = len(scanner_issues)
-            scanner_issues = dedupe_sca_issues(scanner_issues)
-            if len(scanner_issues) < before_dedupe:
-                prog.detail(
-                    f"SCA: deduped {before_dedupe - len(scanner_issues)} "
-                    "duplicate OSV/Trivy advisory row(s)"
-                )
-
-        if tools:
-            if cfg.deep.usage_hints:
-                from repolens.scanners.usage_hints import apply_usage_hints
-
-                scanner_issues = apply_usage_hints(root, scanner_issues)
-                hinted = sum(1 for i in scanner_issues if i.usageHint)
-                if hinted:
-                    prog.detail(
-                        f"SCA usage hints: {hinted} package finding(s) "
-                        "(not reachability)"
-                    )
-            prog.phase(
-                f"Scanners: finished ({len(scanner_issues)} finding(s), "
-                f"{sum(1 for r in scanner_runs if r.status == 'ran')}/{len(scanner_runs)} ran)"
-            )
-            require = require_scanners or cfg.scanners.require
-            if require:
-                missing = missing_required(tools, scanner_runs)
-                if missing:
-                    raise ScannerRequirementError(missing)
-
-    def _collect_supply_chain():
-        nonlocal supply_chain
-        want_supply = cfg.scanners.sbom or cfg.scanners.licenses
-        trivy_requested = bool(tools) and "trivy" in tools
-        if want_supply:
-            from repolens.scanners.base import resolve_binary
-
-            trivy_available = resolve_binary("trivy") is not None
-            if trivy_available or trivy_requested:
-                prog.phase("Supply chain: SBOM / licenses…")
-                supply_chain, sc_gaps = build_supply_chain(
-                    root,
-                    out,
-                    sbom=cfg.scanners.sbom,
-                    licenses=cfg.scanners.licenses,
-                )
-                scanner_gaps.extend(sc_gaps)
-                if supply_chain and supply_chain.sbomPath:
-                    prog.detail(f"SBOM: {supply_chain.sbomPath}")
-                elif sc_gaps:
-                    prog.detail(sc_gaps[0])
-            else:
-                prog.detail(
-                    "Supply chain: skipped (install Trivy for SBOM/licenses — "
-                    "`repolens plugins install trivy`)"
-                )
-
-    def _run_fast_brain_phase():
-        nonlocal complexity_issues, complexity_result, f, fast_brain_seconds, graph_block
-        nonlocal graph_gaps, graph_issues, heur_issues, heur_result, testing_result
-        prog.phase(
-            f"Fast brain: heuristics on {len(fast_files)} file(s) "
-            f"(workers={cfg.fast_brain.parallel_workers})…"
-        )
-        _fb_t0 = time.monotonic()
-        from repolens.heuristics import run_heuristics
-
-        heur_result = run_heuristics(
-            root,
-            fast_files,
-            mega_file_lines=cfg.deep.mega_file_lines,
-            mega_file_exclude_globs=cfg.deep.mega_file_exclude_globs or None,
-            pack_ids=pack_ids or None,
-            workers=cfg.fast_brain.parallel_workers,
-            near_clones_config=cfg.fast_brain.near_clones,
-        )
-        fast_brain_seconds = round(time.monotonic() - _fb_t0, 1)
-        heur_issues = list(heur_result.issues)
-        prog.detail(
-            f"Fast brain: {len(heur_issues)} heuristic finding(s), "
-            f"{len(heur_result.hot_paths)} hot path(s)"
-        )
-
-        from repolens.complexity.runner import run_complexity
-
-        complexity_result = run_complexity(
-            root,
-            fast_files,
-            enabled=cfg.complexity.enabled,
-            hotspot_limit=cfg.complexity.hotspot_limit,
-        )
-        complexity_issues = list(complexity_result.issues)
-        if cfg.complexity.enabled:
-            prog.detail(
-                f"Complexity: {complexity_result.block.functionsAnalysed} function(s), "
-                f"{len(complexity_issues)} above threshold, "
-                f"top-{len(complexity_result.block.hotspots)} hotspots"
-            )
-
-        from repolens.testing.inventory import run_testing_inventory
-
-        testing_result = run_testing_inventory(
-            root,
-            fast_files,
-            enabled=cfg.testing.inventory,
-        )
-        if cfg.testing.inventory:
-            tb = testing_result.block
-            prog.detail(
-                f"Testing inventory: {tb.testFileCount} file(s), "
-                f"{tb.testCaseCount} case(s), "
-                f"ratio {tb.testsPerProductionFunction} tests/prod fn"
-            )
-
-        graph_issues = []
-        graph_block = None
-        graph_gaps = []
-        if any(Path(f.relative).suffix == ".py" for f in fast_files):
-            from repolens.graph import analyse_python_graph
-            from repolens.graph.findings import cycles_to_issues
-
-            gres = analyse_python_graph(root, config=cfg.graph)
-            graph_gaps = list(gres.durability_gaps)
-            graph_issues = cycles_to_issues(
-                gres, critical_scc_size=cfg.graph.critical_scc_size
-            )
-            graph_block = GraphBlock(
-                status=gres.status.value,
-                cyclicity=gres.cyclicity,
-                cycleCount=len(gres.cycles),
-                moduleCount=gres.module_count,
-                packageCount=len(gres.packages),
-            )
-            prog.detail(
-                f"Import graph: {graph_block.cycleCount} cycle group(s), "
-                f"{len(graph_issues)} finding(s), cyclicity={graph_block.cyclicity}"
-            )
-
-    def _apply_provider_fallback():
-        nonlocal before_dedupe, non_llm_issues, provider, scanner_gaps, scanner_issues
-        nonlocal scanner_runs, scanners_only, tools
-        non_llm_issues = (
-            list(scanner_issues) + heur_issues + complexity_issues + graph_issues
-        )
-        fallback_refreshed_scanners = False
-        if not scanners_only and not dry_run and cfg.model.fallback:
-            from repolens.config import resolve_api_key
-            from repolens.llm.setup import detect_ollama, resolve_ollama_model
-
-            provider = cfg.model.provider
-            key = resolve_api_key(cfg.model)
-            has_key = (
-                bool(key)
-                if provider in {"openai", "anthropic", "deepseek", "openai_compatible"}
-                else True
-            )
-
-            if not provider or not has_key:
-                if detect_ollama():
-                    chosen, _ = resolve_ollama_model(cfg.model.model)
-                    cfg.model.provider = "ollama"
-                    cfg.model.model = chosen
-                    prog.phase(
-                        f"Fallback: Cloud AI key missing → switching to local Ollama ({chosen})"
-                    )
-                else:
-                    scanners_only = True
-                    if not tools:
-                        tools = list(cfg.scanners.enabled)
-                        if tools:
-                            prog.phase(f"Scanners: running {', '.join(tools)}…")
-                            scanner_runs, scanner_issues, scanner_gaps = run_scanners(
-                                root, tools
-                            )
-                            _extend_from_import_sarif(
-                                import_sarif,
-                                root,
-                                scanner_issues,
-                                scanner_runs,
-                                prog,
-                                require=require_sarif_import,
-                            )
-                            before_dedupe = len(scanner_issues)
-                            scanner_issues = dedupe_sca_issues(scanner_issues)
-                            if len(scanner_issues) < before_dedupe:
-                                prog.detail(
-                                    f"SCA: deduped {before_dedupe - len(scanner_issues)} "
-                                    "duplicate OSV/Trivy advisory row(s)"
-                                )
-                            fallback_refreshed_scanners = True
-                    prog.phase(
-                        "Fallback: Cloud AI key & Ollama unavailable → "
-                        "degraded to SAST scanners & heuristics"
-                    )
-                    scanner_gaps.insert(
-                        0,
-                        "Fallback: Cloud AI key & Ollama unavailable; "
-                        "report generated using local scanners and "
-                        "Fast-Brain heuristics.",
-                    )
-
-        if fallback_refreshed_scanners:
-            non_llm_issues = (
-                list(scanner_issues) + heur_issues + complexity_issues + graph_issues
-            )
-
-    def _report_scanners_only():
-        nonlocal r, report
-        all_ran = bool(scanner_runs) and all(r.status == "ran" for r in scanner_runs)
-        report = FindingReport(
-            confidence=75 if all_ran else 55,
-            summary=Summary(),
-            issues=non_llm_issues,
-            durabilityGaps=list(scanner_gaps)
-            or (
-                ["scanners-only: no scanners selected"]
-                if not tools and not import_sarif
-                else []
-            ),
-            scannerRuns=list(scanner_runs),
-            supplyChain=supply_chain,
-            llmSkipped=True,
-        )
-        from repolens.scanners.sca import apply_cross_source_sca_dedupe
-
-        report = apply_cross_source_sca_dedupe(report)
-
-    def _report_empty_inventory():
-        nonlocal report
-        report = FindingReport(
-            confidence=90,
-            summary=Summary(),
-            issues=non_llm_issues,
-            durabilityGaps=["No reviewable files found (check ignores / --mode diff)"]
-            + scanner_gaps,
-            scannerRuns=list(scanner_runs),
-            supplyChain=supply_chain,
-        )
-        from repolens.scanners.sca import apply_cross_source_sca_dedupe
-
-        report = apply_cross_source_sca_dedupe(report)
-
-    def _select_adaptive_pack():
-        nonlocal llm_files, note, pack_mode
-        if force_changed:
-            pack_mode = "changed"
-        elif force_full:
-            pack_mode = "full"
-        else:
-            pack_mode = cfg.adaptive.mode
-        llm_files = files
-        if store is not None and diff is not None and cfg.adaptive.enabled:
-            llm_files = select_pack_paths(files, diff, mode=pack_mode)
-            delta_n = len(diff.added) + len(diff.changed)
-            note = ""
-            if (
-                pack_mode == "auto"
-                and delta_n == 0
-                and len(llm_files) == len(files)
-                and files
-            ):
-                note = (
-                    " — no fingerprint delta → full pack "
-                    "(use --changed for delta-only smoke)"
-                )
-            prog.phase(
-                f"LLM pack: {len(llm_files)}/{len(files)} file(s) "
-                f"(adaptive mode={pack_mode}){note}"
-            )
-
-    def _apply_git_diff_scope():
-        nonlocal change_set_block, git_changed_paths, llm_files
-        if git_diff_requested:
-            from repolens.changeset import (
-                cap_changeset_paths,
-                filter_entries_to_changeset,
-                list_git_changed_paths,
-            )
-            from repolens.git_refs import resolve_diff_base
-            from repolens.schema import ChangeSetBlock
-
-            resolved_base = resolve_diff_base(
-                cli_base=git_diff_base_cli, cwd=root
-            )
-            git_changed_paths = list_git_changed_paths(
-                root, resolved_base, include_dirty=True
-            )
-            llm_files = filter_entries_to_changeset(llm_files, git_changed_paths)
-            change_set_block = ChangeSetBlock(
-                base=resolved_base,
-                pathCount=len(git_changed_paths),
-                paths=cap_changeset_paths(git_changed_paths),
-            )
-            prog.phase(
-                f"LLM pack: git-diff change-set → {len(llm_files)} file(s) "
-                f"(base={resolved_base or 'worktree'}; "
-                f"{len(git_changed_paths)} path(s) from git)"
-            )
-            if not llm_files:
-                prog.detail(
-                    "Change-set intersection with inventory is empty — "
-                    "Slow Brain will skip (scanners/Fast Brain still ran)"
-                )
-
-    def _apply_triage_routing():
-        nonlocal f, llm_files, n, note, report, triage_bypassed, triage_plan
-        triage_bypassed = False
-        triage_plan = None
-        if cfg.ci.triage_routing:
-            avail = [f.relative for f in (llm_files or files)]
-            changed_paths = None
-            if pack_mode == "changed" and diff is not None:
-                changed_paths = sorted(set(diff.added) | set(diff.changed))
-            triage_plan = triage_llm_plan(
-                scanner_issues,
-                available_files=avail,
-                config=cfg.ci,
-                changed_files=changed_paths,
-                heuristic_issues=heur_issues,
-                include_heuristics=cfg.fast_brain.triage_include_heuristics,
-            )
-            for note in triage_plan.notes:
-                prog.detail(note)
-            if triage_plan.llm_bypassed:
-                triage_bypassed = True
-                prog.phase("LLM bypassed (scanners/heuristics clean at triage floor)")
-                report = FindingReport(
-                    confidence=80 if scanner_runs else 60,
-                    summary=Summary(),
-                    issues=non_llm_issues,
-                    durabilityGaps=list(scanner_gaps) + list(triage_plan.notes),
-                    scannerRuns=list(scanner_runs),
-                    supplyChain=supply_chain,
-                    llmSkipped=True,
-                    llmBypassed=True,
-                    triageHits=0,
-                )
-                report.summary = report.recount_summary()
-            elif triage_plan.pack_files:
-                prog.phase(
-                    f"LLM triage: {triage_plan.triage_hits} hit(s) → "
-                    f"{len(triage_plan.pack_files)} file(s)"
-                )
-                # Prefer Fast Brain inventory so heuristic hits outside the
-                # Slow Brain top-N sample can still enter the LLM pack.
-                llm_files = select_pack_entries(
-                    fast_files, triage_plan.pack_files
-                )
-                if not llm_files:
-                    llm_files = select_pack_entries(
-                        files, triage_plan.pack_files
-                    )
-                if git_diff_requested and git_changed_paths:
-                    from repolens.changeset import filter_entries_to_changeset
-
-                    llm_files = filter_entries_to_changeset(
-                        llm_files, git_changed_paths
-                    )
-                scanner_gaps.extend(
-                    n for n in triage_plan.notes if n not in scanner_gaps
-                )
-
-    def _reuse_or_skip_llm():
-        nonlocal report
-        prior_bundle = None
-        if store is not None:
-            prior_bundle = load_last_llm_report(store)
-        if prior_bundle is None:
-            prior_bundle = bootstrap_from_out_dir(out)
-        if prior_bundle is not None:
-            prior, saved_at, prior_model = prior_bundle
-            report = merge_reused_report(
-                prior,
-                scanner_issues=non_llm_issues,
-                scanner_runs=list(scanner_runs),
-                scanner_gaps=list(scanner_gaps),
-                saved_at=saved_at,
-                model=prior_model,
-            )
-            prog.phase(
-                f"LLM: reused last successful findings "
-                f"({report.llmReusedFrom})"
-            )
-            prog.detail(
-                "No fingerprint delta — carried forward prior AI issues; "
-                "scanners refreshed this run. Use --full to re-run the model."
-            )
-            if store is not None and store.get_meta("last_llm_report_json") is None:
-                # Persist bootstrap so later skips do not re-scan out/.
-                save_last_llm_report(
-                    store,
-                    prior.model_copy(update={"llmCompleted": True}),
-                    model=prior_model or None,
-                    mode=mode,
-                )
-        else:
-            if git_diff_requested:
-                gap = (
-                    "LLM skipped: --git-diff change-set intersected the "
-                    "inventory with zero files (empty or unscanned paths), "
-                    "and no prior successful LLM snapshot is available to reuse. "
-                    "Commit/stage relevant sources or omit --git-diff."
-                )
-                prog.phase(
-                    "LLM: skipped — empty git change-set intersection "
-                    "and no prior LLM snapshot to reuse"
-                )
-            else:
-                gap = (
-                    "LLM skipped: --changed / adaptive mode=changed found no "
-                    "added or changed files since the last fingerprint sync, "
-                    "and no prior successful LLM snapshot is available to reuse. "
-                    "Run once without --changed (or with --full), then --changed "
-                    "will carry findings forward. Or use --scanners-only."
-                )
-                prog.phase(
-                    "LLM: skipped — no fingerprint delta and no prior LLM "
-                    "snapshot to reuse"
-                )
-            prog.detail(
-                "Tip: run a full/auto LLM pass once to seed .repolens/; "
-                "or --scanners-only for a fast no-AI check"
-            )
-            report = FindingReport(
-                confidence=55,
-                summary=Summary(),
-                issues=non_llm_issues,
-                durabilityGaps=[gap] + list(scanner_gaps),
-                scannerRuns=list(scanner_runs),
-                llmSkipped=True,
-            )
-            report.summary = report.recount_summary()
-
-    def _prepare_llm_prompt():
-        nonlocal _llm_t0, f, i, llm_label, llm_pack_file_count, model_name, prompt_prefix
-        nonlocal provider, started, timeout, use_deep
-        if store is not None:
-            history = store.successful_llm_seconds()
-            recommended = recommend_timeout(
-                history, adaptive=cfg.adaptive, file_count=len(llm_files)
-            )
-            store.set_meta("recommended_timeout_seconds", f"{recommended:g}")
-            if timeout_override is None and cfg.model.timeout_seconds is None:
-                cfg.model.timeout_seconds = resolve_effective_timeout(
-                    explicit=None,
-                    recommended=recommended,
-                    provider=cfg.model.provider,
-                    adaptive=cfg.adaptive,
-                )
-            prog.detail(
-                f"timeout: {resolve_llm_timeout(cfg.model):g}s "
-                f"(recommended {recommended:g}s)"
-            )
-            _maybe_sync_fts(store, root, fast_files, diff)
-
-        use_deep = cfg.deep.enabled if deep is None else deep
-        llm_pack_file_count = len(llm_files)
-        local_ctx = ""
-        if cfg.local_learning.enabled:
-            from repolens.learning.consent import has_consent
-            from repolens.learning.retrieve import retrieve_context
-
-            if has_consent(root):
-                query = f"{mode} " + " ".join(
-                    f.relative for f in llm_files[:40]
-                )
-                local_ctx = retrieve_context(root, query, limit=5)
-                if local_ctx:
-                    prog.detail("attached local-learning context")
-
-        from repolens.scanners.evidence import format_scanner_evidence_for_prompt
-
-        scanner_ctx = format_scanner_evidence_for_prompt(scanner_issues)
-        if scanner_ctx:
-            prog.detail(
-                f"attached scanner evidence ({len(scanner_issues)} finding(s))"
-            )
-        heur_ctx = ""
-        if heur_issues:
-            lines = [
-                "### Fast Brain heuristic hits (context only)",
-                *[
-                    f"- [{i.severity}] {i.file}:{i.line} {i.title}"
-                    for i in heur_issues[:40]
-                ],
-            ]
-            heur_ctx = "\n".join(lines)
-        prompt_prefix = "\n\n".join(
-            part
-            for part in (
-                scanner_ctx,
-                heur_ctx,
-                local_ctx,
-                _complexity_ai_prefix(root, complexity_result, cfg),
-            )
-            if part
-        )
-
-        provider = cfg.model.provider or "unknown"
-        model_name = cfg.model.model or default_model(cfg.model.provider)
-        timeout = resolve_llm_timeout(cfg.model)
-        llm_label = (
-            f"LLM: {model_name} via {provider} "
-            f"(timeout {timeout:g}s — large repos can take several minutes)"
-        )
-        started = time.time()
-        _llm_t0 = time.monotonic()
-
-    def _invoke_llm():
-        nonlocal llm_seconds_prov, report
-        try:
-            if use_deep:
-                # Per-pass waiting lives inside _analyze_deep_passes.
-                report = _analyze_deep_passes(
-                    root=root,
-                    mode=mode,
-                    full_audit=full_audit,
-                    files=fast_files,
-                    llm_files=llm_files,
-                    cfg=cfg,
-                    prog=prog,
-                    prompt_prefix=prompt_prefix,
-                    scanner_runs=scanner_runs,
-                    scanner_issues=list(scanner_issues),
-                    heur_result=heur_result,
-                )
-            else:
-                gen = LlmGenerateProgress()
-                ollama_base = (
-                    cfg.model.base_url if provider == "ollama" else None
-                )
-
-                def status_fn(
-                    progress: LlmGenerateProgress = gen,
-                    base: str | None = ollama_base,
-                    use_ollama: bool = provider == "ollama",
-                ) -> str | None:
-                    bits = [progress.summary()]
-                    if use_ollama:
-                        from repolens.provider_status import (
-                            ollama_running_summary,
-                        )
-
-                        live = ollama_running_summary(base)
-                        if live:
-                            bits.append(live)
-                    return " | ".join(bits)
-
-                with prog.waiting(
-                    llm_label,
-                    hint="streaming chat completions",
-                    status_fn=status_fn,
-                ):
-                    prog.phase("Building LLM prompt…")
-                    prompt = build_prompt(
-                        mode,
-                        root,
-                        llm_files,
-                        full_audit=full_audit,
-                        pack_ids=pack_ids,
-                    )
-                    if prompt_prefix:
-                        prompt = prompt_prefix + "\n\n" + prompt
-                    prog.detail(f"prompt size ≈ {len(prompt):,} characters")
-                    report = _analyze_with_repair(
-                        prompt,
-                        cfg.model,
-                        progress=prog,
-                        root=root,
-                        on_delta=gen.note_delta,
-                    )
-                    from repolens.consistency import apply_llm_consistency
-                    from repolens.fp_calibrations import apply_fp_calibrations
-
-                    report.issues = apply_fp_calibrations(
-                        report.issues, cfg.deep
-                    )
-                    if (cfg.deep.critical_consistency or "").lower() == "llm":
-                        prog.phase("Critical consistency (LLM confirm)…")
-                        report.issues = apply_llm_consistency(
-                            report.issues, cfg.deep, cfg.model
-                        )
-                    report.summary = report.recount_summary()
-                gen.mark_done()
-        except BaseException as exc:
-            if store is not None:
-                store.record_run(
-                    started_at=started,
-                    finished_at=time.time(),
-                    mode=mode,
-                    provider=cfg.model.provider,
-                    model=model_name,
-                    files_in_prompt=len(llm_files),
-                    llm_seconds=None,
-                    timeout_used=timeout,
-                    outcome="error",
-                )
-            if isinstance(exc, LlmError) and cfg.model.fallback:
-                prog.phase(
-                    f"Fallback: LLM error ({exc}) → "
-                    "degraded to SAST scanners & heuristics"
-                )
-                report = FindingReport(
-                    confidence=55,
-                    summary=Summary(),
-                    issues=non_llm_issues,
-                    durabilityGaps=[
-                        f"Fallback: LLM execution failed ({exc}); "
-                        "report generated using local scanners and "
-                        "Fast-Brain heuristics."
-                    ]
-                    + list(scanner_gaps),
-                    scannerRuns=list(scanner_runs),
-                    supplyChain=supply_chain,
-                    llmSkipped=True,
-                )
-                report.summary = report.recount_summary()
-            else:
-                raise
-        else:
-            llm_seconds = time.time() - started
-            llm_seconds_prov = round(time.monotonic() - _llm_t0, 1)
-            if store is not None:
-                store.record_run(
-                    started_at=started,
-                    finished_at=time.time(),
-                    mode=mode,
-                    provider=cfg.model.provider,
-                    model=model_name,
-                    files_in_prompt=len(llm_files),
-                    llm_seconds=llm_seconds,
-                    timeout_used=timeout,
-                    outcome="ok",
-                )
-                hist = store.successful_llm_seconds()
-                rec = recommend_timeout(
-                    hist, adaptive=cfg.adaptive, file_count=len(llm_files)
-                )
-                store.set_meta("recommended_timeout_seconds", f"{rec:g}")
-
-    def _merge_llm_report():
-        nonlocal report
-        extra_issues: list = []
-        if use_deep:
-            # Scanners already merged + cross-source deduped in deep_exec.
-            if graph_issues:
-                report.issues = list(report.issues) + graph_issues
-                report.summary = report.recount_summary()
-            if scanner_runs or scanner_gaps:
-                report.scannerRuns = list(scanner_runs)
-                report.durabilityGaps = list(report.durabilityGaps) + list(
-                    scanner_gaps
-                )
-        else:
-            extra_issues = list(non_llm_issues)
-            if extra_issues or scanner_runs or scanner_gaps:
-                report.issues = list(report.issues) + extra_issues
-                report.scannerRuns = list(scanner_runs)
-                report.durabilityGaps = list(report.durabilityGaps) + list(
-                    scanner_gaps
-                )
-                from repolens.scanners.sca import apply_cross_source_sca_dedupe
-
-                report = apply_cross_source_sca_dedupe(report)
-            else:
-                report.summary = report.recount_summary()
-
-        report.issues = stamp_issue_sources(report.issues, default_llm=True)
-        report.llmCompleted = True
-        report.llmSkipped = False
-        report.llmReusedFrom = None
-        if triage_plan is not None:
-            report.triageHits = triage_plan.triage_hits
-            report.llmBypassed = False
-        if store is not None:
-            save_last_llm_report(
-                store,
-                report,
-                model=model_name,
-                mode=mode,
-            )
-
-    def _stamp_finished_report():
-        nonlocal n
-        report.durationSeconds = round(time.time() - run_started, 1)
-        if graph_block is not None:
-            report.graph = graph_block
-        if change_set_block is not None:
-            report.changeSet = change_set_block
-        if graph_gaps:
-            report.durabilityGaps = list(report.durabilityGaps) + [
-                g for g in graph_gaps if g not in report.durabilityGaps
-            ]
-        if supply_chain is not None:
-            report.supplyChain = supply_chain
-        if inventory_notes:
-            report.durabilityGaps = list(report.durabilityGaps) + [
-                n for n in inventory_notes if n not in report.durabilityGaps
-            ]
-        from repolens.issue_ids import stamp_issue_ids
-
-        report.issues = stamp_issue_ids(stamp_issue_sources(report.issues))
-        from repolens.cluster import cluster_near_duplicates
-        from repolens.feedback_store import apply_feedback_calibrations
-        from repolens.suppressions import apply_suppressions
-
-        report.issues = apply_feedback_calibrations(report.issues, root, cfg.deep)
-        if cfg.deep.cluster_duplicates:
-            before_cluster = len(report.issues)
-            report.issues = cluster_near_duplicates(report.issues)
-            if len(report.issues) < before_cluster:
-                prog.detail(
-                    f"Clustered {before_cluster - len(report.issues)} "
-                    "near-duplicate finding(s)"
-                )
-        active, suppressed = apply_suppressions(root, report.issues)
-        report.issues = active
-        report.suppressedIssues = suppressed
-        if suppressed:
-            prog.detail(
-                f"Suppressions: {len(suppressed)} finding(s) "
-                f"(ignore file / disable comments)"
-            )
-        report.summary = report.recount_summary()
-        _attach_quality(
-            report,
-            heur_result=heur_result,
-            files_scanned=fast_brain_file_count,
-        )
-
-    def _write_finished_report():
-        nonlocal i, js, md, n, r, report_when
-        from repolens import __version__
-
-        _attach_complexity(report, complexity_result)
-        _attach_testing(report, testing_result)
-        report.provenance = ProvenanceBlock(
-            repoLensVersion=__version__,
-            gitSha=_git_sha(root),
-            model=cfg.model.model,
-            provider=cfg.model.provider,
-            scannerTools=[r.tool for r in report.scannerRuns],
-            triageRouting=cfg.ci.triage_routing,
-            llmBypassed=bool(report.llmBypassed),
-            triageHits=int(report.triageHits or 0),
-            failOnScannerOnly=bool(
-                cfg.ci.triage_routing and cfg.ci.fail_on_scanner_only
-            ),
-            fastBrainFiles=fast_brain_file_count,
-            llmPackFiles=llm_pack_file_count,
-            fastBrainSeconds=fast_brain_seconds,
-            llmSeconds=llm_seconds_prov,
-            notes=list(triage_plan.notes) if triage_plan is not None else [],
-        )
-        # Phase 6.4: stamp locationVerified before Markdown/SARIF write
-        from repolens.sarif import verify_issue_location, write_sarif_report
-
-        for issue in report.issues:
-            verify_issue_location(root, issue)
-        from repolens.consistency import apply_heuristic_consistency
-
-        if (cfg.deep.critical_consistency or "").lower() in {"heuristic", "llm"}:
-            report.issues = apply_heuristic_consistency(report.issues, cfg.deep)
-            report.summary = report.recount_summary()
-        from repolens.verify_findings import apply_verify_findings
-
-        if cfg.deep.verify_findings:
-            prog.detail("Verify findings: re-checking Critical locations (non-fatal)…")
-            report.issues = apply_verify_findings(root, report.issues, cfg.deep)
-            report.summary = report.recount_summary()
-
-        from datetime import datetime
-
-        report_when = datetime.now(UTC)
-        prog.phase(f"Writing report → {out}")
-        md = (
-            write_markdown_report(report, out, mode=mode, when=report_when)
-            if fmt in {"md", "both"}
-            else None
-        )
-        js = (
-            write_json_report(report, out, mode=mode, when=report_when)
-            if fmt in {"json", "both"}
-            else None
-        )
-        if js is not None:
-            from repolens.explain import write_last_report_pointer
-
-            write_last_report_pointer(root, js)
-        elif md is not None and fmt == "md":
-            # Prefer JSON for explain; when md-only, still write JSON sidecar for lookup.
-            js = write_json_report(report, out, mode=mode, when=report_when)
-            from repolens.explain import write_last_report_pointer
-
-            write_last_report_pointer(root, js)
-        sarif_path = None
-        if sarif:
-            sarif_path = write_sarif_report(
-                report, root, out_dir=out, mode=mode, when=report_when
-            )
-            if sarif_path is not None:
-                n = sum(1 for i in report.issues if i.locationVerified)
-                prog.detail(
-                    f"SARIF: {sarif_path.name} "
-                    f"({n}/{len(report.issues)} location-verified result(s))"
-                )
-        prog.phase("Done")
-        return ReviewResult(
-            report=report,
-            markdown_path=md,
-            json_path=js,
-            files_scanned=fast_brain_file_count,
-            dry_run=False,
-            sarif_path=sarif_path,
-        )
-
-
-    _bind_review_config()
-    _load_review_inventory()
+    state = ReviewRun(
+        path=path,
+        mode=mode,
+        review_mode=review_mode,
+        since=since,
+        out_dir=out_dir,
+        fmt=fmt,
+        model_override=model_override,
+        timeout_override=timeout_override,
+        force_full=force_full,
+        force_changed=force_changed,
+        git_diff=git_diff,
+        deep_passes=deep_passes,
+        full_audit=full_audit,
+        dry_run=dry_run,
+        trust_project=trust_project,
+        config=config,
+        scanners=scanners,
+        require_scanners=require_scanners,
+        scanners_only=scanners_only,
+        progress=progress,
+        deep=deep,
+        ci=ci,
+        sarif=sarif,
+        verify_findings=verify_findings,
+        packs=packs,
+        fallback=fallback,
+        import_sarif=import_sarif,
+        require_sarif_import=require_sarif_import,
+    )
+    _bind_review_config(state)
+    _load_review_inventory(state)
     try:
-        if dry_run:
-            return _write_dry_run()
-        _run_scanner_tools()
-        _postprocess_scanner_issues()
-        _collect_supply_chain()
-        _run_fast_brain_phase()
-        _apply_provider_fallback()
-        if scanners_only:
-            _report_scanners_only()
-        elif not files and not fast_files:
-            _report_empty_inventory()
+        if state.dry_run:
+            return _write_dry_run(state)
+        _run_scanner_tools(state)
+        _postprocess_scanner_issues(state)
+        _collect_supply_chain(state)
+        _run_fast_brain_phase(state)
+        _apply_provider_fallback(state)
+        if state.scanners_only:
+            _report_scanners_only(state)
+        elif not state.files and not state.fast_files:
+            _report_empty_inventory(state)
         else:
-            _select_adaptive_pack()
-            _apply_git_diff_scope()
-            _apply_triage_routing()
-            if not triage_bypassed:
-                if not llm_files:
-                    _reuse_or_skip_llm()
+            _select_adaptive_pack(state)
+            _apply_git_diff_scope(state)
+            _apply_triage_routing(state)
+            if not state.triage_bypassed:
+                if not state.llm_files:
+                    _reuse_or_skip_llm(state)
                 else:
-                    _prepare_llm_prompt()
-                    _invoke_llm()
-                    _merge_llm_report()
-        _stamp_finished_report()
-        return _write_finished_report()
+                    _prepare_llm_prompt(state)
+                    _invoke_llm(state)
+                    _merge_llm_report(state)
+        _stamp_finished_report(state)
+        return _write_finished_report(state)
     finally:
-        if store is not None:
-            store.close()
+        if state.store is not None:
+            state.store.close()
 
 
 def _analyze_with_repair(

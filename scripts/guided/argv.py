@@ -31,72 +31,82 @@ class GuidedChoices:
     deep: bool | None = None
 
 
-def build_argv(choices: GuidedChoices) -> list[str]:
-    argv: list[str] = ["repolens", choices.command]
+_REMOTE_FLAGS = {
+    "github": "--github",
+    "git-url": "--git-url",
+    "bitbucket": "--bitbucket",
+    "hf": "--hf",
+}
+
+
+def _llm_flags_allowed(choices: GuidedChoices) -> bool:
+    return not choices.scanners_only and not choices.dry_run
+
+
+def _append_target(argv: list[str], choices: GuidedChoices) -> None:
     if choices.remote:
         kind, value = choices.remote
-        flag = {
-            "github": "--github",
-            "git-url": "--git-url",
-            "bitbucket": "--bitbucket",
-            "hf": "--hf",
-        }[kind]
-        argv.extend([flag, value])
+        argv.extend([_REMOTE_FLAGS[kind], value])
         if choices.ref:
             argv.extend(["--ref", choices.ref])
-    else:
-        path = str(Path(choices.path or ".").expanduser())
-        argv.extend(["--path", path])
-    if choices.out:
-        argv.extend(["--out", str(Path(choices.out).expanduser())])
+        return
+    path = str(Path(choices.path or ".").expanduser())
+    argv.extend(["--path", path])
+
+
+def _append_scope_flags(argv: list[str], choices: GuidedChoices) -> None:
     if choices.scanners_only:
         argv.append("--scanners-only")
     if choices.dry_run:
         argv.append("--dry-run")
-    if choices.force_full and not choices.scanners_only and not choices.dry_run:
+    if not _llm_flags_allowed(choices):
+        return
+    if choices.force_full:
         argv.append("--full")
-    if choices.force_changed and not choices.scanners_only and not choices.dry_run:
+    if choices.force_changed:
         argv.append("--changed")
-    llm_pack = (
-        choices.full_audit
-        and choices.command == "review"
-        and not choices.scanners_only
-        and not choices.dry_run
-    )
-    if llm_pack:
+    if choices.full_audit and choices.command == "review":
         argv.append("--full-audit")
-    if (
-        choices.deep is not None
-        and not choices.scanners_only
-        and not choices.dry_run
-    ):
+    if choices.deep is not None:
         argv.append("--deep" if choices.deep else "--no-deep")
-    if (
-        choices.model
-        and not choices.scanners_only
-        and not choices.dry_run
-    ):
+
+
+def _timeout_token(timeout: float) -> str:
+    if float(timeout).is_integer():
+        return str(int(timeout))
+    return str(timeout)
+
+
+def _append_model_flags(argv: list[str], choices: GuidedChoices) -> None:
+    if _llm_flags_allowed(choices) and choices.model:
         argv.extend(["--model", choices.model])
     if choices.verbose:
         argv.append("--verbose")
-    if (
-        choices.timeout is not None
-        and not choices.scanners_only
-        and not choices.dry_run
-    ):
-        # strip trailing .0 for integers
-        t = (
-            str(int(choices.timeout))
-            if float(choices.timeout).is_integer()
-            else str(choices.timeout)
-        )
-        argv.extend(["--timeout", t])
+    if _llm_flags_allowed(choices) and choices.timeout is not None:
+        argv.extend(["--timeout", _timeout_token(choices.timeout)])
+
+
+def _append_out(argv: list[str], choices: GuidedChoices) -> None:
+    if choices.out:
+        argv.extend(["--out", str(Path(choices.out).expanduser())])
+
+
+def _append_output_flags(argv: list[str], choices: GuidedChoices) -> None:
     if choices.fmt and choices.fmt != "md":
         argv.extend(["--format", choices.fmt])
     if choices.scanners and choices.scanners != "auto":
         argv.extend(["--scanners", choices.scanners])
     if choices.fail_on:
         argv.extend(["--fail-on", choices.fail_on])
+
+
+def build_argv(choices: GuidedChoices) -> list[str]:
+    argv = ["repolens", choices.command]
+    _append_target(argv, choices)
+    _append_out(argv, choices)
+    _append_scope_flags(argv, choices)
+    _append_model_flags(argv, choices)
+    _append_output_flags(argv, choices)
     return argv
 
 

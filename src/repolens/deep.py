@@ -28,6 +28,66 @@ _COVERAGE_CONTRACT = (
     "more FindingReport issues that address it, or add a durabilityGaps entry "
     "of the form `coverage:<id>: N/A — <reason>`."
 )
+_COVERAGE_LINE_SHAPE = (
+    "coverage:<id>: N/A — <one fact that is true in this repository>"
+)
+_TESTING_CATEGORIES = frozenset(
+    {"arch.testing", "testing.missing_tests", "testing.scenario_gap"}
+)
+_GITIGNORE_SECRET_CATEGORIES = frozenset(
+    {"sec.repo_hygiene_secrets", "sec.secrets", "heuristic.gitignore_secrets"}
+)
+_CI_PIPELINE_NAMES = frozenset(
+    {
+        ".gitlab-ci.yml",
+        ".gitlab-ci.yaml",
+        "azure-pipelines.yml",
+        "azure-pipelines.yaml",
+        "bitbucket-pipelines.yml",
+        ".travis.yml",
+        "appveyor.yml",
+        ".drone.yml",
+        "woodpecker.yml",
+    }
+)
+
+
+def coverage_checklist_tail(coverage_ids: Iterable[str]) -> str:
+    """Restate the checklist after the source files so a large pack cannot bury it."""
+    ids = [cid for cid in coverage_ids if cid]
+    if not ids:
+        return ""
+    lines = [
+        "",
+        "## Coverage checklist (required before JSON)",
+        "Account for every id below. For an id with no finding, add one line",
+        "in this shape, using that id and a fact from this repository:",
+        _COVERAGE_LINE_SHAPE,
+        "Do not copy a fact from another repository.",
+        "A line without the coverage: prefix, or a reason that says “not reviewed”,",
+        "does not count and lowers the gate.",
+    ]
+    lines.extend(f"- {cid}" for cid in ids)
+    return "\n".join(lines)
+
+
+def coverage_closure_prompt(missed_ids: Iterable[str]) -> str:
+    """Ask only for checklist ids the earlier passes left unanswered."""
+    ids = [cid for cid in missed_ids if cid]
+    lines = [
+        "Coverage closure. Earlier passes left these checklist ids unanswered.",
+        "For each id, either emit an issue whose category is that id, or one",
+        "line in this shape, using that id and a fact from this repository:",
+        _COVERAGE_LINE_SHAPE,
+        "Do not copy a fact from another repository.",
+        "A reason that says 'not reviewed' is rejected and the id stays missed.",
+        "Return FindingReport JSON only.",
+        "",
+    ]
+    lines.extend(f"- {cid}" for cid in ids)
+    lines.append("")
+    lines.append(BRITISH_ENGLISH_INSTRUCTION)
+    return "\n".join(lines)
 
 
 @dataclass(frozen=True)
@@ -177,6 +237,52 @@ def _min_confidence(parts: Sequence[FindingReport]) -> int:
     return min(confidences) if confidences else 0
 
 
+def _normalise_repo_path(file: str) -> str:
+    path = (file or "").replace("\\", "/")
+    if path.startswith("./"):
+        path = path[2:]
+    return path
+
+
+def _is_ci_pipeline(path: str) -> bool:
+    """True for a CI pipeline definition in any common host, not a test module."""
+    lowered = path.lower()
+    name = lowered.rsplit("/", 1)[-1]
+    if name in _CI_PIPELINE_NAMES or name.startswith("jenkinsfile"):
+        return True
+    markers = (
+        ".github/workflows/",
+        ".circleci/",
+        ".buildkite/",
+    )
+    return any(
+        lowered.startswith(marker) or f"/{marker}" in f"/{lowered}" for marker in markers
+    )
+
+
+def _is_gitignore_secret_claim(path: str, category: str) -> bool:
+    """Fast Brain measures secret patterns in any repository's .gitignore."""
+    return path.rsplit("/", 1)[-1] == ".gitignore" and category in _GITIGNORE_SECRET_CATEGORIES
+
+
+def is_unmeasured_model_claim(issue: Issue) -> bool:
+    """True when the model is restating a measurement or a CI pipeline file.
+
+    Complexity and ``heuristic.*`` / ``pack.*`` come from Fast Brain. A CI
+    pipeline file is not a unit-test module. Secret patterns in ``.gitignore``
+    are measured by Fast Brain for every repository.
+    """
+    cat = (issue.category or "").strip().lower()
+    path = _normalise_repo_path(issue.file)
+    if cat == "quality.complexity":
+        return True
+    if cat.startswith("heuristic.") or cat.startswith("pack."):
+        return True
+    if cat in _TESTING_CATEGORIES and _is_ci_pipeline(path):
+        return True
+    return _is_gitignore_secret_claim(path, cat)
+
+
 def merge_reports(
     parts: list[FindingReport],
     heuristic_issues: list[Issue],
@@ -188,7 +294,11 @@ def merge_reports(
     """
     issue_stream: list[Issue] = list(heuristic_issues)
     for part in parts:
-        issue_stream.extend(part.issues)
+        issue_stream.extend(
+            issue.model_copy(update={"source": "llm"})
+            for issue in part.issues
+            if not is_unmeasured_model_claim(issue)
+        )
 
     scores = next((p.scores for p in parts if p.scores is not None), None)
     scanner_runs = [run for part in parts for run in part.scannerRuns]

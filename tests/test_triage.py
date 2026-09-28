@@ -116,6 +116,20 @@ def test_max_triage_files_truncates_with_note() -> None:
     assert any("max_triage_files" in n for n in plan.notes)
 
 
+def test_empty_changed_files_bypasses_llm() -> None:
+    """An empty change set matches no files, so triage treats the diff as clean."""
+    plan = triage_llm_plan(
+        [_issue(file="app.py", title="hit")],
+        available_files=["app.py"],
+        changed_files=[],
+        config=CiConfig(triage_routing=True),
+    )
+    assert plan.should_invoke_llm is False
+    assert plan.llm_bypassed is True
+    assert plan.pack_files == []
+    assert plan.triage_hits == 0
+
+
 def test_changed_paths_filter_ignores_unrelated_hits() -> None:
     plan = triage_llm_plan(
         [
@@ -187,7 +201,7 @@ def test_ci_clean_diff_does_not_call_llm(tmp_path: Path) -> None:
     llm_mock = MagicMock(side_effect=AssertionError("LLM must not be called"))
     with (
         patch(
-            "repolens.pipeline.run.run_scanners",
+            "repolens.pipeline.run_collect.run_scanners",
             return_value=([fake_run], [], []),
         ),
         patch("repolens.pipeline.run._analyze_with_repair", llm_mock),

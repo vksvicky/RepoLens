@@ -245,7 +245,7 @@ def test_run_review_require_sarif_import_propagates(tmp_path: Path) -> None:
         scanners=ScannersConfig(enabled=[]),
     )
     with (
-        patch("repolens.pipeline.run.run_scanners", return_value=([], [], [])),
+        patch("repolens.pipeline.run_collect.run_scanners", return_value=([], [], [])),
         pytest.raises(SarifImportError, match="missing"),
     ):
         run_review(
@@ -269,7 +269,7 @@ def test_run_review_merges_import_sarif(tmp_path: Path) -> None:
         scanners=ScannersConfig(enabled=[]),
     )
     with patch(
-        "repolens.pipeline.run.run_scanners",
+        "repolens.pipeline.run_collect.run_scanners",
         return_value=([], [], []),
     ):
         result = run_review(
@@ -303,7 +303,7 @@ def test_fallback_scanner_refresh_keeps_import_sarif_once(tmp_path: Path) -> Non
     with (
         patch("repolens.llm.setup.detect_ollama", return_value=False),
         patch(
-            "repolens.pipeline.run.run_scanners",
+            "repolens.pipeline.run_route.run_scanners",
             side_effect=fake_run_scanners,
         ) as run_scanners_mock,
     ):

@@ -7,9 +7,11 @@ from pathlib import Path
 from repolens.coverage import (
     coverage_ids_for_pass,
     evaluate_coverage,
+    explain_missed_id,
     load_coverage_matrix,
     parse_coverage_notes,
 )
+from repolens.deep import coverage_checklist_tail, coverage_closure_prompt
 from repolens.rules.registry import get_rule, list_rules
 from repolens.schema import Issue, Severity
 
@@ -87,6 +89,14 @@ def test_parse_coverage_notes_and_evaluate() -> None:
     assert notes["arch.testing"] == "no test suite yet"
     assert "unrelated durability note" not in notes
 
+    bare = parse_coverage_notes(
+        [
+            "arch.iac_cloud: N/A — No infrastructure-as-code detected.",
+            "coverage:arch.iac_cloud: N/A — not reviewed",
+        ]
+    )
+    assert bare["arch.iac_cloud"] == "No infrastructure-as-code detected."
+
     issues = [
         Issue(
             severity=Severity.MEDIUM,
@@ -113,3 +123,52 @@ def test_parse_coverage_notes_and_evaluate() -> None:
     assert "sec.injection" in result.na
     assert "arch.testing" in result.na
     assert "sec.repo_hygiene_secrets" in result.covered
+
+
+def test_bare_na_line_counts_and_beats_a_later_not_reviewed() -> None:
+    result = evaluate_coverage(
+        ["arch.iac_cloud"],
+        [],
+        [
+            "arch.iac_cloud: N/A — No infrastructure-as-code detected.",
+            "coverage:arch.iac_cloud: N/A — not reviewed",
+        ],
+    )
+    assert result.missed == []
+    assert "No infrastructure-as-code" in result.na["arch.iac_cloud"]
+
+
+def test_missed_id_explanations_name_the_line_that_counts() -> None:
+    prefix = explain_missed_id(
+        "arch.dry",
+        ["arch.dry: N/A — DRY principles are generally followed."],
+    )
+    assert "without the coverage: prefix" in prefix
+    assert "coverage:arch.dry: N/A —" in prefix
+
+    rejected = explain_missed_id(
+        "arch.licensing",
+        ["coverage:arch.licensing: missed — lazy N/A rejected (not reviewed)"],
+    )
+    assert "not reviewed" in rejected
+
+    unmarked = explain_missed_id(
+        "arch.solid_srp",
+        ["coverage:arch.solid_srp: Single Responsibility is not evaluated."],
+    )
+    assert "no `N/A —`" in unmarked
+
+    silent = explain_missed_id("arch.blast_radius", [])
+    assert "no finding and no N/A line" in silent
+
+
+def test_checklist_prompt_shows_the_line_shape_without_a_sample_fact() -> None:
+    tail = coverage_checklist_tail(["arch.iac_cloud"])
+    closure = coverage_closure_prompt(["arch.dry"])
+    shape = "coverage:<id>: N/A — <one fact that is true in this repository>"
+    assert shape in tail
+    assert shape in closure
+    assert "Terraform" not in tail
+    assert "Terraform" not in closure
+    assert "not reviewed" in tail
+    assert "not reviewed" in closure

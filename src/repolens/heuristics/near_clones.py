@@ -325,6 +325,90 @@ def _issue_for_block(block: CloneBlock, *, config: NearClonesConfig) -> Issue:
     )
 
 
+def _index_entry_windows(
+    entry: FileEntry,
+    *,
+    cfg: NearClonesConfig,
+    excludes: tuple[str, ...],
+    by_hash: dict[str, list[_LocatedHit]],
+) -> None:
+    if not entry.path.is_file():
+        return
+    suffix = Path(entry.relative).suffix.lower()
+    if suffix not in CODE_SUFFIXES:
+        return
+    if is_mega_file_excluded(entry.relative, excludes):
+        return
+    try:
+        text = entry.path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return
+    raw_lines = text.splitlines()
+    norm, phys = normalize_lines(text)
+    for hit in iter_windows(norm, phys, window=cfg.window_lines, stride=cfg.stride):
+        chunk = tuple(norm[hit.norm_start : hit.norm_end])
+        if _should_skip_window(
+            norm_chunk=chunk,
+            phys_start=hit.phys_start,
+            phys_end=hit.phys_end,
+            raw_lines=raw_lines,
+            suffix=suffix,
+            header_n=cfg.header_comment_lines,
+        ):
+            continue
+        by_hash.setdefault(hit.hash, []).append(
+            _LocatedHit(entry.relative, hit, chunk)
+        )
+
+
+def _ordered_pair(loc_a: _LocatedHit, loc_b: _LocatedHit) -> PairHit:
+    fa, fb = loc_a.relative, loc_b.relative
+    ha, hb = loc_a.hit, loc_b.hit
+    if fa > fb:
+        fa, fb = fb, fa
+        ha, hb = hb, ha
+    return PairHit(
+        fa,
+        fb,
+        ha.phys_start,
+        ha.phys_end,
+        hb.phys_start,
+        hb.phys_end,
+        ha.norm_start,
+        ha.norm_end,
+        hb.norm_start,
+        hb.norm_end,
+    )
+
+
+def _pair_hits(
+    by_hash: dict[str, list[_LocatedHit]],
+    *,
+    min_occurrences: int,
+) -> list[PairHit]:
+    pair_hits: list[PairHit] = []
+    for locations in by_hash.values():
+        files = {loc.relative for loc in locations}
+        if len(files) < min_occurrences:
+            continue
+        for i, loc_a in enumerate(locations):
+            for loc_b in locations[i + 1 :]:
+                if loc_a.relative == loc_b.relative:
+                    continue
+                pair_hits.append(_ordered_pair(loc_a, loc_b))
+    return pair_hits
+
+
+def _coalesced_blocks(pair_hits: list[PairHit]) -> list[CloneBlock]:
+    grouped: dict[tuple[str, str], list[PairHit]] = {}
+    for hit in pair_hits:
+        grouped.setdefault((hit.file_a, hit.file_b), []).append(hit)
+    blocks: list[CloneBlock] = []
+    for hits in grouped.values():
+        blocks.extend(coalesce_pair_hits(hits))
+    return blocks
+
+
 def find_near_clones(
     entries: list[FileEntry],
     *,
@@ -335,77 +419,14 @@ def find_near_clones(
     if not cfg.enabled:
         return NearCloneResult()
 
-    excludes = _exclude_globs_for(cfg)
     by_hash: dict[str, list[_LocatedHit]] = {}
-
+    excludes = _exclude_globs_for(cfg)
     for entry in entries:
-        if not entry.path.is_file():
-            continue
-        suffix = Path(entry.relative).suffix.lower()
-        if suffix not in CODE_SUFFIXES:
-            continue
-        if is_mega_file_excluded(entry.relative, excludes):
-            continue
-        try:
-            text = entry.path.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-        raw_lines = text.splitlines()
-        norm, phys = normalize_lines(text)
-        for hit in iter_windows(
-            norm, phys, window=cfg.window_lines, stride=cfg.stride
-        ):
-            chunk = tuple(norm[hit.norm_start : hit.norm_end])
-            if _should_skip_window(
-                norm_chunk=chunk,
-                phys_start=hit.phys_start,
-                phys_end=hit.phys_end,
-                raw_lines=raw_lines,
-                suffix=suffix,
-                header_n=cfg.header_comment_lines,
-            ):
-                continue
-            by_hash.setdefault(hit.hash, []).append(
-                _LocatedHit(entry.relative, hit, chunk)
-            )
+        _index_entry_windows(entry, cfg=cfg, excludes=excludes, by_hash=by_hash)
 
-    pair_hits: list[PairHit] = []
-    for locations in by_hash.values():
-        files = {loc.relative for loc in locations}
-        if len(files) < cfg.min_occurrences:
-            continue
-        for i, loc_a in enumerate(locations):
-            for loc_b in locations[i + 1 :]:
-                if loc_a.relative == loc_b.relative:
-                    continue
-                fa, fb = loc_a.relative, loc_b.relative
-                ha, hb = loc_a.hit, loc_b.hit
-                if fa > fb:
-                    fa, fb = fb, fa
-                    ha, hb = hb, ha
-                pair_hits.append(
-                    PairHit(
-                        fa,
-                        fb,
-                        ha.phys_start,
-                        ha.phys_end,
-                        hb.phys_start,
-                        hb.phys_end,
-                        ha.norm_start,
-                        ha.norm_end,
-                        hb.norm_start,
-                        hb.norm_end,
-                    )
-                )
-
-    blocks_by_pair: dict[tuple[str, str], list[PairHit]] = {}
-    for ph in pair_hits:
-        blocks_by_pair.setdefault((ph.file_a, ph.file_b), []).append(ph)
-
-    all_blocks: list[CloneBlock] = []
-    for hits in blocks_by_pair.values():
-        all_blocks.extend(coalesce_pair_hits(hits))
-
+    all_blocks = _coalesced_blocks(
+        _pair_hits(by_hash, min_occurrences=cfg.min_occurrences)
+    )
     all_blocks.sort(key=_block_sort_key)
 
     capped_clusters = all_blocks[: cfg.max_clusters]

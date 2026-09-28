@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
+from functools import partial
 from pathlib import Path
 
 from repolens.config import NearClonesConfig
@@ -56,6 +57,68 @@ def _map_entry_issues(
     return issues
 
 
+def _remember_hot_paths(hot_paths: list[str], found: list[Issue]) -> None:
+    known = set(hot_paths)
+    for issue in found:
+        if issue.file in known:
+            continue
+        known.add(issue.file)
+        hot_paths.append(issue.file)
+
+
+def _absorb(issues: list[Issue], hot_paths: list[str], found: list[Issue]) -> None:
+    issues.extend(found)
+    _remember_hot_paths(hot_paths, found)
+
+
+def _mega_issues(
+    chunk: list[FileEntry],
+    *,
+    mega_file_lines: int,
+    excludes: Sequence[str],
+) -> list[Issue]:
+    found, _hots = find_mega_files(
+        chunk,
+        mega_file_lines=mega_file_lines,
+        exclude_globs=excludes,
+    )
+    return found
+
+
+def _near_clone_bundle(
+    entries: list[FileEntry],
+    config: NearClonesConfig | None,
+) -> tuple[list[Issue], int, int, list[str]]:
+    cfg = config if config is not None else NearClonesConfig()
+    if not cfg.enabled:
+        return [], 0, 0, []
+    found = find_near_clones(entries, config=cfg)
+    return found.issues, found.cluster_count, found.occurrence_count, list(found.notes)
+
+
+def _pack_issues(
+    root: Path,
+    entries: list[FileEntry],
+    pack_ids: Sequence[str] | None,
+) -> list[Issue]:
+    if not pack_ids:
+        return []
+    from repolens.packs.registry import run_pack_heuristics
+
+    return run_pack_heuristics(root, entries, list(pack_ids))
+
+
+def _unique_paths(paths: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for path in paths:
+        if path in seen:
+            continue
+        seen.add(path)
+        ordered.append(path)
+    return ordered
+
+
 def run_heuristics(
     root: Path,
     entries: list[FileEntry],
@@ -71,81 +134,37 @@ def run_heuristics(
     issues: list[Issue] = []
     hot_paths: list[str] = []
     workers = max(1, int(workers))
-
     excludes = (
         mega_file_exclude_globs
         if mega_file_exclude_globs is not None
         else DEFAULT_MEGA_FILE_EXCLUDES
     )
 
-    def _mega(chunk: list[FileEntry]) -> list[Issue]:
-        found, _hots = find_mega_files(
-            chunk,
-            mega_file_lines=mega_file_lines,
-            exclude_globs=excludes,
-        )
-        return found
-
-    mega_issues = _map_entry_issues(entries, _mega, workers=workers)
-    issues.extend(mega_issues)
-    for issue in mega_issues:
-        if issue.file not in hot_paths:
-            hot_paths.append(issue.file)
-
-    # Path-structure only — keep single-threaded over full list.
-    sibling_issues = find_sibling_pairs(entries)
-    issues.extend(sibling_issues)
-    for issue in sibling_issues:
-        if issue.file not in hot_paths:
-            hot_paths.append(issue.file)
-
-    nesting_issues = _map_entry_issues(entries, find_deep_nesting, workers=workers)
-    issues.extend(nesting_issues)
-    for issue in nesting_issues:
-        if issue.file not in hot_paths:
-            hot_paths.append(issue.file)
-
-    nc_cfg = near_clones_config if near_clones_config is not None else NearClonesConfig()
-    near_clone_clusters = 0
-    near_clone_occurrences = 0
-    near_clone_notes: list[str] = []
-    if nc_cfg.enabled:
-        nc = find_near_clones(entries, config=nc_cfg)
-        issues.extend(nc.issues)
-        near_clone_clusters = nc.cluster_count
-        near_clone_occurrences = nc.occurrence_count
-        near_clone_notes = list(nc.notes)
-        for issue in nc.issues:
-            if issue.file not in hot_paths:
-                hot_paths.append(issue.file)
-
+    mega = partial(
+        _mega_issues, mega_file_lines=mega_file_lines, excludes=excludes
+    )
+    _absorb(issues, hot_paths, _map_entry_issues(entries, mega, workers=workers))
+    _absorb(issues, hot_paths, find_sibling_pairs(entries))
+    _absorb(
+        issues,
+        hot_paths,
+        _map_entry_issues(entries, find_deep_nesting, workers=workers),
+    )
+    clone_issues, clusters, occurrences, clone_notes = _near_clone_bundle(
+        entries, near_clones_config
+    )
+    _absorb(issues, hot_paths, clone_issues)
     issues.extend(find_gitignore_secret_gaps(root, entries))
     issues.extend(
         _map_entry_issues(entries, find_script_credential_hygiene, workers=workers)
     )
     issues.extend(_map_entry_issues(entries, find_todo_density, workers=workers))
     issues.extend(find_ci_gaps(root, entries))
-
-    if pack_ids:
-        from repolens.packs.registry import run_pack_heuristics
-
-        pack_issues = run_pack_heuristics(root, entries, list(pack_ids))
-        issues.extend(pack_issues)
-        for issue in pack_issues:
-            if issue.file not in hot_paths:
-                hot_paths.append(issue.file)
-
-    seen: set[str] = set()
-    ordered_hots: list[str] = []
-    for path in hot_paths:
-        if path not in seen:
-            seen.add(path)
-            ordered_hots.append(path)
-
+    _absorb(issues, hot_paths, _pack_issues(root, entries, pack_ids))
     return HeuristicResult(
         issues=issues,
-        hot_paths=ordered_hots,
-        near_clone_clusters=near_clone_clusters,
-        near_clone_occurrences=near_clone_occurrences,
-        near_clone_notes=near_clone_notes,
+        hot_paths=_unique_paths(hot_paths),
+        near_clone_clusters=clusters,
+        near_clone_occurrences=occurrences,
+        near_clone_notes=clone_notes,
     )

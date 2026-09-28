@@ -100,9 +100,21 @@ def _prompt_remote() -> tuple[tuple[RemoteKind, str], str | None, str]:
     return (kind, value.strip()), (ref_raw or None), out
 
 
-def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
-    caps = caps if caps is not None else probe_review_cli_caps()
+def _prompt_local_source() -> tuple[str, str]:
+    path_default = default_local_path()
+    if path_default != ".":
+        src = "TARGET" if (os.environ.get("TARGET") or "").strip() else "REPOLENS_PATH"
+        print(f"(default from ${src}: {path_default})")
+    path_raw = _prompt_text("Repository path", path_default)
+    path = str(Path(path_raw).expanduser())
+    default_out = str(Path(path) / "reports")
+    out_raw = _prompt_text("Report output directory", default_out)
+    return path, str(Path(out_raw or default_out).expanduser())
 
+
+def _prompt_source() -> tuple[
+    str | None, str | None, tuple[RemoteKind, str] | None, str | None
+]:
     source = _prompt_choice(
         "Source",
         [
@@ -111,29 +123,14 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
         ],
         default=1,
     )
-
-    path: str | None = None
-    out: str | None = None
-    remote: tuple[RemoteKind, str] | None = None
-    ref: str | None = None
-
     if source == 1:
-        path_default = default_local_path()
-        if path_default != ".":
-            src = (
-                "TARGET"
-                if (os.environ.get("TARGET") or "").strip()
-                else "REPOLENS_PATH"
-            )
-            print(f"(default from ${src}: {path_default})")
-        path_raw = _prompt_text("Repository path", path_default)
-        path = str(Path(path_raw).expanduser())
-        default_out = str(Path(path) / "reports")
-        out_raw = _prompt_text("Report output directory", default_out)
-        out = str(Path(out_raw or default_out).expanduser())
-    else:
-        remote, ref, out = _prompt_remote()
+        path, out = _prompt_local_source()
+        return path, out, None, None
+    remote, ref, out = _prompt_remote()
+    return None, out, remote, ref
 
+
+def _prompt_command() -> Literal["review", "sentinel", "architecture"]:
     kind_idx = _prompt_choice(
         "Review kind",
         [
@@ -148,8 +145,11 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
         "architecture",
         "review",
     )[kind_idx - 1]
+    return command
 
-    depth_options: list[tuple[str, str]] = [
+
+def _depth_options(caps: ReviewCliCaps) -> list[tuple[str, str]]:
+    options: list[tuple[str, str]] = [
         ("Scanners only", "--scanners-only — no LLM; seconds"),
         ("Dry-run inventory", "--dry-run — list what would run"),
         (
@@ -158,126 +158,137 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
         ),
     ]
     if caps.supports_changed:
-        depth_options.append(
+        options.append(
             (
                 "Changed files only",
                 "--changed — skip LLM if cache shows no edits",
             ),
         )
     if caps.supports_full:
-        depth_options.append(
+        options.append(
             ("Force full LLM pack", "--full — first deep audit / cold cache"),
         )
-    depth_idx = _prompt_choice(
-        "LLM depth",
-        depth_options,
-        default=3,
+    return options
+
+
+def _prompt_depth(caps: ReviewCliCaps) -> tuple[bool, bool, bool, bool]:
+    options = _depth_options(caps)
+    depth_idx = _prompt_choice("LLM depth", options, default=3)
+    label = options[depth_idx - 1][0]
+    return (
+        label.startswith("Scanners"),
+        label.startswith("Dry-run"),
+        label.startswith("Changed"),
+        label.startswith("Force full"),
     )
-    depth_label = depth_options[depth_idx - 1][0]
-    scanners_only = depth_label.startswith("Scanners")
-    dry_run = depth_label.startswith("Dry-run")
-    force_changed = depth_label.startswith("Changed")
-    force_full = depth_label.startswith("Force full")
-    llm_will_run = not scanners_only and not dry_run
 
-    full_audit = False
-    if command == "review" and llm_will_run:
-        playbook_idx = _prompt_choice(
-            "Playbook depth",
-            [
-                ("Scoped architecture", "default — focused architecture pass"),
-                (
-                    "Full architecture audit",
-                    "--full-audit — deeper architecture review",
-                ),
-            ],
-            default=1,
-        )
-        full_audit = playbook_idx == 2
 
-    deep: bool | None = None
-    if llm_will_run and caps.supports_deep:
-        # Default Y for review / full-audit (and other LLM modes — deep is CLI default).
-        deep_default = True
-        if full_audit or command == "review":
-            deep_hint = (
-                "Enable deep coverage (--deep)? "
-                "Recommended for full audits / large repos "
-                "(heuristics + chunked P1→P3 + checklist coverage)"
-            )
-        else:
-            deep_hint = (
-                "Enable deep coverage (--deep)? "
-                "Multi-pass + heuristics; --no-deep = single-shot"
-            )
-        deep = _prompt_yes(deep_hint, default=deep_default)
-
-    model: str | None = None
-    if llm_will_run:
-        models = list_installed_models()
-        print("\nModel")
-        print("  0) Use config default (omit --model)")
-        for i, name in enumerate(models, start=1):
-            print(f"  {i}) {name}")
-        if not models:
-            print(
-                "  (No models discovered — start Ollama or run: "
-                "repolens init --provider ollama)"
-            )
-        print(
-            "  Tip: smaller models are faster but weaker on schema; "
-            "7B+ usually better for structured JSON."
-        )
-        while True:
-            raw = input("Choice [0]: ").strip()
-            if not raw or raw == "0":
-                model = None
-                break
-            if raw.isdigit():
-                idx = int(raw)
-                if 1 <= idx <= len(models):
-                    model = models[idx - 1]
-                    break
-            print(f"Enter 0–{len(models)}." if models else "Enter 0.")
-
-    warn = full_pack_large_model_warning(
-        model=model,
-        force_full=force_full,
-        force_changed=force_changed,
+def _prompt_full_audit(command: str, llm_will_run: bool) -> bool:
+    if command != "review" or not llm_will_run:
+        return False
+    playbook_idx = _prompt_choice(
+        "Playbook depth",
+        [
+            ("Scoped architecture", "default — focused architecture pass"),
+            (
+                "Full architecture audit",
+                "--full-audit — deeper architecture review",
+            ),
+        ],
+        default=1,
     )
-    if warn:
-        print(f"\n{warn}")
+    return playbook_idx == 2
 
-    verbose = False
-    if caps.supports_verbose:
-        verbose = _prompt_yes("Enable --verbose?", default=True)
 
-    timeout: float | None = None
-    if llm_will_run and caps.supports_timeout:
-        suggested = suggest_timeout_seconds(model)
+def _prompt_deep(
+    *,
+    llm_will_run: bool,
+    caps: ReviewCliCaps,
+    full_audit: bool,
+    command: str,
+) -> bool | None:
+    if not llm_will_run or not caps.supports_deep:
+        return None
+    if full_audit or command == "review":
         hint = (
-            f"{int(suggested)}s suggested for this model size; "
-            "'n'/'none' to omit"
+            "Enable deep coverage (--deep)? "
+            "Recommended for full audits / large repos "
+            "(heuristics + chunked P1→P3 + checklist coverage)"
         )
-        while True:
-            raw = input(f"Timeout seconds [{int(suggested)}] ({hint}): ").strip().lower()
-            if not raw:
-                timeout = suggested
-                break
-            if raw in {"n", "no", "none"}:
-                timeout = None
-                break
-            try:
-                timeout = float(raw)
-                if timeout <= 0:
-                    raise ValueError
-                break
-            except ValueError:
-                print(
-                    f"Enter a positive number, empty for {int(suggested)}, "
-                    "or n/none to omit."
-                )
+    else:
+        hint = (
+            "Enable deep coverage (--deep)? "
+            "Multi-pass + heuristics; --no-deep = single-shot"
+        )
+    return _prompt_yes(hint, default=True)
 
+
+def _print_model_menu(models: list[str]) -> None:
+    print("\nModel")
+    print("  0) Use config default (omit --model)")
+    for i, name in enumerate(models, start=1):
+        print(f"  {i}) {name}")
+    if not models:
+        print(
+            "  (No models discovered — start Ollama or run: "
+            "repolens init --provider ollama)"
+        )
+    print(
+        "  Tip: smaller models are faster but weaker on schema; "
+        "7B+ usually better for structured JSON."
+    )
+
+
+def _choose_model(models: list[str]) -> str | None:
+    while True:
+        raw = input("Choice [0]: ").strip()
+        if not raw or raw == "0":
+            return None
+        if raw.isdigit():
+            idx = int(raw)
+            if 1 <= idx <= len(models):
+                return models[idx - 1]
+        print(f"Enter 0–{len(models)}." if models else "Enter 0.")
+
+
+def _prompt_model(llm_will_run: bool) -> str | None:
+    if not llm_will_run:
+        return None
+    models = list_installed_models()
+    _print_model_menu(models)
+    return _choose_model(models)
+
+
+def _read_timeout(suggested: float) -> float | None:
+    hint = f"{int(suggested)}s suggested for this model size; 'n'/'none' to omit"
+    while True:
+        raw = input(f"Timeout seconds [{int(suggested)}] ({hint}): ").strip().lower()
+        if not raw:
+            return suggested
+        if raw in {"n", "no", "none"}:
+            return None
+        try:
+            timeout = float(raw)
+            if timeout <= 0:
+                raise ValueError
+        except ValueError:
+            print(
+                f"Enter a positive number, empty for {int(suggested)}, "
+                "or n/none to omit."
+            )
+            continue
+        return timeout
+
+
+def _prompt_timeout(
+    *, llm_will_run: bool, caps: ReviewCliCaps, model: str | None
+) -> float | None:
+    if not llm_will_run or not caps.supports_timeout:
+        return None
+    return _read_timeout(suggest_timeout_seconds(model))
+
+
+def _prompt_fmt() -> str:
     fmt_idx = _prompt_choice(
         "Report format",
         [
@@ -287,8 +298,10 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
         ],
         default=1,
     )
-    fmt = ("md", "json", "both")[fmt_idx - 1]
+    return ("md", "json", "both")[fmt_idx - 1]
 
+
+def _prompt_scanners() -> str:
     scanners_idx = _prompt_choice(
         "Scanners",
         [
@@ -297,8 +310,10 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
         ],
         default=1,
     )
-    scanners = ("auto", "off")[scanners_idx - 1]
+    return ("auto", "off")[scanners_idx - 1]
 
+
+def _prompt_fail_on() -> str | None:
     fail_idx = _prompt_choice(
         "Fail-on threshold",
         [
@@ -308,8 +323,34 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
         ],
         default=1,
     )
-    fail_on = (None, "HIGH", "CRITICAL")[fail_idx - 1]
+    return (None, "HIGH", "CRITICAL")[fail_idx - 1]
 
+
+def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
+    caps = caps if caps is not None else probe_review_cli_caps()
+    path, out, remote, ref = _prompt_source()
+    command = _prompt_command()
+    scanners_only, dry_run, force_changed, force_full = _prompt_depth(caps)
+    llm_will_run = not scanners_only and not dry_run
+    full_audit = _prompt_full_audit(command, llm_will_run)
+    deep = _prompt_deep(
+        llm_will_run=llm_will_run,
+        caps=caps,
+        full_audit=full_audit,
+        command=command,
+    )
+    model = _prompt_model(llm_will_run)
+    warn = full_pack_large_model_warning(
+        model=model,
+        force_full=force_full,
+        force_changed=force_changed,
+    )
+    if warn:
+        print(f"\n{warn}")
+    verbose = (
+        _prompt_yes("Enable --verbose?", default=True) if caps.supports_verbose else False
+    )
+    timeout = _prompt_timeout(llm_will_run=llm_will_run, caps=caps, model=model)
     return GuidedChoices(
         command=command,
         path=path,
@@ -322,9 +363,9 @@ def _collect_choices(caps: ReviewCliCaps | None = None) -> GuidedChoices:
         model=model,
         verbose=verbose,
         timeout=timeout,
-        fmt=fmt,
-        scanners=scanners,
-        fail_on=fail_on,
+        fmt=_prompt_fmt(),
+        scanners=_prompt_scanners(),
+        fail_on=_prompt_fail_on(),
         remote=remote,
         ref=ref,
         deep=deep,

@@ -115,6 +115,33 @@ def _parse_decisions(raw: str) -> ConsistencyResponse | None:
         return None
 
 
+def _demoted_issue(issue: Issue, decision) -> Issue:
+    if not decision.severity:
+        return _demote_one(issue, _LLM_UNCONFIRMED)
+    try:
+        new_sev = Severity(decision.severity.strip().upper())
+    except ValueError:
+        return _demote_one(issue, _LLM_UNCONFIRMED)
+    order = [Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL]
+    if order.index(new_sev) >= order.index(issue.severity):
+        return _demote_one(issue, _LLM_UNCONFIRMED)
+    explanation = issue.explanation
+    if _LLM_UNCONFIRMED not in explanation:
+        explanation = f"{_LLM_UNCONFIRMED} {explanation}"
+    return issue.model_copy(update={"severity": new_sev, "explanation": explanation})
+
+
+def _apply_demotions(issues: list[Issue], targets: list, parsed) -> list[Issue]:
+    out = list(issues)
+    by_index = {decision.index: decision for decision in parsed.decisions}
+    for idx, issue in targets:
+        decision = by_index.get(idx)
+        if decision is None or (decision.action or "").strip().lower() != "demote":
+            continue
+        out[idx] = _demoted_issue(issue, decision)
+    return out
+
+
 def apply_llm_consistency(
     issues: list[Issue],
     deep: DeepConfig,
@@ -126,49 +153,21 @@ def apply_llm_consistency(
     """
     if _mode(deep) != "llm":
         return issues
-    targets = _targets(issues, deep)
-    # Only re-check rows that still look Critical/High and are llm-sourced
-    targets = [(i, iss) for i, iss in targets if infer_issue_source(iss) == "llm"]
+    targets = [
+        (index, issue)
+        for index, issue in _targets(issues, deep)
+        if infer_issue_source(issue) == "llm"
+    ]
     if not targets:
         return issues
 
     from repolens.llm import LlmError, analyze_raw
 
-    prompt = _build_confirm_prompt(targets)
     try:
-        raw = analyze_raw(prompt, model_cfg)
+        raw = analyze_raw(_build_confirm_prompt(targets), model_cfg)
     except LlmError:
         return issues
     parsed = _parse_decisions(raw)
     if parsed is None:
         return issues
-
-    out = list(issues)
-    by_index = {d.index: d for d in parsed.decisions}
-    for idx, issue in targets:
-        decision = by_index.get(idx)
-        if decision is None:
-            continue
-        action = (decision.action or "").strip().lower()
-        if action != "demote":
-            continue
-        if decision.severity:
-            try:
-                new_sev = Severity(decision.severity.strip().upper())
-            except ValueError:
-                out[idx] = _demote_one(issue, _LLM_UNCONFIRMED)
-                continue
-            order = [Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL]
-            if order.index(new_sev) >= order.index(issue.severity):
-                # Refuse upgrades / same severity
-                out[idx] = _demote_one(issue, _LLM_UNCONFIRMED)
-            else:
-                explanation = issue.explanation
-                if _LLM_UNCONFIRMED not in explanation:
-                    explanation = f"{_LLM_UNCONFIRMED} {explanation}"
-                out[idx] = issue.model_copy(
-                    update={"severity": new_sev, "explanation": explanation}
-                )
-        else:
-            out[idx] = _demote_one(issue, _LLM_UNCONFIRMED)
-    return out
+    return _apply_demotions(issues, targets, parsed)

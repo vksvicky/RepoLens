@@ -228,7 +228,7 @@ def test_scanners_only_pipeline(tmp_path: Path) -> None:
     )
     fake_issue_run = ScannerRun(tool="gitleaks", status="ran", findingCount=0)
     with patch(
-        "repolens.pipeline.run.run_scanners",
+        "repolens.pipeline.run_collect.run_scanners",
         return_value=([fake_issue_run], [], []),
     ):
         result = run_review(
@@ -254,7 +254,7 @@ def test_require_scanners_raises(tmp_path: Path) -> None:
     )
     with (
         patch(
-            "repolens.pipeline.run.run_scanners",
+            "repolens.pipeline.run_collect.run_scanners",
             return_value=(
                 [ScannerRun(tool="gitleaks", status="skipped", detail="missing")],
                 [],
