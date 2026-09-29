@@ -318,18 +318,9 @@ def _markdown_scanners(report: FindingReport) -> list[str]:
 
 
 def _markdown_plan(report: FindingReport) -> list[str]:
-    lines = ["## Plan to fix", ""]
-    immediate = [i for i in report.issues if i.fixTiming == "immediately"]
-    if not immediate:
-        lines.extend(["_No immediate-priority findings._", ""])
-        return lines
-    for issue in immediate:
-        lines.append(
-            f"1. **{issue.title}** (`{issue.file}:{issue.line}`) — "
-            f"{issue.recommendedFix}"
-        )
-    lines.append("")
-    return lines
+    from repolens.report_sections import plan_to_fix_lines
+
+    return ["## Plan to fix", "", *plan_to_fix_lines(report)]
 
 
 def _markdown_scores(report: FindingReport) -> list[str]:
