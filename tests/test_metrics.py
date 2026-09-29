@@ -354,8 +354,8 @@ def test_low_audit_notes_name_misses_and_highs() -> None:
     )
     text = "\n".join(low_audit_explanations(report))
     assert "Security audit" not in text
-    assert "Reliability audit 55%" in text
-    assert "4 High findings" in text
+    assert "Reliability audit 55%: 2 High findings" in text
+    assert "memory in find_near_clones" in text.split("Architecture audit", 1)[0]
     assert "(−" not in text
     assert "mega-file" not in text
     assert "Architecture audit 35%" in text
@@ -402,3 +402,44 @@ def test_low_audit_notes_stay_empty_when_scores_are_high() -> None:
     )
     assert low_audit_explanations(report) == []
     assert low_audit_brief(report) == []
+
+
+def test_band_sentence_matches_the_summary_and_skips_model_prose() -> None:
+    def high(category: str, title: str, source: str, priority: str = "P1") -> Issue:
+        return Issue(
+            severity=Severity.HIGH,
+            priority=priority,  # type: ignore[arg-type]
+            category=category,
+            file="a.py",
+            line=1,
+            title=title,
+            explanation="detail",
+            impact="open",
+            recommendedFix="fix it",
+            codeExample="x = 1\n",
+            source=source,  # type: ignore[arg-type]
+        )
+
+    complexity = high(
+        "quality.complexity",
+        "High complexity: `_render_issue`",
+        "heuristic",
+    )
+    vuln = high("osv", "RUSTSEC-2026-0190 in anyhow", "scanner")
+    prose = high("sec.injection", "Model invented a hole", "llm")
+    report = FindingReport(
+        confidence=50,
+        summary=Summary(high=2),
+        securityAuditConfidence=50,
+        reliabilityAuditConfidence=95,
+        architectureAuditConfidence=50,
+        issues=[complexity, vuln, prose],
+        coverage=CoverageBlock(),
+    )
+    text = "\n".join(low_audit_explanations(report))
+    security = text.split("Architecture audit", 1)[0]
+    assert "1 High finding" in security
+    assert "RUSTSEC-2026-0190 in anyhow" in security
+    assert "_render_issue" not in security
+    assert "Model invented a hole" not in text
+    assert "_render_issue" in text.split("Architecture audit", 1)[1]
