@@ -7,6 +7,7 @@ from pathlib import Path
 from repolens.coverage import (
     coverage_ids_for_pass,
     evaluate_coverage,
+    explain_answered,
     explain_missed_id,
     load_coverage_matrix,
     parse_coverage_notes,
@@ -174,3 +175,45 @@ def test_checklist_prompt_shows_the_line_shape_without_a_sample_fact() -> None:
     assert "Terraform" not in closure
     assert "not reviewed" in tail
     assert "not reviewed" in closure
+
+
+def test_checklist_link_requires_the_theme_or_the_full_id() -> None:
+    numpy_path = (
+        "Mega-file: .venv-iconfix/lib/python3.14/site-packages/"
+        "numpy/testing/_private/utils.py has 2830 lines"
+    )
+    dedup_path = (
+        "Deep nesting: .venv-ml-ci/lib/python3.14/site-packages/"
+        "coremltools/converters/mil/mil/passes/defs/cleanup/"
+        "const_deduplication.py has 13 deeply indented lines"
+    )
+    noise = [
+        _issue("heuristic.mega_file", numpy_path),
+        _issue("heuristic.deep_nesting", dedup_path),
+    ]
+    result = evaluate_coverage(["arch.testing", "arch.duplication"], noise, [])
+    assert result.covered == []
+    assert result.missed == ["arch.testing", "arch.duplication"]
+
+    real = _issue("testing.missing_tests", "No tests cover the parser")
+    linked = evaluate_coverage(["arch.testing"], [real], [])
+    assert linked.covered == ["arch.testing"]
+    assert "No tests cover the parser" in explain_answered("arch.testing", [real])
+
+    named = _issue("heuristic.mega_file", "Big file", explanation="see arch.testing")
+    by_id = evaluate_coverage(["arch.testing"], [named], [])
+    assert by_id.covered == ["arch.testing"]
+
+
+def _issue(category: str, title: str, explanation: str = "") -> Issue:
+    return Issue(
+        severity=Severity.MEDIUM,
+        priority="P2",
+        category=category,
+        file="a.py",
+        line=1,
+        title=title,
+        explanation=explanation,
+        impact="x",
+        recommendedFix="y",
+    )
