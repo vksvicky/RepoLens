@@ -6,8 +6,9 @@ Formulas (Phase 5.1; tune via config later if needed):
 - Per invalid/lazy N/A remapped in band: −3 (cap −30)
 - Scanners all ``ran``: +5 on security band only (cap 100)
 - **Open Critical/High findings** in that band further reduce band confidence
-  (security: P1 or ``sec.*`` / scanner cats; reliability: P2 or ``rel.*``;
-  architecture: P3 or ``arch.*`` / ``heuristic.*``)
+  (security: ``sec.*`` or a scanner category; reliability: ``rel.*``;
+  architecture: ``arch.*`` or ``heuristic.*``). Priority alone does not
+  choose the band. Model prose is excluded.
 - ``gate_confidence`` = min(**ran** pass confidences + **scored** band confidences)
   − global missed penalty (−4/id, cap −40)
   − global invalid-N/A penalty (−3/id, cap −30)
@@ -17,7 +18,7 @@ band score nor a floor for the gate. Unscored bands are ``None`` (N/A), not 0%.
 
 **Security audit confidence is not “% secure”** and is not a CleanVibes-style
 posture score. It combines checklist honesty with a penalty for open Critical/High
-security findings so 100% is impossible while High/Critical P1/`sec.*` issues remain.
+security findings so 100% is impossible while High/Critical `sec.*` or scanner issues remain.
 """
 
 from __future__ import annotations
@@ -60,27 +61,28 @@ def _band_ids(ids: list[str], prefix: str) -> list[str]:
     return [i for i in ids if i.startswith(prefix)]
 
 
+def _theme_id(issue: Issue) -> str:
+    from repolens.themes import theme_id_for_category
+
+    mapped = theme_id_for_category(issue.category or "")
+    return (mapped or issue.category or "").lower()
+
+
 def _is_security_issue(issue: Issue) -> bool:
+    theme = _theme_id(issue)
+    if theme.startswith("sec.") or theme.startswith("security"):
+        return True
     cat = (issue.category or "").lower()
-    if issue.priority == "P1":
-        return True
-    if cat.startswith("sec.") or cat.startswith("security"):
-        return True
-    return any(m in cat for m in _SCANNER_CAT_MARKERS)
+    return any(marker in cat for marker in _SCANNER_CAT_MARKERS)
 
 
 def _is_reliability_issue(issue: Issue) -> bool:
-    cat = (issue.category or "").lower()
-    return issue.priority == "P2" or cat.startswith("rel.")
+    return _theme_id(issue).startswith("rel.")
 
 
 def _is_architecture_issue(issue: Issue) -> bool:
-    cat = (issue.category or "").lower()
-    return (
-        issue.priority == "P3"
-        or cat.startswith("arch.")
-        or cat.startswith("heuristic.")
-    )
+    theme = _theme_id(issue)
+    return theme.startswith("arch.") or theme.startswith("heuristic.")
 
 
 def severity_finding_penalty(issues: Iterable[Issue], *, band: str) -> int:
@@ -225,7 +227,7 @@ def _titles(issues: Iterable[Issue], pred, severity: Severity) -> list[str]:
     return [
         issue.title
         for issue in issues
-        if pred(issue) and issue.severity == severity
+        if issue.source != "llm" and pred(issue) and issue.severity == severity
     ]
 
 
