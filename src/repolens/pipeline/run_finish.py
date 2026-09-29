@@ -166,7 +166,8 @@ def _write_finished_report(state: ReviewRun) -> ReviewResult:
 
     from datetime import datetime
 
-    state.report_when = datetime.now(UTC)
+    if state.report_when is None:
+        state.report_when = datetime.now(UTC)
     state.prog.phase(f"Writing report → {state.out}")
     state.md = (
         write_markdown_report(state.report, state.out, mode=state.mode, when=state.report_when)
@@ -209,4 +210,5 @@ def _write_finished_report(state: ReviewRun) -> ReviewResult:
         files_scanned=state.fast_brain_file_count,
         dry_run=False,
         sarif_path=sarif_path,
+        aborted=bool(state.aborted),
     )

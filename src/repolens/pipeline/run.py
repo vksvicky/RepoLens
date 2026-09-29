@@ -127,6 +127,10 @@ def _invoke_llm(state: ReviewRun) -> None:
 def _invoke_llm_body(state: ReviewRun) -> None:
     try:
         if state.use_deep:
+            from datetime import UTC, datetime
+
+            if state.report_when is None:
+                state.report_when = datetime.now(UTC)
             # Per-pass waiting lives inside _analyze_deep_passes.
             state.report = _analyze_deep_passes(
                 root=state.root,
@@ -140,6 +144,9 @@ def _invoke_llm_body(state: ReviewRun) -> None:
                 scanner_runs=state.scanner_runs,
                 scanner_issues=list(state.scanner_issues),
                 heur_result=state.heur_result,
+                out_dir=state.out,
+                fmt=state.fmt,
+                report_when=state.report_when,
             )
         else:
             gen = LlmGenerateProgress()
