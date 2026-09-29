@@ -161,7 +161,8 @@ def test_unanswered_questions_say_what_to_do() -> None:
     )
     assert "Production readiness scores" in timed_out
     assert "architecture pass timed out" in timed_out
-    assert "skip_paths" in timed_out
+    assert "Finished passes are kept" in timed_out
+    assert "longer --timeout" not in timed_out
     assert "P1, P2, and P3" in timed_out
 
 
@@ -175,6 +176,17 @@ def test_checklist_prompt_shows_the_line_shape_without_a_sample_fact() -> None:
     assert "Terraform" not in closure
     assert "not reviewed" in tail
     assert "not reviewed" in closure
+
+
+def test_timed_out_question_does_not_ask_for_a_longer_timeout() -> None:
+    text = explain_missed_id(
+        "arch.kiss",
+        ["llm.schema_invalid (pass: p3): LLM timed out after 7200s talking to qwen"],
+    )
+    assert "longer --timeout" not in text
+    assert "14400" not in text
+    assert "architecture pass timed out" in text
+    assert "Finished passes are kept" in text
 
 
 def test_checklist_link_requires_the_theme_or_the_full_id() -> None:

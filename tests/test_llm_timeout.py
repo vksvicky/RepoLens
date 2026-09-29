@@ -24,6 +24,18 @@ def test_resolve_llm_timeout_defaults() -> None:
     assert resolve_llm_timeout(ModelConfig(provider="ollama", timeout_seconds=60)) == 60.0
 
 
+def test_timeout_error_does_not_tell_the_user_to_double_the_wait() -> None:
+    from repolens.llm.errors import _timeout_error
+    from repolens.llm.sse import timeout_message
+
+    wall = str(_timeout_error(7200, "qwen2.5-coder:32b", "ollama"))
+    silence = timeout_message("LLM", 7200)
+    for text in (wall, silence):
+        assert "14400" not in text
+        assert "first token" in text
+        assert "Finished passes are kept" in text
+
+
 def test_analyze_timeout_message(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("REPOLENS_LOCK_DIR", str(tmp_path / "locks"))
     cfg = ModelConfig(provider="ollama", model="qwen2.5:7b", timeout_seconds=12)

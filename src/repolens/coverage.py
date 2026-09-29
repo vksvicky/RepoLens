@@ -252,9 +252,8 @@ def explain_missed_id(cid: str, gaps: Iterable[str]) -> str:
     band = _timed_out_band(cid, gaps)
     if band is not None:
         return (
-            f"{label}. The {band} pass timed out before this question was answered. "
-            "Re-run with a longer --timeout, or add generated trees under "
-            "[deep] skip_paths, so the review can finish it. "
+            f"{label}. The {band} pass timed out before the first token. "
+            "Finished passes are kept. Re-run when the local model is free. "
             f"{_FIX_POINTER}"
         )
     related = [gap.strip() for gap in gaps if cid in gap]
