@@ -15,6 +15,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from repolens.config import ModelConfig
+from repolens.llm.local_queue import _pid_alive
 
 
 @dataclass
@@ -120,16 +121,6 @@ def format_wait_message(meta: dict[str, Any], *, clock: str | None = None) -> st
         "[Slow Brain] Waiting for local model "
         f"(held by {repo} for {pass_name} since {shown})..."
     )
-
-
-def _pid_alive(pid: int) -> bool:
-    if pid <= 0:
-        return False
-    try:
-        os.kill(pid, 0)
-    except OSError:
-        return False
-    return True
 
 
 class OllamaModelLock:
