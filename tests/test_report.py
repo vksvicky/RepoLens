@@ -444,3 +444,23 @@ def test_markdown_report_does_not_nest_code_fences(tmp_path: Path) -> None:
     assert "```\n```swift" not in text
     assert "```\n```\n" not in text
     assert "func f()" in text
+
+
+def test_floored_pass_labels_na_as_the_models_claim() -> None:
+    report = FindingReport(
+        confidence=75,
+        summary=Summary(),
+        coverage=CoverageBlock(
+            na={"sec.injection": "The repository does not contain any code."},
+        ),
+        durabilityGaps=["metrics.vacuous_pass_confidence_floored:p1=75"],
+    )
+    text = render_markdown(report, mode="review", commit_go="n/a", push_go="n/a")
+    assert "### Model said these do not apply" in text
+    assert "The confidence floor did not accept these lines as facts" in text
+    assert "The repository does not contain any code." in text
+
+    plain = report.model_copy(update={"durabilityGaps": []})
+    plain_text = render_markdown(plain, mode="review", commit_go="n/a", push_go="n/a")
+    assert "### Does not apply" in plain_text
+    assert "### Model said these do not apply" not in plain_text

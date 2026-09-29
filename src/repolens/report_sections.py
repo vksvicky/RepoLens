@@ -334,8 +334,21 @@ def _render_coverage_section(report: FindingReport) -> list[str]:
             lines.append(f"- {explain_answered(cid, report.issues)}")
         lines.append("")
     if na:
-        lines.append("### Does not apply")
-        lines.append("")
+        floored = any(
+            gap.startswith("metrics.vacuous_pass_confidence_floored:")
+            for gap in report.durabilityGaps
+        )
+        if floored:
+            lines.append("### Model said these do not apply")
+            lines.append("")
+            lines.append(
+                "The confidence floor did not accept these lines as facts "
+                "from the repository."
+            )
+            lines.append("")
+        else:
+            lines.append("### Does not apply")
+            lines.append("")
         for cid, reason in na.items():
             title = checklist_title(cid)
             label = cid if title == cid else f"{title} ({cid})"
