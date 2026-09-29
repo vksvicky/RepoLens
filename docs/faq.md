@@ -188,7 +188,7 @@ On each review RepoLens can maintain `.repolens/repolens.sqlite` (local): file f
 | `repolens adaptive status --path .` | Fingerprints, pending diff, recommended timeout |
 | `[adaptive] enabled = false` | Disable fingerprint cache / pack selection |
 
-**Timeout resolution order:** CLI `--timeout` → `REPOLENS_TIMEOUT` → explicit `[model].timeout_seconds` → `meta.recommended_timeout_seconds` (from prior runs) → provider default (Ollama 900s, cloud 120s). Timeout is a **wall-clock** limit for the LLM stream (not only idle-between-chunks).
+**Timeout resolution order:** CLI `--timeout` → `REPOLENS_TIMEOUT` → explicit `[model].timeout_seconds` → `meta.recommended_timeout_seconds` (from prior runs) → provider default (Ollama 900s, cloud 120s). `--timeout` is how long to wait for the **first token**. After that, the stream ends only when it goes silent (`[model] silence_timeout_seconds`, default 300). A review that keeps receiving tokens is allowed to finish. Reviews that share one local model take turns one pass at a time. Cloud keys are not queued.
 
 **Important:** with `adaptive.mode=auto`, if fingerprints show **no added/changed files**, RepoLens still takes a **full LLM pack** (avoids under-reviewing). That is why a “warm” PatternSorcerer run can still be ~1h on a local 32B. For a true smoke:
 
@@ -300,21 +300,21 @@ Post-parse **FP calibrations** (default on) demote patterns such as list-form `s
 | **Critical / High / Medium / Low** | Finding severity counts after the same advisory is merged into one issue | A separate “Unique Critical/High” total. Critical + High is not shown again |
 | **Duplicates merged** | Shown only when OSV, Trivy, or the model cited the same advisory more than once, e.g. `4 tool rows → 2 Critical/High` | Another severity, or a count of open issues |
 | **Why a score is low** | For a band or the gate under 70%: the missed checklist ids and the Critical/High findings that were subtracted | Medium/Low findings, or a “% well architected” grade |
-| **Coverage** covered / N/A / missed | Checklist accountability for deep-mode rule ids | “N/A = ignored forever” — lazy N/A are rejected in 5.1 |
-| **Theme breakdown** | Per-theme covered / N/A / missed + finding counts | “% clean” per theme |
+| **Checklist** answered / does not apply / not answered | Each security, reliability, and architecture question, and what to do next | Treating an unanswered question as a defect in the code |
+| **Theme breakdown** | The same three results per product theme, plus finding counts | “% clean” per theme |
 | **Duration** | Wall-clock for the whole command | Per-pass LLM time alone |
 
-### Coverage: covered vs N/A vs missed
+### Checklist: answered, does not apply, not answered
 
-Deep mode asks the model (plus heuristics) to account for each checklist id in the rules registry (`sec.*`, `rel.*`, `arch.*`, …). Progress lines like `Coverage: 11 covered · 9 N/A · 2 missed` mean:
+Deep mode asks the model (plus heuristics) to close each question (`sec.*`, `rel.*`, `arch.*`). The Markdown section **Checklist** uses three results:
 
-| Status | Meaning | Example from a CLI-tool dogfood |
-|--------|---------|----------------------------------|
-| **Covered** | The id was addressed (issue filed and/or explicit coverage note) | `sec.injection`, `arch.structure_size` |
-| **N/A** | Honestly out of scope for *this* codebase, with a reason | `sec.xss_csrf` — no web request/response surface |
-| **Missed** | In scope for the pass, but neither covered nor a valid N/A. Deep mode asks once more, without re-sending the source pack, then leaves any id that is still unanswered as missed | `arch.consistency_style`, `arch.blast_radius` |
+| Result | Meaning | What you do |
+|--------|---------|-------------|
+| **Answered** | A finding covers the question | Open that finding and apply its recommended fix |
+| **Does not apply** | A fact from this repository closes the question | Nothing. The score stays up |
+| **Not answered** | No finding and no fact. The review asks once more, then leaves the question open | Follow the step on that question. A timed-out pass needs a longer `--timeout` or `[deep] skip_paths` |
 
-N/A is **good** when true (don’t invent web XSS findings for a pure CLI). Missed **lowers** gate / band confidence. Full lists appear under **## Coverage** in the Markdown report (and Theme breakdown maps the same ideas to product themes).
+One unanswered question lowers its band by 4 points. Findings under P1, P2, and P3 are the changes that make the product more secure and stable. The model still writes `coverage:<id>: N/A — <fact>` for “does not apply.” “Not reviewed” leaves the question open.
 
 ### Declarative coverage seeds (`[coverage]`)
 
@@ -401,7 +401,7 @@ Deep reports include a **Theme breakdown** section:
 
 Heuristics (mega-files, sibling duplication, gitignore/secrets, CI gaps, …) map into theme finding counts. Deprecated ids such as `sec.secrets` / `sec.deps_config` alias to the new theme ids so older N/A notes still resolve. Themes are **not** a substitute for Semgrep/OSV/gitleaks/CodeQL.
 
-Design: [phase-5.2-theme-coverage-and-report-breakdown.md](./design/phase-5.2-theme-coverage-and-report-breakdown.md) · [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md). Config: `[deep]` (`enabled`, `chars_per_pass`, `mega_file_lines`, `mega_file_exclude_globs`).
+Design: [phase-5.2-theme-coverage-and-report-breakdown.md](./design/phase-5.2-theme-coverage-and-report-breakdown.md) · [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md). Config: `[deep]` (`enabled`, `chars_per_pass`, `mega_file_lines`, `mega_file_exclude_globs`, `skip_paths`). `skip_paths` adds trees on top of the defaults (`bin/`, `gen/`, `test_output/`, `out/`, `*.mcgen`).
 
 **Rules** load by **id** from a registry (project `.repolens/rules/` → user config → packaged defaults)—not hard-coded Markdown paths on the author’s machine. Override a rule with `.repolens/rules/<id>.md`.
 
