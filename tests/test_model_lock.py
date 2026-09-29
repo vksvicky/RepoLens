@@ -9,6 +9,7 @@ import os
 import subprocess
 import sys
 import textwrap
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -180,6 +181,7 @@ def test_unexpected_flock_error_closes_the_descriptor(tmp_path: Path, monkeypatc
 
 def test_second_process_waits_and_names_the_holder(tmp_path: Path) -> None:
     proc = _hold_lock(tmp_path, seconds=0.8)
+    threading.Thread(target=proc.wait, daemon=True).start()
     notes: list[str] = []
     try:
         _wait_for_holder(tmp_path)
@@ -192,9 +194,14 @@ def test_second_process_waits_and_names_the_holder(tmp_path: Path) -> None:
 
 def test_dead_holder_metadata_does_not_announce(tmp_path: Path) -> None:
     proc = _hold_lock(tmp_path, seconds=0.8)
+    threading.Thread(target=proc.wait, daemon=True).start()
     notes: list[str] = []
     try:
         _wait_for_holder(tmp_path)
+        for ticket in (tmp_path / "queue_127_0_0_1_11434").glob("*.json"):
+            meta = json.loads(ticket.read_text(encoding="utf-8"))
+            meta["pid"] = 2**30
+            ticket.write_text(json.dumps(meta), encoding="utf-8")
         (tmp_path / "local_127_0_0_1_11434.lock").write_text(
             json.dumps({"repo": "Ghost", "pass": "P1", "pid": 2**30, "started_at": 0}),
             encoding="utf-8",
@@ -204,6 +211,73 @@ def test_dead_holder_metadata_does_not_announce(tmp_path: Path) -> None:
     finally:
         proc.wait(timeout=5)
         assert proc.returncode == 0
+
+
+def test_second_enter_while_held_does_not_take_another_ticket(tmp_path: Path) -> None:
+    from repolens.llm.model_lock import hold_local_endpoint
+
+    lock = _lock(tmp_path, poll_seconds=0.05)
+    sleeps: list[float] = []
+    lock.sleeper = sleeps.append
+    with lock:
+        with hold_local_endpoint(lock.lock_file.name):
+            again = _lock(tmp_path, poll_seconds=0.05)
+            again.sleeper = sleeps.append
+            with again:
+                pass
+    assert (lock.queue_dir / "seq").read_text(encoding="utf-8").strip() == "1"
+    assert sleeps == []
+
+
+def test_a_new_ticket_waits_behind_an_older_one(tmp_path: Path) -> None:
+    code = textwrap.dedent(
+        f"""
+        import time
+        from pathlib import Path
+        from repolens.llm.local_queue import take_ticket
+        root = Path({str(tmp_path)!r})
+        take_ticket(root / "queue_127_0_0_1_11434", {{
+            "repo": "LogViewer",
+            "pass": "P2",
+            "pid": __import__("os").getpid(),
+            "started_at": 0,
+        }})
+        time.sleep(1.5)
+        """
+    )
+    proc = subprocess.Popen([sys.executable, "-c", code])
+    # Reap the child while we wait. A zombie still answers kill(pid, 0),
+    # so the ticket would look alive until wait().
+    threading.Thread(target=proc.wait, daemon=True).start()
+    notes: list[str] = []
+    try:
+        for _ in range(50):
+            queue = tmp_path / "queue_127_0_0_1_11434"
+            if queue.is_dir() and any(queue.glob("*.json")):
+                break
+            time.sleep(0.02)
+        lock = _lock(tmp_path, status=notes.append, poll_seconds=0.05)
+        lock.jitter = lambda: 0.0
+        with lock:
+            assert any("LogViewer" in note for note in notes)
+    finally:
+        proc.wait(timeout=5)
+
+
+def test_cloud_analyze_creates_no_lock_files(tmp_path: Path, monkeypatch) -> None:
+    from unittest.mock import MagicMock
+
+    from repolens.llm import analyze_raw
+
+    monkeypatch.setenv("REPOLENS_LOCK_DIR", str(tmp_path / "locks"))
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    client = MagicMock()
+    cfg = ModelConfig(provider="openai", model="gpt-4.1-mini", api_key_env="OPENAI_API_KEY")
+    try:
+        analyze_raw("prompt", cfg, client=client)
+    except Exception:
+        pass
+    assert not (tmp_path / "locks").exists()
 
 
 def _lock(

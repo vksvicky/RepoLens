@@ -42,6 +42,54 @@ def analyze_structured(
     raw_dir: Path | None = None,
     on_delta: Callable[[str], None] | None = None,
 ) -> StructuredLlmResult:
+    from repolens.llm.model_lock import (
+        OllamaModelLock,
+        current_lock_context,
+        hold_local_endpoint,
+        should_use_model_lock,
+    )
+    from repolens.providers import default_base_url_for
+
+    if not should_use_model_lock(model_cfg):
+        return _analyze_structured_body(
+            prompt,
+            model_cfg,
+            pass_id=pass_id,
+            progress=progress,
+            raw_dir=raw_dir,
+            on_delta=on_delta,
+        )
+    ctx = current_lock_context()
+    base = model_cfg.base_url or default_base_url_for(model_cfg.provider)
+    lock = OllamaModelLock(
+        repo=ctx.repo,
+        path=ctx.path,
+        pass_name=ctx.pass_name,
+        model=model_cfg.model or "",
+        base_url=base or "",
+        provider=model_cfg.provider,
+        status=ctx.status,
+    )
+    with lock, hold_local_endpoint(lock.lock_file.name):
+        return _analyze_structured_body(
+            prompt,
+            model_cfg,
+            pass_id=pass_id,
+            progress=progress,
+            raw_dir=raw_dir,
+            on_delta=on_delta,
+        )
+
+
+def _analyze_structured_body(
+    prompt: str,
+    model_cfg: ModelConfig,
+    *,
+    pass_id: str,
+    progress: ReviewProgress | None = None,
+    raw_dir: Path | None = None,
+    on_delta: Callable[[str], None] | None = None,
+) -> StructuredLlmResult:
     prog = progress or null_progress()
     save_root = raw_dir if raw_dir is not None else Path(".repolens")
 
