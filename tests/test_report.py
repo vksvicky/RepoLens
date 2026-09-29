@@ -21,6 +21,8 @@ from repolens.report import (
     write_markdown_report,
 )
 from repolens.schema import (
+    ComplexityBlock,
+    ComplexityHotspot,
     CoverageBlock,
     FindingReport,
     Issue,
@@ -464,3 +466,36 @@ def test_floored_pass_labels_na_as_the_models_claim() -> None:
     plain_text = render_markdown(plain, mode="review", commit_go="n/a", push_go="n/a")
     assert "### Does not apply" in plain_text
     assert "### Model said these do not apply" not in plain_text
+
+
+def test_plan_to_fix_names_high_complexity_when_nothing_is_immediate() -> None:
+    report = FindingReport(
+        confidence=95,
+        summary=Summary(),
+        complexity=ComplexityBlock(
+            functionsAnalysed=10,
+            issueCount=2,
+            hotspots=[
+                ComplexityHotspot(
+                    file="src/repolens/report.py",
+                    function="_render_issue",
+                    line=429,
+                    cyclomatic=21,
+                    cognitive=23,
+                ),
+                ComplexityHotspot(
+                    file="src/repolens/cli/app.py",
+                    function="init_cmd",
+                    line=85,
+                    cyclomatic=11,
+                    cognitive=8,
+                ),
+            ],
+        ),
+    )
+    text = render_markdown(report, mode="review", commit_go="n/a", push_go="n/a")
+    plan = text.split("## Plan to fix", 1)[1].split("##", 1)[0]
+    assert "_render_issue" in plan
+    assert "src/repolens/report.py:429" in plan
+    assert "init_cmd" not in plan
+    assert "_No immediate-priority findings._" not in plan

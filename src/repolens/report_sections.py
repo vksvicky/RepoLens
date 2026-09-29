@@ -357,6 +357,42 @@ def _render_coverage_section(report: FindingReport) -> list[str]:
     return lines
 
 
+def plan_to_fix_lines(report: FindingReport) -> list[str]:
+    from repolens.complexity.thresholds import COGNITIVE_MEDIUM_MAX, CYCLO_MEDIUM_MAX
+
+    lines: list[str] = []
+    immediate = [issue for issue in report.issues if issue.fixTiming == "immediately"]
+    for issue in immediate:
+        lines.append(
+            f"1. **{issue.title}** (`{issue.file}:{issue.line}`) — "
+            f"{issue.recommendedFix}"
+        )
+    if immediate:
+        lines.append("")
+    block = report.complexity
+    hot = []
+    if block is not None:
+        hot = [
+            row
+            for row in block.hotspots
+            if row.cyclomatic > CYCLO_MEDIUM_MAX or row.cognitive > COGNITIVE_MEDIUM_MAX
+        ]
+    if hot:
+        lines.append("Complexity to simplify:")
+        lines.append("")
+        for row in hot:
+            lines.append(
+                f"1. `{row.function}` (`{row.file}:{row.line}`) — "
+                f"cyclomatic {row.cyclomatic}, cognitive {row.cognitive}. "
+                "Extract helpers or replace deep conditionals with early returns, "
+                "then re-measure."
+            )
+        lines.append("")
+    elif not immediate:
+        lines.extend(["_No immediate-priority findings._", ""])
+    return lines
+
+
 def _checklist_status(theme: ThemeEntry) -> str:
     return _STATUS_LABEL.get(theme.status, theme.status)
 
