@@ -7,7 +7,8 @@ import fcntl
 import json
 import os
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,7 +16,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from repolens.config import ModelConfig
-from repolens.llm.local_queue import _pid_alive
+from repolens.llm.local_queue import _pid_alive, head_ticket, poll_delay, take_ticket
 
 
 @dataclass
@@ -30,6 +31,19 @@ _lock_context: ContextVar[LockContext | None] = ContextVar(
     "repolens_ollama_lock",
     default=None,
 )
+_held_endpoints: ContextVar[frozenset[str]] = ContextVar(
+    "repolens_local_endpoint_held",
+    default=frozenset(),
+)
+
+
+@contextmanager
+def hold_local_endpoint(key: str) -> Iterator[None]:
+    token = _held_endpoints.set(_held_endpoints.get() | {key})
+    try:
+        yield
+    finally:
+        _held_endpoints.reset(token)
 
 
 def bind_lock_context(
@@ -113,6 +127,14 @@ def should_use_model_lock(
     return is_local_host(parsed.hostname or "")
 
 
+def _read_json(path: Path) -> dict[str, Any] | None:
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return raw if isinstance(raw, dict) else None
+
+
 def format_wait_message(meta: dict[str, Any], *, clock: str | None = None) -> str:
     shown = clock or time.strftime("%H:%M", time.localtime(float(meta["started_at"])))
     repo = meta.get("repo") or "another review"
@@ -138,6 +160,8 @@ class OllamaModelLock:
         lock_dir: Path | None = None,
         poll_seconds: float = 2.0,
         status: Callable[[str], None] | None = None,
+        sleeper: Callable[[float], None] | None = None,
+        jitter: Callable[[], float] | None = None,
     ) -> None:
         self.repo = repo
         self.path = path
@@ -148,11 +172,53 @@ class OllamaModelLock:
         self.lock_dir = lock_dir or default_lock_dir()
         self.poll_seconds = poll_seconds
         self.status = status
+        self.sleeper = sleeper or time.sleep
+        self.jitter = jitter
         self.lock_file = lock_path_for(base_url, self.lock_dir, provider=provider)
+        self.queue_dir = self.lock_dir / (
+            "queue_" + self.lock_file.stem.removeprefix("local_")
+        )
         self._fd: int | None = None
+        self._nested = False
+        self._ticket: Path | None = None
 
     def __enter__(self) -> OllamaModelLock:
+        if self.lock_file.name in _held_endpoints.get():
+            self._nested = True
+            return self
         self.lock_dir.mkdir(parents=True, exist_ok=True)
+        self._ticket = take_ticket(
+            self.queue_dir,
+            {
+                "repo": self.repo,
+                "path": self.path,
+                "pass": self.pass_name,
+                "model": self.model,
+                "pid": os.getpid(),
+                "started_at": time.time(),
+            },
+        )
+        try:
+            self._wait_for_turn()
+            self._acquire_flock()
+        except Exception:
+            self._ticket.unlink(missing_ok=True)
+            self._ticket = None
+            raise
+        return self
+
+    def _wait_for_turn(self) -> None:
+        while True:
+            head = head_ticket(self.queue_dir)
+            if head == self._ticket:
+                return
+            if head is not None and self.status is not None:
+                meta = _read_json(head)
+                if meta:
+                    self.status(format_wait_message(meta))
+            self.sleeper(poll_delay(self.poll_seconds, self.jitter))
+
+    def _acquire_flock(self) -> None:
         self._fd = os.open(self.lock_file, os.O_RDWR | os.O_CREAT, 0o644)
         while True:
             try:
@@ -167,18 +233,24 @@ class OllamaModelLock:
                     time.sleep(0.05)
                     continue
                 self._announce_holder()
-                time.sleep(self.poll_seconds)
+                self.sleeper(0.05)
         self._write_metadata()
-        return self
 
     def __exit__(self, *args: object) -> None:
-        if self._fd is None:
+        if self._nested:
             return
         try:
-            fcntl.flock(self._fd, fcntl.LOCK_UN)
+            if self._fd is None:
+                return
+            try:
+                fcntl.flock(self._fd, fcntl.LOCK_UN)
+            finally:
+                os.close(self._fd)
+                self._fd = None
         finally:
-            os.close(self._fd)
-            self._fd = None
+            if self._ticket is not None:
+                self._ticket.unlink(missing_ok=True)
+                self._ticket = None
 
     def _holder_is_dead(self) -> bool:
         meta = self._read_metadata()

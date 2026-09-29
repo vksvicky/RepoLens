@@ -43,7 +43,9 @@ def analyze(
 def _with_ollama_lock(model_cfg: ModelConfig, call: Callable[[], str]) -> str:
     from repolens.llm.model_lock import (
         OllamaModelLock,
+        _held_endpoints,
         current_lock_context,
+        hold_local_endpoint,
         should_use_model_lock,
     )
     from repolens.llm.setup import default_base_url
@@ -52,7 +54,7 @@ def _with_ollama_lock(model_cfg: ModelConfig, call: Callable[[], str]) -> str:
         return call()
     ctx = current_lock_context()
     base = model_cfg.base_url or default_base_url(model_cfg.provider)
-    with OllamaModelLock(
+    lock = OllamaModelLock(
         repo=ctx.repo,
         path=ctx.path,
         pass_name=ctx.pass_name,
@@ -60,7 +62,10 @@ def _with_ollama_lock(model_cfg: ModelConfig, call: Callable[[], str]) -> str:
         base_url=base,
         provider=model_cfg.provider,
         status=ctx.status,
-    ):
+    )
+    if lock.lock_file.name in _held_endpoints.get():
+        return call()
+    with lock, hold_local_endpoint(lock.lock_file.name):
         return call()
 
 
