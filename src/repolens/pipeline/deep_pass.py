@@ -99,6 +99,17 @@ def _run_deep_pass(
     attempts = int(getattr(result, "repair_attempts", 0) or 0)
     return report, result.raw_text or "", degraded, attempts
 
+def _merge_closure(report: FindingReport, extra: FindingReport) -> FindingReport:
+    from repolens.deep import is_unmeasured_model_claim
+
+    report.issues = list(report.issues) + [
+        issue for issue in extra.issues if not is_unmeasured_model_claim(issue)
+    ]
+    report.durabilityGaps = list(report.durabilityGaps) + list(extra.durabilityGaps)
+    report.summary = report.recount_summary()
+    return report
+
+
 def _apply_coverage_closure(
     report: FindingReport,
     missed: list[str],
@@ -111,10 +122,19 @@ def _apply_coverage_closure(
     if not missed:
         return report
     from repolens.llm_structured import analyze_structured
+    from repolens.pipeline.pass_cache import closure_key, load_pass, save_pass
+
+    model_name = cfg.model.model or default_model(cfg.model.provider)
+    cached = load_pass(raw_dir.parent, closure_key(missed, model_name))
+    if cached is not None:
+        prog.phase(
+            "[Slow Brain] Resumed Coverage closure from cache "
+            f"({len(cached.issues)} findings)"
+        )
+        return _merge_closure(report, cached)
 
     prog.phase(f"→ Coverage closure: {len(missed)} unanswered checklist id(s)…")
     provider = cfg.model.provider or "unknown"
-    model_name = cfg.model.model or default_model(cfg.model.provider)
     timeout = resolve_llm_timeout(cfg.model)
     gen = LlmGenerateProgress()
     with prog.waiting(
@@ -134,13 +154,6 @@ def _apply_coverage_closure(
     if result.report is None:
         prog.phase("Coverage closure returned no report; unanswered ids stay missed")
         return report
-    from repolens.deep import is_unmeasured_model_claim
-
-    report.issues = list(report.issues) + [
-        issue
-        for issue in result.report.issues
-        if not is_unmeasured_model_claim(issue)
-    ]
-    report.durabilityGaps = list(report.durabilityGaps) + list(result.report.durabilityGaps)
-    report.summary = report.recount_summary()
-    return report
+    if result.layer != "degraded":
+        save_pass(raw_dir.parent, closure_key(missed, model_name), result.report)
+    return _merge_closure(report, result.report)

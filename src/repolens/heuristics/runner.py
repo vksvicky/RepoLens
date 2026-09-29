@@ -12,7 +12,11 @@ from repolens.config import NearClonesConfig
 from repolens.heuristics.ci_gaps import find_ci_gaps
 from repolens.heuristics.deep_nesting import find_deep_nesting
 from repolens.heuristics.gitignore_secrets import find_gitignore_secret_gaps
-from repolens.heuristics.mega_files import DEFAULT_MEGA_FILE_EXCLUDES, find_mega_files
+from repolens.heuristics.mega_files import (
+    DEFAULT_MEGA_AND_SKIP_EXCLUDES,
+    find_mega_files,
+    is_mega_file_excluded,
+)
 from repolens.heuristics.near_clones import find_near_clones
 from repolens.heuristics.scripts_hygiene import find_script_credential_hygiene, find_todo_density
 from repolens.heuristics.siblings import find_sibling_pairs
@@ -135,30 +139,41 @@ def run_heuristics(
     hot_paths: list[str] = []
     workers = max(1, int(workers))
     excludes = (
-        mega_file_exclude_globs
-        if mega_file_exclude_globs is not None
-        else DEFAULT_MEGA_FILE_EXCLUDES
+        DEFAULT_MEGA_AND_SKIP_EXCLUDES
+        if not mega_file_exclude_globs
+        else tuple(
+            dict.fromkeys((*DEFAULT_MEGA_AND_SKIP_EXCLUDES, *mega_file_exclude_globs))
+        )
     )
 
+    reviewable = [
+        entry
+        for entry in entries
+        if not is_mega_file_excluded(entry.relative, excludes)
+    ]
     mega = partial(
         _mega_issues, mega_file_lines=mega_file_lines, excludes=excludes
     )
     _absorb(issues, hot_paths, _map_entry_issues(entries, mega, workers=workers))
-    _absorb(issues, hot_paths, find_sibling_pairs(entries))
+    _absorb(issues, hot_paths, find_sibling_pairs(reviewable))
     _absorb(
         issues,
         hot_paths,
-        _map_entry_issues(entries, find_deep_nesting, workers=workers),
+        _map_entry_issues(reviewable, find_deep_nesting, workers=workers),
     )
     clone_issues, clusters, occurrences, clone_notes = _near_clone_bundle(
-        entries, near_clones_config
+        reviewable, near_clones_config
     )
     _absorb(issues, hot_paths, clone_issues)
     issues.extend(find_gitignore_secret_gaps(root, entries))
     issues.extend(
-        _map_entry_issues(entries, find_script_credential_hygiene, workers=workers)
+        _map_entry_issues(
+            reviewable, find_script_credential_hygiene, workers=workers
+        )
     )
-    issues.extend(_map_entry_issues(entries, find_todo_density, workers=workers))
+    issues.extend(
+        _map_entry_issues(reviewable, find_todo_density, workers=workers)
+    )
     issues.extend(find_ci_gaps(root, entries))
     _absorb(issues, hot_paths, _pack_issues(root, entries, pack_ids))
     return HeuristicResult(

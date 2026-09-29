@@ -6,8 +6,19 @@ lazily so the package import does not cycle.
 
 from __future__ import annotations
 
-from repolens.coverage import explain_missed_id, parse_coverage_notes
-from repolens.schema import FindingReport, QualityScorecard
+from repolens.coverage import (
+    checklist_title,
+    explain_answered,
+    explain_missed_id,
+    parse_coverage_notes,
+)
+from repolens.schema import FindingReport, QualityScorecard, ThemeEntry
+
+_STATUS_LABEL = {
+    "covered": "Answered",
+    "na": "Does not apply",
+    "missed": "Not answered",
+}
 
 
 def _render_quality_scorecard_section(report: FindingReport) -> list[str]:
@@ -271,121 +282,6 @@ def _render_durability_gaps_section(report: FindingReport) -> list[str]:
     return lines
 
 
-def _render_metrics_section(report: FindingReport) -> list[str]:
-    """Glossary + band audit confidences (Phase 5.1) + Two-Lane counts (6.11)."""
-    from repolens.report import format_collapsed_duplicates
-    has_bands = (
-        report.securityAuditConfidence is not None
-        or report.architectureAuditConfidence is not None
-        or report.reliabilityAuditConfidence is not None
-    )
-    prov = report.provenance
-    has_fast_brain = prov is not None and prov.fastBrainFiles is not None
-    if not has_bands and not has_fast_brain:
-        return []
-    lines = [
-        "## Metrics",
-        "",
-        (
-            "**Gate** = adequacy of *this review package* (findings + checklist "
-            "coverage + scanners) for a go/no-go style decision — **not** "
-            "“% secure” or an architecture grade. Band audits score checklist "
-            "honesty per P1/`sec.*`, P2/`rel.*`, P3/`arch.*`. See FAQ: "
-            "*What do report metrics mean?*"
-        ),
-        "",
-        "| Metric | Value | Meaning |",
-        "|--------|-------|---------|",
-        (
-            f"| Gate confidence | {report.confidence}% | Lowest band, then a penalty "
-            "for each missed checklist id. [Why](#why-a-score-is-low) · "
-            "[Checklist](#coverage) |"
-        ),
-    ]
-    if prov is not None and prov.fastBrainFiles is not None:
-        lines.append(
-            f"| Fast Brain files | {prov.fastBrainFiles} | Inventory used for "
-            "whole-tree heuristics (Phase 6.11 Two-Lane) |"
-        )
-        if prov.llmPackFiles is not None:
-            lines.append(
-                f"| LLM pack files | {prov.llmPackFiles} | Files sent to the model "
-                "(0 if bypassed / scanners-only) |"
-            )
-        if prov.fastBrainSeconds is not None:
-            lines.append(
-                f"| Fast Brain seconds | {prov.fastBrainSeconds:.1f}s | Wall time "
-                "for whole-tree heuristics |"
-            )
-        if prov.llmSeconds is not None:
-            lines.append(
-                f"| Slow Brain seconds | {prov.llmSeconds:.1f}s | Wall time for "
-                "LLM / deep analysis |"
-            )
-    if report.securityAuditConfidence is not None:
-        lines.append(
-            f"| Security audit confidence | {report.securityAuditConfidence}% | "
-            "Security checklist plus Critical/High security findings. "
-            "[Why](#why-a-score-is-low) |"
-        )
-    if report.reliabilityAuditConfidence is not None:
-        lines.append(
-            f"| Reliability audit confidence | {report.reliabilityAuditConfidence}% | "
-            "Reliability checklist plus Critical/High reliability findings. "
-            "[Why](#why-a-score-is-low) |"
-        )
-    if report.architectureAuditConfidence is not None:
-        lines.append(
-            f"| Architecture audit confidence | {report.architectureAuditConfidence}% | "
-            "Architecture checklist plus Critical/High architecture findings. "
-            "[Why](#why-a-score-is-low) |"
-        )
-    collapsed = format_collapsed_duplicates(report)
-    if collapsed is not None:
-        lines.append(
-            f"| Duplicates merged | {collapsed} | Same advisory reported by "
-            "more than one scanner or the model, before those rows were combined |"
-        )
-    lines.append(
-        "| Severity counts | (above) | Finding tallies — independent of confidence % |"
-    )
-    if has_bands:
-        lines.extend(
-            [
-                "| Coverage | (below) | [Checklist](#coverage): covered, N/A, or missed |",
-                "",
-                "### How these % are calculated",
-                "",
-                "- **Gate** is the lowest band, then a penalty for missed checklist ids.",
-                "- **Security, reliability, and architecture** drop when that band has "
-                "a missed checklist id or a Critical/High finding.",
-                "- Medium and Low findings do not change these percentages.",
-                "- Each missed id is explained under [Coverage](#coverage).",
-                "- Full arithmetic: RepoLens `docs/faq.md` → *What do report metrics mean?*",
-                "",
-            ]
-        )
-        from repolens.metrics import low_audit_explanations
-
-        reasons = list(report.scoreNotes) or low_audit_explanations(report)
-        if reasons:
-            lines.extend(
-                [
-                    "### Why a score is low",
-                    "",
-                    "Shown when a band or the gate is under 70%. Medium and Low findings "
-                    "do not change these percentages. Each missed id is explained "
-                    "under [Coverage](#coverage).",
-                    "",
-                ]
-            )
-            lines.extend(f"- {reason}" for reason in reasons)
-            lines.append("")
-    else:
-        lines.append("")
-    return lines
-
-
 def _render_coverage_section(report: FindingReport) -> list[str]:
     """Render checklist coverage when deep-mode coverage or coverage gaps exist."""
     cov = report.coverage
@@ -407,41 +303,49 @@ def _render_coverage_section(report: FindingReport) -> list[str]:
     missed = list(cov.missed) if cov is not None else list(missed_from_gaps)
 
     lines: list[str] = [
-        "## Coverage",
+        "## Checklist",
         "",
         (
-            "Each checklist id is covered by a finding, marked N/A with a concrete fact, "
-            "or missed. A missed id lowers the gate. The line that counts is "
-            "`coverage:<id>: N/A — <what is actually true in this repo>`."
+            "These questions check security, reliability, and architecture. "
+            "An answered question points at a finding: apply its recommended fix. "
+            "A question that does not apply is closed by a fact from this repository. "
+            "A question that was not answered is unfinished review work: follow the "
+            "step on that question. One unanswered question lowers its band by 4 points."
         ),
         "",
         (
-            f"- **Covered:** {len(covered)} · **N/A:** {len(na)} · "
-            f"**Missed:** {len(missed)}"
+            f"- **Answered:** {len(covered)} · **Does not apply:** {len(na)} · "
+            f"**Not answered:** {len(missed)}"
         ),
         "",
     ]
-    if covered:
-        lines.append("### Covered")
-        lines.append("")
-        for cid in covered:
-            lines.append(f"- `{cid}`")
-        lines.append("")
-    if na:
-        lines.append("### N/A")
-        lines.append("")
-        for cid, reason in na.items():
-            lines.append(f"- `{cid}`: {reason}")
-        lines.append("")
     if missed:
-        lines.append("### Missed")
+        lines.append("### Not answered")
         lines.append("")
         stored = dict(cov.missedNotes) if cov is not None else {}
         for cid in missed:
             sentence = stored.get(cid) or explain_missed_id(cid, report.durabilityGaps)
             lines.append(f"- {sentence}")
         lines.append("")
+    if covered:
+        lines.append("### Answered")
+        lines.append("")
+        for cid in covered:
+            lines.append(f"- {explain_answered(cid, report.issues)}")
+        lines.append("")
+    if na:
+        lines.append("### Does not apply")
+        lines.append("")
+        for cid, reason in na.items():
+            title = checklist_title(cid)
+            label = cid if title == cid else f"{title} ({cid})"
+            lines.append(f"- {label}. {reason}")
+        lines.append("")
     return lines
+
+
+def _checklist_status(theme: ThemeEntry) -> str:
+    return _STATUS_LABEL.get(theme.status, theme.status)
 
 
 def _render_theme_breakdown(report: FindingReport) -> list[str]:
@@ -462,7 +366,7 @@ def _render_theme_breakdown(report: FindingReport) -> list[str]:
         for t in rows:
             notes = (t.notes or "").replace("|", "\\|")
             out.append(
-                f"| {t.title} | {t.status} | {t.findingCount} | {notes} |"
+                f"| {t.title} | {_checklist_status(t)} | {t.findingCount} | {notes} |"
             )
         out.append("")
         return out

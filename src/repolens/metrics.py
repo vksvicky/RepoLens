@@ -253,6 +253,21 @@ def _finding_clause(critical: int, high: int) -> str | None:
     return " and ".join(parts)
 
 
+_PASS_FOR_PREFIX = {"sec.": "p1", "rel.": "p2", "arch.": "p3"}
+
+
+def _pass_failure_note(report: FindingReport, prefix: str) -> str | None:
+    """A timed-out band did not answer the checklist. That is separate from one miss."""
+    band = _PASS_FOR_PREFIX.get(prefix)
+    if band is None:
+        return None
+    marker = f"(pass: {band})"
+    for gap in report.durabilityGaps:
+        if marker in gap and "timed out" in gap.lower():
+            return "the checklist pass timed out before it could answer"
+    return None
+
+
 def _band_sentence(
     label: str,
     score: int,
@@ -261,12 +276,14 @@ def _band_sentence(
     issues: list[Issue],
     pred,
     detail: bool,
+    pass_note: str | None = None,
 ) -> str:
     critical = _titles(issues, pred, Severity.CRITICAL)
     high = _titles(issues, pred, Severity.HIGH)
     clauses = [
         clause
         for clause in (
+            pass_note,
             _missed_clause(missed),
             _finding_clause(len(critical), len(high)),
         )
@@ -284,7 +301,7 @@ def _band_sentence(
         return sentence
     extras: list[str] = []
     if missed:
-        extras.append("Each missed id is explained under Coverage.")
+        extras.append("Each unanswered question is explained under Checklist.")
     named = critical + high
     if named:
         shown = "; ".join(named[:8])
@@ -352,6 +369,7 @@ def low_audit_explanations(report: FindingReport) -> list[str]:
                 issues=list(report.issues),
                 pred=_band_predicate(prefix),
                 detail=True,
+                pass_note=_pass_failure_note(report, prefix),
             )
         )
     gate = _gate_sentence(report, bands)
@@ -376,6 +394,7 @@ def low_audit_brief(report: FindingReport) -> list[str]:
                 issues=list(report.issues),
                 pred=_band_predicate(prefix),
                 detail=False,
+                pass_note=_pass_failure_note(report, prefix),
             )
         )
     gate = _gate_sentence(report, bands)

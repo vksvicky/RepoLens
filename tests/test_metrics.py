@@ -360,7 +360,7 @@ def test_low_audit_notes_name_misses_and_highs() -> None:
     assert "mega-file" not in text
     assert "Architecture audit 35%" in text
     assert "14 checklist ids were not counted" in text
-    assert "Each missed id is explained under Coverage." in text
+    assert "Each unanswered question is explained under Checklist." in text
     assert "2 High findings" in text
     assert "find_near_clones is complex" in text
     assert "Gate 0%" in text
@@ -368,6 +368,26 @@ def test_low_audit_notes_name_misses_and_highs() -> None:
     brief = low_audit_brief(report)
     assert any("Reliability audit 55%" in line for line in brief)
     assert all("`arch.item0`" not in line for line in brief)
+
+
+def test_zero_architecture_names_a_timed_out_pass() -> None:
+    """One missed id is not why the band is 0% when the pass itself timed out."""
+    report = FindingReport(
+        confidence=0,
+        summary=Summary(),
+        securityAuditConfidence=100,
+        reliabilityAuditConfidence=95,
+        architectureAuditConfidence=0,
+        coverage=CoverageBlock(missed=["arch.scores"]),
+        durabilityGaps=[
+            "llm.schema_invalid (pass: p3): LLM timed out after 7200s talking to the model."
+        ],
+        issues=[],
+    )
+    text = "\n".join(low_audit_explanations(report))
+    assert "Architecture audit 0%: the checklist pass timed out" in text
+    assert "1 checklist id was not counted" in text
+    assert "Architecture audit 0%: 1 checklist id was not counted" not in text
 
 
 def test_low_audit_notes_stay_empty_when_scores_are_high() -> None:

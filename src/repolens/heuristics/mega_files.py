@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 from repolens.inventory import FileEntry
+from repolens.path_globs import (
+    DEFAULT_REVIEW_SKIP_GLOBS,
+    matches_glob,
+    merge_globs,
+)
 from repolens.schema import Issue, Severity
 
 DEFAULT_MEGA_FILE_EXCLUDES: tuple[str, ...] = (
@@ -15,6 +20,11 @@ DEFAULT_MEGA_FILE_EXCLUDES: tuple[str, ...] = (
     "**/xcuserdata/**",
     "**/*.xcuserstate",
     "**/*.pbxproj",
+)
+# Docs stay in the review. Generated trees are also omitted from the mega-file check.
+DEFAULT_MEGA_AND_SKIP_EXCLUDES: tuple[str, ...] = merge_globs(
+    DEFAULT_MEGA_FILE_EXCLUDES,
+    DEFAULT_REVIEW_SKIP_GLOBS,
 )
 
 
@@ -29,32 +39,18 @@ def count_lines(path: Path) -> int:
     return text.count("\n") + (0 if text.endswith("\n") else 1)
 
 
-def _matches_exclude(relative: str, pattern: str) -> bool:
-    """Match repo-relative path against a glob (supports ``**/dir/**`` trees)."""
-    rel = relative.replace("\\", "/")
-    path = PurePosixPath(rel)
-    if path.match(pattern):
-        return True
-    # Directory tree: **/docs/** → any path with a "docs" component
-    if pattern.startswith("**/") and pattern.endswith("/**"):
-        dirname = pattern[3:-3]
-        if dirname and dirname in path.parts:
-            return True
-    return False
-
-
 def is_mega_file_excluded(
     relative: str,
-    exclude_globs: Sequence[str] = DEFAULT_MEGA_FILE_EXCLUDES,
+    exclude_globs: Sequence[str] = DEFAULT_MEGA_AND_SKIP_EXCLUDES,
 ) -> bool:
-    return any(_matches_exclude(relative, pattern) for pattern in exclude_globs)
+    return any(matches_glob(relative, pattern) for pattern in exclude_globs)
 
 
 def find_mega_files(
     entries: list[FileEntry],
     *,
     mega_file_lines: int = 500,
-    exclude_globs: Sequence[str] = DEFAULT_MEGA_FILE_EXCLUDES,
+    exclude_globs: Sequence[str] = DEFAULT_MEGA_AND_SKIP_EXCLUDES,
 ) -> tuple[list[Issue], list[str]]:
     issues: list[Issue] = []
     hot_paths: list[str] = []
