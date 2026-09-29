@@ -290,11 +290,10 @@ def explain_answered(cid: str, issues: Iterable[Issue]) -> str:
 
 
 def _finding_for(cov_id: str, issues: Iterable[Issue]) -> Issue | None:
-    """Best-effort link: theme/heuristic map, coverage id, or token in issue text."""
+    """Link a question to a finding by its theme or its full coverage id."""
     from repolens.themes import canonicalize_coverage_id, theme_id_for_category
 
     canon = canonicalize_coverage_id(cov_id)
-    token = canon.split(".")[-1].lower()
     needle = canon.lower()
     for issue in issues:
         mapped = theme_id_for_category(issue.category)
@@ -309,7 +308,7 @@ def _finding_for(cov_id: str, issues: Iterable[Issue]) -> Issue | None:
                 issue.recommendedFix,
             ]
         ).lower()
-        if needle in hay or (token and token in hay):
+        if needle in hay:
             return issue
     return None
 
