@@ -76,9 +76,16 @@
 #   OpenAI-compatible endpoint. Ollama local: http://127.0.0.1:11434/v1.
 #   Ignored in project config unless --trust-project-config.
 # timeout_seconds = 900
-#   Wall-clock limit for one LLM stream, not the whole review.
+#   How long to wait for the first token. A stream that keeps writing is not cut off.
 #   Ollama default 900; cloud default 120. Also: --timeout or REPOLENS_TIMEOUT.
 #   Recommended: 900 for a 200-file pass; 7200 when max_files = 0 on a 32B model.
+# silence_timeout_seconds = 300
+#   After the first token, abort when the stream is silent this long.
+# lock = true
+#   Queue reviews that share one local model (Ollama, or openai_compatible on
+#   localhost / 127.0.0.1 / ::1 / a .local name). One pass, then the next
+#   waiting project. Cloud keys are not queued.
+#   CLI: --model-lock / --no-model-lock. Recommended: true on one GPU.
 # fallback = true
 #   If the configured cloud model fails, try local Ollama, then scanners and
 #   heuristics. CLI: --fallback / --no-fallback. Recommended: true.
@@ -240,6 +247,10 @@
 # mega_file_exclude_globs = ["**/*.md", "**/docs/**", "**/.superpowers/**", "**/xcuserdata/**", "**/*.xcuserstate", "**/*.pbxproj"]
 #   Paths that do not count as mega-files. Recommended: keep the defaults;
 #   add generated trees you do not want flagged.
+# skip_paths = ["**/fixtures/**"]
+#   Extra paths left out of the inventory and Fast Brain size checks.
+#   Defaults always apply: bin/, gen/, test_output/, out/, and *.mcgen.
+#   Add a tree this project generates. Scanners still walk the full tree.
 # fp_calibrations = { subprocess_list_not_injection = true, test_fixture_secrets = true, intentional_vuln_example = true }
 #   Set an id to false to stop that demotion. Unknown ids are ignored.
 #   Recommended: leave the three defaults on.

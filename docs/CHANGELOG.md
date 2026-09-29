@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Local model lock** — reviews that share one local model (Ollama, or `openai_compatible` on localhost) take a pass-by-pass ticket and say which project is ahead. Cloud providers do not create lock files. `--model-lock` forces the queue on. `--no-model-lock` turns it off. A stream that keeps producing tokens is not cut off at `--timeout`; silence after the first token is 300 seconds.
+- **Pass resume** — a finished P1, P2, P3, or coverage-closure pass is saved and skipped on the next run when the packed files, model, and unanswered checklist ids are unchanged. The first Ctrl+C writes the passes that finished and exits 130. A second Ctrl+C exits immediately.
+- **Checklist** — the report lists each question as answered (apply the finding’s fix), does not apply (a fact from this repository), or not answered (the step to finish the review). The model’s `N/A` line stays in the prompt.
+- **Metrics table** — Critical, High, Medium, and Low are rows in the Markdown metrics table. Duration is hours, minutes, and seconds.
+- **Skip paths** — `bin/`, `gen/`, `test_output/`, `out/`, and `*.mcgen` stay out of the review by default. `[deep] skip_paths` adds project-specific trees. Scanners still walk the full tree.
 - **Summary counts** — Critical, High, Medium, and Low count scanner and Fast Brain findings. The model’s writing stays in the report under Model notes and does not change those four numbers or the gate.
 - **Generic measurements** — the checklist prompt shows the line shape and asks for a fact from the repository under review. Testing findings on CI pipeline files (GitHub, GitLab, Jenkins, CircleCI, Azure Pipelines, Buildkite, and the other common pipeline names) are left out. A model claim that `.gitignore` is missing secret patterns is left to Fast Brain; a secret finding in any other file still counts. Python outlines include symbols wrapped in a conditional. A Bedrock payload that is not a JSON object is ignored, and an empty stream still raises.
 - **Findings the model does not own** — complexity, `heuristic.*`, and “no unit tests” on a workflow file are left to Fast Brain. The model can still file other findings.
