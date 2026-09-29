@@ -66,6 +66,12 @@ def fail_on_triggered(
 
 
 
+def _apply_model_lock(state: ReviewRun) -> None:
+    state.cfg.model.lock_cli = state.model_lock
+    if state.model_lock is False:
+        state.cfg.model.lock = False
+
+
 def _bind_review_config(state: ReviewRun) -> None:
     if state.force_full and state.force_changed:
         raise ValueError("--full and --changed cannot be combined")
@@ -85,6 +91,7 @@ def _bind_review_config(state: ReviewRun) -> None:
         state.cfg.model.fallback = state.fallback
     if state.model_override:
         state.cfg.model.model = state.model_override
+    _apply_model_lock(state)
     if state.timeout_override is not None:
         if state.timeout_override <= 0:
             raise ValueError("--timeout must be a positive number of seconds")
@@ -111,6 +118,13 @@ def _bind_review_config(state: ReviewRun) -> None:
 
 
 def _invoke_llm(state: ReviewRun) -> None:
+    from repolens.pipeline.interrupt import InterruptGuard
+
+    with InterruptGuard():
+        _invoke_llm_body(state)
+
+
+def _invoke_llm_body(state: ReviewRun) -> None:
     try:
         if state.use_deep:
             # Per-pass waiting lives inside _analyze_deep_passes.
@@ -186,6 +200,12 @@ def _invoke_llm(state: ReviewRun) -> None:
                 state.report.summary = state.report.recount_summary()
             gen.mark_done()
     except BaseException as exc:
+        from repolens.pipeline.types import ReviewAborted
+
+        if isinstance(exc, ReviewAborted):
+            state.report = exc.report
+            state.aborted = True
+            return
         if state.store is not None:
             state.store.record_run(
                 started_at=state.started,
@@ -275,6 +295,7 @@ def run_review(
     fallback: bool | None = None,
     import_sarif: list[Path] | None = None,
     require_sarif_import: bool = False,
+    model_lock: bool | None = None,
 ) -> ReviewResult:
 
     state = ReviewRun(
@@ -306,6 +327,7 @@ def run_review(
         fallback=fallback,
         import_sarif=import_sarif,
         require_sarif_import=require_sarif_import,
+        model_lock=model_lock,
     )
     _bind_review_config(state)
     _load_review_inventory(state)
@@ -331,7 +353,8 @@ def run_review(
                 else:
                     _prepare_llm_prompt(state)
                     _invoke_llm(state)
-                    _merge_llm_report(state)
+                    if not state.aborted:
+                        _merge_llm_report(state)
         _stamp_finished_report(state)
         return _write_finished_report(state)
     finally:

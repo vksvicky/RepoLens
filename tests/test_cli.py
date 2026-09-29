@@ -70,6 +70,22 @@ def test_review_verbose_shows_sample(tmp_path: Path) -> None:
     assert "sample:" in result.output
 
 
+def test_model_lock_flags_are_mutually_exclusive(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "review",
+            "--path",
+            str(tmp_path),
+            "--dry-run",
+            "--model-lock",
+            "--no-model-lock",
+        ],
+    )
+    assert result.exit_code == 2
+    assert "cannot be combined" in result.output.lower()
+
+
 def test_review_quiet_and_verbose_conflict(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
@@ -267,19 +283,13 @@ def test_print_summary_explains_each_missed_checklist_id() -> None:
         confidence=19,
         summary=Summary(),
         architectureAuditConfidence=57,
-        coverage=CoverageBlock(
-            missed=["arch.dry"],
-            missedNotes={
-                "arch.dry": (
-                    "arch.dry was answered without the coverage: prefix, so it did not count."
-                )
-            },
-        ),
+        coverage=CoverageBlock(missed=["arch.dry"]),
     )
     buf = StringIO()
     fake = Console(file=buf, force_terminal=False, width=160)
     with patch.object(export_mod, "console", fake):
         export_mod._print_summary(19, 10, report, dry_run=False)
     out = buf.getvalue()
-    assert "Checklist ids that did not count:" in out
-    assert "without the coverage: prefix" in out
+    assert "Questions the review did not finish:" in out
+    assert "DRY (Don't Repeat Yourself)" in out
+    assert "Re-run" in out

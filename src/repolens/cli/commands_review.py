@@ -55,6 +55,8 @@ def _run_mode(
     ratchet: bool = False,
     import_sarif: list[Path] | None = None,
     require_sarif_import: bool = False,
+    no_model_lock: bool = False,
+    model_lock: bool | None = None,
 ) -> None:
     resolved = None
 
@@ -91,6 +93,12 @@ def _run_mode(
 
         if quiet and verbose:
             console.print("[red]--quiet and --verbose cannot be combined[/red]")
+            raise typer.Exit(code=2)
+
+        if model_lock is True and no_model_lock:
+            console.print(
+                "[red]--model-lock and --no-model-lock cannot be combined[/red]"
+            )
             raise typer.Exit(code=2)
 
     def _execute_run_mode():
@@ -148,6 +156,7 @@ def _run_mode(
             fallback=fallback,
             import_sarif=import_sarif or [],
             require_sarif_import=require_sarif_import,
+            model_lock=model_lock,
         )
 
         _print_summary(
@@ -162,6 +171,8 @@ def _run_mode(
             console.print(f"[green]JSON report:[/green] {result.json_path}")
         if result.sarif_path:
             console.print(f"[green]SARIF report:[/green] {result.sarif_path}")
+        if result.aborted:
+            raise typer.Exit(code=130)
 
         if explain_uuids and not result.dry_run:
             from repolens.cli.commands_explain import run_post_review_explains
@@ -265,7 +276,17 @@ def review(
     timeout: float | None = typer.Option(
         None,
         "--timeout",
-        help="LLM HTTP timeout in seconds (default: 900 for ollama, 120 otherwise)",
+        help="Seconds to wait for the first model token (default: 900 for ollama, 120 otherwise)",
+    ),
+    model_lock_flag: bool = typer.Option(
+        False,
+        "--model-lock",
+        help="Force the local model queue on, including for a cloud URL",
+    ),
+    no_model_lock: bool = typer.Option(
+        False,
+        "--no-model-lock",
+        help="Allow concurrent calls to a local one-model server",
     ),
     force_full: bool = typer.Option(
         False,
@@ -394,6 +415,8 @@ def review(
         ratchet,
         import_sarif,
         require_sarif_import,
+        no_model_lock,
+        True if model_lock_flag else False if no_model_lock else None,
     )
 
 
