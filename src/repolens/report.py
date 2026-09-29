@@ -7,13 +7,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from repolens.disclaimer import disclaimer_markdown_lines
+from repolens.report_metrics import _render_metrics_section
 from repolens.report_sections import (
     _render_change_set_section,
     _render_complexity_section,
     _render_coverage_section,
     _render_durability_gaps_section,
     _render_import_graph_section,
-    _render_metrics_section,
     _render_provenance_section,
     _render_quality_scorecard_section,
     _render_supply_chain_section,

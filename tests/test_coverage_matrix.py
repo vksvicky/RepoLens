@@ -138,28 +138,30 @@ def test_bare_na_line_counts_and_beats_a_later_not_reviewed() -> None:
     assert "No infrastructure-as-code" in result.na["arch.iac_cloud"]
 
 
-def test_missed_id_explanations_name_the_line_that_counts() -> None:
-    prefix = explain_missed_id(
-        "arch.dry",
-        ["arch.dry: N/A — DRY principles are generally followed."],
-    )
-    assert "without the coverage: prefix" in prefix
-    assert "coverage:arch.dry: N/A —" in prefix
+def test_unanswered_questions_say_what_to_do() -> None:
+    """The reader gets a next step. The model line stays out of the sentence."""
+    silent = explain_missed_id("arch.blast_radius", [])
+    assert "Scoped change blast radius" in silent
+    assert "no finding and no fact from this repository" in silent
+    assert "Re-run" in silent
+    assert "coverage:" not in silent
 
     rejected = explain_missed_id(
         "arch.licensing",
         ["coverage:arch.licensing: missed — lazy N/A rejected (not reviewed)"],
     )
-    assert "not reviewed" in rejected
+    assert "Licensing & compliance" in rejected
+    assert "not looked at" in rejected
+    assert "coverage:" not in rejected
 
-    unmarked = explain_missed_id(
-        "arch.solid_srp",
-        ["coverage:arch.solid_srp: Single Responsibility is not evaluated."],
+    timed_out = explain_missed_id(
+        "arch.scores",
+        ["llm.schema_invalid (pass: p3): LLM timed out after 7200s"],
     )
-    assert "no `N/A —`" in unmarked
-
-    silent = explain_missed_id("arch.blast_radius", [])
-    assert "no finding and no N/A line" in silent
+    assert "Production readiness scores" in timed_out
+    assert "architecture pass timed out" in timed_out
+    assert "skip_paths" in timed_out
+    assert "P1, P2, and P3" in timed_out
 
 
 def test_checklist_prompt_shows_the_line_shape_without_a_sample_fact() -> None:

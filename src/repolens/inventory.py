@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+
+from repolens.path_globs import DEFAULT_REVIEW_SKIP_GLOBS, is_skipped_path
 
 IGNORE_DIR_NAMES = {
     ".git",
@@ -146,16 +149,24 @@ def scan_inventory(
     since: str | None = None,
     max_files: int = 200,
     max_bytes: int = 200_000,
+    skip_globs: Sequence[str] | None = None,
 ) -> InventoryResult:
     """Walk (or diff) the tree, then keep the top ``max_files`` by priority."""
     root = root.resolve()
     if not root.is_dir():
         raise FileNotFoundError(f"Path is not a directory: {root}")
+    globs = (
+        DEFAULT_REVIEW_SKIP_GLOBS
+        if skip_globs is None
+        else tuple(dict.fromkeys((*DEFAULT_REVIEW_SKIP_GLOBS, *skip_globs)))
+    )
 
     if mode == "diff":
-        matched = _collect_diff_entries(root, since=since, max_bytes=max_bytes)
+        matched = _collect_diff_entries(
+            root, since=since, max_bytes=max_bytes, skip_globs=globs
+        )
     else:
-        matched = _collect_full_entries(root, max_bytes=max_bytes)
+        matched = _collect_full_entries(root, max_bytes=max_bytes, skip_globs=globs)
 
     matched.sort(key=lambda e: (e.priority_band, e.relative))
     total = len(matched)
@@ -178,13 +189,24 @@ def list_files(
     since: str | None = None,
     max_files: int = 200,
     max_bytes: int = 200_000,
+    skip_globs: Sequence[str] | None = None,
 ) -> list[FileEntry]:
     return scan_inventory(
-        root, mode=mode, since=since, max_files=max_files, max_bytes=max_bytes
+        root,
+        mode=mode,
+        since=since,
+        max_files=max_files,
+        max_bytes=max_bytes,
+        skip_globs=skip_globs,
     ).files
 
 
-def _collect_full_entries(root: Path, *, max_bytes: int) -> list[FileEntry]:
+def _collect_full_entries(
+    root: Path,
+    *,
+    max_bytes: int,
+    skip_globs: Sequence[str],
+) -> list[FileEntry]:
     entries: list[FileEntry] = []
     for path in root.rglob("*"):
         if path.is_symlink() or not path.is_file():
@@ -200,6 +222,8 @@ def _collect_full_entries(root: Path, *, max_bytes: int) -> list[FileEntry]:
         if size > max_bytes:
             continue
         rel = path.relative_to(root).as_posix()
+        if is_skipped_path(rel, skip_globs):
+            continue
         entries.append(
             FileEntry(path=path, relative=rel, size=size, priority_band=_band_for(rel))
         )
@@ -211,6 +235,7 @@ def _collect_diff_entries(
     *,
     since: str | None,
     max_bytes: int,
+    skip_globs: Sequence[str],
 ) -> list[FileEntry]:
     base = since or "HEAD"
     try:
@@ -257,6 +282,8 @@ def _collect_diff_entries(
             continue
         size = path.stat().st_size
         if size > max_bytes:
+            continue
+        if is_skipped_path(name, skip_globs):
             continue
         entries.append(
             FileEntry(path=path, relative=name, size=size, priority_band=_band_for(name))

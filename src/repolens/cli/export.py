@@ -104,7 +104,7 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     if cov is not None and cov.missed:
         from repolens.coverage import explain_missed_id
 
-        console.print("Checklist ids that did not count:")
+        console.print("Questions the review did not finish:")
         for cid in cov.missed:
             sentence = cov.missedNotes.get(cid) or explain_missed_id(
                 cid, report.durabilityGaps

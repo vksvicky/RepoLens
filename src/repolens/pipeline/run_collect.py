@@ -93,6 +93,7 @@ def _load_review_inventory(state: ReviewRun) -> None:
         mode=state.review_mode,
         since=state.since,
         max_files=state.cfg.fast_brain.max_files,
+        skip_globs=state.cfg.deep.skip_paths,
     )
     _assign_inventory_files(state, fast_inv)
     _announce_inventory(state, fast_inv)
@@ -266,7 +267,7 @@ def _run_fast_brain_phase(state: ReviewRun) -> None:
         state.root,
         state.fast_files,
         mega_file_lines=state.cfg.deep.mega_file_lines,
-        mega_file_exclude_globs=state.cfg.deep.mega_file_exclude_globs or None,
+        mega_file_exclude_globs=state.cfg.deep.extra_skip_globs() or None,
         pack_ids=state.pack_ids or None,
         workers=state.cfg.fast_brain.parallel_workers,
         near_clones_config=state.cfg.fast_brain.near_clones,

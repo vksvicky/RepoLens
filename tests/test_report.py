@@ -283,8 +283,9 @@ def test_metrics_includes_fast_brain_without_band_audits(tmp_path: Path) -> None
 def test_metrics_and_coverage_explain_formulas(tmp_path: Path) -> None:
     report = FindingReport(
         confidence=47,
-        summary=Summary(),
+        summary=Summary(critical=0, high=1, medium=2, low=3),
         issues=[],
+        durationSeconds=4337,
         securityAuditConfidence=100,
         reliabilityAuditConfidence=55,
         architectureAuditConfidence=67,
@@ -300,12 +301,25 @@ def test_metrics_and_coverage_explain_formulas(tmp_path: Path) -> None:
     assert "How these % are calculated" in text
     assert "Why a score is low" in text
     assert "[Why](#why-a-score-is-low)" in text
-    assert "[Checklist](#coverage)" in text
+    assert "[Checklist](#checklist)" in text
     assert "Reliability audit 55%" in text
     assert "Medium and Low findings do not change" in text
-    assert "`sec.injection`" in text
-    assert "`sec.xss_csrf`" in text
-    assert "arch.blast_radius had no finding and no N/A line" in text
+    assert "| Critical | 0 |" in text
+    assert "| High | 1 |" in text
+    assert "| Medium | 2 |" in text
+    assert "| Low | 3 |" in text
+    assert "| Duration | 1h 12m 17s |" in text
+    assert "| Duration | 4337" not in text
+    assert "### Answered" in text
+    assert "Injection & unsafe code (sec.injection)" in text
+    assert "### Does not apply" in text
+    assert "XSS / CSRF / web surface (sec.xss_csrf)" in text
+    assert "No web surface" in text
+    assert "### Not answered" in text
+    assert "Scoped change blast radius" in text
+    assert "Re-run" in text
+    assert "### N/A" not in text
+    assert "### Missed" not in text
 
 
 def test_markdown_notes_llm_skipped_but_keeps_counts(tmp_path: Path) -> None:
@@ -388,10 +402,10 @@ def test_markdown_durability_section_checkboxes_only_real_gaps(tmp_path: Path) -
     assert "- [ ] Add Dependabot / SCA to CI" in text
     assert "- [ ] llm.schema_invalid:p2" in text
     # Coverage transport stays out of the checkbox list
-    assert "coverage:sec.xss_csrf" not in text.split("## Coverage")[0]
-    assert "coverage:arch.testing: missed" not in text.split("## Coverage")[0]
+    assert "coverage:sec.xss_csrf" not in text.split("## Checklist")[0]
+    assert "coverage:arch.testing: missed" not in text.split("## Checklist")[0]
     # Still visible under Coverage
-    assert "## Coverage" in text
+    assert "## Checklist" in text
     assert "sec.xss_csrf" in text
 
 

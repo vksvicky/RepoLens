@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 from repolens.inventory import (
@@ -29,6 +30,54 @@ def test_ignores_venv_and_orders_p1_first(tmp_path: Path) -> None:
     assert all(not r.endswith(".png") for r in rels)
     assert files[0].relative == "auth/jwt.py"
     assert files[0].priority_band == 1
+
+
+def test_default_skip_paths_leave_generated_trees_out(tmp_path: Path) -> None:
+    (tmp_path / "src" / "app.py").parent.mkdir()
+    (tmp_path / "src" / "app.py").write_text("x=1\n", encoding="utf-8")
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "settings.json").write_text("{}\n", encoding="utf-8")
+    (tmp_path / "gen").mkdir()
+    (tmp_path / "gen" / "Rez.mcgen").write_text("gen\n", encoding="utf-8")
+    files = list_files(tmp_path)
+    rels = [f.relative for f in files]
+    assert rels == ["src/app.py"]
+
+
+def test_diff_mode_skips_generated_paths(tmp_path: Path) -> None:
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.py").write_text("x=1\n", encoding="utf-8")
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "settings.json").write_text("{}\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-m",
+            "init",
+        ],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    (tmp_path / "src" / "app.py").write_text("x=2\n", encoding="utf-8")
+    (tmp_path / "bin" / "settings.json").write_text("{}\n\n", encoding="utf-8")
+    files = list_files(tmp_path, mode="diff", since="HEAD")
+    assert [f.relative for f in files] == ["src/app.py"]
+
+
+def test_project_skip_paths_extend_the_defaults(tmp_path: Path) -> None:
+    (tmp_path / "keep.py").write_text("x=1\n", encoding="utf-8")
+    (tmp_path / "fixtures").mkdir()
+    (tmp_path / "fixtures" / "blob.json").write_text("{}\n", encoding="utf-8")
+    files = list_files(tmp_path, skip_globs=("**/fixtures/**",))
+    assert [f.relative for f in files] == ["keep.py"]
 
 
 def test_max_files_boundary(tmp_path: Path) -> None:

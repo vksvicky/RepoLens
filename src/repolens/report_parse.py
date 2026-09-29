@@ -68,6 +68,7 @@ _SECTION_STOPPERS = (
     "\n## Plan to fix",
     "\n## Durability",
     "\n## Coverage",
+    "\n## Checklist",
     "\n## Theme",
     "\n## Disclaimer",
 )

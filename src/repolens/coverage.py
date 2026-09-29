@@ -208,42 +208,88 @@ def parse_coverage_notes(gaps: Iterable[str]) -> dict[str, str]:
     return notes
 
 
+_BAND_PASS = {
+    "sec.": ("p1", "security"),
+    "rel.": ("p2", "reliability"),
+    "arch.": ("p3", "architecture"),
+}
+
+_FIX_POINTER = (
+    "Findings under P1, P2, and P3 are the changes that make the product "
+    "more secure and stable."
+)
+
+
+def checklist_title(cid: str) -> str:
+    """Human title for a checklist id. Unknown ids stay as the id."""
+    for entry in load_coverage_matrix().entries:
+        if entry.id == cid:
+            return entry.title
+    return cid
+
+
+def _question_label(cid: str) -> str:
+    title = checklist_title(cid)
+    if title == cid:
+        return cid
+    return f"{title} ({cid})"
+
+
+def _timed_out_band(cid: str, gaps: Iterable[str]) -> str | None:
+    for prefix, (band, name) in _BAND_PASS.items():
+        if not cid.startswith(prefix):
+            continue
+        marker = f"(pass: {band})"
+        for gap in gaps:
+            if marker in gap and "timed out" in gap.lower():
+                return name
+    return None
+
+
 def explain_missed_id(cid: str, gaps: Iterable[str]) -> str:
-    """One plain sentence for a checklist id that stayed missed."""
-    counted = f"coverage:{cid}: N/A — <what is actually true in this repo>"
+    """What the reader does when a checklist question was not answered."""
+    label = _question_label(cid)
+    band = _timed_out_band(cid, gaps)
+    if band is not None:
+        return (
+            f"{label}. The {band} pass timed out before this question was answered. "
+            "Re-run with a longer --timeout, or add generated trees under "
+            "[deep] skip_paths, so the review can finish it. "
+            f"{_FIX_POINTER}"
+        )
     related = [gap.strip() for gap in gaps if cid in gap]
-    bare = next((gap for gap in related if _BARE_NA_RE.match(gap)), None)
-    if bare is not None:
+    if any(
+        "lazy n/a rejected" in gap.lower() or "not reviewed" in gap.lower()
+        for gap in related
+    ):
         return (
-            f"{cid} was answered without the coverage: prefix, so it did not count. "
-            f"The line that counts is `{counted}`."
-        )
-    lazy = next(
-        (
-            gap
-            for gap in related
-            if "lazy N/A rejected" in gap or "not reviewed" in gap.lower()
-        ),
-        None,
-    )
-    if lazy is not None:
-        return (
-            f"{cid} was marked N/A with “not reviewed”. That wording does not count. "
-            f"The line that counts is `{counted}`."
-        )
-    shaped = next((gap for gap in related if gap.lower().startswith("coverage:")), None)
-    if shaped is not None and "N/A" not in shaped:
-        return (
-            f"{cid} was mentioned, but the line had no `N/A —`. It did not count. "
-            f"The line that counts is `{counted}`."
+            f"{label}. The review marked this as not looked at. "
+            "Re-run so it is closed with a finding or a fact from this repository. "
+            f"{_FIX_POINTER}"
         )
     return (
-        f"{cid} had no finding and no N/A line. "
-        f"The line that counts is `{counted}`."
+        f"{label}. This question has no finding and no fact from this repository. "
+        "Re-run so it is answered. "
+        f"{_FIX_POINTER}"
     )
 
 
-def _issue_addresses(cov_id: str, issues: Iterable[Issue]) -> bool:
+def explain_answered(cid: str, issues: Iterable[Issue]) -> str:
+    """Point an answered question at the finding the reader should fix."""
+    label = _question_label(cid)
+    issue = _finding_for(cid, issues)
+    if issue is None:
+        return (
+            f"{label}. A finding in this report covers this question. "
+            "Apply its recommended fix."
+        )
+    return (
+        f"{label}. See “{issue.title}” under {issue.priority} "
+        "and apply its recommended fix."
+    )
+
+
+def _finding_for(cov_id: str, issues: Iterable[Issue]) -> Issue | None:
     """Best-effort link: theme/heuristic map, coverage id, or token in issue text."""
     from repolens.themes import canonicalize_coverage_id, theme_id_for_category
 
@@ -253,7 +299,7 @@ def _issue_addresses(cov_id: str, issues: Iterable[Issue]) -> bool:
     for issue in issues:
         mapped = theme_id_for_category(issue.category)
         if mapped == canon:
-            return True
+            return issue
         hay = " ".join(
             [
                 issue.title,
@@ -264,8 +310,12 @@ def _issue_addresses(cov_id: str, issues: Iterable[Issue]) -> bool:
             ]
         ).lower()
         if needle in hay or (token and token in hay):
-            return True
-    return False
+            return issue
+    return None
+
+
+def _issue_addresses(cov_id: str, issues: Iterable[Issue]) -> bool:
+    return _finding_for(cov_id, issues) is not None
 
 
 def evaluate_coverage(
