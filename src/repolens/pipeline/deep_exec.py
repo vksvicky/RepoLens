@@ -21,16 +21,21 @@ from repolens.deep import (
 from repolens.heuristics import HeuristicResult, run_heuristics
 from repolens.inventory import FileEntry
 from repolens.llm import default_model, resolve_llm_timeout
+from repolens.llm.model_lock import bind_lock_context, reset_lock_context
 from repolens.metrics import compute_audit_metrics, low_audit_explanations
-from repolens.pipeline.deep_pass import (
-    _apply_coverage_closure,
-    _run_deep_pass,
-)
+from repolens.pipeline.deep_pass import _apply_coverage_closure
 from repolens.pipeline.deep_pass import (
     _ollama_wait_bits as _ollama_wait_bits,
 )
 from repolens.pipeline.deep_pass import (
     _pass_report as _pass_report,
+)
+from repolens.pipeline.pass_cache import pass_label
+from repolens.pipeline.pass_resume import (
+    note_timed_out_passes,
+    raise_aborted,
+    run_or_resume_pass,
+    snapshot_finished,
 )
 from repolens.progress import ReviewProgress
 from repolens.rules.registry import Rule, load_enabled_rules
@@ -197,7 +202,7 @@ def _load_deep_heuristics(
             root,
             files,
             mega_file_lines=cfg.deep.mega_file_lines,
-            mega_file_exclude_globs=cfg.deep.mega_file_exclude_globs or None,
+            mega_file_exclude_globs=cfg.deep.extra_skip_globs() or None,
             pack_ids=pack_ids or None,
             workers=cfg.fast_brain.parallel_workers,
             near_clones_config=cfg.fast_brain.near_clones,
@@ -316,6 +321,9 @@ def _analyze_deep_passes(
     scanner_runs: list | None = None,
     scanner_issues: list | None = None,
     heur_result: HeuristicResult | None = None,
+    out_dir: Path | None = None,
+    fmt: str = "md",
+    report_when: object | None = None,
 ) -> FindingReport:
     """Heuristics → plan passes → structured LLM per pass → merge + coverage."""
     pack_ids = list(cfg.packs.enabled)
@@ -350,28 +358,53 @@ def _analyze_deep_passes(
     provider = cfg.model.provider or "unknown"
     model_name = cfg.model.model or default_model(cfg.model.provider)
     timeout = resolve_llm_timeout(cfg.model)
-    for idx, deep_pass in enumerate(passes, start=1):
-        part, raw, degraded, attempts = _run_deep_pass(
-            idx=idx,
-            n=n,
-            deep_pass=deep_pass,
-            rules=rules,
-            pack_ids=pack_ids,
-            prompt_prefix=prompt_prefix,
-            cfg=cfg,
-            prog=prog,
-            raw_dir=raw_dir,
-            model_name=model_name,
-            provider=provider,
-            timeout=timeout,
-        )
-        parts.append(part)
-        raw_by_pass[deep_pass.name] = raw
-        degraded_by_pass[deep_pass.name] = degraded
-        repair_attempts_total += attempts
-        all_coverage_ids.extend(deep_pass.coverage_ids)
+    finished_labels: list[str] = []
+    timed_out_labels: list[str] = []
+    try:
+        for idx, deep_pass in enumerate(passes, start=1):
+            part, raw, degraded, attempts = run_or_resume_pass(
+                root=root,
+                idx=idx,
+                n=n,
+                deep_pass=deep_pass,
+                rules=rules,
+                pack_ids=pack_ids,
+                prompt_prefix=prompt_prefix,
+                cfg=cfg,
+                prog=prog,
+                raw_dir=raw_dir,
+                model_name=model_name,
+                provider=provider,
+                timeout=timeout,
+            )
+            parts.append(part)
+            raw_by_pass[deep_pass.name] = raw
+            degraded_by_pass[deep_pass.name] = degraded
+            repair_attempts_total += attempts
+            all_coverage_ids.extend(deep_pass.coverage_ids)
+            label = pass_label(deep_pass.name)
+            if degraded and any(
+                "timed out" in gap.lower() for gap in part.durabilityGaps
+            ):
+                timed_out_labels.append(label)
+            elif not degraded:
+                finished_labels.append(label)
+                snapshot_finished(
+                    merge_reports(parts, heur.issues),
+                    out_dir,
+                    fmt,
+                    finished_labels,
+                    mode,
+                    report_when,
+                )
+    except KeyboardInterrupt:
+        raise_aborted(parts, heur.issues, finished_labels)
 
-    report = merge_reports(parts, heur.issues)
+    report = note_timed_out_passes(
+        merge_reports(parts, heur.issues),
+        timed_out_labels,
+        finished_labels,
+    )
     if repair_attempts_total:
         report.llmRepairAttempts = repair_attempts_total
         prog.detail(f"LLM JSON micro-repair attempts: {repair_attempts_total}")
@@ -385,13 +418,35 @@ def _analyze_deep_passes(
         seeded_covered=cfg.coverage.covered,
     )
     if coverage.missed:
-        report = _apply_coverage_closure(
-            report,
-            list(coverage.missed),
-            cfg=cfg,
-            prog=prog,
-            raw_dir=raw_dir,
+        token = bind_lock_context(
+            repo=root.name,
+            path=str(root),
+            pass_name="Coverage closure",
+            status=prog.phase,
         )
+        gap_before = len(report.durabilityGaps)
+        try:
+            report = _apply_coverage_closure(
+                report,
+                list(coverage.missed),
+                cfg=cfg,
+                prog=prog,
+                raw_dir=raw_dir,
+            )
+        except KeyboardInterrupt:
+            raise_aborted(parts, heur.issues, finished_labels)
+        finally:
+            reset_lock_context(token)
+        fresh = report.durabilityGaps[gap_before:]
+        if not any("timed out" in gap.lower() for gap in fresh):
+            snapshot_finished(
+                report,
+                out_dir,
+                fmt,
+                finished_labels + ["Coverage closure"],
+                mode,
+                report_when,
+            )
         coverage = evaluate_coverage(
             unique_ids,
             report.issues,
