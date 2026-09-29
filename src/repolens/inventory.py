@@ -117,9 +117,18 @@ def _is_under_root(path: Path, root: Path) -> bool:
         return False
 
 
+def _is_virtualenv_dir(name: str) -> bool:
+    lowered = name.lower()
+    return lowered in {".venv", "venv"} or lowered.startswith(
+        (".venv-", ".venv_", "venv-", "venv_")
+    )
+
+
 def _is_ignored(path: Path, root: Path) -> bool:
     rel_parts = path.relative_to(root).parts
     if any(part in IGNORE_DIR_NAMES for part in rel_parts):
+        return True
+    if any(_is_virtualenv_dir(part) for part in rel_parts):
         return True
     if path.suffix.lower() in IGNORE_SUFFIXES:
         return True

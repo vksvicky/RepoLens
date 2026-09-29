@@ -32,6 +32,25 @@ def test_ignores_venv_and_orders_p1_first(tmp_path: Path) -> None:
     assert files[0].priority_band == 1
 
 
+def test_named_virtualenvs_stay_out_of_inventory(tmp_path: Path) -> None:
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.py").write_text("print(1)\n", encoding="utf-8")
+    for folder in (".venv-iconfix", ".venv-ml-ci", "venv-ml", "Venv_ci"):
+        lib = tmp_path / folder / "lib"
+        lib.mkdir(parents=True)
+        (lib / "site.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "venue").mkdir()
+    (tmp_path / "venue" / "keep.py").write_text("print(2)\n", encoding="utf-8")
+
+    rels = [item.relative for item in list_files(tmp_path)]
+    assert "src/app.py" in rels
+    assert "venue/keep.py" in rels
+    assert all(".venv-iconfix" not in rel for rel in rels)
+    assert all(".venv-ml-ci" not in rel for rel in rels)
+    assert all(not rel.startswith("venv-ml/") for rel in rels)
+    assert all(not rel.lower().startswith("venv_ci/") for rel in rels)
+
+
 def test_default_skip_paths_leave_generated_trees_out(tmp_path: Path) -> None:
     (tmp_path / "src" / "app.py").parent.mkdir()
     (tmp_path / "src" / "app.py").write_text("x=1\n", encoding="utf-8")
