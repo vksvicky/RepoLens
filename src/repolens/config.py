@@ -22,8 +22,14 @@ class ModelConfig(BaseModel):
     model: str | None = None
     api_key_env: str | None = None
     base_url: str | None = None
-    # LLM HTTP timeout (seconds). None → provider default (ollama longer).
+    # Time to wait for the first token (seconds). None → provider default.
     timeout_seconds: float | None = None
+    # After the first token, abort only when the stream is silent this long.
+    silence_timeout_seconds: float = 300.0
+    # Serialize local one-model servers. Cloud providers ignore this.
+    lock: bool = True
+    # Set by the CLI. None means "use lock and the host check". Not a toml knob.
+    lock_cli: bool | None = None
     # Automatic fallback (Cloud LLM -> Ollama -> SAST scanners & heuristics)
     fallback: bool = True
 
@@ -130,6 +136,9 @@ class DeepConfig(BaseModel):
     mega_file_lines: int = 500
     # Empty list falls back to package defaults in mega_files / runner.
     mega_file_exclude_globs: list[str] = Field(default_factory=list)
+    # Extra generated trees to leave out of the review. Package defaults
+    # (bin/, gen/, test_output/, out/, *.mcgen) always apply.
+    skip_paths: list[str] = Field(default_factory=list)
     # Empty map → packaged FP-calibration defaults (see repolens.fp_calibrations).
     # Set an id to false to disable; unknown ids are ignored.
     fp_calibrations: dict[str, bool] = Field(default_factory=dict)
@@ -144,6 +153,10 @@ class DeepConfig(BaseModel):
     verify_findings: bool = False
     # None → auto 75/55; 0 → off; 1..100 → pin
     vacuous_pass_confidence_floor: int | None = None
+
+    def extra_skip_globs(self) -> list[str]:
+        """Project globs added on top of the package skip defaults."""
+        return [*self.mega_file_exclude_globs, *self.skip_paths]
 
 
 class ExplainConfig(BaseModel):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import time
+import threading
 from collections.abc import Callable
 from typing import Any
 
@@ -20,10 +20,11 @@ from repolens.llm.setup import (
     resolve_llm_timeout,
 )
 from repolens.llm.sse import (
+    DEFAULT_SILENCE_TIMEOUT,
+    StreamWatch,
     consume_sse_lines,
     raise_for_http_status,
     require_stream_text,
-    stream_deadline,
     timeout_message,
 )
 from repolens.schema import FindingReport
@@ -37,6 +38,30 @@ def analyze(
 ) -> FindingReport:
     content = analyze_raw(prompt, model_cfg, client=client)
     return parse_report_json(content)
+
+
+def _with_ollama_lock(model_cfg: ModelConfig, call: Callable[[], str]) -> str:
+    from repolens.llm.model_lock import (
+        OllamaModelLock,
+        current_lock_context,
+        should_use_model_lock,
+    )
+    from repolens.llm.setup import default_base_url
+
+    if not should_use_model_lock(model_cfg):
+        return call()
+    ctx = current_lock_context()
+    base = model_cfg.base_url or default_base_url(model_cfg.provider)
+    with OllamaModelLock(
+        repo=ctx.repo,
+        path=ctx.path,
+        pass_name=ctx.pass_name,
+        model=model_cfg.model or "",
+        base_url=base,
+        provider=model_cfg.provider,
+        status=ctx.status,
+    ):
+        return call()
 
 
 def analyze_raw(
@@ -76,8 +101,11 @@ def analyze_raw(
             prompt, model_cfg, client=client, on_delta=on_delta
         )
 
-    return _analyze_openai_compatible(
-        prompt, model_cfg, client=client, on_delta=on_delta
+    return _with_ollama_lock(
+        model_cfg,
+        lambda: _analyze_openai_compatible(
+            prompt, model_cfg, client=client, on_delta=on_delta
+        ),
     )
 
 
@@ -178,6 +206,7 @@ def _analyze_openai_compatible(
                 model=model,
                 provider=model_cfg.provider,
                 timeout=timeout,
+                silence_timeout=model_cfg.silence_timeout_seconds,
                 on_delta=on_delta,
             )
         response = client.post(f"{base}/chat/completions", headers=headers, json=payload)
@@ -212,28 +241,37 @@ def _raise_openai_http_status(
     )
 
 
-def _raise_openai_deadline(
-    deadline: float,
-    timeout: float,
-    model: str,
-    provider: str | None,
-) -> None:
-    if time.monotonic() >= deadline:
-        raise _timeout_error(timeout, model, provider)
+def _arm_stream_watch(
+    response: httpx.Response,
+    watch: StreamWatch,
+    stop: threading.Event,
+) -> threading.Thread:
+    """Close the socket when prefill or silence runs out between chunks."""
+
+    def _run() -> None:
+        while not stop.wait(0.5):
+            try:
+                watch.check()
+            except LlmError:
+                closer = getattr(response, "close", None)
+                if closer is not None:
+                    closer()
+                return
+
+    thread = threading.Thread(target=_run, name="repolens-stream-watch", daemon=True)
+    thread.start()
+    return thread
 
 
 def _consume_openai_sse(
     response: httpx.Response,
     parts: list[str],
     *,
-    deadline: float,
-    timeout: float,
-    model: str,
-    provider: str | None,
+    watch: StreamWatch,
     on_delta: Callable[[str], None] | None,
 ) -> None:
     for line in response.iter_lines():
-        _raise_openai_deadline(deadline, timeout, model, provider)
+        watch.check()
         if not line:
             continue
         piece = _parse_sse_chat_chunk(line)
@@ -242,7 +280,7 @@ def _consume_openai_sse(
         parts.append(piece)
         if on_delta is not None:
             on_delta(piece)
-        _raise_openai_deadline(deadline, timeout, model, provider)
+        watch.note_token()
 
 
 def _stream_openai_compatible(
@@ -254,16 +292,21 @@ def _stream_openai_compatible(
     model: str,
     provider: str | None,
     timeout: float,
+    silence_timeout: float = DEFAULT_SILENCE_TIMEOUT,
     on_delta: Callable[[str], None] | None,
 ) -> str:
     """Accumulate streamed chat.completion chunks; invoke ``on_delta`` per piece.
 
-    Enforces a **wall-clock** deadline of ``timeout`` seconds. httpx read
-    timeouts alone are insufficient: they reset whenever a chunk arrives, so a
-    slow but continuous stream can run far past ``--timeout``.
+    ``timeout`` is the wait for the first token. After that, ``silence_timeout``
+    of dead air aborts the stream. Tokens that keep arriving are left to finish.
     """
     parts: list[str] = []
-    deadline = time.monotonic() + max(0.0, float(timeout))
+    watch = StreamWatch(
+        prefill_timeout=timeout,
+        silence_timeout=silence_timeout,
+        label="LLM",
+    )
+    stop = threading.Event()
     try:
         with client.stream(
             "POST",
@@ -271,16 +314,18 @@ def _stream_openai_compatible(
             headers=headers,
             json=payload,
         ) as response:
-            _raise_openai_http_status(response, provider=provider, model=model)
-            _consume_openai_sse(
-                response,
-                parts,
-                deadline=deadline,
-                timeout=timeout,
-                model=model,
-                provider=provider,
-                on_delta=on_delta,
-            )
+            thread = _arm_stream_watch(response, watch, stop)
+            try:
+                _raise_openai_http_status(response, provider=provider, model=model)
+                _consume_openai_sse(response, parts, watch=watch, on_delta=on_delta)
+            except LlmError:
+                raise
+            except Exception:
+                watch.check()
+                raise
+            finally:
+                stop.set()
+                thread.join(timeout=1.0)
     except httpx.TimeoutException as exc:
         raise _timeout_error(timeout, model, provider) from exc
     content = "".join(parts)
@@ -370,7 +415,7 @@ def _stream_anthropic(
     """Accumulate Anthropic Messages SSE ``text_delta`` chunks."""
     label = "Anthropic"
     parts: list[str] = []
-    deadline = stream_deadline(timeout)
+    watch = StreamWatch(prefill_timeout=timeout, label=label)
     try:
         with client.stream(
             "POST",
@@ -383,9 +428,7 @@ def _stream_anthropic(
                 response,
                 parse_line=_parse_anthropic_sse_text_delta,
                 parts=parts,
-                deadline=deadline,
-                timeout=timeout,
-                label=label,
+                watch=watch,
                 on_delta=on_delta,
             )
     except httpx.TimeoutException as exc:
