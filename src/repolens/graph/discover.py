@@ -50,7 +50,7 @@ def discover_packages(
     if names:
         return sorted(set(names)), gaps
 
-    gaps.append(f"graph.analysis_failed: no packages discovered under {root}")
+    gaps.append(f"graph.no_python_packages: no Python packages under {root}")
     return [], gaps
 
 
