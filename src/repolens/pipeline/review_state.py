@@ -46,8 +46,10 @@ class ReviewRun:
     fallback: bool | None
     import_sarif: list[Path] | None
     require_sarif_import: bool
+    model_lock: bool | None = None
 
     cfg: Any = None
+    aborted: bool = False
     change_set_block: Any = None
     complexity_issues: Any = None
     complexity_result: Any = None

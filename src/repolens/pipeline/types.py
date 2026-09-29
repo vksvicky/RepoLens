@@ -17,6 +17,14 @@ class ScannerRequirementError(Exception):
         super().__init__(f"Required scanner(s) missing: {tools}. See docs/scanners.md")
 
 
+class ReviewAborted(Exception):
+    """Slow Brain stopped. ``report`` holds the passes that already finished."""
+
+    def __init__(self, report: FindingReport) -> None:
+        self.report = report
+        super().__init__("review aborted")
+
+
 @dataclass
 class ReviewResult:
     report: FindingReport
@@ -25,3 +33,4 @@ class ReviewResult:
     files_scanned: int
     dry_run: bool
     sarif_path: Path | None = None
+    aborted: bool = False

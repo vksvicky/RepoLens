@@ -24,7 +24,8 @@ def test_resolve_llm_timeout_defaults() -> None:
     assert resolve_llm_timeout(ModelConfig(provider="ollama", timeout_seconds=60)) == 60.0
 
 
-def test_analyze_timeout_message() -> None:
+def test_analyze_timeout_message(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("REPOLENS_LOCK_DIR", str(tmp_path / "locks"))
     cfg = ModelConfig(provider="ollama", model="qwen2.5:7b", timeout_seconds=12)
     client = MagicMock()
     # Ollama uses streaming; timeout surfaces from client.stream(...)
@@ -43,10 +44,10 @@ def test_env_timeout_override(tmp_path, monkeypatch) -> None:
     assert cfg.model.timeout_seconds == 1800.0
 
 
-def test_stream_enforces_wall_clock_timeout_even_when_chunks_keep_arriving(
+def test_stream_keeps_going_when_tokens_arrive_past_the_prefill_budget(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """httpx read timeout resets per chunk; RepoLens must enforce total wall clock."""
+    """A long steady stream is not cut off at --timeout."""
 
     class _FakeResponse:
         status_code = 200
@@ -57,26 +58,65 @@ def test_stream_enforces_wall_clock_timeout_even_when_chunks_keep_arriving(
         def __exit__(self, *args: object) -> None:
             return None
 
+        def close(self) -> None:
+            return None
+
         def iter_lines(self):
-            # Keep streaming forever unless wall-clock deadline aborts.
-            while True:
-                yield 'data: {"choices":[{"delta":{"content":"x"}}]}'
+            yield 'data: {"choices":[{"delta":{"content":"ab"}}]}'
+            yield 'data: {"choices":[{"delta":{"content":"cd"}}]}'
 
     client = MagicMock()
     client.stream.return_value = _FakeResponse()
+    # First token inside the prefill budget, then a later token still inside
+    # the silence window. Total time is past --timeout.
+    ticks = iter([0.0, 1.0, 1.0, 200.0, 200.0])
+    monkeypatch.setattr(
+        "repolens.llm.sse.time.monotonic",
+        lambda: next(ticks, 200.0),
+    )
 
-    # Start at 0; after first chunk jump past deadline.
-    ticks = iter([100.0, 100.1, 120.0])
+    text = _stream_openai_compatible(
+        client,
+        base="http://example.test/v1",
+        headers={},
+        payload={"model": "m", "messages": []},
+        model="m",
+        provider="ollama",
+        timeout=10.0,
+        silence_timeout=300.0,
+        on_delta=None,
+    )
+    assert text == "abcd"
 
-    def fake_mono() -> float:
-        try:
-            return next(ticks)
-        except StopIteration:
-            return 999.0
 
-    monkeypatch.setattr("repolens.llm.transport.time.monotonic", fake_mono)
+def test_stream_aborts_when_tokens_stop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _FakeResponse:
+        status_code = 200
 
-    with pytest.raises(LlmError, match="timed out after 10"):
+        def __enter__(self) -> _FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def close(self) -> None:
+            return None
+
+        def iter_lines(self):
+            yield 'data: {"choices":[{"delta":{"content":"x"}}]}'
+            yield 'data: {"choices":[{"delta":{"content":"y"}}]}'
+
+    client = MagicMock()
+    client.stream.return_value = _FakeResponse()
+    ticks = iter([0.0, 1.0, 1.0, 50.0])
+    monkeypatch.setattr(
+        "repolens.llm.sse.time.monotonic",
+        lambda: next(ticks, 50.0),
+    )
+
+    with pytest.raises(LlmError, match="went silent for 10"):
         _stream_openai_compatible(
             client,
             base="http://example.test/v1",
@@ -84,7 +124,8 @@ def test_stream_enforces_wall_clock_timeout_even_when_chunks_keep_arriving(
             payload={"model": "m", "messages": []},
             model="m",
             provider="ollama",
-            timeout=10.0,
+            timeout=7200.0,
+            silence_timeout=10.0,
             on_delta=None,
         )
 

@@ -1,4 +1,8 @@
-"""Shared SSE deadline and HTTP-error helpers for provider streams."""
+"""Shared SSE helpers for provider streams.
+
+The prefill budget waits for the first token. After that, only a stretch of
+silence aborts the stream. A long run that keeps producing tokens finishes.
+"""
 
 from __future__ import annotations
 
@@ -9,9 +13,41 @@ import httpx
 
 from repolens.llm.errors import LlmError
 
+DEFAULT_SILENCE_TIMEOUT = 300.0
 
-def stream_deadline(timeout: float) -> float:
-    return time.monotonic() + max(0.0, float(timeout))
+
+class StreamWatch:
+    """Prefill budget until the first token, then an inactivity limit."""
+
+    def __init__(
+        self,
+        *,
+        prefill_timeout: float,
+        silence_timeout: float = DEFAULT_SILENCE_TIMEOUT,
+        label: str = "LLM",
+    ) -> None:
+        self.prefill_timeout = max(0.0, float(prefill_timeout))
+        self.silence_timeout = max(0.0, float(silence_timeout))
+        self.label = label
+        self.started = time.monotonic()
+        self.last_token: float | None = None
+
+    def note_token(self) -> None:
+        self.last_token = time.monotonic()
+
+    def check(self) -> None:
+        now = time.monotonic()
+        if self.last_token is None:
+            if now - self.started >= self.prefill_timeout:
+                raise LlmError(
+                    f"{self.label} timed out after {self.prefill_timeout:g}s "
+                    "waiting for the first token"
+                )
+            return
+        if now - self.last_token >= self.silence_timeout:
+            raise LlmError(
+                f"{self.label} stream went silent for {self.silence_timeout:g}s"
+            )
 
 
 def timeout_message(label: str, timeout: float) -> str:
@@ -19,11 +55,6 @@ def timeout_message(label: str, timeout: float) -> str:
         f"{label} timed out after {timeout:g}s. "
         f"Try `--timeout {int(timeout * 2)}` or set timeout_seconds in config."
     )
-
-
-def raise_if_past_deadline(deadline: float, timeout: float, label: str) -> None:
-    if time.monotonic() >= deadline:
-        raise LlmError(timeout_message(label, timeout))
 
 
 def raise_for_http_status(response: httpx.Response, label: str) -> None:
@@ -53,17 +84,17 @@ def consume_sse_lines(
     *,
     parse_line: Callable[[str], str | None],
     parts: list[str],
-    deadline: float,
-    timeout: float,
-    label: str,
+    watch: StreamWatch,
     on_delta: Callable[[str], None] | None,
 ) -> None:
     for line in response.iter_lines():
-        raise_if_past_deadline(deadline, timeout, label)
+        watch.check()
         if not line:
             continue
-        take_sse_piece(parts, parse_line(line), on_delta)
-        raise_if_past_deadline(deadline, timeout, label)
+        piece = parse_line(line)
+        take_sse_piece(parts, piece, on_delta)
+        if piece:
+            watch.note_token()
 
 
 def require_stream_text(parts: list[str], label: str) -> str:
