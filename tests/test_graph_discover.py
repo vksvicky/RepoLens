@@ -31,7 +31,7 @@ def test_config_override(tmp_path: Path):
 def test_none_found_gap(tmp_path: Path):
     names, gaps = discover_packages(tmp_path)
     assert names == []
-    assert any("no packages discovered" in g for g in gaps)
+    assert gaps == [f"graph.no_python_packages: no Python packages under {tmp_path}"]
 
 
 def _write_pyproject(tmp_path: Path, body: str) -> None:

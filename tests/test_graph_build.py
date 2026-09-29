@@ -69,7 +69,7 @@ def test_cycle_has_representative_edge():
 def test_no_packages_fails(tmp_path):
     result = analyse_python_graph(tmp_path)
     assert result.status is GraphStatus.FAILED
-    assert any("no packages discovered" in g for g in result.durability_gaps)
+    assert any("graph.no_python_packages" in g for g in result.durability_gaps)
 
 
 def test_syntax_error_durability_gap(tmp_path):
