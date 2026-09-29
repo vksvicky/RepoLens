@@ -18,10 +18,10 @@ from repolens.config import ModelConfig, resolve_api_key
 from repolens.llm.errors import LlmError
 from repolens.llm.setup import SYSTEM_PROMPT, default_model, resolve_llm_timeout
 from repolens.llm.sse import (
+    StreamWatch,
     consume_sse_lines,
     raise_for_http_status,
     require_stream_text,
-    stream_deadline,
     timeout_message,
 )
 
@@ -82,7 +82,7 @@ def stream_gemini_sse(
 ) -> str:
     """Accumulate Gemini-family SSE text deltas (``alt=sse``). Shared by AI Studio + Vertex."""
     parts: list[str] = []
-    deadline = stream_deadline(timeout)
+    watch = StreamWatch(prefill_timeout=timeout, label=label)
     try:
         with client.stream(
             "POST",
@@ -96,9 +96,7 @@ def stream_gemini_sse(
                 response,
                 parse_line=parse_gemini_sse_text_delta,
                 parts=parts,
-                deadline=deadline,
-                timeout=timeout,
-                label=label,
+                watch=watch,
                 on_delta=on_delta,
             )
     except httpx.TimeoutException as exc:
