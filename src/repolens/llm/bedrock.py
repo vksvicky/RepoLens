@@ -23,6 +23,7 @@ import httpx
 from repolens.config import ModelConfig
 from repolens.llm.errors import LlmError
 from repolens.llm.setup import SYSTEM_PROMPT, default_model, resolve_llm_timeout
+from repolens.llm.sse import timeout_message
 
 DEFAULT_BEDROCK_MODEL = "amazon.nova-lite-v1:0"
 DEFAULT_BEDROCK_REGION = "us-east-1"
@@ -293,10 +294,7 @@ def analyze_bedrock(
             def _byte_chunks() -> Iterator[bytes]:
                 for piece in response.iter_bytes():
                     if time.monotonic() >= deadline:
-                        raise LlmError(
-                            f"Bedrock timed out after {timeout:g}s. "
-                            f"Try `--timeout {int(timeout * 2)}`."
-                        )
+                        raise LlmError(timeout_message("Bedrock", timeout))
                     yield piece
 
             for text in iter_bedrock_text_deltas(_byte_chunks()):
@@ -304,10 +302,7 @@ def analyze_bedrock(
                 if on_delta is not None:
                     on_delta(text)
     except httpx.TimeoutException as exc:
-        raise LlmError(
-            f"Bedrock timed out after {timeout:g}s. "
-            f"Try `--timeout {int(timeout * 2)}`."
-        ) from exc
+        raise LlmError(timeout_message("Bedrock", timeout)) from exc
     finally:
         if owns_client:
             client.close()

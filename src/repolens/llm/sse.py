@@ -52,8 +52,8 @@ class StreamWatch:
 
 def timeout_message(label: str, timeout: float) -> str:
     return (
-        f"{label} timed out after {timeout:g}s. "
-        f"Try `--timeout {int(timeout * 2)}` or set timeout_seconds in config."
+        f"{label} timed out after {timeout:g}s waiting for the first token. "
+        "Finished passes are kept. Re-run when the local model is free."
     )
 
 

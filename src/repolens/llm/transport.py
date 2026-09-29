@@ -398,10 +398,7 @@ def _analyze_anthropic(
             on_delta=on_delta,
         )
     except httpx.TimeoutException as exc:
-        raise LlmError(
-            f"Anthropic timed out after {timeout:g}s. "
-            f"Try `--timeout {int(timeout * 2)}` or set timeout_seconds in config."
-        ) from exc
+        raise LlmError(timeout_message("Anthropic", timeout)) from exc
     except (KeyError, IndexError, json.JSONDecodeError, httpx.HTTPError) as exc:
         raise LlmError(f"Failed to complete Anthropic analysis: {exc}") from exc
     finally:

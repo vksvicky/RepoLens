@@ -40,12 +40,9 @@ def _provider_error_hint(
 
 def _timeout_error(timeout: float, model: str, provider: str | None) -> LlmError:
     return LlmError(
-        f"LLM timed out after {timeout:g}s talking to {model} ({provider}). "
-        "Large repos + local models often need more time. Try: "
-        f"`repolens review --timeout {int(timeout * 2)} …`, "
-        "set `timeout_seconds` in ~/.config/repolens/config.toml, "
-        "or narrow scope with `--mode diff --since HEAD~20`, "
-        "`--scanners-only`, or `--dry-run`."
+        f"LLM timed out after {timeout:g}s waiting for the first token "
+        f"from {model} ({provider}). "
+        "Finished passes are kept. Re-run when the local model is free."
     )
 
 
