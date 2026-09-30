@@ -255,12 +255,14 @@ def _render_suppressed_section(report: FindingReport) -> list[str]:
         "_Excluded from fail-on and SARIF; kept here for audit._",
         "",
     ]
+    from repolens.report import _diff_suffix
+
     for row in rows:
         issue = row.issue
         sid = f" `{issue.stableId}`" if issue.stableId else ""
         note = f" — {row.note}" if row.note else ""
         lines.append(
-            f"- **{issue.title}** (`{issue.file}:{issue.line}`){sid} — "
+            f"- **{issue.title}**{_diff_suffix(issue)} (`{issue.file}:{issue.line}`){sid} — "
             f"{row.mechanism} / `{row.reason}`{note}"
         )
     lines.append("")

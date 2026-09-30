@@ -8,6 +8,7 @@ from pathlib import Path
 
 from repolens.git_refs import git_available, is_safe_git_ref
 from repolens.inventory import FileEntry
+from repolens.schema import Issue
 
 # Cap listed paths in reports / provenance.
 CHANGESET_PATH_LIST_CAP = 40
@@ -82,3 +83,13 @@ def filter_entries_to_changeset(
 
 def cap_changeset_paths(paths: Sequence[str], *, limit: int = CHANGESET_PATH_LIST_CAP) -> list[str]:
     return list(paths[:limit])
+
+
+def tag_findings_for_changeset(issues: list[Issue], changed_paths: Iterable[str]) -> None:
+    """Mark each finding as touched by the diff or already in the tree.
+
+    File-level only. A review that never calls this leaves ``introducedInDiff`` unset.
+    """
+    changed = {path.removeprefix("./").replace("\\", "/") for path in changed_paths}
+    for issue in issues:
+        issue.introducedInDiff = issue.file.removeprefix("./").replace("\\", "/") in changed

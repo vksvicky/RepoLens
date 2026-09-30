@@ -41,6 +41,8 @@ class Issue(BaseModel):
     runId: str | None = None
     # Phase 6.3: provenance for CI gates (scanner vs heuristic vs llm).
     source: IssueSource | None = None
+    # Set only for a --git-diff review. None means the tag is omitted.
+    introducedInDiff: bool | None = None
     # Phase 6.4: Verification & Anchor for SARIF (optional).
     anchorQuote: str | None = None
     anchorContext: str | None = None

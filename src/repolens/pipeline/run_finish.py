@@ -126,8 +126,16 @@ def _stamp_finished_report(state: ReviewRun) -> None:
 
 def _write_finished_report(state: ReviewRun) -> ReviewResult:
     from repolens import __version__
+    from repolens.changeset import tag_findings_for_changeset
     from repolens.llm.model_lock import queue_wait_seconds
 
+    if state.git_diff_requested:
+        paths = list(state.git_changed_paths or [])
+        tag_findings_for_changeset(state.report.issues, paths)
+        tag_findings_for_changeset(
+            [row.issue for row in state.report.suppressedIssues],
+            paths,
+        )
     _attach_complexity(state.report, state.complexity_result)
     _attach_testing(state.report, state.testing_result)
     state.report.provenance = ProvenanceBlock(

@@ -413,9 +413,17 @@ def render_code_example_fenced(code_example: str) -> list[str]:
     return [fence, body, fence] if body else [fence, fence]
 
 
+def _diff_suffix(issue: Issue) -> str:
+    if issue.introducedInDiff is True:
+        return " — New / touched in this diff"
+    if issue.introducedInDiff is False:
+        return " — Pre-existing baseline"
+    return ""
+
+
 def _render_issue(issue: Issue) -> list[str]:
     block = [
-        f"### [{issue.severity.value}] {issue.title}",
+        f"### [{issue.severity.value}] {issue.title}{_diff_suffix(issue)}",
         f"- **Priority:** {issue.priority}",
         f"- **File:** `{issue.file}`",
         f"- **Line:** {issue.line}",
