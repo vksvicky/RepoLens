@@ -715,3 +715,36 @@ def test_audit_ledger_does_not_call_a_cloud_run_air_gapped() -> None:
     )
     assert "or inline disable comments" in suppression_suffix(mixed)
     assert suppression_suffix(FindingReport(confidence=1, summary=Summary())) == ""
+
+
+def test_ledger_splits_queue_wait_from_generation() -> None:
+    queued = FindingReport(
+        confidence=80,
+        summary=Summary(),
+        securityAuditConfidence=80,
+        provenance=ProvenanceBlock(
+            repoLensVersion="0.1.0a1",
+            model="qwen2.5-coder:32b",
+            provider="ollama",
+            llmSeconds=21900,
+            queueWaitSeconds=15600,
+        ),
+    )
+    text = render_markdown(queued, mode="review", commit_go="n/a", push_go="n/a")
+    assert "queued" in text
+    assert "generating" in text
+    assert "0 external network" not in text
+
+    quiet = FindingReport(
+        confidence=80,
+        summary=Summary(),
+        securityAuditConfidence=80,
+        provenance=ProvenanceBlock(
+            model="qwen2.5-coder:32b",
+            provider="ollama",
+            llmSeconds=100,
+            queueWaitSeconds=0,
+        ),
+    )
+    quiet_md = render_markdown(quiet, mode="review", commit_go="n/a", push_go="n/a")
+    assert "queued" not in quiet_md
