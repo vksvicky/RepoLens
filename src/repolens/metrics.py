@@ -259,7 +259,12 @@ _PASS_FOR_PREFIX = {"sec.": "p1", "rel.": "p2", "arch.": "p3"}
 
 
 def _pass_failure_note(report: FindingReport, prefix: str) -> str | None:
-    """A timed-out band did not answer the checklist. That is separate from one miss."""
+    """A hollow or timed-out band did not answer the checklist."""
+    from repolens.coverage import hollow_pass_note
+
+    hollow = hollow_pass_note(report.durabilityGaps, prefix)
+    if hollow is not None:
+        return hollow
     band = _PASS_FOR_PREFIX.get(prefix)
     if band is None:
         return None

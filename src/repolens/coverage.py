@@ -246,10 +246,81 @@ def _timed_out_band(cid: str, gaps: Iterable[str]) -> str | None:
     return None
 
 
+def hollow_pass_note(gaps: Iterable[str], prefix: str) -> str | None:
+    """Name a band whose pass returned nothing, so the score cannot look finished."""
+    spec = _BAND_PASS.get(prefix)
+    if spec is None:
+        return None
+    name, band = spec
+    marker = f"metrics.vacuous_pass_floor_skipped:{name}="
+    kind: str | None = None
+    for gap in gaps:
+        text = str(gap)
+        if not text.startswith(marker):
+            continue
+        if "no_analysis_evidence" in text:
+            kind = "empty"
+        elif "pass_degraded" in text:
+            kind = "degraded"
+    if kind == "empty":
+        return (
+            f"{name} ({band}) returned no analysis evidence. "
+            "The 75% floor was not applied"
+        )
+    if kind == "degraded":
+        return f"{name} ({band}) did not finish. The 75% floor was not applied"
+    return None
+
+
+def reopen_hollow_bands(result: CoverageResult, gaps: Iterable[str]) -> CoverageResult:
+    """Leave a hollow pass's questions unanswered.
+
+    An N/A line from another pass must not close security, reliability, or
+    architecture when that pass itself returned no analysis.
+    """
+    gap_list = list(gaps)
+    prefixes = [prefix for prefix in _BAND_PASS if hollow_pass_note(gap_list, prefix)]
+    if not prefixes:
+        return result
+    na = dict(result.na)
+    missed = list(result.missed)
+    invalid = dict(result.invalid_na)
+    for cid in list(na):
+        if any(cid.startswith(prefix) for prefix in prefixes):
+            na.pop(cid)
+            invalid.pop(cid, None)
+            if cid not in missed:
+                missed.append(cid)
+    for cid in list(invalid):
+        if any(cid.startswith(prefix) for prefix in prefixes) and cid not in missed:
+            invalid.pop(cid)
+            missed.append(cid)
+    return CoverageResult(
+        covered=list(result.covered),
+        covered_notes=dict(result.covered_notes),
+        na=na,
+        missed=missed,
+        invalid_na=invalid,
+    )
+
+
 def explain_missed_id(cid: str, gaps: Iterable[str]) -> str:
     """What the reader does when a checklist question was not answered."""
     label = _question_label(cid)
-    band = _timed_out_band(cid, gaps)
+    gap_list = list(gaps)
+    for prefix in _BAND_PASS:
+        note = hollow_pass_note(gap_list, prefix)
+        if cid.startswith(prefix) and note:
+            name, band = _BAND_PASS[prefix]
+            if "did not finish" in note:
+                reason = f"{name} ({band}) did not finish, so this question is unanswered."
+            else:
+                reason = (
+                    f"{name} ({band}) returned no analysis evidence, "
+                    "so this question is unanswered."
+                )
+            return f"{label}. {reason} {_FIX_POINTER}"
+    band = _timed_out_band(cid, gap_list)
     if band is not None:
         return (
             f"{label}. The {band} pass timed out before the first token. "

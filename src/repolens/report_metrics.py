@@ -2,7 +2,44 @@
 
 from __future__ import annotations
 
-from repolens.schema import FindingReport
+from repolens.schema import FindingReport, Severity
+
+
+def format_collapsed_duplicates(report: FindingReport) -> str | None:
+    """How scanner Critical/High rows were kept, suppressed, or dropped.
+
+    ``None`` when the raw row count is missing or already matches the retained
+    Critical and High counts.
+    """
+    unique = report.summary.critical + report.summary.high
+    raw = report.rawCriticalHighCount
+    if raw is None or raw <= unique:
+        return None
+    suppressed = sum(
+        1
+        for row in report.suppressedIssues
+        if row.issue.severity in {Severity.CRITICAL, Severity.HIGH}
+    )
+    dropped = max(0, raw - unique - suppressed)
+    parts: list[str] = []
+    if suppressed:
+        parts.append(f"{suppressed} suppressed")
+    if dropped:
+        parts.append(f"{dropped} not retained")
+    detail = f" ({', '.join(parts)})" if parts else ""
+    return f"{raw} tool rows evaluated → {unique} Critical/High retained{detail}"
+
+
+def suppression_suffix(report: FindingReport) -> str:
+    """How the suppressed rows were recorded, or empty when there are none."""
+    rows = report.suppressedIssues
+    if not rows:
+        return ""
+    if all(row.mechanism == "ignore_file" for row in rows):
+        return " (via .repolens-ignore)"
+    if all(row.mechanism == "disable_comment" for row in rows):
+        return " (via inline disable comments)"
+    return " (via .repolens-ignore or inline disable comments)"
 
 
 def _clock(seconds: float | None) -> str:
@@ -17,8 +54,6 @@ def _clock(seconds: float | None) -> str:
 
 def _render_metrics_section(report: FindingReport) -> list[str]:
     """Glossary + band audit confidences (Phase 5.1) + Two-Lane counts (6.11)."""
-    from repolens.report import format_collapsed_duplicates
-
     has_bands = (
         report.securityAuditConfidence is not None
         or report.architectureAuditConfidence is not None
@@ -71,6 +106,11 @@ def _render_metrics_section(report: FindingReport) -> list[str]:
         ),
     ):
         lines.append(f"| {label} | {count} | {meaning} |")
+    if report.suppressedIssues:
+        lines.append(
+            f"| Suppressed | {len(report.suppressedIssues)} | "
+            f"Reviewed and excluded from the gate{suppression_suffix(report)} |"
+        )
     if report.durationSeconds is not None:
         lines.append(
             f"| Duration | {_clock(report.durationSeconds)} | Wall-clock time for "
@@ -117,8 +157,8 @@ def _render_metrics_section(report: FindingReport) -> list[str]:
     collapsed = format_collapsed_duplicates(report)
     if collapsed is not None:
         lines.append(
-            f"| Duplicates merged | {collapsed} | Same advisory reported by "
-            "more than one scanner or the model, before those rows were combined |"
+            f"| Critical/High rows | {collapsed} | Scanner rows at Critical or High, "
+            "then how many were kept, suppressed, or not retained |"
         )
     if has_bands:
         lines.extend(
@@ -157,4 +197,63 @@ def _render_metrics_section(report: FindingReport) -> list[str]:
             lines.append("")
     else:
         lines.append("")
+    return lines
+
+
+_CLOUD_PROVIDERS = frozenset(
+    {"openai", "anthropic", "gemini", "vertex", "bedrock", "deepseek"}
+)
+
+
+def _data_boundary(provider: str | None) -> str:
+    name = (provider or "").strip().lower()
+    if name == "ollama":
+        return (
+            "Local model. Source text was not sent to a cloud model API. "
+            "Scanner tools may still contact their own services."
+        )
+    if name in _CLOUD_PROVIDERS:
+        return (
+            f"Model calls used `{provider}`. This run was not air-gapped. "
+            "Scanner tools may still contact their own services."
+        )
+    if name == "openai_compatible":
+        return (
+            "Model calls used the configured OpenAI-compatible endpoint. "
+            "Treat this as air-gapped only when that endpoint is on this machine."
+        )
+    if name:
+        return (
+            f"Model calls used `{provider}`. "
+            "Confirm that endpoint before treating this run as air-gapped."
+        )
+    return "Model provider was not recorded."
+
+
+def _render_audit_ledger(report: FindingReport) -> list[str]:
+    """Four-line proof of how the review was run."""
+    prov = report.provenance
+    version = prov.repoLensVersion if prov and prov.repoLensVersion else "unknown"
+    lines = ["", "---", "", "### Audit Ledger", "", f"- **Engine:** RepoLens {version}"]
+    if prov is None:
+        lines.append("- **Execution:** not recorded")
+        lines.append("- **Data boundary:** Model provider was not recorded.")
+        lines.append("- **Tree:** Git commit was not recorded.")
+        lines.append("")
+        return lines
+    bits: list[str] = []
+    if prov.fastBrainSeconds is not None:
+        bits.append(f"Fast Brain {_clock(prov.fastBrainSeconds)}")
+    if prov.llmSeconds is not None:
+        model = prov.model or "the configured model"
+        bits.append(f"Slow Brain {_clock(prov.llmSeconds)} via `{model}`")
+    lines.append(
+        "- **Execution:** " + (" | ".join(bits) if bits else "times were not recorded")
+    )
+    lines.append(f"- **Data boundary:** {_data_boundary(prov.provider)}")
+    if prov.gitSha:
+        lines.append(f"- **Tree:** commit `{prov.gitSha}`")
+    else:
+        lines.append("- **Tree:** Git commit was not recorded.")
+    lines.append("")
     return lines

@@ -12,7 +12,7 @@ from repolens.coverage import (
     explain_missed_id,
     parse_coverage_notes,
 )
-from repolens.schema import FindingReport, QualityScorecard, ThemeEntry
+from repolens.schema import FindingReport, Issue, QualityScorecard, ThemeEntry
 
 _STATUS_LABEL = {
     "covered": "Answered",
@@ -357,11 +357,45 @@ def _render_coverage_section(report: FindingReport) -> list[str]:
     return lines
 
 
+def _echoes_suppressed(issue: Issue, report: FindingReport) -> bool:
+    """True when an active row restates an advisory the team already suppressed."""
+    blob = " ".join(
+        part
+        for part in (
+            issue.title,
+            issue.explanation,
+            issue.file,
+            issue.packageName or "",
+            issue.advisoryId or "",
+        )
+        if part
+    ).lower()
+    for row in report.suppressedIssues:
+        other = row.issue
+        if (
+            issue.advisoryId
+            and other.advisoryId
+            and issue.advisoryId.strip().upper() == other.advisoryId.strip().upper()
+        ):
+            return True
+        advisory = (other.advisoryId or "").strip()
+        if len(advisory) >= 6 and advisory.lower() in blob:
+            return True
+        package = (other.packageName or "").strip()
+        if len(package) >= 4 and package.lower() in blob:
+            return True
+    return False
+
+
 def plan_to_fix_lines(report: FindingReport) -> list[str]:
     from repolens.complexity.thresholds import COGNITIVE_MEDIUM_MAX, CYCLO_MEDIUM_MAX
 
     lines: list[str] = []
-    immediate = [issue for issue in report.issues if issue.fixTiming == "immediately"]
+    immediate = [
+        issue
+        for issue in report.issues
+        if issue.fixTiming == "immediately" and not _echoes_suppressed(issue, report)
+    ]
     for issue in immediate:
         lines.append(
             f"1. **{issue.title}** (`{issue.file}:{issue.line}`) — "

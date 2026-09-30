@@ -266,9 +266,42 @@ def test_print_summary_includes_gate_adequacy_one_liner() -> None:
     out = buf.getvalue()
     assert GATE_ADEQUACY_ONE_LINER in out or "review-package adequacy" in out
     assert "Unique Critical/High" not in out
-    assert "3 tool rows → 1 Critical/High" in out
+    assert "3 tool rows evaluated → 1 Critical/High retained (2 not retained)" in out
     assert "Critical" in out
     assert "High" in out
+
+
+def test_print_summary_counts_suppressed_rows() -> None:
+    from io import StringIO
+
+    from rich.console import Console
+
+    from repolens.cli import export as export_mod
+    from repolens.schema import FindingReport, Issue, Severity, Summary, SuppressedIssue
+
+    issue = Issue(
+        severity=Severity.MEDIUM,
+        priority="P2",
+        category="Security",
+        file="a.py",
+        line=1,
+        title="Ignored advisory",
+        explanation="Accepted.",
+        recommendedFix="None required.",
+    )
+    report = FindingReport(
+        confidence=70,
+        summary=Summary(),
+        suppressedIssues=[
+            SuppressedIssue(issue=issue, reason="accepted risk", mechanism="ignore_file")
+        ],
+    )
+    buf = StringIO()
+    fake = Console(file=buf, force_terminal=False, width=120)
+    with patch.object(export_mod, "console", fake):
+        export_mod._print_summary(70, 1, report, dry_run=False)
+    assert "Suppressed" in buf.getvalue()
+    assert ".repolens-ignore" in buf.getvalue()
 
 
 def test_print_summary_explains_each_missed_checklist_id() -> None:

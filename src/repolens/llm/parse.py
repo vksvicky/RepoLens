@@ -255,6 +255,36 @@ def _coerce_summary(data: dict[str, Any]) -> None:
             fixed[key] = val if isinstance(val, int) else 0
         data["summary"] = fixed
 
+_PLACEHOLDER_FIX_RE = re.compile(
+    r"^(?:none|n/?a|no fix(?: needed)?|nothing(?: to (?:fix|do))?|"
+    r"not applicable|no action(?: required)?)\.?$",
+    re.IGNORECASE,
+)
+_CLEAN_CLAIM_RE = re.compile(
+    r"no issues(?: found| identified)?|nothing found|ran clean|reviewed;|no findings",
+    re.IGNORECASE,
+)
+_COVERAGE_ID_RE = re.compile(r"\b((?:sec|rel|arch)\.[a-z0-9_]+)\b", re.IGNORECASE)
+
+
+def is_non_actionable_claim(title: str, recommended_fix: str) -> bool:
+    """A clean-review sentence or a placeholder fix is not a defect."""
+    if _PLACEHOLDER_FIX_RE.match(recommended_fix.strip()):
+        return True
+    return _CLEAN_CLAIM_RE.search(title) is not None
+
+
+def _coverage_claim_gap(issue: dict[str, Any]) -> str | None:
+    blob = f"{issue.get('category', '')} {issue.get('title', '')}"
+    match = _COVERAGE_ID_RE.search(blob)
+    if match is None:
+        return None
+    reason = str(issue.get("explanation") or issue.get("title") or "").strip()
+    if not reason:
+        reason = "the model reported no defect"
+    return f"coverage:{match.group(1).lower()}: N/A — {reason}"
+
+
 def _coerce_issues_list(data: dict[str, Any]) -> None:
     issues_raw = data.get("issues")
     if not isinstance(issues_raw, list):
@@ -265,11 +295,19 @@ def _coerce_issues_list(data: dict[str, Any]) -> None:
         else:
             issues_raw = []
     coerced_issues: list[dict[str, Any]] = []
+    claims: list[str] = []
     for item in issues_raw:
         issue = _coerce_issue(item)
-        if issue is not None:
-            coerced_issues.append(issue)
+        if issue is None:
+            continue
+        if is_non_actionable_claim(issue["title"], issue["recommendedFix"]):
+            note = _coverage_claim_gap(issue)
+            if note:
+                claims.append(note)
+            continue
+        coerced_issues.append(issue)
     data["issues"] = coerced_issues
+    data["_coverage_claims"] = claims
 
 def _coerce_durability_gaps(data: dict[str, Any]) -> None:
     gaps = data.get("durabilityGaps")
@@ -279,7 +317,11 @@ def _coerce_durability_gaps(data: dict[str, Any]) -> None:
         gaps = [gaps] if gaps.strip() else []
     if not isinstance(gaps, list):
         gaps = []
-    data["durabilityGaps"] = [str(g) for g in gaps if str(g).strip()]
+    cleaned = [str(g) for g in gaps if str(g).strip()]
+    for note in data.pop("_coverage_claims", []):
+        if note not in cleaned:
+            cleaned.append(note)
+    data["durabilityGaps"] = cleaned
 
 def _coerce_report_payload(raw: Any) -> dict[str, Any]:
     """Normalize common local-LLM JSON mistakes before Pydantic validation."""
