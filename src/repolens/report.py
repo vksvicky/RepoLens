@@ -7,7 +7,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from repolens.disclaimer import disclaimer_markdown_lines
-from repolens.report_metrics import _render_metrics_section
+from repolens.report_metrics import (
+    _render_audit_ledger,
+    _render_metrics_section,
+    format_collapsed_duplicates,
+    suppression_suffix,
+)
 from repolens.report_sections import (
     _render_change_set_section,
     _render_complexity_section,
@@ -39,19 +44,6 @@ GATE_ADEQUACY_ONE_LINER = (
     "Gate confidence reflects review-package adequacy "
     '(checklist coverage + open severity penalties), not a "% secure" score.'
 )
-
-
-def format_collapsed_duplicates(report: FindingReport) -> str | None:
-    """How many extra Critical/High rows were merged, or None when nothing merged.
-
-    Critical and High are already listed on their own. This note exists only
-    when two tools cited the same advisory, so the raw row count was higher.
-    """
-    unique = report.summary.critical + report.summary.high
-    raw = report.rawCriticalHighCount
-    if raw is None or raw <= unique:
-        return None
-    return f"{raw} tool rows → {unique} Critical/High"
 
 
 def report_timestamp(when: datetime | None = None) -> datetime:
@@ -224,14 +216,17 @@ def _markdown_verdict(report: FindingReport) -> list[str]:
             f"- **Counts:** Critical {report.summary.critical} · "
             f"High {report.summary.high} · Medium {report.summary.medium} · "
             f"Low {report.summary.low}"
+            + (
+                f" · Suppressed {len(report.suppressedIssues)}"
+                f"{suppression_suffix(report)}"
+                if report.suppressedIssues
+                else ""
+            )
         ),
     ]
     collapsed = format_collapsed_duplicates(report)
     if collapsed is not None:
-        lines.append(
-            f"- **Duplicates merged:** {collapsed} "
-            "(same advisory from more than one scanner or the model)"
-        )
+        lines.append(f"- **Critical/High rows:** {collapsed}")
     status = _llm_status_line(report)
     if status is not None:
         lines.append(status)
@@ -372,6 +367,7 @@ def render_markdown(
     lines.extend(_render_coverage_section(report))
     lines.extend(_render_theme_breakdown(report))
     lines.extend(_markdown_scores(report))
+    lines.extend(_render_audit_ledger(report))
     lines.extend(disclaimer_markdown_lines())
     return "\n".join(lines)
 

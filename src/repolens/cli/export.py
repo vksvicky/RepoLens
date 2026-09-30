@@ -85,11 +85,18 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
         table.add_row("LLM", llm_label)
     collapsed = format_collapsed_duplicates(report)
     if collapsed is not None:
-        table.add_row("Duplicates merged", collapsed)
+        table.add_row("Critical/High rows", collapsed)
     table.add_row("Critical", str(report.summary.critical))
     table.add_row("High", str(report.summary.high))
     table.add_row("Medium", str(report.summary.medium))
     table.add_row("Low", str(report.summary.low))
+    if report.suppressedIssues:
+        from repolens.report_metrics import suppression_suffix
+
+        table.add_row(
+            "Suppressed",
+            f"{len(report.suppressedIssues)}{suppression_suffix(report)}",
+        )
     if report.scannerRuns:
         ran = sum(1 for r in report.scannerRuns if r.status == "ran")
         table.add_row("Scanners ran", f"{ran}/{len(report.scannerRuns)}")

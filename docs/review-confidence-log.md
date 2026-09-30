@@ -44,3 +44,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-09-26 | WIP→PR-A | 96% | 0/0/0/0 | Tracker hygiene: Wave C close, #12 refresh, #11 triage (docs only) | chat |
 | 2026-09-26 | WIP→PR-B/C/D | 90% | 0/0/1/0 | #15 cost knobs + #16 --git-diff restrict + close #13 | chat |
 | 2026-09-27 | WIP→commit | 88% | 0/0/1/1 | Split run_review/_run_mode under High; gitleaks history; CI least privilege + Dependabot/CodeQL | chat |
+| 2026-09-30 | WIP→commit | 88% | 0/0/2/0 | Hollow pass stays unanswered; suppressed rows leave Plan to fix; audit ledger | chat |

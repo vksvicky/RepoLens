@@ -13,6 +13,7 @@ from repolens.coverage import (
     explain_missed_id,
     is_lazy_na_reason,
     parse_coverage_notes,
+    reopen_hollow_bands,
 )
 from repolens.deep import (
     merge_reports,
@@ -454,6 +455,20 @@ def _analyze_deep_passes(
             seeded_na=cfg.coverage.na,
             seeded_covered=cfg.coverage.covered,
         )
+    report, pass_confidences = build_pass_confidences_with_floors(
+        _pass_outcomes(passes, parts, raw_by_pass, degraded_by_pass),
+        coverage=coverage,
+        scanner_runs=scanner_runs,
+        config_floor=cfg.deep.vacuous_pass_confidence_floor,
+        report=report,
+    )
+    coverage = reopen_hollow_bands(coverage, report.durabilityGaps)
+    report = _apply_coverage_metrics(
+        report,
+        coverage,
+        pass_confidences=pass_confidences,
+        scanner_runs=scanner_runs,
+    )
     report.coverage = CoverageBlock(
         covered=list(coverage.covered),
         na=dict(coverage.na),
@@ -469,19 +484,6 @@ def _analyze_deep_passes(
         report.issues,
         mode=mode,
         full_audit=full_audit,
-    )
-    report, pass_confidences = build_pass_confidences_with_floors(
-        _pass_outcomes(passes, parts, raw_by_pass, degraded_by_pass),
-        coverage=coverage,
-        scanner_runs=scanner_runs,
-        config_floor=cfg.deep.vacuous_pass_confidence_floor,
-        report=report,
-    )
-    report = _apply_coverage_metrics(
-        report,
-        coverage,
-        pass_confidences=pass_confidences,
-        scanner_runs=scanner_runs,
     )
     report.scoreNotes = low_audit_explanations(report)
     _phase_coverage_metrics(prog, report, coverage, unique_ids)

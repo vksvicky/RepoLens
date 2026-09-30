@@ -443,3 +443,17 @@ def test_band_sentence_matches_the_summary_and_skips_model_prose() -> None:
     assert "_render_issue" not in security
     assert "Model invented a hole" not in text
     assert "_render_issue" in text.split("Architecture audit", 1)[1]
+
+
+def test_hollow_pass_is_named_instead_of_a_clean_base() -> None:
+    report = FindingReport(
+        confidence=5,
+        summary=Summary(),
+        securityAuditConfidence=5,
+        durabilityGaps=["metrics.vacuous_pass_floor_skipped:p1=no_analysis_evidence"],
+        coverage=CoverageBlock(missed=["sec.injection"]),
+    )
+    text = "\n".join(low_audit_explanations(report))
+    assert "p1 (security) returned no analysis evidence" in text
+    assert "The 75% floor was not applied" in text
+    assert "pass base was already under 70%" not in text

@@ -5,12 +5,15 @@ from __future__ import annotations
 from pathlib import Path
 
 from repolens.coverage import (
+    CoverageResult,
     coverage_ids_for_pass,
     evaluate_coverage,
     explain_answered,
     explain_missed_id,
+    hollow_pass_note,
     load_coverage_matrix,
     parse_coverage_notes,
+    reopen_hollow_bands,
 )
 from repolens.deep import coverage_checklist_tail, coverage_closure_prompt
 from repolens.rules.registry import get_rule, list_rules
@@ -215,6 +218,32 @@ def test_checklist_link_requires_the_theme_or_the_full_id() -> None:
     named = _issue("heuristic.mega_file", "Big file", explanation="see arch.testing")
     by_id = evaluate_coverage(["arch.testing"], [named], [])
     assert by_id.covered == ["arch.testing"]
+
+
+def test_hollow_security_pass_leaves_its_questions_unanswered() -> None:
+    gaps = ["metrics.vacuous_pass_floor_skipped:p1=no_analysis_evidence"]
+    result = CoverageResult(
+        covered=["sec.deps_cve"],
+        na={"sec.injection": "the repository is empty", "arch.dry": "one module"},
+        invalid_na={"sec.xss": "not reviewed"},
+        missed=[],
+    )
+    reopened = reopen_hollow_bands(result, gaps)
+    assert "sec.injection" in reopened.missed
+    assert "sec.xss" in reopened.missed
+    assert "sec.xss" not in reopened.invalid_na
+    assert "sec.injection" not in reopened.na
+    assert reopened.na["arch.dry"] == "one module"
+    assert reopened.covered == ["sec.deps_cve"]
+    note = explain_missed_id("sec.injection", gaps)
+    assert "p1 (security) returned no analysis evidence" in note
+    assert "unanswered" in note
+    assert hollow_pass_note(gaps, "sec.") is not None
+    assert hollow_pass_note(gaps, "arch.") is None
+    degraded = ["metrics.vacuous_pass_floor_skipped:p2=pass_degraded"]
+    assert "did not finish" in (hollow_pass_note(degraded, "rel.") or "")
+    degraded_note = explain_missed_id("rel.edge_cases", degraded)
+    assert "p2 (reliability) did not finish" in degraded_note
 
 
 def _issue(category: str, title: str, explanation: str = "") -> Issue:

@@ -135,3 +135,59 @@ def test_parse_coerces_messy_local_llm_issues() -> None:
     assert report.issues[2].severity.value == "HIGH"  # P1 → HIGH
     assert report.summary.high == 2
     assert report.summary.medium == 1
+
+
+def test_clean_review_notes_do_not_become_findings() -> None:
+    content = """{
+  "confidence": 80,
+  "summary": {"critical": 0, "high": 0, "medium": 0, "low": 0},
+  "issues": [
+    {
+      "severity": "LOW",
+      "priority": "P2",
+      "category": "rel.edge_cases",
+      "file": "scripts/repolens/assert_coverage.py",
+      "line": 39,
+      "title": "Reviewed edge cases; no issues found",
+      "explanation": "The file checks coverage ids.",
+      "recommendedFix": "None"
+    },
+    {
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "category": "Reliability",
+      "file": "a.py",
+      "line": 4,
+      "title": "Bare except swallows errors",
+      "explanation": "A failure becomes success.",
+      "recommendedFix": "Catch OSError."
+    }
+  ],
+  "durabilityGaps": []
+}"""
+    report = parse_report_json(content)
+    assert [issue.title for issue in report.issues] == ["Bare except swallows errors"]
+    assert any(
+        gap.startswith("coverage:rel.edge_cases: N/A —") for gap in report.durabilityGaps
+    )
+    assert "apply the fix" not in " ".join(report.durabilityGaps)
+
+
+def test_placeholder_fix_without_a_checklist_id_is_dropped() -> None:
+    from repolens.llm.parse import _coverage_claim_gap, is_non_actionable_claim
+
+    assert is_non_actionable_claim("SQL injection in the login query", "N/A")
+    assert (
+        _coverage_claim_gap(
+            {
+                "category": "Security",
+                "title": "Reviewed auth; no issues found",
+                "explanation": "Looked at the handler.",
+            }
+        )
+        is None
+    )
+    note = _coverage_claim_gap(
+        {"category": "sec.injection", "title": "", "explanation": ""}
+    )
+    assert note == "coverage:sec.injection: N/A — the model reported no defect"

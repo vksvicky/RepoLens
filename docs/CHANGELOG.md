@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Report honesty** — a pass that returned no analysis leaves that band unanswered and names the pass. A model note that says there is no defect, or whose fix is “none” / “n/a”, stays out of the issues list. Suppressed advisories stay out of Plan to fix. Scanner math says how many Critical/High rows were retained, suppressed, or not retained. The summary counts suppressed rows, and every report ends with an audit ledger.
 - **Local model lock** — reviews that share one local model (Ollama, or `openai_compatible` on localhost) take a pass-by-pass ticket and say which project is ahead. Cloud providers do not create lock files. `--model-lock` forces the queue on. `--no-model-lock` turns it off. A stream that keeps producing tokens is not cut off at `--timeout`; silence after the first token is 300 seconds.
 - **Pass resume** — a finished P1, P2, P3, or coverage-closure pass is saved and skipped on the next run when the packed files, model, and unanswered checklist ids are unchanged. The first Ctrl+C writes the passes that finished and exits 130. A second Ctrl+C exits immediately.
 - **Checklist** — the report lists each question as answered (apply the finding’s fix), does not apply (a fact from this repository), or not answered (the step to finish the review). The model’s `N/A` line stays in the prompt.

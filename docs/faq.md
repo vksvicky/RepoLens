@@ -298,7 +298,8 @@ Post-parse **FP calibrations** (default on) demote patterns such as list-form `s
 | **Reliability audit confidence** | Honesty/completeness of the **P2 / `rel.*`** checklist, minus open Critical/High in that band | “App is X% reliable” |
 | **Architecture audit confidence** | Honesty/completeness of the **P3 / `arch.*`** checklist, minus open Critical/High in that band | The 1–10 architecture `scores` block |
 | **Critical / High / Medium / Low** | Finding severity counts after the same advisory is merged into one issue | A separate “Unique Critical/High” total. Critical + High is not shown again |
-| **Duplicates merged** | Shown only when OSV, Trivy, or the model cited the same advisory more than once, e.g. `4 tool rows → 2 Critical/High` | Another severity, or a count of open issues |
+| **Critical/High rows** | Shown when the raw scanner count is higher than the retained Critical + High count, e.g. `4 tool rows evaluated → 2 Critical/High retained (2 not retained)` | A claim that rows were merged when they were suppressed or dropped |
+| **Suppressed** | Findings excluded by `.repolens-ignore` or an inline disable, kept for the audit trail | A finding that still blocks the gate or appears in Plan to fix |
 | **Why a score is low** | For a band or the gate under 70%: the missed checklist ids and the Critical/High findings that were subtracted | Medium/Low findings, or a “% well architected” grade |
 | **Checklist** answered / does not apply / not answered | Each security, reliability, and architecture question, and what to do next | Treating an unanswered question as a defect in the code |
 | **Theme breakdown** | The same three results per product theme, plus finding counts | “% clean” per theme |
