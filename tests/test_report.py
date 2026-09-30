@@ -717,6 +717,46 @@ def test_audit_ledger_does_not_call_a_cloud_run_air_gapped() -> None:
     assert suppression_suffix(FindingReport(confidence=1, summary=Summary())) == ""
 
 
+def test_plan_to_fix_splits_quick_wins_from_structural_work() -> None:
+    from repolens.report_sections import plan_to_fix_lines
+
+    secret = Issue(
+        severity=Severity.MEDIUM,
+        priority="P2",
+        category="sec.repo_hygiene_secrets",
+        file=".gitignore",
+        line=1,
+        title="Gitignore is missing secret patterns",
+        explanation="A .env file can be committed.",
+        recommendedFix="Add .env",
+        fixTiming="immediately",
+        source="heuristic",
+    )
+    mega = Issue(
+        severity=Severity.MEDIUM,
+        priority="P2",
+        category="heuristic.mega_file",
+        file="src/legacy.py",
+        line=1,
+        title="Mega file src/legacy.py",
+        explanation="The file is over the line cap.",
+        recommendedFix="Split by responsibility.",
+        fixTiming="immediately",
+        source="heuristic",
+    )
+    report = FindingReport(
+        confidence=40,
+        summary=Summary(medium=2),
+        issues=[secret, mega],
+    )
+    text = "\n".join(plan_to_fix_lines(report))
+    assert text.index("Quick wins:") < text.index("Gitignore is missing")
+    assert text.index("Structural:") < text.index("Mega file")
+    assert text.index("Quick wins:") < text.index("Structural:")
+    assert "< 1 hour" not in text
+    assert "1–3 days" not in text
+
+
 def test_change_set_tags_touched_files_only() -> None:
     from repolens.changeset import tag_findings_for_changeset
 
