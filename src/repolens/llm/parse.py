@@ -304,6 +304,9 @@ def _coerce_issues_list(data: dict[str, Any]) -> None:
             note = _coverage_claim_gap(issue)
             if note:
                 claims.append(note)
+            else:
+                title = str(issue.get("title") or "untitled").strip() or "untitled"
+                claims.append(f"llm.non_actionable_omitted: {title}")
             continue
         coerced_issues.append(issue)
     data["issues"] = coerced_issues

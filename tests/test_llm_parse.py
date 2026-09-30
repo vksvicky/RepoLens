@@ -191,3 +191,28 @@ def test_placeholder_fix_without_a_checklist_id_is_dropped() -> None:
         {"category": "sec.injection", "title": "", "explanation": ""}
     )
     assert note == "coverage:sec.injection: N/A — the model reported no defect"
+
+
+def test_placeholder_fix_without_a_checklist_id_is_named() -> None:
+    content = """{
+      "confidence": 40,
+      "summary": {"critical": 0, "high": 0, "medium": 0, "low": 0},
+      "issues": [{
+        "severity": "HIGH",
+        "priority": "P1",
+        "category": "Security",
+        "file": "src/login.py",
+        "line": 12,
+        "title": "SQL injection in the login query",
+        "explanation": "The query concatenates the password.",
+        "recommendedFix": "None",
+        "impact": "Account takeover.",
+        "codeExample": "query = \\"select \\" + password"
+      }],
+      "durabilityGaps": []
+    }"""
+    report = parse_report_json(content)
+    assert report.issues == []
+    assert report.durabilityGaps == [
+        "llm.non_actionable_omitted: SQL injection in the login query"
+    ]
