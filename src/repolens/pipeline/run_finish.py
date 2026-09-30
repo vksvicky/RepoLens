@@ -126,6 +126,7 @@ def _stamp_finished_report(state: ReviewRun) -> None:
 
 def _write_finished_report(state: ReviewRun) -> ReviewResult:
     from repolens import __version__
+    from repolens.llm.model_lock import queue_wait_seconds
 
     _attach_complexity(state.report, state.complexity_result)
     _attach_testing(state.report, state.testing_result)
@@ -145,6 +146,7 @@ def _write_finished_report(state: ReviewRun) -> ReviewResult:
         llmPackFiles=state.llm_pack_file_count,
         fastBrainSeconds=state.fast_brain_seconds,
         llmSeconds=state.llm_seconds_prov,
+        queueWaitSeconds=round(queue_wait_seconds(), 1),
         notes=list(state.triage_plan.notes) if state.triage_plan is not None else [],
     )
     # Phase 6.4: stamp locationVerified before Markdown/SARIF write

@@ -246,7 +246,12 @@ def _render_audit_ledger(report: FindingReport) -> list[str]:
         bits.append(f"Fast Brain {_clock(prov.fastBrainSeconds)}")
     if prov.llmSeconds is not None:
         model = prov.model or "the configured model"
-        bits.append(f"Slow Brain {_clock(prov.llmSeconds)} via `{model}`")
+        bit = f"Slow Brain {_clock(prov.llmSeconds)} via `{model}`"
+        waited = prov.queueWaitSeconds or 0
+        if waited > 0:
+            generating = max(0.0, prov.llmSeconds - waited)
+            bit += f" (queued {_clock(waited)}, generating {_clock(generating)})"
+        bits.append(bit)
     lines.append(
         "- **Execution:** " + (" | ".join(bits) if bits else "times were not recorded")
     )

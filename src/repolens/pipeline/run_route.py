@@ -422,3 +422,6 @@ def _prepare_llm_prompt(state: ReviewRun) -> None:
     )
     state.started = time.time()
     state._llm_t0 = time.monotonic()
+    from repolens.llm.model_lock import reset_queue_wait
+
+    reset_queue_wait()

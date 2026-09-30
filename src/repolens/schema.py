@@ -194,6 +194,7 @@ class ProvenanceBlock(BaseModel):
     llmPackFiles: int | None = None
     fastBrainSeconds: float | None = Field(default=None, ge=0)
     llmSeconds: float | None = Field(default=None, ge=0)
+    queueWaitSeconds: float | None = Field(default=None, ge=0)
     notes: list[str] = Field(default_factory=list)
 
 
