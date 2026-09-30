@@ -717,6 +717,68 @@ def test_audit_ledger_does_not_call_a_cloud_run_air_gapped() -> None:
     assert suppression_suffix(FindingReport(confidence=1, summary=Summary())) == ""
 
 
+def test_change_set_tags_touched_files_only() -> None:
+    from repolens.changeset import tag_findings_for_changeset
+
+    touched = Issue(
+        severity=Severity.MEDIUM,
+        priority="P2",
+        category="Reliability",
+        file="src/app.py",
+        line=3,
+        title="Bare except",
+        explanation="Errors disappear.",
+        recommendedFix="Catch OSError.",
+    )
+    old = Issue(
+        severity=Severity.MEDIUM,
+        priority="P2",
+        category="heuristic.mega_file",
+        file="src/legacy.py",
+        line=1,
+        title="Mega file",
+        explanation="The file is long.",
+        recommendedFix="Split it.",
+    )
+    tag_findings_for_changeset([touched, old], ["src/app.py"])
+    assert touched.introducedInDiff is True
+    assert old.introducedInDiff is False
+
+    report = FindingReport(
+        confidence=40,
+        summary=Summary(medium=2),
+        issues=[touched, old],
+        securityAuditConfidence=40,
+    )
+    text = render_markdown(report, mode="review", commit_go="n/a", push_go="n/a")
+    assert "Bare except — New / touched in this diff" in text
+    assert "Mega file — Pre-existing baseline" in text
+
+    plain = Issue(
+        severity=Severity.LOW,
+        priority="P3",
+        category="General",
+        file="src/app.py",
+        line=1,
+        title="Untagged note",
+        explanation="Whole-tree review.",
+        recommendedFix="Leave it.",
+    )
+    plain_md = render_markdown(
+        FindingReport(
+            confidence=40,
+            summary=Summary(low=1),
+            issues=[plain],
+            securityAuditConfidence=40,
+        ),
+        mode="review",
+        commit_go="n/a",
+        push_go="n/a",
+    )
+    assert "New / touched in this diff" not in plain_md
+    assert "Pre-existing baseline" not in plain_md
+
+
 def test_ledger_splits_queue_wait_from_generation() -> None:
     queued = FindingReport(
         confidence=80,
