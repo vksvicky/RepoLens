@@ -35,6 +35,23 @@ _held_endpoints: ContextVar[frozenset[str]] = ContextVar(
     "repolens_local_endpoint_held",
     default=frozenset(),
 )
+_queue_wait: ContextVar[float] = ContextVar("repolens_queue_wait", default=0.0)
+
+
+def queue_wait_seconds() -> float:
+    """Seconds this process has waited for a local model since the last reset."""
+    return _queue_wait.get()
+
+
+def reset_queue_wait() -> None:
+    """Start a review's queue-wait total at zero."""
+    _queue_wait.set(0.0)
+
+
+def note_queue_wait(seconds: float) -> None:
+    """Add time spent before the local lock was acquired."""
+    if seconds > 0:
+        _queue_wait.set(_queue_wait.get() + seconds)
 
 
 @contextmanager
@@ -162,6 +179,7 @@ class OllamaModelLock:
         status: Callable[[str], None] | None = None,
         sleeper: Callable[[float], None] | None = None,
         jitter: Callable[[], float] | None = None,
+        clock: Callable[[], float] | None = None,
     ) -> None:
         self.repo = repo
         self.path = path
@@ -174,6 +192,8 @@ class OllamaModelLock:
         self.status = status
         self.sleeper = sleeper or time.sleep
         self.jitter = jitter
+        self.clock = clock or time.monotonic
+        self.waited_seconds = 0.0
         self.lock_file = lock_path_for(base_url, self.lock_dir, provider=provider)
         self.queue_dir = self.lock_dir / (
             "queue_" + self.lock_file.stem.removeprefix("local_")
@@ -186,6 +206,7 @@ class OllamaModelLock:
         if self.lock_file.name in _held_endpoints.get():
             self._nested = True
             return self
+        started = self.clock()
         self.lock_dir.mkdir(parents=True, exist_ok=True)
         self._ticket = take_ticket(
             self.queue_dir,
@@ -201,6 +222,8 @@ class OllamaModelLock:
         try:
             self._wait_for_turn()
             self._acquire_flock()
+            self.waited_seconds = max(0.0, self.clock() - started)
+            note_queue_wait(self.waited_seconds)
         except Exception:
             self._ticket.unlink(missing_ok=True)
             self._ticket = None

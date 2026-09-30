@@ -264,6 +264,58 @@ def test_a_new_ticket_waits_behind_an_older_one(tmp_path: Path) -> None:
         proc.wait(timeout=5)
 
 
+def test_queue_wait_is_the_time_before_the_lock_is_held(tmp_path: Path, monkeypatch) -> None:
+    from repolens.llm import model_lock as lock_mod
+    from repolens.llm.model_lock import queue_wait_seconds, reset_queue_wait
+
+    reset_queue_wait()
+    ticks = iter([0.0, 0.0])
+
+    lock = OllamaModelLock(
+        repo="repolens",
+        path=".",
+        pass_name="P1 Security",
+        model="qwen",
+        base_url="http://127.0.0.1:11434",
+        provider="ollama",
+        lock_dir=tmp_path,
+        poll_seconds=0.05,
+        sleeper=lambda _seconds: None,
+        clock=lambda: next(ticks),
+    )
+    with lock:
+        assert lock.waited_seconds == 0.0
+    assert queue_wait_seconds() == 0.0
+
+    reset_queue_wait()
+    waited = iter([0.0, 9.0])
+    real_head = lock_mod.head_ticket
+    loops = {"n": 0}
+
+    def head_once(queue: Path) -> Path | None:
+        loops["n"] += 1
+        if loops["n"] == 1:
+            return tmp_path / "older_ticket.json"
+        return real_head(queue)
+
+    monkeypatch.setattr(lock_mod, "head_ticket", head_once)
+    second = OllamaModelLock(
+        repo="repolens",
+        path=".",
+        pass_name="P1 Security",
+        model="qwen",
+        base_url="http://127.0.0.1:11434",
+        provider="ollama",
+        lock_dir=tmp_path / "queued",
+        poll_seconds=0.05,
+        sleeper=lambda _seconds: None,
+        clock=lambda: next(waited),
+    )
+    with second:
+        assert second.waited_seconds == 9.0
+    assert queue_wait_seconds() == 9.0
+
+
 def test_cloud_analyze_creates_no_lock_files(tmp_path: Path, monkeypatch) -> None:
     from unittest.mock import MagicMock
 
