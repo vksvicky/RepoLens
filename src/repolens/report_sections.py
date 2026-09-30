@@ -401,20 +401,13 @@ def _echoes_suppressed(issue: Issue, report: FindingReport) -> bool:
 
 def plan_to_fix_lines(report: FindingReport) -> list[str]:
     from repolens.complexity.thresholds import COGNITIVE_MEDIUM_MAX, CYCLO_MEDIUM_MAX
+    from repolens.plan_tiers import render_plan_tiers
 
-    lines: list[str] = []
     immediate = [
         issue
         for issue in report.issues
         if issue.fixTiming == "immediately" and not _echoes_suppressed(issue, report)
     ]
-    for issue in immediate:
-        lines.append(
-            f"1. **{issue.title}** (`{issue.file}:{issue.line}`) — "
-            f"{issue.recommendedFix}"
-        )
-    if immediate:
-        lines.append("")
     block = report.complexity
     hot = []
     if block is not None:
@@ -423,20 +416,7 @@ def plan_to_fix_lines(report: FindingReport) -> list[str]:
             for row in block.hotspots
             if row.cyclomatic > CYCLO_MEDIUM_MAX or row.cognitive > COGNITIVE_MEDIUM_MAX
         ]
-    if hot:
-        lines.append("Complexity to simplify:")
-        lines.append("")
-        for row in hot:
-            lines.append(
-                f"1. `{row.function}` (`{row.file}:{row.line}`) — "
-                f"cyclomatic {row.cyclomatic}, cognitive {row.cognitive}. "
-                "Extract helpers or replace deep conditionals with early returns, "
-                "then re-measure."
-            )
-        lines.append("")
-    elif not immediate:
-        lines.extend(["_No immediate-priority findings._", ""])
-    return lines
+    return render_plan_tiers(immediate, hot)
 
 
 def _checklist_status(theme: ThemeEntry) -> str:
