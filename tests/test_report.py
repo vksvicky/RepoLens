@@ -522,6 +522,42 @@ def _high(title: str, *, package: str, advisory: str) -> Issue:
     )
 
 
+def test_package_echo_requires_the_whole_name() -> None:
+    from repolens.report_sections import _echoes_suppressed
+
+    suppressed = _high(
+        "RUSTSEC-2026-0192 in ttf-parser",
+        package="ttf-parser",
+        advisory="RUSTSEC-2026-0192",
+    )
+
+    def issue(title: str) -> Issue:
+        return Issue(
+            severity=Severity.MEDIUM,
+            priority="P2",
+            category="Security",
+            file="Cargo.lock",
+            line=1,
+            title=title,
+            explanation="Lockfile note.",
+            recommendedFix="Edit the lockfile.",
+            fixTiming="immediately",
+            source="llm",
+        )
+
+    report = FindingReport(
+        confidence=40,
+        summary=Summary(),
+        issues=[],
+        suppressedIssues=[
+            SuppressedIssue(issue=suppressed, reason="accepted risk", mechanism="ignore_file")
+        ],
+    )
+    assert _echoes_suppressed(issue("Update ttf-parser"), report) is True
+    assert _echoes_suppressed(issue("Update ttf-parser-sys"), report) is False
+    assert _echoes_suppressed(issue("Parser helper is too long"), report) is False
+
+
 def test_plan_to_fix_omits_a_suppressed_advisory() -> None:
     suppressed = _high(
         "RUSTSEC-2026-0192 in ttf-parser",

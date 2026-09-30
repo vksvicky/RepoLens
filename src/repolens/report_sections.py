@@ -6,6 +6,8 @@ lazily so the package import does not cycle.
 
 from __future__ import annotations
 
+import re
+
 from repolens.coverage import (
     checklist_title,
     explain_answered,
@@ -357,6 +359,14 @@ def _render_coverage_section(report: FindingReport) -> list[str]:
     return lines
 
 
+def _package_named(package: str, blob: str) -> bool:
+    """True when *package* appears as its own name, not as a prefix of a longer one."""
+    if len(package) < 4:
+        return False
+    pattern = rf"(?<![A-Za-z0-9_]){re.escape(package)}(?![A-Za-z0-9_-])"
+    return re.search(pattern, blob, flags=re.IGNORECASE) is not None
+
+
 def _echoes_suppressed(issue: Issue, report: FindingReport) -> bool:
     """True when an active row restates an advisory the team already suppressed."""
     blob = " ".join(
@@ -382,7 +392,7 @@ def _echoes_suppressed(issue: Issue, report: FindingReport) -> bool:
         if len(advisory) >= 6 and advisory.lower() in blob:
             return True
         package = (other.packageName or "").strip()
-        if len(package) >= 4 and package.lower() in blob:
+        if _package_named(package, blob):
             return True
     return False
 
