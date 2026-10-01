@@ -47,3 +47,5 @@ Durable record of dual-review gate confidence over time.
 | 2026-09-30 | WIP→commit | 88% | 0/0/2/0 | Hollow pass stays unanswered; suppressed rows leave Plan to fix; audit ledger | chat |
 | 2026-10-01 | WIP→push blocked | 92% | 0/0/0/1 | which-command docs + pass_cache version in keys; nothing committed; main==origin | chat |
 | 2026-10-01 | WIP→commit | 93% | 0/0/0/0 | which-command + sonargraph docs; pass_cache version keys; mega-file splits; pack_scope DRY | chat |
+| 2026-10-01 | 2102760→push | 91% | 0/0/0/0 | role_packs + journal; override-and-push with 8f2b86d | chat |
+| 2026-10-01 | 96624af→push | 88% | 0/0/1/0 | Metis Steps 3–6 + A–E thin MVPs; plan/diff-audit/verify/blast/NA/prefs/attest; dogfood plan chars ~same budget fill | chat |
