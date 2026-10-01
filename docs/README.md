@@ -23,6 +23,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) | Step-by-step: cloud key, local Ollama, scanners only |
 | [install-extras.md](./install-extras.md) | What `[dev]` / `[scanners]` / `[local-ml]` install (RepoLens `pyproject.toml`) |
 | [command-atlas.md](./command-atlas.md) | **Holy grail:** install → every command → expect / if-then → timings → troubleshooting |
+| [which-command.md](./which-command.md) | Which command to run for security, architecture, or clean code, plus editor-plugin mockups |
 | [try-on-your-repo.md](./try-on-your-repo.md) | Install + review local / GitHub / Bitbucket / HF / git URL (macOS, Linux, Windows) |
 | [polycode-polycoach-loop.md](./polycode-polycoach-loop.md) | PolyCode PolyCoach classroom loop (sibling guide) |
 | [remote-sources.md](./remote-sources.md) | Remote commands + auth: `--github`, `--bitbucket`, `--hf`, `--git-url` |
@@ -48,6 +49,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) | AI keys, OWASP/CVE layers, bundled vs optional scanners, local ML |
 | [design/repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md) | Honest comparison vs Checkmarx, Snyk, Semgrep, CodeQL, Trivy, … (product positioning) |
 | [design/competitive-landscape-sonar-alternatives-2026.md](./design/competitive-landscape-sonar-alternatives-2026.md) | Sonar/Qodana/Macroscope/CodeRabbit/DeepSource + PMD/ESLint/Bearer/… — adopt / refuse matrix (2026) |
+| [design/sonargraph-architect-comparison.md](./design/sonargraph-architect-comparison.md) | Sonargraph-Architect vs RepoLens: CLI diagnostic stream first, then a thin VS Code / Zed / IntelliJ client |
 | [adr/](./adr/) | ADRs + diagram legend (how analysis works) |
 | [adr/01_analysis_runtime_architecture.md](./adr/01_analysis_runtime_architecture.md) | Pipeline, modes, security zones (diagrams) |
 | [using-playbooks.md](./using-playbooks.md) | Run reviews via playbooks (with or without the CLI) |

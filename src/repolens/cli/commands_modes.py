@@ -8,7 +8,11 @@ import typer
 
 from repolens.cli.app import app
 from repolens.cli.commands_review import _run_mode
-
+from repolens.cli.pack_scope import (
+    option_force_changed,
+    option_force_full,
+    option_git_diff,
+)
 
 @app.command()
 def sentinel(
@@ -61,24 +65,9 @@ def sentinel(
         "--timeout",
         help="LLM HTTP timeout in seconds (default: 900 for ollama, 120 otherwise)",
     ),
-    force_full: bool = typer.Option(
-        False,
-        "--full",
-        help="Force full LLM file pack (ignore adaptive changed-only selection)",
-    ),
-    force_changed: bool = typer.Option(
-        False,
-        "--changed",
-        help="LLM pack = fingerprint added/changed files only (not git diff; skip LLM if none)",
-    ),
-    git_diff: str | None = typer.Option(
-        None,
-        "--git-diff",
-        help=(
-            "Restrict Slow Brain pack to git change-set vs BASE "
-            "(ref like main, or 'auto'). Conflicts with --full / --changed."
-        ),
-    ),
+    force_full: bool = option_force_full(),
+    force_changed: bool = option_force_changed(),
+    git_diff: str | None = option_git_diff(),
     deep: bool | None = typer.Option(
         None,
         "--deep/--no-deep",
@@ -225,24 +214,9 @@ def architecture(
         "--timeout",
         help="LLM HTTP timeout in seconds (default: 900 for ollama, 120 otherwise)",
     ),
-    force_full: bool = typer.Option(
-        False,
-        "--full",
-        help="Force full LLM file pack (ignore adaptive changed-only selection)",
-    ),
-    force_changed: bool = typer.Option(
-        False,
-        "--changed",
-        help="LLM pack = fingerprint added/changed files only (not git diff; skip LLM if none)",
-    ),
-    git_diff: str | None = typer.Option(
-        None,
-        "--git-diff",
-        help=(
-            "Restrict Slow Brain pack to git change-set vs BASE "
-            "(ref like main, or 'auto'). Conflicts with --full / --changed."
-        ),
-    ),
+    force_full: bool = option_force_full(),
+    force_changed: bool = option_force_changed(),
+    git_diff: str | None = option_git_diff(),
     deep: bool | None = typer.Option(
         None,
         "--deep/--no-deep",

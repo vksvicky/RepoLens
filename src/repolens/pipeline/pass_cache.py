@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+from repolens import __version__
 from repolens.adaptive import file_sha256
 from repolens.inventory import FileEntry
 from repolens.schema import FindingReport
@@ -23,10 +24,16 @@ def pass_label(pass_name: str) -> str:
     return _PASS_LABELS.get(pass_name, pass_name)
 
 
-def closure_key(missed: list[str], model: str) -> str:
+def _tool_version(version: str | None) -> str:
+    return __version__ if version is None else version
+
+
+def closure_key(missed: list[str], model: str, *, version: str | None = None) -> str:
     """Key for the checklist follow-up. It sees missed ids, not source."""
     digest = hashlib.sha256()
     digest.update(PROMPT_TEMPLATE_VERSION.encode())
+    digest.update(b"\0")
+    digest.update(_tool_version(version).encode())
     digest.update(b"\0")
     digest.update(model.encode())
     digest.update(b"\0coverage")
@@ -36,9 +43,17 @@ def closure_key(missed: list[str], model: str) -> str:
     return digest.hexdigest()
 
 
-def pass_key(files: list[FileEntry], model: str, pass_name: str) -> str:
+def pass_key(
+    files: list[FileEntry],
+    model: str,
+    pass_name: str,
+    *,
+    version: str | None = None,
+) -> str:
     digest = hashlib.sha256()
     digest.update(PROMPT_TEMPLATE_VERSION.encode())
+    digest.update(b"\0")
+    digest.update(_tool_version(version).encode())
     digest.update(b"\0")
     digest.update(model.encode())
     digest.update(b"\0")

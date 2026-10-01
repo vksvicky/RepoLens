@@ -45,3 +45,5 @@ Durable record of dual-review gate confidence over time.
 | 2026-09-26 | WIP→PR-B/C/D | 90% | 0/0/1/0 | #15 cost knobs + #16 --git-diff restrict + close #13 | chat |
 | 2026-09-27 | WIP→commit | 88% | 0/0/1/1 | Split run_review/_run_mode under High; gitleaks history; CI least privilege + Dependabot/CodeQL | chat |
 | 2026-09-30 | WIP→commit | 88% | 0/0/2/0 | Hollow pass stays unanswered; suppressed rows leave Plan to fix; audit ledger | chat |
+| 2026-10-01 | WIP→push blocked | 92% | 0/0/0/1 | which-command docs + pass_cache version in keys; nothing committed; main==origin | chat |
+| 2026-10-01 | WIP→commit | 93% | 0/0/0/0 | which-command + sonargraph docs; pass_cache version keys; mega-file splits; pack_scope DRY | chat |
