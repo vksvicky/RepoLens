@@ -50,6 +50,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [design/repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md) | Honest comparison vs Checkmarx, Snyk, Semgrep, CodeQL, Trivy, … (product positioning) |
 | [design/competitive-landscape-sonar-alternatives-2026.md](./design/competitive-landscape-sonar-alternatives-2026.md) | Sonar/Qodana/Macroscope/CodeRabbit/DeepSource + PMD/ESLint/Bearer/… — adopt / refuse matrix (2026) |
 | [design/sonargraph-architect-comparison.md](./design/sonargraph-architect-comparison.md) | Sonargraph-Architect vs RepoLens: CLI diagnostic stream first, then a thin VS Code / Zed / IntelliJ client |
+| [compare.md](./compare.md) | We audit, they edit — Plan vs Audit vocabulary vs coding-agent harnesses |
 | [design/metis-agent-comparison.md](./design/metis-agent-comparison.md) | Metis coding-agent harness vs RepoLens: adopt compaction/verify/journal; refuse edit/self-heal product shape |
 | [adr/](./adr/) | ADRs + diagram legend (how analysis works) |
 | [adr/01_analysis_runtime_architecture.md](./adr/01_analysis_runtime_architecture.md) | Pipeline, modes, security zones (diagrams) |

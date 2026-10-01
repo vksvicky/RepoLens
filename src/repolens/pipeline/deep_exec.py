@@ -427,6 +427,13 @@ def _analyze_deep_passes(
         report.llmRepairAttempts = repair_attempts_total
         prog.detail(f"LLM JSON micro-repair attempts: {repair_attempts_total}")
     report = _fold_scanners(report, scanner_issues, cfg, prog)
+    from repolens.na_truth import reject_false_na_claims
+
+    report.durabilityGaps = reject_false_na_claims(
+        list(report.durabilityGaps),
+        llm_files or files,
+        root=root,
+    )
     unique_ids = _ordered_unique(all_coverage_ids)
     coverage = evaluate_coverage(
         unique_ids,

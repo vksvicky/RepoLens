@@ -128,6 +128,12 @@ def _write_finished_report(state: ReviewRun) -> ReviewResult:
     from repolens import __version__
     from repolens.changeset import tag_findings_for_changeset
     from repolens.llm.model_lock import queue_wait_seconds
+    from repolens.provenance_attest import (
+        git_dirty_tree,
+        journal_tip_hash,
+        prompt_template_hash,
+        scanner_binary_digests,
+    )
 
     if state.git_diff_requested:
         paths = list(state.git_changed_paths or [])
@@ -138,12 +144,13 @@ def _write_finished_report(state: ReviewRun) -> ReviewResult:
         )
     _attach_complexity(state.report, state.complexity_result)
     _attach_testing(state.report, state.testing_result)
+    tools = [r.tool for r in state.report.scannerRuns]
     state.report.provenance = ProvenanceBlock(
         repoLensVersion=__version__,
         gitSha=_git_sha(state.root),
         model=state.cfg.model.model,
         provider=state.cfg.model.provider,
-        scannerTools=[r.tool for r in state.report.scannerRuns],
+        scannerTools=tools,
         triageRouting=state.cfg.ci.triage_routing,
         llmBypassed=bool(state.report.llmBypassed),
         triageHits=int(state.report.triageHits or 0),
@@ -155,6 +162,10 @@ def _write_finished_report(state: ReviewRun) -> ReviewResult:
         fastBrainSeconds=state.fast_brain_seconds,
         llmSeconds=state.llm_seconds_prov,
         queueWaitSeconds=round(queue_wait_seconds(), 1),
+        dirtyTree=git_dirty_tree(state.root),
+        scannerDigests=scanner_binary_digests(tools),
+        promptTemplateHash=prompt_template_hash(),
+        journalTipHash=journal_tip_hash(state.root),
         notes=list(state.triage_plan.notes) if state.triage_plan is not None else [],
     )
     # Phase 6.4: stamp locationVerified before Markdown/SARIF write
@@ -170,8 +181,15 @@ def _write_finished_report(state: ReviewRun) -> ReviewResult:
     from repolens.verify_findings import apply_verify_findings
 
     if state.cfg.deep.verify_findings:
-        state.prog.detail("Verify findings: re-checking Critical locations (non-fatal)…")
-        state.report.issues = apply_verify_findings(state.root, state.report.issues, state.cfg.deep)
+        state.prog.detail(
+            "Verify findings: Critical/High location + symbol grounding…"
+        )
+        state.report.issues = apply_verify_findings(
+            state.root, state.report.issues, state.cfg.deep
+        )
+        from repolens.verify_findings import apply_unverified_gate_penalty
+
+        state.report = apply_unverified_gate_penalty(state.report)
         state.report.summary = state.report.recount_summary()
 
     from datetime import datetime

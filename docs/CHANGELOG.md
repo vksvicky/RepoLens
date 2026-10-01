@@ -24,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`--git-diff [base|auto]`** — restrict Slow Brain pack to git change-set; scanners + Fast Brain stay whole-tree; report **Change-set scope** section (#16)
 - **`[deep] role_packs`** — opt-in per-band file packs (P3 outline-cost), rolling ≤200-token prior-pass summary in the next prompt, and pass-cache keys that hash that summary; emits chars-in/out per pass (honesty metrics, not a Metis %-cut claim). Design: [metis-agent-comparison.md](./design/metis-agent-comparison.md)
 - **Review journal** — append-only `.repolens/journal.jsonl` (`pass_started` / `pass_completed` / `queue_wait` / `interrupted`) for interrupt post-mortem alongside pass-cache resume
+- **`repolens plan`** — Slow Brain pack forecast (chars + ETA) without LLM; keeps `--dry-run` as inventory-only
+- **`repolens diff-audit A B`** — resolved / new / confidence drift between two FindingReport JSON files
+- **Verification honesty** — `--verify-findings` grounds Crit/High (location + symbol); Suspect rows lower gate %; Markdown **Grounded** / **Suspect** sections
+- **Blast-radius `--git-diff`** — expand change-set with direct import neighbours (`[deep] blast_radius`, default on)
+- **N/A truth check** — inventory contradiction → `hallucination_residual:*` durability gaps
+- **Learned prefs** — `repolens learn adapt` derives skip globs from feedback into `.repolens/learned_prefs.json`
+- **Provenance attestation** — dirty tree, scanner digests, prompt template hash, journal tip hash on `ProvenanceBlock`
+- **Docs** — [compare.md](./compare.md) Plan/Audit nomenclature vs coding-agent harnesses
 
 ### Changed
 

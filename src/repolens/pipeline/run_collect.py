@@ -87,13 +87,17 @@ def _load_review_inventory(state: ReviewRun) -> None:
     _apply_scope_flags(state)
     state.prog.phase("Inventory: scanning files…")
     from repolens.inventory import scan_inventory
+    from repolens.learned_prefs import load_learned_prefs, merge_skip_globs
 
+    skip = list(state.cfg.deep.skip_paths)
+    if state.cfg.deep.learned_prefs:
+        skip = merge_skip_globs(skip, load_learned_prefs(state.root))
     fast_inv = scan_inventory(
         state.root,
         mode=state.review_mode,
         since=state.since,
         max_files=state.cfg.fast_brain.max_files,
-        skip_globs=state.cfg.deep.skip_paths,
+        skip_globs=skip,
     )
     _assign_inventory_files(state, fast_inv)
     _announce_inventory(state, fast_inv)

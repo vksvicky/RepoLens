@@ -1,6 +1,6 @@
 # Metis agent harness → RepoLens adopt / refuse
 
-**Status:** Steps 1–2 implemented (2026-10-01). Dogfood with `[deep] role_packs = true`.  
+**Status:** Steps 1–6 + A–E thin MVPs landed (2026-10-01). Dogfood chars with `repolens plan --role-packs` vs `--no-role-packs`, then journal `chars_in`/`chars_out` on a real Audit.
 **Sources:** [Wholiver/metis](https://github.com/Wholiver/metis) · [metisagent.tech/compare](https://metisagent.tech/compare/)  
 **Related:** [competitive-landscape-sonar-alternatives-2026.md](./competitive-landscape-sonar-alternatives-2026.md) · [sonargraph-architect-comparison.md](./sonargraph-architect-comparison.md) · [which-command.md](../which-command.md) · [zugel-comparison-and-roadmap.md](./zugel-comparison-and-roadmap.md)
 

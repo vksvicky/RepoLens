@@ -189,6 +189,7 @@ def _select_adaptive_pack(state: ReviewRun) -> None:
 
 def _apply_git_diff_scope(state: ReviewRun) -> None:
     if state.git_diff_requested:
+        from repolens.blast_radius import expand_blast_radius_paths
         from repolens.changeset import (
             cap_changeset_paths,
             filter_entries_to_changeset,
@@ -200,19 +201,36 @@ def _apply_git_diff_scope(state: ReviewRun) -> None:
         resolved_base = resolve_diff_base(
             cli_base=state.git_diff_base_cli, cwd=state.root
         )
-        state.git_changed_paths = list_git_changed_paths(
+        changed = list_git_changed_paths(
             state.root, resolved_base, include_dirty=True
         )
-        state.llm_files = filter_entries_to_changeset(state.llm_files, state.git_changed_paths)
+        expanded = expand_blast_radius_paths(
+            state.root,
+            changed,
+            state.files or state.llm_files,
+            enabled=bool(state.cfg.deep.blast_radius),
+        )
+        state.git_changed_paths = expanded
+        state.llm_files = filter_entries_to_changeset(state.llm_files, expanded)
+        note = (
+            "Slow Brain = change-set ∪ direct import neighbours; "
+            "scanners and Fast Brain remain whole-tree"
+            if bool(state.cfg.deep.blast_radius)
+            else (
+                "Slow Brain restricted to git change-set; "
+                "scanners and Fast Brain remain whole-tree"
+            )
+        )
         state.change_set_block = ChangeSetBlock(
             base=resolved_base,
-            pathCount=len(state.git_changed_paths),
-            paths=cap_changeset_paths(state.git_changed_paths),
+            pathCount=len(expanded),
+            paths=cap_changeset_paths(expanded),
+            note=note,
         )
         state.prog.phase(
-            f"LLM pack: git-diff change-set → {len(state.llm_files)} file(s) "
+            f"LLM pack: git-diff blast-radius → {len(state.llm_files)} file(s) "
             f"(base={resolved_base or 'worktree'}; "
-            f"{len(state.git_changed_paths)} path(s) from git)"
+            f"{len(changed)} git path(s) → {len(expanded)} after neighbours)"
         )
         if not state.llm_files:
             state.prog.detail(

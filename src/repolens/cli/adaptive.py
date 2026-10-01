@@ -103,6 +103,25 @@ def adaptive_status(
     console.print(table)
 
 
+@learn_app.command("adapt")
+def learn_adapt(
+    path: Path = typer.Option(Path("."), "--path", help="Project root"),
+) -> None:
+    """Derive skip globs from local feedback.jsonl into learned_prefs.json."""
+    from repolens.learned_prefs import derive_learned_prefs, save_learned_prefs
+
+    root = path.resolve()
+    prefs = derive_learned_prefs(root)
+    out = save_learned_prefs(root, prefs)
+    console.print(f"[green]Wrote[/green] {out}")
+    for note in prefs.notes:
+        console.print(f"  {note}")
+    if prefs.skip_globs:
+        console.print("Skip globs:")
+        for glob in prefs.skip_globs:
+            console.print(f"  - {glob}")
+
+
 @learn_app.command("clear")
 def learn_clear(
     path: Path = typer.Option(Path("."), "--path", help="Project root"),

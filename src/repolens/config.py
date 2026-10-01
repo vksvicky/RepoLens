@@ -156,6 +156,10 @@ class DeepConfig(BaseModel):
     # Role-aware packs (P1/P2/P3 distinct budgets; P3 outlines; rolling summaries).
     # Default off until dogfood; enable with [deep] role_packs = true.
     role_packs: bool = False
+    # Expand --git-diff pack with direct import neighbours (grimp).
+    blast_radius: bool = True
+    # Apply .repolens/learned_prefs.json skip globs from feedback patterns.
+    learned_prefs: bool = True
 
     def extra_skip_globs(self) -> list[str]:
         """Project globs added on top of the package skip defaults."""
