@@ -12,6 +12,11 @@ from repolens.cli.commands_review_support import (
     _ratchet_breached_for_review,
 )
 from repolens.cli.export import _print_summary
+from repolens.cli.pack_scope import (
+    option_force_changed,
+    option_force_full,
+    option_git_diff,
+)
 from repolens.pipeline import fail_on_triggered, run_review
 from repolens.progress import ReviewProgress
 from repolens.sources import SourceError, cleanup_source, resolve_source, select_source
@@ -288,25 +293,9 @@ def review(
         "--no-model-lock",
         help="Allow concurrent calls to a local one-model server",
     ),
-    force_full: bool = typer.Option(
-        False,
-        "--full",
-        help="Force full LLM file pack (ignore adaptive changed-only selection)",
-    ),
-    force_changed: bool = typer.Option(
-        False,
-        "--changed",
-        help="LLM pack = fingerprint added/changed files only (not git diff; skip LLM if none)",
-    ),
-    git_diff: str | None = typer.Option(
-        None,
-        "--git-diff",
-        help=(
-            "Restrict Slow Brain pack to git change-set vs BASE "
-            "(ref like main, or 'auto'). Scanners/Fast Brain stay whole-tree. "
-            "Conflicts with --full / --changed."
-        ),
-    ),
+    force_full: bool = option_force_full(),
+    force_changed: bool = option_force_changed(),
+    git_diff: str | None = option_git_diff(),
     deep: bool | None = typer.Option(
         None,
         "--deep/--no-deep",
