@@ -5,6 +5,17 @@
 
 ## Recommended commands
 
+### Plan vs Audit (vocabulary)
+
+| Intent | Command | Notes |
+| --- | --- | --- |
+| **Plan** (recon) | `repolens plan --path .` | Inventory + Slow Brain pack forecast + chars estimate. **No LLM.** Optional `--role-packs` / `--no-role-packs`. |
+| **Plan** (scanners) | `repolens review --path . --scanners-only …` | Scanners without Slow Brain. |
+| **Audit** (synthesis) | `repolens review --deep …` (command 1 below) | Slow Brain P1→P2→P3 + report. |
+| Inventory only | `repolens review --dry-run` | **Protected** semantics — inventory dump; do not overload with forecast/scanners. |
+
+See [compare.md](./compare.md) for “we audit, they edit” vs coding-agent harnesses.
+
 ### 1. Full combined result (use this)
 
 One command for **scanners + clean code + cycles + full-tree model write-up** (security, reliability, architecture). This is the dogfood command used on RepoLens today.

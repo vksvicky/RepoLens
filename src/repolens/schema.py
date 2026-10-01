@@ -47,6 +47,8 @@ class Issue(BaseModel):
     anchorQuote: str | None = None
     anchorContext: str | None = None
     locationVerified: bool | None = None
+    # grounded | suspect | skipped — set when verify_findings runs
+    verificationStatus: Literal["grounded", "suspect", "skipped"] | None = None
     # Phase 6.9: scanner-owned SCA facts + best-effort usage hint (not reachability).
     packageName: str | None = None
     installedVersion: str | None = None
@@ -197,6 +199,11 @@ class ProvenanceBlock(BaseModel):
     fastBrainSeconds: float | None = Field(default=None, ge=0)
     llmSeconds: float | None = Field(default=None, ge=0)
     queueWaitSeconds: float | None = Field(default=None, ge=0)
+    # Attestation (Metis E): dirty tree, digests, template + journal tip
+    dirtyTree: bool | None = None
+    scannerDigests: dict[str, str] = Field(default_factory=dict)
+    promptTemplateHash: str | None = None
+    journalTipHash: str | None = None
     notes: list[str] = Field(default_factory=list)
 
 

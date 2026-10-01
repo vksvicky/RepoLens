@@ -208,10 +208,19 @@ def _provenance_identity_lines(prov) -> list[str]:
         lines.append(f"- **RepoLens**: `{prov.repoLensVersion}`")
     if prov.gitSha:
         lines.append(f"- **Git SHA**: `{prov.gitSha}`")
+    if prov.dirtyTree is not None:
+        lines.append(f"- **Dirty tree**: {'yes' if prov.dirtyTree else 'no'}")
     if prov.provider or prov.model:
         lines.append(f"- **Model**: `{prov.provider or 'n/a'}` / `{prov.model or 'n/a'}`")
     if prov.scannerTools:
         lines.append(f"- **Scanners**: {', '.join(prov.scannerTools)}")
+    if prov.scannerDigests:
+        digest = ", ".join(f"{k}={v}" for k, v in sorted(prov.scannerDigests.items()))
+        lines.append(f"- **Scanner digests**: `{digest}`")
+    if prov.promptTemplateHash:
+        lines.append(f"- **Prompt template**: `{prov.promptTemplateHash}`")
+    if prov.journalTipHash:
+        lines.append(f"- **Journal tip**: `{prov.journalTipHash}`")
     return lines
 
 
@@ -241,6 +250,44 @@ def _render_provenance_section(report: FindingReport) -> list[str]:
     else:
         lines.append(f"- **LLM bypassed**: {'yes' if report.llmBypassed else 'no'}")
     lines.append("")
+    return lines
+
+
+def _render_verification_section(report: FindingReport) -> list[str]:
+    """Grounded vs Suspect Critical/High findings after verify_findings."""
+    from repolens.schema import Severity
+
+    grounded = [
+        i
+        for i in report.issues
+        if i.verificationStatus == "grounded"
+        and i.severity in {Severity.CRITICAL, Severity.HIGH}
+    ]
+    suspect = [
+        i
+        for i in report.issues
+        if i.verificationStatus == "suspect"
+        and i.severity in {Severity.CRITICAL, Severity.HIGH}
+    ]
+    if not grounded and not suspect:
+        return []
+    lines: list[str] = ["## Verification", ""]
+    if grounded:
+        lines.append("### Grounded")
+        lines.append("")
+        for issue in grounded:
+            lines.append(f"- **{issue.title}** (`{issue.file}:{issue.line}`)")
+        lines.append("")
+    if suspect:
+        lines.append("### Suspect / Unverified")
+        lines.append("")
+        lines.append(
+            "_These Critical/High rows lowered gate confidence; re-check before shipping._"
+        )
+        lines.append("")
+        for issue in suspect:
+            lines.append(f"- **{issue.title}** (`{issue.file}:{issue.line}`)")
+        lines.append("")
     return lines
 
 

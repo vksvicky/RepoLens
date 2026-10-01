@@ -25,6 +25,7 @@ from repolens.report_sections import (
     _render_suppressed_section,
     _render_testing_inventory_section,
     _render_theme_breakdown,
+    _render_verification_section,
 )
 from repolens.schema import FindingReport, Issue, Severity
 
@@ -361,6 +362,7 @@ def render_markdown(
     lines.extend(_render_change_set_section(report))
     lines.extend(_render_import_graph_section(report))
     lines.extend(_render_provenance_section(report))
+    lines.extend(_render_verification_section(report))
     lines.extend(_render_suppressed_section(report))
     lines.extend(_markdown_plan(report))
     lines.extend(_render_durability_gaps_section(report))
