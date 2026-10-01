@@ -8,7 +8,7 @@ budget so selected files fit the pass cap.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 
 from repolens.coverage import coverage_ids_for_pass
@@ -96,21 +96,79 @@ class DeepPass:
     rule_ids: list[str]
     coverage_ids: list[str]
     files: list[FileEntry]
+    pack_mode: str = "full"  # full | outline
 
 
-def budget_files(entries: Sequence[FileEntry], *, max_chars: int) -> list[FileEntry]:
+_P1_PATH_HINTS = (
+    "auth",
+    "secret",
+    "password",
+    "credential",
+    "crypto",
+    "jwt",
+    "oauth",
+    "session",
+    "security",
+    "tls",
+    "ssl",
+    "sql",
+    "exec",
+    "shell",
+    "environ",
+    "permission",
+    "rbac",
+    "firewall",
+    ".env",
+)
+_P2_PATH_HINTS = (
+    "error",
+    "except",
+    "retry",
+    "timeout",
+    "backoff",
+    "lock",
+    "thread",
+    "async",
+    "pool",
+    "queue",
+    "transaction",
+    "cleanup",
+    "recover",
+    "health",
+    "circuit",
+    "resilien",
+)
+
+
+def estimate_outline_chars(entry: FileEntry) -> int:
+    """Char-cost estimate for an outline pack without reading the file.
+
+    Outlines are typically far smaller than raw bodies; using ``entry.size``
+    would empty a P3 budget after a handful of large modules.
+    """
+    approx_lines = max(1, entry.size // 40)
+    return max(80, min(entry.size, approx_lines * 30 // 8))
+
+
+def budget_files(
+    entries: Sequence[FileEntry],
+    *,
+    max_chars: int,
+    cost_fn: Callable[[FileEntry], int] | None = None,
+) -> list[FileEntry]:
     """Greedily select files in order without exceeding ``max_chars``.
 
-    Cost per file is ``FileEntry.size`` (documented size-based estimate).
+    Default cost per file is ``FileEntry.size`` (documented size-based estimate).
     Files larger than the remaining budget are skipped (later smaller files
     may still fit).
     """
     if max_chars <= 0:
         return []
+    measure = cost_fn or (lambda entry: entry.size)
     selected: list[FileEntry] = []
     used = 0
     for entry in entries:
-        cost = entry.size
+        cost = int(measure(entry))
         if cost > max_chars:
             continue
         if used + cost > max_chars:
@@ -118,6 +176,33 @@ def budget_files(entries: Sequence[FileEntry], *, max_chars: int) -> list[FileEn
         selected.append(entry)
         used += cost
     return selected
+
+
+def compact_pass_summary(
+    report: FindingReport, *, max_chars: int = 800
+) -> str:
+    """≤~200-token summary of findings for the next deep pass."""
+    lines = ["Confirmed findings from the prior Slow Brain pass:"]
+    for issue in report.issues[:12]:
+        sev = getattr(issue.severity, "value", issue.severity)
+        lines.append(f"- [{sev}] {issue.title} ({issue.file}:{issue.line})")
+    if not report.issues:
+        lines.append("- (no findings)")
+    covered = [
+        gap for gap in report.durabilityGaps if gap.startswith("coverage:")
+    ][:8]
+    if covered:
+        lines.append("Coverage notes:")
+        lines.extend(f"- {gap}" for gap in covered)
+    text = "\n".join(lines)
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 1].rstrip() + "…"
+
+
+def _path_hint_score(relative: str, hints: tuple[str, ...]) -> int:
+    lowered = relative.lower().replace("\\", "/")
+    return sum(1 for hint in hints if hint in lowered)
 
 
 def _order_entries(
@@ -131,7 +216,6 @@ def _order_entries(
     ordered: list[FileEntry] = []
     seen: set[str] = set()
 
-    # Preserve hot then adaptive order when both provided; union prefers first-seen.
     for rel in list(hot_paths) + list(adaptive_paths):
         if rel in seen:
             continue
@@ -145,11 +229,37 @@ def _order_entries(
         if entry.relative in seen:
             continue
         if entry.relative in preferred:
-            # Already handled above; keep for safety if path only in preferred set
             continue
         ordered.append(entry)
         seen.add(entry.relative)
     return ordered
+
+
+def _order_for_band(
+    entries: Sequence[FileEntry],
+    *,
+    band: str,
+    hot_paths: Iterable[str],
+    adaptive_paths: Iterable[str],
+) -> list[FileEntry]:
+    base = _order_entries(
+        entries, hot_paths=hot_paths, adaptive_paths=adaptive_paths
+    )
+    if band == "p1":
+        hints = _P1_PATH_HINTS
+    elif band == "p2":
+        hints = _P2_PATH_HINTS
+    else:
+        return base
+
+    def sort_key(entry: FileEntry) -> tuple[int, int, str]:
+        return (
+            -_path_hint_score(entry.relative, hints),
+            entry.priority_band,
+            entry.relative,
+        )
+
+    return sorted(base, key=sort_key)
 
 
 def _enabled_by_band(rules: Sequence[Rule], band: str) -> list[Rule]:
@@ -167,11 +277,15 @@ def plan_deep_passes(
     chars_per_pass: int,
     rules: list[Rule],
     max_passes: int | None = None,
+    role_packs: bool = False,
 ) -> list[DeepPass]:
     """Plan band-ordered deep passes from enabled rules for ``mode``.
 
     ``max_passes`` caps how many band passes run (1 = first band only, e.g. P1
     for ``review``). ``None`` or ``<= 0`` keeps the full mode band list.
+
+    When ``role_packs`` is true, each band gets its own ordered budget and P3
+    uses outline-cost estimates with ``pack_mode=\"outline\"``.
     """
     bands = _MODE_BANDS.get(mode)
     if bands is None:
@@ -179,10 +293,12 @@ def plan_deep_passes(
     if max_passes is not None and max_passes > 0:
         bands = bands[:max_passes]
 
-    ordered_files = _order_entries(
-        entries, hot_paths=hot_paths, adaptive_paths=adaptive_paths
-    )
-    packed = budget_files(ordered_files, max_chars=chars_per_pass)
+    shared = None
+    if not role_packs:
+        ordered_files = _order_entries(
+            entries, hot_paths=hot_paths, adaptive_paths=adaptive_paths
+        )
+        shared = budget_files(ordered_files, max_chars=chars_per_pass)
 
     passes: list[DeepPass] = []
     for band in bands:
@@ -195,12 +311,33 @@ def plan_deep_passes(
             full_audit=full_audit,
             enabled_rule_ids=rule_ids,
         )
+        if role_packs:
+            ordered = _order_for_band(
+                entries,
+                band=band,
+                hot_paths=hot_paths,
+                adaptive_paths=adaptive_paths,
+            )
+            if band == "p3":
+                packed = budget_files(
+                    ordered,
+                    max_chars=chars_per_pass,
+                    cost_fn=estimate_outline_chars,
+                )
+                pack_mode = "outline"
+            else:
+                packed = budget_files(ordered, max_chars=chars_per_pass)
+                pack_mode = "full"
+        else:
+            packed = list(shared or [])
+            pack_mode = "full"
         passes.append(
             DeepPass(
                 name=band,
                 rule_ids=rule_ids,
                 coverage_ids=cov_ids,
                 files=list(packed),
+                pack_mode=pack_mode,
             )
         )
     return passes

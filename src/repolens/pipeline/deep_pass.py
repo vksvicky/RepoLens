@@ -54,14 +54,15 @@ def _run_deep_pass(
     model_name: str,
     provider: str,
     timeout: float,
-) -> tuple[FindingReport, str, bool, int]:
+) -> tuple[FindingReport, str, bool, int, int, int]:
     from repolens.llm_structured import analyze_structured
 
     prog.phase(f"→ Deep pass {idx}/{n} ({deep_pass.name})…")
     prompt = build_deep_prompt(
         deep_pass, rules, deep_pass.coverage_ids, pack_ids=pack_ids
     )
-    prompt = _append_source_files(prompt, deep_pass.files)
+    pack_mode = getattr(deep_pass, "pack_mode", "full") or "full"
+    prompt = _append_source_files(prompt, deep_pass.files, pack_mode=pack_mode)
     prompt += coverage_checklist_tail(deep_pass.coverage_ids)
     if prompt_prefix:
         prompt = prompt_prefix + "\n\n" + prompt
@@ -73,6 +74,7 @@ def _run_deep_pass(
         "streaming chat completions; "
         f"prompt ≈ {len(prompt):,} chars; "
         f"{len(deep_pass.files)} file(s); "
+        f"mode={pack_mode}; "
         f"{len(deep_pass.coverage_ids)} coverage id(s)"
     )
     gen = LlmGenerateProgress()
@@ -97,7 +99,9 @@ def _run_deep_pass(
     report = _pass_report(result, deep_pass.name, prog)
     degraded = result.layer == "degraded" or result.report is None
     attempts = int(getattr(result, "repair_attempts", 0) or 0)
-    return report, result.raw_text or "", degraded, attempts
+    chars_in = len(prompt)
+    chars_out = len(result.raw_text or "")
+    return report, result.raw_text or "", degraded, attempts, chars_in, chars_out
 
 def _merge_closure(report: FindingReport, extra: FindingReport) -> FindingReport:
     from repolens.deep import is_unmeasured_model_claim

@@ -49,6 +49,7 @@ def pass_key(
     pass_name: str,
     *,
     version: str | None = None,
+    prior_summary: str | None = None,
 ) -> str:
     digest = hashlib.sha256()
     digest.update(PROMPT_TEMPLATE_VERSION.encode())
@@ -65,6 +66,9 @@ def pass_key(
             digest.update(file_sha256(entry.path).encode())
         except OSError:
             digest.update(b"missing")
+    if prior_summary:
+        digest.update(b"\0prior\0")
+        digest.update(hashlib.sha256(prior_summary.encode()).digest())
     return digest.hexdigest()
 
 

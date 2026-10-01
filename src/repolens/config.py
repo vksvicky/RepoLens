@@ -153,6 +153,9 @@ class DeepConfig(BaseModel):
     verify_findings: bool = False
     # None → auto 75/55; 0 → off; 1..100 → pin
     vacuous_pass_confidence_floor: int | None = None
+    # Role-aware packs (P1/P2/P3 distinct budgets; P3 outlines; rolling summaries).
+    # Default off until dogfood; enable with [deep] role_packs = true.
+    role_packs: bool = False
 
     def extra_skip_globs(self) -> list[str]:
         """Project globs added on top of the package skip defaults."""

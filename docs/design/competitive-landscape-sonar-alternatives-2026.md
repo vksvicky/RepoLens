@@ -3,7 +3,7 @@
 **Audience:** maintainers / roadmap (what to adopt, integrate, complement, or refuse)  
 **Date:** 2026-09-26  
 **Status:** Ready as-is — internal rudder (block SaaS / compiler-engine scope creep) **and** external messaging foundation for README / FAQ / docs updates  
-**Related:** [repolens-vs-appsec-tools.md](./repolens-vs-appsec-tools.md) · [complexity-and-cognitive-ai.md](./complexity-and-cognitive-ai.md) · [scanners.md](../scanners.md) · [phases.md](../phases.md) · [zugel-comparison-and-roadmap.md](./zugel-comparison-and-roadmap.md)
+**Related:** [repolens-vs-appsec-tools.md](./repolens-vs-appsec-tools.md) · [complexity-and-cognitive-ai.md](./complexity-and-cognitive-ai.md) · [metis-agent-comparison.md](./metis-agent-comparison.md) · [scanners.md](../scanners.md) · [phases.md](../phases.md) · [zugel-comparison-and-roadmap.md](./zugel-comparison-and-roadmap.md)
 
 **Primary references (external):**
 
