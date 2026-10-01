@@ -48,8 +48,34 @@ def build_prompt(
 
 
 
-def _append_source_files(prompt: str, files: list[FileEntry]) -> str:
+def _append_source_files(
+    prompt: str, files: list[FileEntry], *, pack_mode: str = "full"
+) -> str:
     sections = [prompt.rstrip(), "", "## Source files"]
+    if pack_mode == "outline":
+        from repolens.file_outline import format_file_outline
+
+        sections.append(
+            "(Structure outlines — prefer symbols and module shape over guessing bodies.)"
+        )
+        for entry in files:
+            sections.append(
+                f"### {entry.relative} (priority band {entry.priority_band})"
+            )
+            outline = format_file_outline(
+                entry.path,
+                min_lines_for_outline=1,
+                display_path=entry.relative,
+            )
+            if outline.strip():
+                sections.append(outline)
+            else:
+                sections.append("```")
+                sections.append(read_excerpt(entry))
+                sections.append("```")
+            sections.append("")
+        return "\n".join(sections)
+
     for entry in files:
         sections.append(f"### {entry.relative} (priority band {entry.priority_band})")
         sections.append("```")

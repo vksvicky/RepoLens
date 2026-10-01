@@ -229,6 +229,12 @@ def _announce_deep_runtime(
         provider=cfg.model.provider or "unknown",
     )
     prog.phase(est)
+    if cfg.deep.role_packs:
+        modes = ", ".join(f"{p.name}:{getattr(p, 'pack_mode', 'full')}" for p in passes)
+        prog.detail(
+            f"role_packs on — per-band file lists; pack modes [{modes}]; "
+            "rolling prior-pass summary between bands"
+        )
 
 
 
@@ -346,6 +352,7 @@ def _analyze_deep_passes(
         chars_per_pass=cfg.deep.chars_per_pass,
         rules=rules,
         max_passes=cfg.deep.max_passes,
+        role_packs=bool(cfg.deep.role_packs),
     )
     _announce_deep_runtime(prog, passes, cfg)
 
@@ -361,8 +368,13 @@ def _analyze_deep_passes(
     timeout = resolve_llm_timeout(cfg.model)
     finished_labels: list[str] = []
     timed_out_labels: list[str] = []
+    prior_summary = ""
     try:
         for idx, deep_pass in enumerate(passes, start=1):
+            prefix = prompt_prefix
+            if cfg.deep.role_packs and prior_summary:
+                block = "## Prior pass findings (compact)\n" + prior_summary
+                prefix = f"{prefix}\n\n{block}" if prefix else block
             part, raw, degraded, attempts = run_or_resume_pass(
                 root=root,
                 idx=idx,
@@ -370,13 +382,14 @@ def _analyze_deep_passes(
                 deep_pass=deep_pass,
                 rules=rules,
                 pack_ids=pack_ids,
-                prompt_prefix=prompt_prefix,
+                prompt_prefix=prefix,
                 cfg=cfg,
                 prog=prog,
                 raw_dir=raw_dir,
                 model_name=model_name,
                 provider=provider,
                 timeout=timeout,
+                prior_summary=prior_summary if cfg.deep.role_packs else "",
             )
             parts.append(part)
             raw_by_pass[deep_pass.name] = raw
@@ -398,8 +411,12 @@ def _analyze_deep_passes(
                     mode,
                     report_when,
                 )
+            if cfg.deep.role_packs and not degraded:
+                from repolens.deep import compact_pass_summary
+
+                prior_summary = compact_pass_summary(part)
     except KeyboardInterrupt:
-        raise_aborted(parts, heur.issues, finished_labels)
+        raise_aborted(parts, heur.issues, finished_labels, root=root)
 
     report = note_timed_out_passes(
         merge_reports(parts, heur.issues),
@@ -435,7 +452,7 @@ def _analyze_deep_passes(
                 raw_dir=raw_dir,
             )
         except KeyboardInterrupt:
-            raise_aborted(parts, heur.issues, finished_labels)
+            raise_aborted(parts, heur.issues, finished_labels, root=root)
         finally:
             reset_lock_context(token)
         fresh = report.durabilityGaps[gap_before:]

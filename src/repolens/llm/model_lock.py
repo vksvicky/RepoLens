@@ -224,6 +224,19 @@ class OllamaModelLock:
             self._acquire_flock()
             self.waited_seconds = max(0.0, self.clock() - started)
             note_queue_wait(self.waited_seconds)
+            if self.waited_seconds > 0 and self.path:
+                from pathlib import Path as _Path
+
+                from repolens.pipeline.journal import append_event
+
+                append_event(
+                    _Path(self.path),
+                    "queue_wait",
+                    seconds=round(self.waited_seconds, 2),
+                    pass_name=self.pass_name,
+                    model=self.model,
+                    provider=self.provider,
+                )
         except Exception:
             self._ticket.unlink(missing_ok=True)
             self._ticket = None

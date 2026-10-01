@@ -9,6 +9,7 @@ from repolens.config import RepoLensConfig
 from repolens.deep import DeepPass, merge_reports
 from repolens.llm.model_lock import bind_lock_context, reset_lock_context
 from repolens.pipeline.deep_pass import _run_deep_pass
+from repolens.pipeline.journal import append_event
 from repolens.pipeline.pass_cache import load_pass, pass_key, pass_label, save_pass
 from repolens.pipeline.types import ReviewAborted
 from repolens.progress import ReviewProgress
@@ -60,6 +61,8 @@ def raise_aborted(
     parts: list[FindingReport],
     heur_issues: list[Issue],
     finished_labels: list[str],
+    *,
+    root: Path | None = None,
 ) -> None:
     report = (
         merge_reports(parts, heur_issues)
@@ -70,6 +73,13 @@ def raise_aborted(
     report.durabilityGaps.append(
         f"Aborted by user. Finished passes are kept: {saved}."
     )
+    if root is not None:
+        append_event(
+            root,
+            "interrupted",
+            finished=finished_labels,
+            last_finished=finished_labels[-1] if finished_labels else None,
+        )
     raise ReviewAborted(report)
 
 
@@ -106,13 +116,38 @@ def run_or_resume_pass(
     model_name: str,
     provider: str,
     timeout: float,
+    prior_summary: str = "",
 ) -> tuple[FindingReport, str, bool, int]:
     label = pass_label(deep_pass.name)
-    key = pass_key(deep_pass.files, model_name, deep_pass.name)
+    key = pass_key(
+        deep_pass.files,
+        model_name,
+        deep_pass.name,
+        prior_summary=prior_summary or None,
+    )
+    append_event(
+        root,
+        "pass_started",
+        role=deep_pass.name,
+        label=label,
+        model=model_name,
+        files_count=len(deep_pass.files),
+        char_budget=cfg.deep.chars_per_pass,
+        pack_mode=getattr(deep_pass, "pack_mode", "full"),
+        role_packs=bool(cfg.deep.role_packs),
+    )
     cached = load_pass(root, key)
     if cached is not None:
         prog.phase(
             f"[Slow Brain] Resumed {label} from cache ({len(cached.issues)} findings)"
+        )
+        append_event(
+            root,
+            "pass_completed",
+            role=deep_pass.name,
+            label=label,
+            resumed=True,
+            findings_count=len(cached.issues),
         )
         return cached, "", False, 0
     token = bind_lock_context(
@@ -122,7 +157,7 @@ def run_or_resume_pass(
         status=prog.phase,
     )
     try:
-        part, raw, degraded, attempts = _run_deep_pass(
+        part, raw, degraded, attempts, chars_in, chars_out = _run_deep_pass(
             idx=idx,
             n=n,
             deep_pass=deep_pass,
@@ -140,4 +175,23 @@ def run_or_resume_pass(
         reset_lock_context(token)
     if not degraded:
         save_pass(root, key, part)
+    append_event(
+        root,
+        "pass_completed",
+        role=deep_pass.name,
+        label=label,
+        resumed=False,
+        degraded=degraded,
+        findings_count=len(part.issues),
+        chars_in=chars_in,
+        chars_out=chars_out,
+        coverage_gap_count=sum(
+            1 for gap in part.durabilityGaps if gap.startswith("coverage:")
+        ),
+    )
+    if chars_in or chars_out:
+        prog.detail(
+            f"{label}: chars_in={chars_in:,} chars_out={chars_out:,} "
+            f"(honesty metric; not a Metis % claim)"
+        )
     return part, raw, degraded, attempts

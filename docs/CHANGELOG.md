@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`--deep-passes` / `[deep] max_passes`** — cap deep band passes (1 = P1-only iteration); pre-flight Slow Brain wall-time estimate (#15)
 - **`llmRepairAttempts`** on reports — JSON micro-repair hard-capped at 1 per pass (#15)
 - **`--git-diff [base|auto]`** — restrict Slow Brain pack to git change-set; scanners + Fast Brain stay whole-tree; report **Change-set scope** section (#16)
+- **`[deep] role_packs`** — opt-in per-band file packs (P3 outline-cost), rolling ≤200-token prior-pass summary in the next prompt, and pass-cache keys that hash that summary; emits chars-in/out per pass (honesty metrics, not a Metis %-cut claim). Design: [metis-agent-comparison.md](./design/metis-agent-comparison.md)
+- **Review journal** — append-only `.repolens/journal.jsonl` (`pass_started` / `pass_completed` / `queue_wait` / `interrupted`) for interrupt post-mortem alongside pass-cache resume
 
 ### Changed
 

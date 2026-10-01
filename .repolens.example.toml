@@ -273,6 +273,10 @@
 # vacuous_pass_confidence_floor = 75
 #   Floor when a pass returns no findings. Omit = 75 if scanners ran, else 55.
 #   0 = off. 1–100 = pin that floor. Recommended: omit (auto).
+# role_packs = false
+#   Distinct P1/P2/P3 file budgets, P3 outline packs, rolling prior-pass summary.
+#   Default off until dogfood; set true to measure chars-in/out savings.
+#   Recommended: false until you compare a measured baseline.
 
 [explain]
 # enabled = true
