@@ -54,12 +54,20 @@ def merge_graph_results(
         modules.add(edge.imported)
 
     produced = bool(edges)
-    hard_fail = all(
-        part.status is GraphStatus.FAILED and not part.edges for part in parts
-    )
-    if hard_fail and not produced:
-        status = GraphStatus.FAILED
-    elif gaps:
+    statuses = {part.status for part in parts}
+    any_failed = any(part.status is GraphStatus.FAILED for part in parts)
+    if not produced:
+        if any_failed:
+            status = GraphStatus.FAILED
+        elif statuses <= {GraphStatus.SKIPPED}:
+            status = GraphStatus.SKIPPED
+        elif GraphStatus.OK in statuses or GraphStatus.PARTIAL in statuses:
+            status = GraphStatus.PARTIAL if gaps else GraphStatus.OK
+        elif gaps:
+            status = GraphStatus.PARTIAL
+        else:
+            status = GraphStatus.SKIPPED
+    elif gaps or any_failed or GraphStatus.PARTIAL in statuses:
         status = GraphStatus.PARTIAL
     else:
         status = GraphStatus.OK
