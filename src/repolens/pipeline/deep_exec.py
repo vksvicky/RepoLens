@@ -71,6 +71,18 @@ def _analyze_deep_passes(
     graph: object | None = None,
 ) -> FindingReport:
     """Heuristics → plan passes → structured LLM per pass → merge + coverage."""
+    from datetime import UTC, datetime
+
+    from repolens.pipeline.journal import append_event
+
+    append_event(
+        root,
+        "review_started",
+        run_id=datetime.now(UTC).strftime("%Y-%m-%dT%H-%M-%SZ"),
+        model=cfg.model.model or default_model(cfg.model.provider),
+        role_packs=bool(cfg.deep.role_packs),
+        provider=cfg.model.provider,
+    )
     pack_ids = list(cfg.packs.enabled)
     heur = _load_deep_heuristics(
         root=root,

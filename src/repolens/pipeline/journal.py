@@ -12,6 +12,22 @@ def journal_path(root: Path) -> Path:
     return root / ".repolens" / "journal.jsonl"
 
 
+def format_duration_ms(ms: int) -> str:
+    """Human duration for CLI; JSONL keeps raw millisecond ints."""
+    if ms < 1000:
+        return "< 1s"
+    total_seconds = ms / 1000.0
+    if total_seconds < 60:
+        text = f"{total_seconds:.1f}".rstrip("0").rstrip(".")
+        return f"{text}s"
+    minutes = int(total_seconds // 60)
+    seconds = int(round(total_seconds - minutes * 60))
+    if seconds == 60:
+        minutes += 1
+        seconds = 0
+    return f"{minutes}m {seconds}s"
+
+
 def append_event(root: Path, event: str, **fields: Any) -> None:
     """Append one JSON object. Never raises into the review loop."""
     path = journal_path(root)

@@ -4,7 +4,32 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from repolens.pipeline.journal import append_event, journal_path, read_events
+from repolens.pipeline.journal import (
+    append_event,
+    format_duration_ms,
+    journal_path,
+    read_events,
+)
+
+
+def test_format_duration_ms() -> None:
+    assert format_duration_ms(0) == "< 1s"
+    assert format_duration_ms(500) == "< 1s"
+    assert format_duration_ms(4200) == "4.2s"
+    assert format_duration_ms(852_000) == "14m 12s"
+
+
+def test_append_pass_completed_can_store_duration_ms(tmp_path: Path) -> None:
+    append_event(
+        tmp_path,
+        "pass_completed",
+        label="P1 Security",
+        pass_duration_ms=1200,
+        queue_wait_ms=400,
+    )
+    row = read_events(tmp_path)[-1]
+    assert row["pass_duration_ms"] == 1200
+    assert row["queue_wait_ms"] == 400
 
 
 def test_append_event_writes_jsonl_under_repolens(tmp_path: Path) -> None:
