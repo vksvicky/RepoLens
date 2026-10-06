@@ -9,25 +9,25 @@ import typer
 from repolens.cli.app import app
 from repolens.cli.commands_review import _run_mode
 from repolens.cli.pack_scope import (
+    option_bitbucket,
     option_force_changed,
     option_force_full,
     option_git_diff,
+    option_git_url,
+    option_github,
+    option_hf,
+    option_path,
+    option_ref,
 )
 
 @app.command()
 def sentinel(
-    path: str | None = typer.Option(
-        None, "--path", help="Local project root (default: .)"
-    ),
-    git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL"),
-    github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO"),
-    bitbucket: str | None = typer.Option(
-        None, "--bitbucket", help="Bitbucket WORKSPACE/REPO"
-    ),
-    hf: str | None = typer.Option(
-        None, "--hf", help="Hugging Face Hub id (ORG/NAME or datasets|spaces/ORG/NAME)"
-    ),
-    ref: str | None = typer.Option(None, "--ref", help="Branch/tag for remotes"),
+    path: str | None = option_path(),
+    git_url: str | None = option_git_url(),
+    github: str | None = option_github(),
+    bitbucket: str | None = option_bitbucket(),
+    hf: str | None = option_hf(),
+    ref: str | None = option_ref(),
     mode: str = typer.Option("full", "--mode", help="full | diff"),
     since: str | None = typer.Option(None, "--since", help="Diff base ref"),
     out: Path | None = typer.Option(None, "--out", help="Report directory"),
@@ -165,18 +165,12 @@ def sentinel(
 
 @app.command()
 def architecture(
-    path: str | None = typer.Option(
-        None, "--path", help="Local project root (default: .)"
-    ),
-    git_url: str | None = typer.Option(None, "--git-url", help="Git clone URL"),
-    github: str | None = typer.Option(None, "--github", help="GitHub OWNER/REPO"),
-    bitbucket: str | None = typer.Option(
-        None, "--bitbucket", help="Bitbucket WORKSPACE/REPO"
-    ),
-    hf: str | None = typer.Option(
-        None, "--hf", help="Hugging Face Hub id (ORG/NAME or datasets|spaces/ORG/NAME)"
-    ),
-    ref: str | None = typer.Option(None, "--ref", help="Branch/tag for remotes"),
+    path: str | None = option_path(),
+    git_url: str | None = option_git_url(),
+    github: str | None = option_github(),
+    bitbucket: str | None = option_bitbucket(),
+    hf: str | None = option_hf(),
+    ref: str | None = option_ref(),
     mode: str = typer.Option("full", "--mode", help="full | diff"),
     since: str | None = typer.Option(None, "--since", help="Diff base ref"),
     out: Path | None = typer.Option(None, "--out", help="Report directory"),

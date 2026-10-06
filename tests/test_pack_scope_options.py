@@ -8,6 +8,7 @@ from repolens.cli.pack_scope import (
     option_force_changed,
     option_force_full,
     option_git_diff,
+    option_path,
 )
 
 
@@ -15,15 +16,19 @@ def test_pack_scope_options_expose_the_shared_flags() -> None:
     full = option_force_full()
     changed = option_force_changed()
     git_diff = option_git_diff()
+    path = option_path()
     assert isinstance(full, typer.models.OptionInfo)
     assert isinstance(changed, typer.models.OptionInfo)
     assert isinstance(git_diff, typer.models.OptionInfo)
+    assert isinstance(path, typer.models.OptionInfo)
     assert full.param_decls == ("--full",)
     assert changed.param_decls == ("--changed",)
     assert git_diff.param_decls == ("--git-diff",)
+    assert path.param_decls == ("--path",)
     assert full.default is False
     assert changed.default is False
     assert git_diff.default is None
+    assert path.default is None
     assert "Scanners/Fast Brain stay whole-tree" in (git_diff.help or "")
 
 
