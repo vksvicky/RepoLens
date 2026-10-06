@@ -11,7 +11,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `repolens graph breakup` — candidate cycle cuts; `--omit-edge importer:imported` previews cyclicity without editing files
 - `repolens baseline set` also stores optional `metrics` (`boundaryViolations`, `complexityHotspots`, `nearClonePairs`); `check --diff` and `review --ratchet` fail independently if any stored field rises (old files without `metrics` stay cyclicity-only)
 - `repolens hotspots --since` — git churn table (path, commits, lines added/deleted); `--format json`
-- Unpacked VS Code / Cursor client in `editors/vscode/` — save runs `repolens check --format sarif`; status bar runs `check --diff`; never starts a model review
+- Unpacked VS Code / Cursor client in `editors/vscode/` — save runs `repolens check --format sarif`; status bar runs `check --diff`; palette: deps, would-cycle, breakup, omit-edge, duplicates, ignore, explain (never starts a model review on save)
+- Zed tasks and IntelliJ External Tools first versions under `editors/zed/` and `editors/intellij/`
+- `repolens review --role-packs` / `--no-role-packs` overrides `[deep] role_packs` for an Audit
 
 ## [0.1.0] — 2026-10-06 (tag pending)
 

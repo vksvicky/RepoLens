@@ -27,6 +27,50 @@ function runCli(root, args) {
   });
 }
 
+function workspaceRoot() {
+  const folder = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+  return folder || null;
+}
+
+function moduleFromRel(rel) {
+  let p = String(rel || "").replace(/\\/g, "/");
+  if (p.startsWith("src/")) {
+    p = p.slice(4);
+  }
+  if (!p.endsWith(".py")) {
+    return null;
+  }
+  p = p.slice(0, -3);
+  if (p.endsWith("/__init__")) {
+    p = p.slice(0, -"/__init__".length);
+  }
+  return p.replace(/\//g, ".");
+}
+
+function activeModule() {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed) {
+    return null;
+  }
+  const rel = vscode.workspace.asRelativePath(ed.document.uri);
+  return moduleFromRel(rel);
+}
+
+function activeRel() {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed) {
+    return "";
+  }
+  return vscode.workspace.asRelativePath(ed.document.uri);
+}
+
+function showJson(title, text) {
+  const doc = vscode.window.createOutputChannel(title, { log: false });
+  doc.clear();
+  doc.append(text);
+  doc.show(true);
+}
+
 function applySarif(collection, folder, sarif) {
   collection.clear();
   const run = sarif && sarif.runs && sarif.runs[0];
@@ -67,7 +111,7 @@ function applySarif(collection, folder, sarif) {
 }
 
 async function runCheck(collection) {
-  const folder = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+  const folder = workspaceRoot();
   if (!folder) {
     vscode.window.showWarningMessage("RepoLens: open a folder first.");
     return;
@@ -94,7 +138,7 @@ async function runCheck(collection) {
 }
 
 async function runDiff() {
-  const folder = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+  const folder = workspaceRoot();
   if (!folder) {
     return;
   }
@@ -102,6 +146,174 @@ async function runDiff() {
   const { stdout, stderr } = await runCli(root, ["check", "--path", root, "--diff"]);
   const text = (stdout || stderr || "").trim().split("\n")[0] || "check --diff finished";
   vscode.window.setStatusBarMessage(`RepoLens: ${text}`, 8000);
+}
+
+async function runDeps() {
+  const folder = workspaceRoot();
+  const mod = activeModule();
+  if (!folder || !mod) {
+    vscode.window.showWarningMessage("RepoLens: open a Python file.");
+    return;
+  }
+  const root = folder.uri.fsPath;
+  const deps = await runCli(root, ["graph", "deps", mod, "--path", root, "--json"]);
+  const importers = await runCli(root, [
+    "graph",
+    "dependents",
+    mod,
+    "--path",
+    root,
+    "--json",
+  ]);
+  showJson(
+    "RepoLens dependencies",
+    JSON.stringify({ module: mod, deps: deps.stdout, importers: importers.stdout }, null, 2)
+  );
+}
+
+async function runWouldCycle() {
+  const folder = workspaceRoot();
+  const fromMod = activeModule();
+  if (!folder || !fromMod) {
+    vscode.window.showWarningMessage("RepoLens: open a Python file.");
+    return;
+  }
+  const toMod = await vscode.window.showInputBox({
+    prompt: "Would this import cycle? Target module",
+    placeHolder: "packcycle.b",
+  });
+  if (!toMod) {
+    return;
+  }
+  const root = folder.uri.fsPath;
+  const { stdout, stderr, code } = await runCli(root, [
+    "graph",
+    "would-cycle",
+    "--from",
+    fromMod,
+    "--to",
+    toMod.trim(),
+    "--path",
+    root,
+  ]);
+  vscode.window.showInformationMessage(
+    `would-cycle exit ${code}: ${(stdout || stderr || "").trim().slice(0, 200)}`
+  );
+}
+
+async function runBreakup() {
+  const folder = workspaceRoot();
+  if (!folder) {
+    return;
+  }
+  const root = folder.uri.fsPath;
+  const { stdout } = await runCli(root, [
+    "graph",
+    "breakup",
+    "--path",
+    root,
+    "--format",
+    "json",
+  ]);
+  showJson("RepoLens breakup", stdout);
+}
+
+async function runPreviewCut() {
+  const folder = workspaceRoot();
+  if (!folder) {
+    return;
+  }
+  const token = await vscode.window.showInputBox({
+    prompt: "Preview cut (importer:imported)",
+    placeHolder: "packcycle.a:packcycle.b",
+  });
+  if (!token) {
+    return;
+  }
+  const root = folder.uri.fsPath;
+  const { stdout, stderr } = await runCli(root, [
+    "graph",
+    "breakup",
+    "--path",
+    root,
+    "--omit-edge",
+    token.trim(),
+    "--format",
+    "json",
+  ]);
+  showJson("RepoLens preview cut", stdout || stderr);
+}
+
+async function runDuplicates() {
+  const folder = workspaceRoot();
+  if (!folder) {
+    return;
+  }
+  const rel = activeRel();
+  const root = folder.uri.fsPath;
+  const args = ["duplicates", "--path", root, "--format", "json"];
+  if (rel) {
+    args.push("--file", rel);
+  }
+  const { stdout } = await runCli(root, args);
+  showJson("RepoLens duplicates", stdout);
+}
+
+async function runIgnore() {
+  const folder = workspaceRoot();
+  if (!folder) {
+    return;
+  }
+  const ruleId = await vscode.window.showInputBox({
+    prompt: "Ignore --id (stableId)",
+  });
+  if (!ruleId) {
+    return;
+  }
+  const root = folder.uri.fsPath;
+  const args = ["ignore", "add", "--path", root, "--id", ruleId.trim()];
+  const rel = activeRel();
+  if (rel) {
+    args.push("--file", rel);
+  }
+  const { stdout, stderr, code } = await runCli(root, args);
+  vscode.window.showInformationMessage(
+    code === 0 ? stdout.trim() || "Ignored" : (stderr || stdout).trim()
+  );
+}
+
+async function runExplain() {
+  const folder = workspaceRoot();
+  if (!folder) {
+    return;
+  }
+  const fingerprint = await vscode.window.showInputBox({
+    prompt: "Explain fingerprint / stableId",
+  });
+  if (!fingerprint) {
+    return;
+  }
+  const root = folder.uri.fsPath;
+  const { stdout, stderr } = await runCli(root, [
+    "explain",
+    fingerprint.trim(),
+    "--path",
+    root,
+  ]);
+  showJson("RepoLens explain", stdout || stderr);
+}
+
+async function copyFullReview() {
+  const folder = workspaceRoot();
+  if (!folder) {
+    return;
+  }
+  const root = folder.uri.fsPath;
+  const cmd = `repolens review --path "${root}" --out "${root}/reports" --full-audit --deep --timeout 7200`;
+  await vscode.env.clipboard.writeText(cmd);
+  vscode.window.showInformationMessage(
+    "Copied full review command. Paste it in a terminal. Save does not start a review."
+  );
 }
 
 function activate(context) {
@@ -112,6 +324,26 @@ function activate(context) {
     vscode.commands.registerCommand("repolens.check", () => runCheck(collection))
   );
   context.subscriptions.push(vscode.commands.registerCommand("repolens.diff", runDiff));
+  context.subscriptions.push(vscode.commands.registerCommand("repolens.deps", runDeps));
+  context.subscriptions.push(
+    vscode.commands.registerCommand("repolens.wouldCycle", runWouldCycle)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("repolens.breakup", runBreakup)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("repolens.previewCut", runPreviewCut)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("repolens.duplicates", runDuplicates)
+  );
+  context.subscriptions.push(vscode.commands.registerCommand("repolens.ignore", runIgnore));
+  context.subscriptions.push(
+    vscode.commands.registerCommand("repolens.explain", runExplain)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("repolens.copyFullReview", copyFullReview)
+  );
 
   let timer = null;
   context.subscriptions.push(
@@ -135,4 +367,4 @@ function activate(context) {
 
 function deactivate() {}
 
-module.exports = { activate, deactivate };
+module.exports = { activate, deactivate, moduleFromRel };

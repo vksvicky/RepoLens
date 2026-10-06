@@ -69,6 +69,7 @@ def _run_mode(
     no_model_lock: bool = False,
     model_lock: bool | None = None,
     resume: bool = True,
+    role_packs: bool | None = None,
 ) -> None:
     resolved = None
 
@@ -170,6 +171,7 @@ def _run_mode(
             require_sarif_import=require_sarif_import,
             model_lock=model_lock,
             resume=resume,
+            role_packs=role_packs,
         )
 
         _print_summary(
@@ -371,6 +373,11 @@ def review(
         "--resume/--no-resume",
         help="Reuse finished Slow Brain pass cache (reads journal last-finished)",
     ),
+    role_packs: bool | None = typer.Option(
+        None,
+        "--role-packs/--no-role-packs",
+        help="Override [deep] role_packs for this Audit (honesty metric; default: config)",
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -414,6 +421,7 @@ def review(
         no_model_lock,
         True if model_lock_flag else False if no_model_lock else None,
         resume,
+        role_packs,
     )
 
 

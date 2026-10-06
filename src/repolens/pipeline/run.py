@@ -72,6 +72,21 @@ def _apply_model_lock(state: ReviewRun) -> None:
         state.cfg.model.lock = False
 
 
+def _apply_deep_cli_overrides(state: ReviewRun) -> None:
+    if state.deep_passes is not None:
+        if state.deep_passes < 1:
+            raise ValueError("--deep-passes must be >= 1")
+        state.cfg.deep.max_passes = state.deep_passes
+    if state.verify_findings is True:
+        state.cfg.deep.verify_findings = True
+    elif state.verify_findings is False:
+        state.cfg.deep.verify_findings = False
+    if state.role_packs is True:
+        state.cfg.deep.role_packs = True
+    elif state.role_packs is False:
+        state.cfg.deep.role_packs = False
+
+
 def _bind_review_config(state: ReviewRun) -> None:
     if state.force_full and state.force_changed:
         raise ValueError("--full and --changed cannot be combined")
@@ -96,14 +111,7 @@ def _bind_review_config(state: ReviewRun) -> None:
         if state.timeout_override <= 0:
             raise ValueError("--timeout must be a positive number of seconds")
         state.cfg.model.timeout_seconds = state.timeout_override
-    if state.deep_passes is not None:
-        if state.deep_passes < 1:
-            raise ValueError("--deep-passes must be >= 1")
-        state.cfg.deep.max_passes = state.deep_passes
-    if state.verify_findings is True:
-        state.cfg.deep.verify_findings = True
-    elif state.verify_findings is False:
-        state.cfg.deep.verify_findings = False
+    _apply_deep_cli_overrides(state)
     from repolens.packs.registry import resolve_enabled_packs
 
     state.pack_ids = resolve_enabled_packs([*state.cfg.packs.enabled, *(state.packs or [])])
@@ -305,6 +313,7 @@ def run_review(
     require_sarif_import: bool = False,
     model_lock: bool | None = None,
     resume: bool = True,
+    role_packs: bool | None = None,
 ) -> ReviewResult:
 
     state = ReviewRun(
@@ -338,6 +347,7 @@ def run_review(
         require_sarif_import=require_sarif_import,
         model_lock=model_lock,
         resume=resume,
+        role_packs=role_packs,
     )
     _bind_review_config(state)
     _load_review_inventory(state)
