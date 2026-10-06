@@ -120,7 +120,7 @@ def forecast_deep_plan(
             for f in forecasts
         )
         estimate_line = (
-            f"Slow Brain estimate (role_packs): "
+            "Slow Brain estimate (role_packs): "
             + " + ".join(f"{f.name}={f.file_count}f/{f.pack_mode}" for f in forecasts)
             + f" via {provider} → ~{minutes} min lower band"
         )

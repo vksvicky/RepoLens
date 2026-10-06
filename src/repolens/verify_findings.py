@@ -62,7 +62,11 @@ def apply_verify_findings(
     for issue in issues:
         if issue.severity not in {Severity.CRITICAL, Severity.HIGH}:
             out.append(
-                issue.model_copy(update={"verificationStatus": issue.verificationStatus or "skipped"})
+                issue.model_copy(
+                    update={
+                        "verificationStatus": issue.verificationStatus or "skipped"
+                    }
+                )
             )
             continue
         try:

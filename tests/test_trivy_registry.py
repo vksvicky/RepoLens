@@ -186,7 +186,6 @@ def test_matrix_g_sbom_gets_password(
         env = kwargs.get("env")
         assert isinstance(env, dict)
         seen["password"] = env.get("TRIVY_PASSWORD")
-        dest = Path(str(kwargs.get("cwd") or tmp_path))
         # write_trivy_sbom passes -o dest; create the file
         return _completed(stdout="")
 

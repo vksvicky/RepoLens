@@ -12,6 +12,7 @@ from repolens.config import NearClonesConfig
 from repolens.heuristics.ci_gaps import find_ci_gaps
 from repolens.heuristics.deep_nesting import find_deep_nesting
 from repolens.heuristics.gitignore_secrets import find_gitignore_secret_gaps
+from repolens.heuristics.large_functions import find_large_functions
 from repolens.heuristics.mega_files import (
     DEFAULT_MEGA_AND_SKIP_EXCLUDES,
     find_mega_files,
@@ -19,7 +20,6 @@ from repolens.heuristics.mega_files import (
 )
 from repolens.heuristics.near_clones import find_near_clones
 from repolens.heuristics.scripts_hygiene import find_script_credential_hygiene, find_todo_density
-from repolens.heuristics.large_functions import find_large_functions
 from repolens.heuristics.siblings import find_sibling_pairs
 from repolens.heuristics.transport_tls import find_transport_tls
 from repolens.inventory import FileEntry

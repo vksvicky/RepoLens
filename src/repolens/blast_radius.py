@@ -56,8 +56,8 @@ def expand_blast_radius(
         return BlastRadiusResult(paths=list(base))
     try:
         from repolens.config import load_config
-        from repolens.graph.repo import analyse_repo_graph
         from repolens.graph.query import direct_dependencies, direct_dependents
+        from repolens.graph.repo import analyse_repo_graph
         from repolens.graph.types import GraphStatus
     except ImportError:
         return BlastRadiusResult(
