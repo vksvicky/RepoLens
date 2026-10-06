@@ -91,7 +91,8 @@ repolens = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+# "." so `from tests.…` works when cwd is not on sys.path (e.g. PYTHONSAFEPATH / CI).
+pythonpath = ["src", "."]
 
 [tool.ruff]
 line-length = 100
