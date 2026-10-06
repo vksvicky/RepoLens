@@ -62,7 +62,12 @@ def _run_deep_pass(
         deep_pass, rules, deep_pass.coverage_ids, pack_ids=pack_ids
     )
     pack_mode = getattr(deep_pass, "pack_mode", "full") or "full"
-    prompt = _append_source_files(prompt, deep_pass.files, pack_mode=pack_mode)
+    prompt = _append_source_files(
+        prompt,
+        deep_pass.files,
+        pack_mode=pack_mode,
+        file_pack_modes=getattr(deep_pass, "file_pack_modes", None) or None,
+    )
     prompt += coverage_checklist_tail(deep_pass.coverage_ids)
     if prompt_prefix:
         prompt = prompt_prefix + "\n\n" + prompt
