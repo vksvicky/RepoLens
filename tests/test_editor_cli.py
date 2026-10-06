@@ -128,7 +128,8 @@ def test_journal_cli_human(tmp_path: Path) -> None:
     result = runner.invoke(app, ["journal", "--path", str(tmp_path)])
     assert result.exit_code == 0, result.output
     assert "chars_in" in result.output
-    assert "Honesty metric" in result.output
+    assert "not a Metis" in result.output
+    assert "P1 Security" in result.output
 
 
 def test_journal_cli_empty(tmp_path: Path) -> None:

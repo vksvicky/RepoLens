@@ -97,3 +97,91 @@ def read_events(root: Path) -> list[dict[str, Any]]:
         if isinstance(raw, dict) and raw.get("event"):
             rows.append(raw)
     return rows
+
+
+def postmortem_data(root: Path) -> dict[str, Any]:
+    """Structured post-mortem with raw millisecond ints (machine-safe)."""
+    events = read_events(root)
+    started = next((e for e in events if e.get("event") == "review_started"), None)
+    interrupted = next(
+        (e for e in reversed(events) if e.get("event") == "interrupted"), None
+    )
+    verify = next(
+        (e for e in reversed(events) if e.get("event") == "verify_completed"), None
+    )
+    completed = [e for e in events if e.get("event") == "pass_completed"]
+    started_passes = [e for e in events if e.get("event") == "pass_started"]
+    unfinished: str | None = None
+    if interrupted is not None:
+        finished_labels = {
+            str(e.get("label") or e.get("role") or "") for e in completed
+        }
+        for row in reversed(started_passes):
+            label = str(row.get("label") or row.get("role") or "").strip()
+            if label and label not in finished_labels:
+                unfinished = label
+                break
+        status = (
+            f"INTERRUPTED during {unfinished}"
+            if unfinished
+            else "INTERRUPTED"
+        )
+    else:
+        status = "COMPLETED"
+    return {
+        "run_id": (started or {}).get("run_id"),
+        "role_packs": (started or {}).get("role_packs"),
+        "status": status,
+        "interrupted_during": unfinished,
+        "completed_passes": completed,
+        "verify": verify,
+        "last_finished": last_finished_label(root),
+        "chars": summarize_chars(root),
+        "events": len(events),
+    }
+
+
+def build_postmortem(root: Path) -> str:
+    """Human-readable journal post-mortem (formatted durations only here)."""
+    data = postmortem_data(root)
+    if data["events"] == 0:
+        return f"No journal at {journal_path(root)}"
+    lines = [
+        f"Run ID: {data['run_id'] or '(unknown)'}",
+        f"Status: {data['status']}",
+        f"role_packs: {'on' if data.get('role_packs') else 'off'}",
+        "Completed passes:",
+    ]
+    for row in data["completed_passes"]:
+        label = str(row.get("label") or row.get("role") or "pass")
+        files = row.get("files_count")
+        pack = row.get("pack_mode") or "full"
+        findings = row.get("findings_count", 0)
+        dur = format_duration_ms(int(row.get("pass_duration_ms") or 0))
+        wait = format_duration_ms(int(row.get("queue_wait_ms") or 0))
+        file_bit = f"{files} files ({pack}), " if files is not None else ""
+        lines.append(
+            f"  ✓ {label}: {file_bit}{findings} findings, {dur} "
+            f"(queue wait: {wait})"
+        )
+    during = data.get("interrupted_during")
+    if during:
+        lines.append(f"  — {during}: started, not completed")
+    verify = data.get("verify")
+    if verify:
+        lines.append(
+            f"Verify: {verify.get('grounded_count', 0)} grounded, "
+            f"{verify.get('suspect_count', 0)} suspect"
+        )
+    else:
+        lines.append("Verify: (not run)")
+    last = data.get("last_finished")
+    if last:
+        lines.append(f"Last finished: {last}")
+    lines.append(f"Resume: repolens review --resume --path {root}")
+    chars = data["chars"]
+    lines.append(
+        f"Honesty: chars_in={chars['chars_in']:,} chars_out={chars['chars_out']:,} "
+        "(not a Metis % claim)"
+    )
+    return "\n".join(lines)
