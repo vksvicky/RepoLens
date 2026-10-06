@@ -48,6 +48,7 @@ class ReviewRun:
     require_sarif_import: bool
     model_lock: bool | None = None
     resume: bool = True
+    role_packs: bool | None = None
 
     cfg: Any = None
     aborted: bool = False

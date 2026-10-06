@@ -1,6 +1,6 @@
 # RepoLens vs Sonargraph-Architect
 
-**Status:** C1–C7 CLI landed (2026-10-06). Thin VS Code/Cursor client is `editors/vscode/` (diagnostics on save + status-bar ratchet). Zed/IntelliJ later. No Metis desktop.  
+**Status:** C1–C7 CLI landed (2026-10-06). VS Code/Cursor client: diagnostics on save, status bar, deps, would-cycle, breakup, omit-edge, duplicates, ignore. Zed/IntelliJ first versions are README + tasks/External Tools. No Metis desktop.  
 **Source:** [Sonargraph-Architect](https://www.hello2morrow.com/products/sonargraph/architect)  
 **Related:** [which-command.md](../which-command.md) (what you can run today) · [zugel-comparison-and-roadmap.md](./zugel-comparison-and-roadmap.md) (G0–G4, CLI-first guardrail) · [architecture-dsl-format-comparison.md](./architecture-dsl-format-comparison.md)
 

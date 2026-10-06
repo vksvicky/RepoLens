@@ -16,14 +16,16 @@
   "main": "./extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "repolens.check",
-        "title": "RepoLens: Check"
-      },
-      {
-        "command": "repolens.diff",
-        "title": "RepoLens: Cyclicity ratchet"
-      }
+      { "command": "repolens.check", "title": "RepoLens: Check" },
+      { "command": "repolens.diff", "title": "RepoLens: Cyclicity ratchet" },
+      { "command": "repolens.deps", "title": "RepoLens: Show dependencies" },
+      { "command": "repolens.wouldCycle", "title": "RepoLens: Would this import cycle?" },
+      { "command": "repolens.breakup", "title": "RepoLens: Why this cycle" },
+      { "command": "repolens.previewCut", "title": "RepoLens: Preview cut" },
+      { "command": "repolens.duplicates", "title": "RepoLens: Compare duplicate" },
+      { "command": "repolens.ignore", "title": "RepoLens: Ignore finding" },
+      { "command": "repolens.explain", "title": "RepoLens: Explain finding" },
+      { "command": "repolens.copyFullReview", "title": "RepoLens: Copy full review command" }
     ]
   }
 }

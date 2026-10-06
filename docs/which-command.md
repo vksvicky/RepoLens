@@ -277,15 +277,15 @@ A plugin would not embed a second scanner. It would run the CLI and show the res
 | Click the status bar | `repolens check --path <project> --diff` | **Now** as CLI and in `editors/vscode/` status bar. Needs `baseline set` once. |
 | “Review Change-Set” | Recommended command 1 PR variant (`--git-diff auto`, no `--full`) | **Now** as CLI. Plugin command palette entry is future. |
 | “Open Latest Audit Report” | Open newest `gate_review_report_*.md` under `--out` | Future plugin. Today: open the Markdown path from the CLI summary. |
-| “Show dependencies” | `repolens graph deps` / `dependents` | Not built. |
-| “Would this import cycle?” | `repolens graph would-cycle` | Not built. |
-| Code action “Why this cycle” | `repolens graph breakup --format json` | Not built. Today: `check architecture --json` if a rules file exists. |
-| Button “Preview cut” | `repolens graph breakup --omit-edge …` | Not built. |
-| Code action “Compare duplicate” | `repolens duplicates --file … --format json` | Not built. |
+| “Show dependencies” | `repolens graph deps` / `dependents` | **Now** in `editors/vscode/` (Python file open). CLI too. |
+| “Would this import cycle?” | `repolens graph would-cycle` | **Now** in `editors/vscode/`. |
+| Code action “Why this cycle” | `repolens graph breakup --format json` | **Now** in `editors/vscode/`. |
+| Button “Preview cut” | `repolens graph breakup --omit-edge …` | **Now** in `editors/vscode/`. |
+| Code action “Compare duplicate” | `repolens duplicates --file … --format json` | **Now** in `editors/vscode/`. |
 | Code action “Show suggested fix” | Renders finding's `codeExample` or model diff | Not built. Today: `repolens explain <fingerprint>`. |
-| Code action “Ignore” | `repolens ignore add --id … --path …` | Not built. Today (CLI): `feedback down <fingerprint>`. |
-| Code action “Explain” | `repolens explain <fingerprint>` | **Now**, after a report has a Fingerprint. |
-| “Run full review” | Recommended command 1 at the top of this page | **Now.** You start it. It does not run on save. |
+| Code action “Ignore” | `repolens ignore add --id …` | **Now** in `editors/vscode/`. |
+| Code action “Explain” | `repolens explain <fingerprint>` | **Now** in `editors/vscode/` and CLI. |
+| “Run full review” | Copies the CLI command; you paste it in a terminal | **Now.** Save does not start it. |
 
 ## What “covered” means
 
@@ -350,7 +350,7 @@ Every example is this repository, run from the RepoLens folder. A command you ca
 
 | Future command | What it would do | Nearest command that exists |
 | --- | --- | --- |
-| Zed / IntelliJ plugin | Same CLI in those editors | `editors/vscode/` plus `repolens check --format sarif` |
+| Native Zed / IntelliJ plugins | In-IDE Problems without copy-paste | `editors/zed/README.md` and `editors/intellij/README.md` (External Tools / tasks) |
 | Custom graph canvas | Draw modules as a widget | `repolens graph edges --format json` → editor Markdown preview |
 
 ---
