@@ -70,7 +70,7 @@ def _high(title: str, *, package: str, advisory: str) -> Issue:
 
 
 def test_package_echo_requires_the_whole_name() -> None:
-    from repolens.report_sections import _echoes_suppressed
+    from repolens.report_checklist import _echoes_suppressed
 
     suppressed = _high(
         "RUSTSEC-2026-0192 in ttf-parser",
@@ -265,7 +265,7 @@ def test_audit_ledger_does_not_call_a_cloud_run_air_gapped() -> None:
 
 
 def test_plan_to_fix_splits_quick_wins_from_structural_work() -> None:
-    from repolens.report_sections import plan_to_fix_lines
+    from repolens.report_checklist import plan_to_fix_lines
 
     secret = Issue(
         severity=Severity.MEDIUM,

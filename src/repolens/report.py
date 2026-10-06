@@ -13,18 +13,21 @@ from repolens.report_metrics import (
     format_collapsed_duplicates,
     suppression_suffix,
 )
+from repolens.report_checklist import (
+    _render_coverage_section,
+    _render_durability_gaps_section,
+    _render_theme_breakdown,
+    plan_to_fix_lines,
+)
 from repolens.report_sections import (
     _render_change_set_section,
     _render_complexity_section,
-    _render_coverage_section,
-    _render_durability_gaps_section,
     _render_import_graph_section,
     _render_provenance_section,
     _render_quality_scorecard_section,
     _render_supply_chain_section,
     _render_suppressed_section,
     _render_testing_inventory_section,
-    _render_theme_breakdown,
     _render_verification_section,
 )
 from repolens.schema import FindingReport, Issue, Severity
@@ -314,8 +317,6 @@ def _markdown_scanners(report: FindingReport) -> list[str]:
 
 
 def _markdown_plan(report: FindingReport) -> list[str]:
-    from repolens.report_sections import plan_to_fix_lines
-
     return ["## Plan to fix", "", *plan_to_fix_lines(report)]
 
 
