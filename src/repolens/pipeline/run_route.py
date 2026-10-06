@@ -189,7 +189,7 @@ def _select_adaptive_pack(state: ReviewRun) -> None:
 
 def _apply_git_diff_scope(state: ReviewRun) -> None:
     if state.git_diff_requested:
-        from repolens.blast_radius import expand_blast_radius_paths
+        from repolens.blast_radius import expand_blast_radius
         from repolens.changeset import (
             cap_changeset_paths,
             filter_entries_to_changeset,
@@ -204,12 +204,13 @@ def _apply_git_diff_scope(state: ReviewRun) -> None:
         changed = list_git_changed_paths(
             state.root, resolved_base, include_dirty=True
         )
-        expanded = expand_blast_radius_paths(
+        blast = expand_blast_radius(
             state.root,
             changed,
             state.files or state.llm_files,
             enabled=bool(state.cfg.deep.blast_radius),
         )
+        expanded = blast.paths
         state.git_changed_paths = expanded
         state.llm_files = filter_entries_to_changeset(state.llm_files, expanded)
         note = (
@@ -221,6 +222,9 @@ def _apply_git_diff_scope(state: ReviewRun) -> None:
                 "scanners and Fast Brain remain whole-tree"
             )
         )
+        if blast.note:
+            note = f"{note}. {blast.note}"
+            state.prog.detail(blast.note)
         state.change_set_block = ChangeSetBlock(
             base=resolved_base,
             pathCount=len(expanded),

@@ -74,6 +74,10 @@ def _python_symbols(text: str) -> list[SymbolSpan]:
 _GENERIC_DEF_RE = re.compile(
     r"^\s*(?:export\s+)?(?:async\s+)?(?:function|def|class|fn|func)\s+([A-Za-z_][\w]*)"
 )
+_GENERIC_ASSIGN_RE = re.compile(
+    r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_][\w]*)\s*=\s*"
+    r"(?:async\s+)?(?:function\b|\()"
+)
 
 
 def _generic_symbols(text: str) -> list[SymbolSpan]:
@@ -81,7 +85,7 @@ def _generic_symbols(text: str) -> list[SymbolSpan]:
     out: list[SymbolSpan] = []
     lines = text.splitlines()
     for i, line in enumerate(lines, start=1):
-        m = _GENERIC_DEF_RE.match(line)
+        m = _GENERIC_DEF_RE.match(line) or _GENERIC_ASSIGN_RE.match(line)
         if not m:
             continue
         kind = "class" if "class" in line.split("(")[0] else "function"

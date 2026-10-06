@@ -111,6 +111,52 @@ def test_second_deep_run_skips_finished_passes(tmp_path: Path, monkeypatch) -> N
     assert "p1" not in calls
     assert "p2" not in calls
     assert "p3" not in calls
+
+
+def test_no_resume_reruns_cached_passes(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("REPOLENS_LOCK_DIR", str(tmp_path / "locks"))
+    (tmp_path / "a.py").write_text("print(1)\n", encoding="utf-8")
+    cfg = RepoLensConfig(
+        model=ModelConfig(provider="ollama", model="mock", timeout_seconds=30),
+        adaptive=AdaptiveConfig(enabled=False),
+        deep=DeepConfig(enabled=True),
+    )
+    calls: list[str] = []
+
+    def fake_analyze(
+        prompt, model_cfg, *, pass_id, progress=None, raw_dir=None, on_delta=None, **_
+    ):
+        calls.append(pass_id)
+        return _pass_report(
+            title=f"{pass_id} finding",
+            file="a.py",
+            priority="P1" if pass_id == "p1" else "P2" if pass_id == "p2" else "P3",
+            coverage_na=[],
+        )
+
+    with patch("repolens.llm_structured.analyze_structured", side_effect=fake_analyze):
+        run_review(
+            path=tmp_path,
+            mode="review",
+            config=cfg,
+            out_dir=tmp_path / "out",
+            scanners="off",
+            deep=True,
+        )
+    calls.clear()
+    with patch("repolens.llm_structured.analyze_structured", side_effect=fake_analyze):
+        run_review(
+            path=tmp_path,
+            mode="review",
+            config=cfg,
+            out_dir=tmp_path / "out2",
+            scanners="off",
+            deep=True,
+            resume=False,
+        )
+    assert "p1" in calls
+    assert "p2" in calls
+    assert "p3" in calls
     assert list((tmp_path / "locks").rglob("*.json")) == []
 
 

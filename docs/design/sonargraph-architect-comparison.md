@@ -1,6 +1,6 @@
 # RepoLens vs Sonargraph-Architect
 
-**Status:** comparison and enhancement note (2026-09-30). No implementation in this document.  
+**Status:** C1/C2/C5/C6 CLI landed (2026-10-06). C3 breakup/`--omit-edge`, C4 extra baseline fields, C7 churn, and editor plugins remain later. No Metis desktop.  
 **Source:** [Sonargraph-Architect](https://www.hello2morrow.com/products/sonargraph/architect)  
 **Related:** [which-command.md](../which-command.md) (what you can run today) · [zugel-comparison-and-roadmap.md](./zugel-comparison-and-roadmap.md) (G0–G4, CLI-first guardrail) · [architecture-dsl-format-comparison.md](./architecture-dsl-format-comparison.md)
 

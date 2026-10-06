@@ -9,8 +9,12 @@ from repolens.cli import commands_baseline as commands_baseline  # noqa: F401
 from repolens.cli import commands_benchmark as commands_benchmark  # noqa: F401
 from repolens.cli import commands_check as commands_check  # noqa: F401
 from repolens.cli import commands_diff_audit as commands_diff_audit  # noqa: F401
+from repolens.cli import commands_duplicates as commands_duplicates  # noqa: F401
 from repolens.cli import commands_explain as commands_explain  # noqa: F401
 from repolens.cli import commands_feedback as commands_feedback  # noqa: F401
+from repolens.cli import commands_graph as commands_graph  # noqa: F401
+from repolens.cli import commands_ignore as commands_ignore  # noqa: F401
+from repolens.cli import commands_journal as commands_journal  # noqa: F401
 from repolens.cli import commands_modes as commands_modes  # noqa: F401
 from repolens.cli import commands_packs as commands_packs  # noqa: F401
 from repolens.cli import commands_plan as commands_plan  # noqa: F401

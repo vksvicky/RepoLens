@@ -50,3 +50,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-01 | 2102760→push | 91% | 0/0/0/0 | role_packs + journal; override-and-push with 8f2b86d | chat |
 | 2026-10-01 | 96624af→push | 88% | 0/0/1/0 | Metis Steps 3–6 + A–E thin MVPs; plan/diff-audit/verify/blast/NA/prefs/attest; dogfood plan chars ~same budget fill | chat |
 | 2026-10-06 | WIP→commit | 92% | 0/0/0/0 | Split deep_exec/report_sections under 500; DRY CLI source options vs selfdog …_2054 | chat |
+| 2026-10-06 | WIP→commit | 90% | 0/0/0/1 | #86–#89 CLI: journal/resume/blast notes/check SARIF/graph/duplicates/ignore; 0.1.0 prep no tag | chat |

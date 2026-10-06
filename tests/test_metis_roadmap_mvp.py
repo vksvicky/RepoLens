@@ -2,18 +2,17 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from repolens.config import AdaptiveConfig, DeepConfig, ModelConfig, RepoLensConfig
 from repolens.diff_audit import diff_audit_reports
+from repolens.feedback_store import record_feedback
+from repolens.inventory import FileEntry
+from repolens.learned_prefs import derive_learned_prefs, load_learned_prefs, save_learned_prefs
+from repolens.na_truth import reject_false_na_claims
 from repolens.plan_forecast import forecast_deep_plan
 from repolens.schema import FindingReport, Issue, Severity, Summary
 from repolens.verify_findings import apply_unverified_gate_penalty
-from repolens.na_truth import reject_false_na_claims
-from repolens.inventory import FileEntry
-from repolens.learned_prefs import derive_learned_prefs, save_learned_prefs, load_learned_prefs
-from repolens.feedback_store import record_feedback
 
 
 def test_forecast_deep_plan_no_llm(tmp_path: Path) -> None:
@@ -129,3 +128,7 @@ def test_learned_prefs_from_repeated_feedback(tmp_path: Path) -> None:
     loaded = load_learned_prefs(tmp_path)
     assert loaded.skip_globs
     assert any("scripts/" in g for g in loaded.skip_globs)
+
+
+def test_learned_prefs_config_default_is_off() -> None:
+    assert DeepConfig().learned_prefs is False

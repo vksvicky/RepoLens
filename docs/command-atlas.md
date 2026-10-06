@@ -303,6 +303,25 @@ Graph-only **Rule 1** gate: runtime cyclicity must not **increase** vs `.repolen
 
 CI recipes: [ci.md — cyclicity ratchet](./ci.md#python-cyclicity-ratchet-fast-gate-g2). FAQ: [ratchet ladder](./faq.md#cyclicity-ratchet-baseline-g2).
 
+### Fast diagnostics and graph queries (editor / CI)
+
+No LLM. `--dry-run` stays inventory-only.
+
+| Command | Expect | Exit |
+|---------|--------|------|
+| `repolens check --path . --format sarif` | Fast Brain + cycles + architecture → SARIF on stdout | **0** clean · **1** findings · **2** usage · **3** graph failed when graph is required |
+| `repolens check --path . --format jsonl` | Same rows as JSON lines (`path`, `line`, `ruleId`, `severity`, `message`) | same |
+| `repolens graph deps MODULE --path .` | Direct imports | **0** · **3** graph not OK |
+| `repolens graph dependents MODULE --path .` | Importers | **0** · **3** |
+| `repolens graph cycles --path . --format json` | Cycle groups + cyclicity | **0** · **3** |
+| `repolens graph edges --path . --format json` | Gated edges | **0** · **3** |
+| `repolens graph would-cycle --from A --to B --path .` | Pre-flight cycle check | **0** no enlarge · **1** would cycle · **3** |
+| `repolens duplicates --path . --format json` | Near-clone spans | **0** |
+| `repolens ignore add --path . --id ID` | Append `.repolens-ignore` | **0** · **2** usage |
+| `repolens journal --path .` | Sum `chars_in`/`chars_out` (honesty metric, not a Metis %) | **0** |
+
+`repolens check --diff` without `--format` is unchanged for existing CI scripts.
+
 ---
 
 ## Architecture DSL (G4)

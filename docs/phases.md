@@ -7,7 +7,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
 **Current phase:** Phases **0–7**, **Wave A/B**, **Wave C (G0–G4)**, Phase **8**, Phase **9** (Gemini + Vertex + Bedrock via [#58](https://github.com/vksvicky/RepoLens/issues/58)), and LogViewer dogfood (**#15/#16/#13**) complete ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)). **Parked:** **#17b** local UI calibrations.
-**GitHub tracker index:** [issue #12](https://github.com/vksvicky/RepoLens/issues/12).  
+**Current phase:** Phases **0–9** complete. **This slice:** [#86](https://github.com/vksvicky/RepoLens/issues/86) plan-level role_packs chars · [#87](https://github.com/vksvicky/RepoLens/issues/87) harden MVPs · [#88](https://github.com/vksvicky/RepoLens/issues/88) 0.1.0 prep (no tag yet) · [#89](https://github.com/vksvicky/RepoLens/issues/89) C1/C2/C5/C6 CLI. Parked: [#90](https://github.com/vksvicky/RepoLens/issues/90). Index: [#12](https://github.com/vksvicky/RepoLens/issues/12).
+  
 **Parked (no sticky tracker):** light heuristics / formal Semgrep–CodeQL study cells / full Trivy registry-auth matrix (formerly [#11](https://github.com/vksvicky/RepoLens/issues/11)); **#17b** local UI calibrations. SARIF import shipped (`--import-sarif`).  
 **Feedback:** [Discussions](https://github.com/vksvicky/RepoLens/discussions) + [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose) (feedback mega-thread [#6](https://github.com/vksvicky/RepoLens/issues/6) closed).
 

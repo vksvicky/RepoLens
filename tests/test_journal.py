@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from repolens.pipeline.journal import append_event, journal_path, read_events
@@ -52,6 +51,35 @@ def test_journal_path_is_under_dot_repolens(tmp_path: Path) -> None:
 
 def test_read_events_empty_when_journal_missing(tmp_path: Path) -> None:
     assert read_events(tmp_path) == []
+
+
+def test_summarize_chars_and_last_finished(tmp_path: Path) -> None:
+    from repolens.pipeline.journal import last_finished_label, summarize_chars
+
+    append_event(
+        tmp_path,
+        "pass_completed",
+        role="p1",
+        label="P1 Security",
+        chars_in=100,
+        chars_out=20,
+        resumed=False,
+    )
+    append_event(
+        tmp_path,
+        "pass_completed",
+        role="p2",
+        label="P2 Reliability",
+        chars_in=50,
+        chars_out=10,
+        resumed=True,
+    )
+    totals = summarize_chars(tmp_path)
+    assert totals["chars_in"] == 150
+    assert totals["chars_out"] == 30
+    assert totals["pass_completed"] == 2
+    assert totals["resumed"] == 1
+    assert last_finished_label(tmp_path) == "P2 Reliability"
 
 
 def test_read_events_skips_blank_lines(tmp_path: Path) -> None:
