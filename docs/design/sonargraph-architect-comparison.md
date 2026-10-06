@@ -1,6 +1,6 @@
 # RepoLens vs Sonargraph-Architect
 
-**Status:** C1/C2/C5/C6 CLI landed (2026-10-06). C3 breakup/`--omit-edge`, C4 extra baseline fields, C7 churn, and editor plugins remain later. No Metis desktop.  
+**Status:** C1/C2/C3/C5/C6 CLI landed (2026-10-06). C4 extra baseline fields, C7 churn, and editor plugins remain later. No Metis desktop.  
 **Source:** [Sonargraph-Architect](https://www.hello2morrow.com/products/sonargraph/architect)  
 **Related:** [which-command.md](../which-command.md) (what you can run today) · [zugel-comparison-and-roadmap.md](./zugel-comparison-and-roadmap.md) (G0–G4, CLI-first guardrail) · [architecture-dsl-format-comparison.md](./architecture-dsl-format-comparison.md)
 
@@ -76,7 +76,7 @@ repolens review \
 | --- | --- |
 | C1 `repolens check --format sarif` | No SARIF file. `--sarif` is off unless you pass it. Scanners run (gitleaks, semgrep, osv, trivy, checkov). Fast Brain runs. Slow Brain runs P1, P2, P3, and coverage closure because of `--full --full-audit --deep`. The report is Markdown under `reports/selfdog-deep` |
 | C2 `repolens graph` | The Python import graph runs inside the review. The log and the report include cycle groups, findings, and cyclicity. The query commands (`deps`, `dependents`, `edges`, `would-cycle`) are not separate CLI calls |
-| C3 `repolens graph breakup --omit-edge` | No. Cycle findings are in the report. Candidate cuts and `--omit-edge` exist only on `repolens check architecture`, and this command does not run that |
+| C3 `repolens graph breakup --omit-edge` | Yes: candidate cuts in JSON; `--omit-edge` recomputes cyclicity without editing files | Editor sidecar still later |
 | C4 extra baseline fields | No. This command does not pass `--ratchet`, and the repo has no `.repolens.toml` turning the ratchet on. `repolens baseline` is a different command. The baseline file is still cyclicity only |
 | C5 `repolens duplicates` | Near-clone and sibling-duplication findings are inside the report. There is no command that prints the two line spans |
 | C6 `repolens ignore add` | The review reads `.repolens-ignore` if the file is already there and drops matching rows. It does not add an ignore. Adding one is `repolens feedback down <stableId>` after a report exists |

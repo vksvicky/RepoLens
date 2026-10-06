@@ -5,6 +5,8 @@ from repolens.architecture.fas import (
     WeightedEdge,
     candidate_feedback_arc_sets,
     edge_weights,
+    metrics_without_edges,
+    parse_omit_edge_token,
     violation_subgraph_edges,
 )
 from repolens.architecture.issues import (
@@ -46,6 +48,8 @@ __all__ = [
     "legal_import_boundaries",
     "load_architecture",
     "match_boundary",
+    "metrics_without_edges",
+    "parse_omit_edge_token",
     "remediation_context",
     "remediation_prompt_block",
     "verify_boundaries",
