@@ -26,6 +26,15 @@
       { "command": "repolens.ignore", "title": "RepoLens: Ignore finding" },
       { "command": "repolens.explain", "title": "RepoLens: Explain finding" },
       { "command": "repolens.copyFullReview", "title": "RepoLens: Copy full review command" }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": [
+          "architecture.json",
+          ".repolens/architecture.json"
+        ],
+        "url": "./schemas/architecture.schema.json"
+      }
     ]
   }
 }

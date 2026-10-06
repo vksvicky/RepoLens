@@ -1,33 +1,87 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://repolens.dev/schemas/architecture.schema.json",
-  "title": "RepoLensArchitecture",
-  "type": "object",
-  "required": ["boundaries"],
-  "properties": {
-    "schemaVersion": { "type": "integer", "minimum": 1, "default": 1 },
-    "boundaries": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["name", "path"],
-        "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "path": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Glob matched against module paths (packcycle/a) and dotted names"
-          },
-          "allowed_imports": {
-            "type": "array",
-            "items": { "type": "string" },
-            "default": []
-          },
-          "description": { "type": "string" }
+  "$defs": {
+    "Boundary": {
+      "additionalProperties": false,
+      "description": "One architectural layer / hexagonal ring.",
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
         },
-        "additionalProperties": false
-      }
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "allowed_imports": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Imports",
+          "type": "array"
+        },
+        "forbidden_imports": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Forbidden Imports",
+          "type": "array"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        }
+      },
+      "required": [
+        "name",
+        "path"
+      ],
+      "title": "Boundary",
+      "type": "object"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "description": "Root document for ``repolens.yaml`` / ``architecture.json``.",
+  "properties": {
+    "$schema": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "$Schema"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "title": "Schemaversion",
+      "type": "integer"
+    },
+    "strict": {
+      "default": false,
+      "title": "Strict",
+      "type": "boolean"
+    },
+    "boundaries": {
+      "items": {
+        "$ref": "#/$defs/Boundary"
+      },
+      "title": "Boundaries",
+      "type": "array"
+    }
+  },
+  "title": "ArchitectureDoc",
+  "type": "object"
 }

@@ -320,10 +320,10 @@ def _run_fast_brain_phase(state: ReviewRun) -> None:
     state.graph_block = None
     state.graph_gaps = []
     if any(Path(f.relative).suffix == ".py" for f in state.fast_files):
-        from repolens.graph import analyse_python_graph
+        from repolens.graph import analyse_repo_graph
         from repolens.graph.findings import cycles_to_issues
 
-        gres = analyse_python_graph(state.root, config=state.cfg.graph)
+        gres = analyse_repo_graph(state.root, config=state.cfg.graph)
         state.graph_gaps = list(gres.durability_gaps)
         state.graph_issues = cycles_to_issues(
             gres, critical_scc_size=state.cfg.graph.critical_scc_size

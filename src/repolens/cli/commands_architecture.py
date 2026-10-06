@@ -18,7 +18,7 @@ from repolens.architecture import (
 )
 from repolens.cli.app import check_app, console
 from repolens.config import load_config
-from repolens.graph import analyse_python_graph
+from repolens.graph import analyse_repo_graph
 from repolens.graph.types import GraphStatus
 
 
@@ -57,7 +57,7 @@ def check_architecture(
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=2) from exc
 
-    result = analyse_python_graph(root, config=cfg.graph)
+    result = analyse_repo_graph(root, config=cfg.graph)
     if result.status is GraphStatus.FAILED:
         for gap in result.durability_gaps:
             console.print(f"[red]{gap}[/red]")

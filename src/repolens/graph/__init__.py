@@ -2,6 +2,7 @@
 
 from repolens.config import GraphConfig
 from repolens.graph.build import analyse_python_graph
+from repolens.graph.repo import analyse_repo_graph
 from repolens.graph.types import CycleGroup, GraphResult, GraphStatus, ImportEdge
 
 __all__ = [
@@ -11,4 +12,5 @@ __all__ = [
     "GraphStatus",
     "ImportEdge",
     "analyse_python_graph",
+    "analyse_repo_graph",
 ]

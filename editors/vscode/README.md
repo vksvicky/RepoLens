@@ -10,4 +10,6 @@ Thin client. It shells the `repolens` CLI. It does **not** parse Python, call a 
 4. Status bar → `repolens check --diff`.
 5. Palette also: Show dependencies, Would this import cycle, Why this cycle, Preview cut, Compare duplicate, Ignore, Explain, Copy full review command.
 
+Architecture YAML/JSON: the extension ships `schemas/architecture.schema.json` (same file as the Python package). For `repolens.yaml`, point the Red Hat YAML extension at that schema, or copy `"yaml.schemas"` in user settings to `./schemas/architecture.schema.json` for `repolens.yaml` / `repolens.yml` / `.repolens/architecture.yaml`.
+
 Zed: `editors/zed/README.md`. IntelliJ: `editors/intellij/README.md`.

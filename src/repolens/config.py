@@ -66,12 +66,20 @@ class FastBrainConfig(BaseModel):
     near_clones: NearClonesConfig = Field(default_factory=NearClonesConfig)
 
 
+class TrivyScannerConfig(BaseModel):
+    """Registry env forwarding and optional ``trivy image`` refs."""
+
+    pass_registry_env: bool = True
+    images: list[str] = Field(default_factory=list)
+
+
 class ScannersConfig(BaseModel):
     enabled: list[str] = Field(default_factory=lambda: ["gitleaks", "semgrep", "osv"])
     require: bool = False
     # Phase 6.2: emit CycloneDX + license notes when Trivy is available
     sbom: bool = True
     licenses: bool = True
+    trivy: TrivyScannerConfig = Field(default_factory=TrivyScannerConfig)
 
 
 class LocalLearningConfig(BaseModel):
@@ -205,7 +213,9 @@ class GraphConfig(BaseModel):
     packages: list[str] = Field(default_factory=list)
     ratchet: bool = False
     baseline_path: str = ".repolens/baseline.json"
-    require_baseline: bool = False
+    extra_edges: str = ""
+    scip: str = ""
+    tree_sitter: bool = True
 
 
 class ComplexityConfig(BaseModel):

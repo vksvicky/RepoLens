@@ -56,7 +56,7 @@ def expand_blast_radius(
         return BlastRadiusResult(paths=list(base))
     try:
         from repolens.config import load_config
-        from repolens.graph.build import analyse_python_graph
+        from repolens.graph.repo import analyse_repo_graph
         from repolens.graph.query import direct_dependencies, direct_dependents
         from repolens.graph.types import GraphStatus
     except ImportError:
@@ -67,7 +67,7 @@ def expand_blast_radius(
 
     cfg = load_config(root)
     try:
-        result = analyse_python_graph(root, config=cfg.graph)
+        result = analyse_repo_graph(root, config=cfg.graph)
     except Exception as exc:
         return BlastRadiusResult(
             paths=list(base),

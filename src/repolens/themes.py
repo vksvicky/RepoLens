@@ -22,6 +22,8 @@ HEURISTIC_TO_THEME: dict[str, str] = {
     "heuristic.gitignore_secrets": "sec.repo_hygiene_secrets",
     "heuristic.scripts_hygiene": "arch.dead_code",
     "heuristic.todo_density": "arch.dead_code",
+    "heuristic.large_function": "arch.readability_complexity",
+    "heuristic.transport_tls": "sec.transport_tls",
     "heuristic.ci_gaps": "arch.ci_durability",
     "quality.near_clone": "arch.dry",
     "arch.import_cycle": "arch.solid_dip",

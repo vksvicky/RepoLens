@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import subprocess
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -80,16 +82,26 @@ def write_trivy_sbom(
     out_dir: Path,
     *,
     filename: str = "sbom.cdx.json",
+    trivy_cfg: Any | None = None,
+    environ: Mapping[str, str] | None = None,
 ) -> tuple[Path | None, str]:
     """Write a CycloneDX SBOM via ``trivy fs --format cyclonedx``.
 
     Returns ``(path, detail)``. Path is None when skipped/failed.
     """
+    from repolens.scanners.trivy_env import redact_secrets, trivy_child_env
+
+    if trivy_cfg is None:
+        from repolens.config import load_config
+
+        trivy_cfg = load_config(root).scanners.trivy
+    env_src = environ if environ is not None else os.environ
     binary = resolve_binary("trivy")
     if binary is None:
         return None, "trivy not found on PATH or cache"
     out_dir.mkdir(parents=True, exist_ok=True)
     dest = out_dir / filename
+    child = trivy_child_env(env_src, pass_registry_env=trivy_cfg.pass_registry_env)
     completed = subprocess.run(
         [
             str(binary),
@@ -105,10 +117,11 @@ def write_trivy_sbom(
         capture_output=True,
         text=True,
         cwd=root,
+        env=child,
     )
     if completed.returncode not in {0, 1} or not dest.is_file():
         detail = (completed.stderr or completed.stdout or "trivy sbom failed")[:300]
-        return None, detail
+        return None, redact_secrets(detail, env_src)
     return dest, f"CycloneDX SBOM written ({dest.name})"
 
 
