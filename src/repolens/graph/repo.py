@@ -31,25 +31,18 @@ def analyse_repo_graph(root: Path, *, config: GraphConfig | None = None) -> Grap
     """Build the union graph used by check, baseline, review, and MCP."""
     cfg = config or GraphConfig()
     root = root.resolve()
+    if not cfg.enabled:
+        return GraphResult(
+            status=GraphStatus.SKIPPED,
+            durability_gaps=["graph: disabled"],
+        )
     parts: list[GraphResult] = []
     python = analyse_python_graph(root, config=cfg)
-    if python.status is GraphStatus.FAILED and not python.edges:
-        parts.append(
-            GraphResult(
-                status=GraphStatus.SKIPPED,
-                durability_gaps=list(python.durability_gaps),
-                packages=list(python.packages),
-            )
-        )
-    else:
-        parts.append(python)
+    parts.append(python)
 
     ts = collect_tree_sitter_edges(root, config=cfg)
     if ts.status is not GraphStatus.SKIPPED:
-        if ts.status is GraphStatus.FAILED and not ts.edges:
-            parts.append(ts)
-        else:
-            parts.append(ts)
+        parts.append(ts)
 
     extra = _safe_under_root(root, cfg.extra_edges)
     if extra is not None:

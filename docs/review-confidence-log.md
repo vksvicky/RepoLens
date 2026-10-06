@@ -57,3 +57,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-06 | WIP→commit | 89% | 0/0/0/1 | VS Code palette C2–C6 + Zed/IntelliJ READMEs; parked issues #91–#96; #86 Audit running | chat |
 | 2026-10-06 | 530898a→push | 91% | 0/0/0/0 | Publish 0.1.0: changelog fold, install pins; no token-cut claim | chat |
 | 2026-10-06 | WIP→commit | 91% | 0/0/0/1 | Parked #92–#96: heuristics, Trivy registry, multi-lang graph, arch strict/`*` | chat |
+| 2026-10-06 | fa87353→push | 90% | 0/0/1/0 | Hotfix GraphConfig.require_baseline + merge FAILED/SKIPPED/empty-OK semantics | chat |

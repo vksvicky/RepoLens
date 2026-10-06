@@ -213,6 +213,7 @@ class GraphConfig(BaseModel):
     packages: list[str] = Field(default_factory=list)
     ratchet: bool = False
     baseline_path: str = ".repolens/baseline.json"
+    require_baseline: bool = False
     extra_edges: str = ""
     scip: str = ""
     tree_sitter: bool = True
