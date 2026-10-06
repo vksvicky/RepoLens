@@ -140,6 +140,27 @@ def test_pass_key_changes_when_prior_summary_changes() -> None:
     assert first != third
 
 
+def test_pass_key_changes_with_pack_mode_and_per_file_modes() -> None:
+    entry = _entry("a.py", 10)
+    outline = pass_key([entry], "model", "p3", pack_mode="outline")
+    hybrid = pass_key(
+        [entry],
+        "model",
+        "p3",
+        pack_mode="hybrid",
+        file_pack_modes={"a.py": "full"},
+    )
+    hybrid2 = pass_key(
+        [entry],
+        "model",
+        "p3",
+        pack_mode="hybrid",
+        file_pack_modes={"a.py": "outline"},
+    )
+    assert outline != hybrid
+    assert hybrid != hybrid2
+
+
 def test_compact_pass_summary_is_short_and_lists_titles() -> None:
     report = FindingReport(
         confidence=70,

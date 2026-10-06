@@ -50,6 +50,8 @@ def pass_key(
     *,
     version: str | None = None,
     prior_summary: str | None = None,
+    pack_mode: str = "full",
+    file_pack_modes: dict[str, str] | None = None,
 ) -> str:
     digest = hashlib.sha256()
     digest.update(PROMPT_TEMPLATE_VERSION.encode())
@@ -66,6 +68,12 @@ def pass_key(
             digest.update(file_sha256(entry.path).encode())
         except OSError:
             digest.update(b"missing")
+    digest.update(b"\0pack\0")
+    digest.update((pack_mode or "full").encode())
+    modes = file_pack_modes or {}
+    for rel in sorted(modes):
+        digest.update(b"\0")
+        digest.update(f"{rel}:{modes[rel]}".encode())
     if prior_summary:
         digest.update(b"\0prior\0")
         digest.update(hashlib.sha256(prior_summary.encode()).digest())

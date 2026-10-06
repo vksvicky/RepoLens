@@ -9,7 +9,7 @@ budget so selected files fit the pass cap.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from repolens.coverage import coverage_ids_for_pass
 from repolens.inventory import FileEntry
@@ -96,7 +96,8 @@ class DeepPass:
     rule_ids: list[str]
     coverage_ids: list[str]
     files: list[FileEntry]
-    pack_mode: str = "full"  # full | outline
+    pack_mode: str = "full"  # full | outline | hybrid
+    file_pack_modes: dict[str, str] = field(default_factory=dict)
 
 
 _P1_PATH_HINTS = (
