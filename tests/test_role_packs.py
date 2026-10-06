@@ -110,6 +110,54 @@ def test_role_packs_p3_fits_more_files_via_outline_budget() -> None:
     assert len(passes[0].files) > len(raw)
 
 
+def test_role_packs_p1_omits_css_and_prefers_sql_client(tmp_path: Path) -> None:
+    rules = [
+        _rule("security", "p1"),
+        _rule("reliability", "p2"),
+        _rule("architecture", "p3"),
+    ]
+    (tmp_path / "src").mkdir()
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "src" / "client.py").write_text(
+        "cursor.execute('select 1')\n", encoding="utf-8"
+    )
+    (tmp_path / "src" / "util.py").write_text("x=1\n", encoding="utf-8")
+    (tmp_path / "assets" / "theme.css").write_text("body{}\n", encoding="utf-8")
+    entries = [
+        FileEntry(
+            path=tmp_path / "src" / "client.py",
+            relative="src/client.py",
+            size=40,
+            priority_band=2,
+        ),
+        FileEntry(
+            path=tmp_path / "src" / "util.py",
+            relative="src/util.py",
+            size=40,
+            priority_band=2,
+        ),
+        FileEntry(
+            path=tmp_path / "assets" / "theme.css",
+            relative="assets/theme.css",
+            size=40,
+            priority_band=3,
+        ),
+    ]
+    passes = plan_deep_passes(
+        "review",
+        full_audit=False,
+        entries=entries,
+        hot_paths=[],
+        adaptive_paths=[],
+        chars_per_pass=10_000,
+        rules=rules,
+        role_packs=True,
+    )
+    p1 = [e.relative for e in passes[0].files]
+    assert "assets/theme.css" not in p1
+    assert p1[0] == "src/client.py"
+
+
 def test_role_packs_off_keeps_shared_pack() -> None:
     rules = [
         _rule("security", "p1"),

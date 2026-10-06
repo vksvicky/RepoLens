@@ -243,19 +243,19 @@ def _order_for_band(
     hot_paths: Iterable[str],
     adaptive_paths: Iterable[str],
 ) -> list[FileEntry]:
+    from repolens.pack_sniff import is_demoted_asset, sniff_score
+
+    if band in {"p1", "p2"}:
+        entries = [e for e in entries if not is_demoted_asset(e.relative)]
     base = _order_entries(
         entries, hot_paths=hot_paths, adaptive_paths=adaptive_paths
     )
-    if band == "p1":
-        hints = _P1_PATH_HINTS
-    elif band == "p2":
-        hints = _P2_PATH_HINTS
-    else:
+    if band not in {"p1", "p2"}:
         return base
 
     def sort_key(entry: FileEntry) -> tuple[int, int, str]:
         return (
-            -_path_hint_score(entry.relative, hints),
+            -sniff_score(band, entry),
             entry.priority_band,
             entry.relative,
         )
