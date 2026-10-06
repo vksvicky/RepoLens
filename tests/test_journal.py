@@ -131,6 +131,44 @@ def test_append_event_swallows_oserror(tmp_path: Path, monkeypatch) -> None:
     append_event(tmp_path, "pass_started", role="p1")  # must not raise
 
 
+def test_build_postmortem_interrupted(tmp_path: Path) -> None:
+    from repolens.pipeline.journal import build_postmortem
+
+    append_event(
+        tmp_path,
+        "review_started",
+        run_id="2026-10-06T15-30-12Z",
+        role_packs=True,
+    )
+    append_event(
+        tmp_path,
+        "pass_completed",
+        label="P1 Security",
+        role="p1",
+        findings_count=4,
+        files_count=18,
+        pack_mode="full",
+        pass_duration_ms=852_000,
+        queue_wait_ms=4200,
+        chars_in=10,
+        chars_out=2,
+    )
+    append_event(tmp_path, "pass_started", label="P2 Reliability", role="p2")
+    append_event(
+        tmp_path,
+        "interrupted",
+        last_finished="P1 Security",
+        finished=["P1 Security"],
+    )
+    text = build_postmortem(tmp_path)
+    assert "INTERRUPTED" in text
+    assert "P1 Security" in text
+    assert "14m 12s" in text
+    assert "queue wait: 4.2s" in text
+    assert "repolens review --resume" in text
+    assert "not a Metis" in text
+
+
 def test_raise_aborted_records_interrupted_event(tmp_path: Path) -> None:
     from repolens.pipeline.pass_resume import raise_aborted
     from repolens.pipeline.types import ReviewAborted
