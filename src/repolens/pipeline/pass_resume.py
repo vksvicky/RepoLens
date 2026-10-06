@@ -125,6 +125,8 @@ def run_or_resume_pass(
         model_name,
         deep_pass.name,
         prior_summary=prior_summary or None,
+        pack_mode=getattr(deep_pass, "pack_mode", "full") or "full",
+        file_pack_modes=getattr(deep_pass, "file_pack_modes", None) or None,
     )
     append_event(
         root,
