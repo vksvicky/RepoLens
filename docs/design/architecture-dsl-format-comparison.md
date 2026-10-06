@@ -65,3 +65,27 @@ For Phase 4, **YAML backed by a strict JSON Schema** remains the strongest candi
 * It provides the comments and readability required for a human-centric architectural playbook.
 * The JSON Schema ensures that IDEs (VS Code, Cursor, JetBrains) provide instant autocomplete, validation, and tooltips while developers type, mitigating YAML's lack of strictness.
 * It is widely understood by LLMs, making it easy for the RepoLens MCP server to read, write, and reason about the architecture.
+
+---
+
+## Locked for #96 (2026-10-06)
+
+Issue: [#96](https://github.com/vksvicky/RepoLens/issues/96) · spec: [2026-10-06-parked-92-96-design.md](../superpowers/specs/2026-10-06-parked-92-96-design.md)
+
+G4 already ships YAML/JSON `allowed_imports`. This slice makes the DSL **stricter**, not a new language.
+
+| Decision | Lock |
+|----------|------|
+| Format | YAML for humans, JSON for machines; same pydantic model |
+| Custom `.arc` / HCL / `repolens.py` exec | **Out** |
+| `forbidden_imports` | Boundary-name list; **forbid wins** over allow |
+| `allowed_imports` default `[]` | Isolated layer. Forbid-only does **not** open the layer |
+| `allowed_imports: ["*"]` | Open to other mapped layers except `forbidden_imports` |
+| `strict: true` | Unmapped importer or imported module is a violation |
+| `strict: false` | Default; today’s skip-unmapped behavior |
+| Extra keys | Forbidden (`additionalProperties: false`) |
+| Norway problem | Names and allow/forbid entries are strings (`"NO"` stays `NO`) |
+| Schema | Packaged `architecture.schema.json` must match `architecture_json_schema()` |
+| Playbooks | Stay default narrative; DSL remains optional until the file exists |
+
+Playbooks do not become the gate. `repolens check architecture` remains the deterministic verifier.

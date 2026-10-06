@@ -11,7 +11,7 @@ import typer
 from repolens.cli.app import check_app, console
 from repolens.config import GraphConfig, load_config
 from repolens.git_refs import git_available, is_safe_git_ref, resolve_diff_base
-from repolens.graph import analyse_python_graph
+from repolens.graph import analyse_repo_graph
 from repolens.graph.baseline import DEFAULT_BASELINE_PATH, load_baseline
 from repolens.graph.diff_anchor import (
     anchor_ratchet_breach,
@@ -175,7 +175,7 @@ def check(
         )
         raise typer.Exit(code=0)
 
-    result = analyse_python_graph(root, config=graph_cfg)
+    result = analyse_repo_graph(root, config=graph_cfg)
     if result.status is GraphStatus.FAILED:
         for gap in result.durability_gaps:
             console.print(f"[red]{gap}[/red]")

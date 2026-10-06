@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Fast Brain: large-function spans (`heuristic.large_function`) and insecure HTTP / weak TLS hints (`heuristic.transport_tls`), with XML/JSON schema namespaces skipped
+- Trivy registry env forwarding, secret redaction (needles length ≥ 3), and optional iterative `trivy image` refs (`[scanners.trivy]`)
+- Architecture DSL `forbidden_imports`, `strict`, and `allowed_imports: ["*"]` open-layer wildcard
+- SCIP JSON ingest, JS/TS relative import path resolution, and `[graph]` tree-sitter extra; `analyse_repo_graph` merges sources (`analyse_python_graph` remains)
+
+### Changed
+
+- `repolens check architecture`, ratchet, baseline, MCP, and review collect use the merged repo graph
+
 ## [0.1.0] — 2026-10-06
 
 Published as `repolens-audit==0.1.0`. Does not claim a Metis-style token cut; `role_packs` journal numbers are in [metis-agent-comparison.md](./design/metis-agent-comparison.md).

@@ -6,7 +6,7 @@
 
 Costs below are industry ranges. Capabilities reflect typical 2025–2026 positioning. RepoLens is assessed at **alpha** (Phases 0–6). Semgrep is listed once (OSS + commercial).
 
-Related: [scanners.md](../scanners.md) · [faq.md](../faq.md) · [rules.md](../rules.md) · [phase-6.x-scanner-depth-ci-gates-and-credibility.md](./phase-6.x-scanner-depth-ci-gates-and-credibility.md) · [phase-7-enterprise-ci-and-report-delivery.md](./phase-7-enterprise-ci-and-report-delivery.md) · [competitive-landscape-sonar-alternatives-2026.md](./competitive-landscape-sonar-alternatives-2026.md) (Sonar/Qodana/Macroscope/CodeRabbit + linters/Bearer adopt matrix)
+Related: [scanners.md](../scanners.md) · [faq.md](../faq.md) · [rules.md](../rules.md) · [semgrep-codeql-comparison.md](./semgrep-codeql-comparison.md) (formal Semgrep vs CodeQL cell) · [phase-6.x-scanner-depth-ci-gates-and-credibility.md](./phase-6.x-scanner-depth-ci-gates-and-credibility.md) · [phase-7-enterprise-ci-and-report-delivery.md](./phase-7-enterprise-ci-and-report-delivery.md) · [competitive-landscape-sonar-alternatives-2026.md](./competitive-landscape-sonar-alternatives-2026.md) (Sonar/Qodana/Macroscope/CodeRabbit + linters/Bearer adopt matrix)
 
 ---
 

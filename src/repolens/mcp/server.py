@@ -34,7 +34,7 @@ from repolens.architecture import (
 )
 from repolens.architecture.verify import boundary_for_module, match_boundary
 from repolens.config import load_config
-from repolens.graph import analyse_python_graph
+from repolens.graph import analyse_repo_graph
 from repolens.graph.query import (
     check_dependency,
     direct_dependencies,
@@ -48,7 +48,7 @@ from repolens.graph.types import GraphResult, GraphStatus
 
 def _load_graph(root: Path) -> GraphResult:
     cfg = load_config(root)
-    result = analyse_python_graph(root, config=cfg.graph)
+    result = analyse_repo_graph(root, config=cfg.graph)
     if result.status in {GraphStatus.FAILED, GraphStatus.SKIPPED}:
         gaps = "; ".join(result.durability_gaps) or result.status.value
         raise RuntimeError(f"Graph unavailable: {gaps}")

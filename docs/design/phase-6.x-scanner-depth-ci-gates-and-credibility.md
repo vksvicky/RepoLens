@@ -64,9 +64,9 @@ Ship in order. Each phase has its own exit criteria and can land as one or more 
 | LLM pack | `format_scanner_evidence_for_prompt` prefix on deep/single-shot |
 | Docs | scanners.md + example.toml opt-in |
 
-**Exit:** `repolens plugins install trivy checkov` (or `all`) works on supported platforms; findings appear in Markdown/JSON; missing tools never break LLM review unless `--require-scanners`. → **Met** (image registry auth matrix still out of scope)
+**Exit:** `repolens plugins install trivy checkov` (or `all`) works on supported platforms; findings appear in Markdown/JSON; missing tools never break LLM review unless `--require-scanners`. → **Met** for 6.1 FS/IaC. Registry-auth matrix: [trivy-registry-auth.md](./trivy-registry-auth.md) (#94).
 
-**Out of 6.1:** Full image registry auth matrix; paid Trivy/Checkov cloud features.
+**Out of 6.1:** Paid Trivy/Checkov cloud features. Live-registry CI remains out of scope.
 
 ---
 

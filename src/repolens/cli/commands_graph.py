@@ -14,7 +14,7 @@ from repolens.architecture.fas import (
 )
 from repolens.cli.app import app, console
 from repolens.config import load_config
-from repolens.graph import analyse_python_graph
+from repolens.graph import analyse_repo_graph
 from repolens.graph.query import (
     direct_dependencies,
     direct_dependents,
@@ -32,8 +32,8 @@ app.add_typer(graph_app, name="graph")
 
 def _graph(root: Path):
     cfg = load_config(root)
-    result = analyse_python_graph(root, config=cfg.graph)
-    if result.status != GraphStatus.OK:
+    result = analyse_repo_graph(root, config=cfg.graph)
+    if result.status == GraphStatus.FAILED:
         console.print("[red]Graph analysis not OK[/red]")
         for gap in result.durability_gaps:
             console.print(f"  {gap}")

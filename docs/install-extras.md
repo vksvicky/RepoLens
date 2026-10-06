@@ -2,7 +2,7 @@
 
 ## What this is (and is not)
 
-`[dev]`, `[scanners]`, `[local-ml]`, `[mcp]`, and `[architecture]` are **optional pip extras for the RepoLens package itself**.
+`[dev]`, `[scanners]`, `[graph]`, `[local-ml]`, `[mcp]`, and `[architecture]` are **optional pip extras for the RepoLens package itself**.
 
 | | |
 |--|--|
@@ -19,8 +19,9 @@ So this is **not** “project-to-project” for every repo on your machine. Only
 
 | Extra | Install (from a RepoLens clone) | Packages pulled in | Purpose |
 |-------|----------------------------------|--------------------|---------|
-| **dev** | `pip install -e ".[dev]"` | `pytest`, `pytest-cov`, `ruff`, `mypy` | Tests + lint for RepoLens contributors / dogfood |
+| **dev** | `pip install -e ".[dev]"` | `pytest`, `pytest-cov`, `ruff`, `mypy`, `tree-sitter`, `tree-sitter-language-pack` | Tests + lint for RepoLens contributors / dogfood (includes `[graph]` parsers) |
 | **scanners** | `pip install -e ".[scanners]"` | `semgrep` only | Semgrep via pip — **not** gitleaks/osv |
+| **graph** | `pip install -e ".[graph]"` | `tree-sitter`, `tree-sitter-language-pack` | JS/TS/Go/Rust/C# import edges + large-function spans |
 | **local-ml** | `pip install -e ".[local-ml]"` | `sentence-transformers` | Optional local learning embeddings |
 | **mcp** | `pip install -e ".[mcp]"` | `mcp` | Optional `repolens-mcp` graph query tools (G3) |
 | **architecture** | `pip install -e ".[architecture]"` | `PyYAML` | Architecture DSL YAML load (also a core dep; extra is explicit) |

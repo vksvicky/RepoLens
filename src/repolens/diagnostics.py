@@ -50,12 +50,12 @@ def collect_fast_issues(root: Path, cfg: RepoLensConfig) -> list[Issue]:
         ).issues
     )
     if any(Path(f.relative).suffix == ".py" for f in inv.files):
-        from repolens.graph import analyse_python_graph
+        from repolens.graph import analyse_repo_graph
         from repolens.graph.findings import cycles_to_issues
         from repolens.graph.types import GraphStatus
 
-        gres = analyse_python_graph(root, config=cfg.graph)
-        if gres.status is GraphStatus.OK:
+        gres = analyse_repo_graph(root, config=cfg.graph)
+        if gres.status not in {GraphStatus.FAILED, GraphStatus.SKIPPED}:
             issues.extend(
                 cycles_to_issues(
                     gres, critical_scc_size=cfg.graph.critical_scc_size

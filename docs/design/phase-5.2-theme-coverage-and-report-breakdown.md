@@ -1,6 +1,6 @@
 # Phase 5.2 — Theme coverage & report breakdown
 
-**Status:** Implemented (2026-08-05) — Core + Extended Theme breakdown; optional light heuristics deferred  
+**Status:** Implemented (2026-08-05) — Core + Extended Theme breakdown. Optional light heuristics specified 2026-10-06 in [parked-92-96 spec](../superpowers/specs/2026-10-06-parked-92-96-design.md) (#92); code follows that spec.  
 **Depends on:** Phase 5.1 (deep coverage + metrics)  
 **Related:** [coverage.json](../../src/repolens/rules/defaults/coverage.json), deep coverage design, product claims for RepoLens
 

@@ -243,8 +243,8 @@ Sources: SonarSource repo positioning; Macroscope 2026 alternatives guide; publi
 ### 6.1 Trivy
 
 **Job:** FS/image/IaC/misconfig/secrets + SBOM.  
-**Adopt?** **Already adopted (plugin + SBOM).** Finish honesty: default enablement remains opt-in; registry-auth matrix stays parked.  
-**Do not:** claim image-registry completeness we don’t have.
+**Adopt?** **Already adopted (plugin + SBOM).** Default enablement remains opt-in. Registry auth: [trivy-registry-auth.md](./trivy-registry-auth.md) (#94).  
+**Do not:** claim live image-registry completeness in CI we don’t run.
 
 ### 6.2 Snyk
 

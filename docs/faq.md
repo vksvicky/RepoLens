@@ -91,7 +91,7 @@ When a review’s matched inventory includes **Python** files, RepoLens runs a *
 | **Package names** | Inferred from layout (`src/` children, flat packages, `pyproject.toml` hints) unless you override `[graph] packages = […]` in config. Script folders without importable packages may yield an empty graph — expected, not a crash. |
 | **CI `--fail-on`** | Under `--ci` / `scanner_only`, **graph** findings count like **scanner** rows (High/Critical can fail the gate). Heuristic and LLM findings stay excluded unless you drop `scanner_only`. |
 | **MCP / DSL** | Optional. MCP: [mcp.md](./mcp.md). Architecture DSL: `repolens check architecture` + `repolens.yaml` (G4). CLI/CI remains the primary gate. |
-| **Sonargraph / SCIP** | G1 ships a **stub** `load_precomputed_edges(path)` for JSON edge lists (tests + future adapters); production reviews use grimp today. |
+| **Sonargraph / SCIP** | Python stays **grimp**. Custom JSON edge lists exist today. **SCIP JSON ingest** + tree-sitter imports for JS/TS/Go/Rust/C# are specified in [graph-languages-scip.md](./design/graph-languages-scip.md) (#95) — not an indexer we run. |
 
 ### Cyclicity ratchet (baseline, G2)
 
@@ -606,7 +606,7 @@ Hugging Face repos (models/datasets/Spaces) are reviewed as **git content** (cod
 **Can we build them in?**  
 Use `repolens plugins install …` (consent download) or `pip install "repolens-audit[scanners]"` for Semgrep via pip — large native scanners stay out of the slim default wheel. Missing scanners never break the LLM review path unless you pass `--require-scanners`.
 
-Guide: [scanners.md](./scanners.md) · Design: [ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md).
+Guide: [scanners.md](./scanners.md) · Design: [ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) · Private registries: [trivy-registry-auth.md](./design/trivy-registry-auth.md).
 
 ### Why not just `semgrep && trivy && gitleaks`?
 
@@ -617,7 +617,7 @@ scanner evidence into one prioritized P1→P2→P3 decision; use
 [`--import-sarif`](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-)
 to fold CodeQL/Sonar/ESLint SARIF into the same gate report.
 
-See [competitive landscape](./design/competitive-landscape-sonar-alternatives-2026.md).
+See [competitive landscape](./design/competitive-landscape-sonar-alternatives-2026.md) and the [Semgrep vs CodeQL study](./design/semgrep-codeql-comparison.md) (#93): keep both as evidence; RepoLens does not pick a SAST winner.
 
 ### Air-gapped Ollama vs private BYOK?
 

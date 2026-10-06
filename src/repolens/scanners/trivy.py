@@ -3,11 +3,19 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
 from repolens.scanners.base import ScannerResult, resolve_binary
+from repolens.scanners.trivy_env import (
+    INCOMPLETE_AUTH_DETAIL,
+    redact_secrets,
+    registry_auth_incomplete,
+    trivy_child_env,
+)
 from repolens.schema import Issue, ScannerRun, Severity
 
 _SEV = {
@@ -119,13 +127,40 @@ def parse_trivy_report(data: dict[str, Any]) -> list[Issue]:
     return issues
 
 
-def run_trivy(root: Path) -> ScannerResult:
-    """Run ``trivy fs`` (vulns + misconfig) as JSON against ``root``."""
+def _trivy_config(root: Path, trivy_cfg: Any) -> Any:
+    if trivy_cfg is not None:
+        return trivy_cfg
+    from repolens.config import load_config
+
+    return load_config(root).scanners.trivy
+
+
+def run_trivy(
+    root: Path,
+    *,
+    trivy_cfg: Any | None = None,
+    environ: Mapping[str, str] | None = None,
+) -> ScannerResult:
+    """Run ``trivy fs`` (and optional ``trivy image``) as JSON against ``root``."""
+    env_src = environ if environ is not None else os.environ
+    cfg = _trivy_config(root, trivy_cfg)
+    if cfg.pass_registry_env and registry_auth_incomplete(env_src):
+        return ScannerResult(
+            run=ScannerRun(
+                tool="trivy",
+                status="failed",
+                detail=INCOMPLETE_AUTH_DETAIL,
+            )
+        )
     binary = resolve_binary("trivy")
     if binary is None:
         return ScannerResult(
             run=ScannerRun(tool="trivy", status="skipped", detail="not found on PATH or cache")
         )
+    child = trivy_child_env(env_src, pass_registry_env=cfg.pass_registry_env)
+    issues: list[Issue] = []
+    details: list[str] = []
+
     completed = subprocess.run(
         [
             str(binary),
@@ -141,29 +176,76 @@ def run_trivy(root: Path) -> ScannerResult:
         capture_output=True,
         text=True,
         cwd=root,
+        env=child,
     )
-    # Trivy exits 0 normally; some versions use non-zero on findings — accept 0/1.
     if completed.returncode not in {0, 1}:
+        raw = (completed.stderr or completed.stdout or "trivy failed")[:300]
         return ScannerResult(
             run=ScannerRun(
                 tool="trivy",
                 status="failed",
-                detail=(completed.stderr or completed.stdout or "trivy failed")[:300],
+                detail=redact_secrets(raw, env_src),
             )
         )
     raw = (completed.stdout or "").strip()
-    if not raw:
-        return ScannerResult(run=ScannerRun(tool="trivy", status="ran", findingCount=0))
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return ScannerResult(
-            run=ScannerRun(tool="trivy", status="failed", detail="invalid JSON output")
+    if raw:
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return ScannerResult(
+                run=ScannerRun(
+                    tool="trivy",
+                    status="failed",
+                    detail="invalid JSON output",
+                )
+            )
+        if not isinstance(data, dict):
+            data = {}
+        issues.extend(parse_trivy_report(data))
+
+    for ref in cfg.images:
+        image = str(ref).strip()
+        if not image:
+            continue
+        img = subprocess.run(
+            [
+                str(binary),
+                "image",
+                "--format",
+                "json",
+                "--quiet",
+                image,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            cwd=root,
+            env=child,
         )
-    if not isinstance(data, dict):
-        data = {}
-    issues = parse_trivy_report(data)
+        if img.returncode not in {0, 1}:
+            fail = redact_secrets(
+                (img.stderr or img.stdout or "trivy image failed")[:300], env_src
+            )
+            details.append(f"{image}: {fail}")
+            continue
+        payload = (img.stdout or "").strip()
+        if not payload:
+            continue
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError:
+            details.append(f"{image}: invalid JSON output")
+            continue
+        if isinstance(data, dict):
+            issues.extend(parse_trivy_report(data))
+
+    detail = redact_secrets("; ".join(details), env_src) if details else ""
     return ScannerResult(
-        run=ScannerRun(tool="trivy", status="ran", findingCount=len(issues)),
+        run=ScannerRun(
+            tool="trivy",
+            status="ran",
+            findingCount=len(issues),
+            detail=detail,
+        ),
         issues=issues,
     )

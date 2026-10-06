@@ -9,7 +9,7 @@ import typer
 from repolens import __version__
 from repolens.cli.app import baseline_app, console
 from repolens.config import GraphConfig, load_config
-from repolens.graph import analyse_python_graph
+from repolens.graph import analyse_repo_graph
 from repolens.graph.baseline import (
     DEFAULT_BASELINE_PATH,
     baseline_from_graph,
@@ -57,7 +57,7 @@ def baseline_set(
     target = _resolve_baseline_path(
         root, out=out, baseline_path=graph_cfg.baseline_path
     )
-    result = analyse_python_graph(root, config=graph_cfg)
+    result = analyse_repo_graph(root, config=graph_cfg)
     if result.status is GraphStatus.FAILED:
         for gap in result.durability_gaps:
             console.print(f"[red]{gap}[/red]")

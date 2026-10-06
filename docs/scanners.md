@@ -45,6 +45,9 @@ Cross-OS CLI walkthrough: [try-on-your-repo.md](./try-on-your-repo.md).
 | `semgrep` | SAST / pattern rules | `semgrep` (pip or cache venv) |
 | `osv` | Dependency CVEs | `osv-scanner` |
 | `trivy` | FS vulns + misconfig (+ secrets) | `trivy` (pinned archive) |
+
+Private registries: set `TRIVY_USERNAME` / `TRIVY_PASSWORD` or `TRIVY_REGISTRY_TOKEN` in the **environment** (never in TOML). Details: [trivy-registry-auth.md](./design/trivy-registry-auth.md).
+
 | `checkov` | IaC policy (Terraform/K8s/…) | `checkov` (pip cache venv) |
 
 Default `enabled` remains gitleaks/semgrep/osv so missing Trivy/Checkov do not add noise. Opt in after install:

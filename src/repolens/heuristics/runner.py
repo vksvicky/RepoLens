@@ -19,7 +19,9 @@ from repolens.heuristics.mega_files import (
 )
 from repolens.heuristics.near_clones import find_near_clones
 from repolens.heuristics.scripts_hygiene import find_script_credential_hygiene, find_todo_density
+from repolens.heuristics.large_functions import find_large_functions
 from repolens.heuristics.siblings import find_sibling_pairs
+from repolens.heuristics.transport_tls import find_transport_tls
 from repolens.inventory import FileEntry
 from repolens.schema import Issue
 
@@ -160,6 +162,14 @@ def run_heuristics(
         issues,
         hot_paths,
         _map_entry_issues(reviewable, find_deep_nesting, workers=workers),
+    )
+    _absorb(
+        issues,
+        hot_paths,
+        _map_entry_issues(reviewable, find_large_functions, workers=workers),
+    )
+    issues.extend(
+        _map_entry_issues(reviewable, find_transport_tls, workers=workers)
     )
     clone_issues, clusters, occurrences, clone_notes = _near_clone_bundle(
         reviewable, near_clones_config

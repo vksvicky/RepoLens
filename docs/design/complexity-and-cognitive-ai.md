@@ -121,8 +121,9 @@ Providers: existing RepoLens stack — **Ollama (local)** or **BYOK** (Gemini / 
 | Language | When | Mechanism | Install |
 |----------|------|-----------|---------|
 | Python | **MVP** | stdlib `ast` / `NodeVisitor` | Base `repolens-audit` |
-| JS/TS, Java | **v1** | tree-sitter | `pip install "repolens-audit[complexity]"` |
-| Go, Ruby, C#, … | **v2** | tree-sitter | same extra |
+| JS/TS, Java | **v1** | tree-sitter | `pip install "repolens-audit[graph]"` (no separate `[complexity]` extra; #95 slice covers JS/TS, not Java) |
+| Go, Rust, C# | **#95** | tree-sitter | same `[graph]` extra |
+| Ruby, Java, … | **later** | tree-sitter | same extra when unparked |
 
 Missing extras → skip non-Python languages with a durability note; Python path still runs.
 

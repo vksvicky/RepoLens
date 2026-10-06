@@ -128,7 +128,7 @@ Zügel’s “ask before import” works because Sonargraph already owns the wor
 * Prefer **grimp** (or documented equivalent) for import graph construction; wrap behind a thin RepoLens interface so we can swap adapters.
 * Tag edges as **`runtime`** vs **`type_only`** (and document policy for **function-local** imports: default exclude from hard cycles or severity-cap — configurable).
 * Output: machine-readable cycle list + graph fragment for reports (`source=graph` / heuristic).
-* Optional: adapter stub for precomputed edge lists (Sonargraph / SCIP later).
+* Optional: precomputed edge lists (custom JSON today). SCIP JSON ingest + tree-sitter for JS/TS/Go/Rust/C# : [graph-languages-scip.md](./graph-languages-scip.md) (#95). Python remains grimp-first.
 
 **Implementation tip:** Evaluate grimp licence/deps against RepoLens MIT packaging (`repolens-audit` optional extra or core — decide in the G1 plan). Do not ship a naive `ast`-only resolver as “done.”
 

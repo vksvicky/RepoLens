@@ -9,7 +9,7 @@ import typer
 from repolens.cli.app import console
 from repolens.cli.commands_check import _print_fingerprint_delta, _resolve_baseline_path
 from repolens.config import load_config
-from repolens.graph import analyse_python_graph
+from repolens.graph import analyse_repo_graph
 from repolens.graph.baseline import load_baseline
 from repolens.graph.ratchet import evaluate_ratchet
 from repolens.graph.types import GraphStatus
@@ -48,7 +48,7 @@ def _ratchet_breached_for_review(root: Path, *, ratchet_flag: bool) -> bool:
         )
         return False
 
-    gres = analyse_python_graph(root, config=graph_cfg)
+    gres = analyse_repo_graph(root, config=graph_cfg)
     if gres.status is GraphStatus.FAILED:
         for gap in gres.durability_gaps:
             console.print(f"[red]{gap}[/red]")

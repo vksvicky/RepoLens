@@ -313,7 +313,7 @@ repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
   --format both --fail-on HIGH
 ```
 
-Native multi-language complexity (tree-sitter) lands behind `pip install "repolens-audit[complexity]"` (v1). Until then, SARIF companions are the supported path.
+Native multi-language parsers (tree-sitter) land behind `pip install "repolens-audit[graph]"` (#95). SARIF companions remain the path for tools we do not parse (CodeQL, ESLint, Java complexity).
 
 ## Adaptive cache in CI
 
