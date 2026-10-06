@@ -1,6 +1,6 @@
 # Metis agent harness → RepoLens adopt / refuse
 
-**Status:** Steps 1–6 + A–E thin MVPs + #86–#89 CLI hardening (2026-10-06). Plan-level `role_packs` on this tree fills the same ~100k char budget per pass; P3 fits **149 outline files** vs **44 full bodies**. Journal `chars_in`/`chars_out` on a 32B Audit vs `…_2054` is still unmeasured — **no wall-clock or Metis % claim**.
+**Status:** Steps 1–6 + A–E thin MVPs + #86–#89 CLI (2026-10-06). Plan-level `role_packs` still fills the same ~100k char budget per pass. Two 32B Audits on this tree both ran with **`role_packs=false`**. **No Metis % claim.**
 **Sources:** [Wholiver/metis](https://github.com/Wholiver/metis) · [metisagent.tech/compare](https://metisagent.tech/compare/)  
 **Related:** [competitive-landscape-sonar-alternatives-2026.md](./competitive-landscape-sonar-alternatives-2026.md) · [sonargraph-architect-comparison.md](./sonargraph-architect-comparison.md) · [which-command.md](../which-command.md) · [zugel-comparison-and-roadmap.md](./zugel-comparison-and-roadmap.md)
 
@@ -166,9 +166,9 @@ Python can use `ast.parse()`. JS/TS/Go/Rust/C# rely on regex extractors in `file
 
 | Metric | Baseline (selfdog full deep `…_2054`) | After this slice |
 | --- | --- | --- |
-| Wall clock (32B local, full tree) | **1h 0m 24s** (`qwen2.5-coder:32b`, no `role_packs`) | **Not re-run** — do not invent a cut vs Metis ~60% |
+| Wall clock (32B local, full tree) | **1h 0m 24s** (`qwen2.5-coder:32b`, `role_packs=false`, Fast/Slow 435 files) | **1h 11m 50s** (`…_0642`, same model, `role_packs=false`, 437 files). Not a like-for-like `role_packs` experiment — tree grew |
 | Plan estimated chars (RepoLens tree, `--full-audit`, 2026-10-06) | `--no-role-packs`: 299,997 chars (P1/P2/P3 each 44 full files @ ~100k) | `--role-packs`: 299,998 chars (P1 32 full / P2 25 full / **P3 149 outlines** @ ~100k). Same fill of `chars_per_pass`; more P3 files, not fewer tokens |
-| Journal `chars_in`/`chars_out` | Instrument shipped (`repolens journal`) | Sum after the next 32B Audit — honesty metric only |
+| Journal `chars_in`/`chars_out` (`role_packs=false`) | `…_2054` P1+P2+P3: **345,911 in / 15,821 out** | `…_0642` P1+P2+P3: **362,036 in / 16,200 out**. Still **no** `role_packs=true` 32B Audit — do not claim a cut vs Metis ~60% |
 | Gate honesty | Unverified Crit not scored | Unverified Crit/High lowers band (`--verify-findings`) |
 | Operator interrupt | Opaque | Journal names last finished pass; `--resume` / `--no-resume` |
 

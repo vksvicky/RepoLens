@@ -321,6 +321,7 @@ No LLM. `--dry-run` stays inventory-only.
 | `repolens graph breakup --omit-edge A:B` | Cyclicity if that import were gone (preview only) | **0** · **2** bad token · **3** |
 | `repolens duplicates --path . --format json` | Near-clone spans | **0** |
 | `repolens ignore add --path . --id ID` | Append `.repolens-ignore` | **0** · **2** usage |
+| `repolens hotspots --path . --since 6.months` | Git churn table (path, commits, added, deleted) | **0** · **2** bad `--since` · **3** not git |
 | `repolens journal --path .` | Sum `chars_in`/`chars_out` (honesty metric, not a Metis %) | **0** |
 
 `repolens check --diff` without `--format` is unchanged for existing CI scripts.

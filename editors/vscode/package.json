@@ -1,0 +1,29 @@
+{
+  "name": "repolens",
+  "displayName": "RepoLens",
+  "description": "Thin VS Code / Cursor client: shells RepoLens CLI. Save never starts a model review.",
+  "version": "0.1.0",
+  "publisher": "repolens",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "repolens.check",
+        "title": "RepoLens: Check"
+      },
+      {
+        "command": "repolens.diff",
+        "title": "RepoLens: Cyclicity ratchet"
+      }
+    ]
+  }
+}

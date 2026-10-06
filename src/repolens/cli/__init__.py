@@ -13,6 +13,7 @@ from repolens.cli import commands_duplicates as commands_duplicates  # noqa: F40
 from repolens.cli import commands_explain as commands_explain  # noqa: F401
 from repolens.cli import commands_feedback as commands_feedback  # noqa: F401
 from repolens.cli import commands_graph as commands_graph  # noqa: F401
+from repolens.cli import commands_hotspots as commands_hotspots  # noqa: F401
 from repolens.cli import commands_ignore as commands_ignore  # noqa: F401
 from repolens.cli import commands_journal as commands_journal  # noqa: F401
 from repolens.cli import commands_modes as commands_modes  # noqa: F401

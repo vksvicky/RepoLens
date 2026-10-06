@@ -1,6 +1,6 @@
 # RepoLens vs Sonargraph-Architect
 
-**Status:** C1–C6 CLI landed (2026-10-06). C4 extra baseline fields are in `baseline set` / `check --diff`. C7 churn and editor plugins remain later. No Metis desktop.  
+**Status:** C1–C7 CLI landed (2026-10-06). Thin VS Code/Cursor client is `editors/vscode/` (diagnostics on save + status-bar ratchet). Zed/IntelliJ later. No Metis desktop.  
 **Source:** [Sonargraph-Architect](https://www.hello2morrow.com/products/sonargraph/architect)  
 **Related:** [which-command.md](../which-command.md) (what you can run today) · [zugel-comparison-and-roadmap.md](./zugel-comparison-and-roadmap.md) (G0–G4, CLI-first guardrail) · [architecture-dsl-format-comparison.md](./architecture-dsl-format-comparison.md)
 
@@ -80,7 +80,7 @@ repolens review \
 | C4 extra baseline fields | Yes: optional `metrics` on `.repolens/baseline.json`; `check --diff` names each risen field | Maintainability Level / LCOM4 still out |
 | C5 `repolens duplicates` | Near-clone and sibling-duplication findings are inside the report. There is no command that prints the two line spans |
 | C6 `repolens ignore add` | The review reads `.repolens-ignore` if the file is already there and drops matching rows. It does not add an ignore. Adding one is `repolens feedback down <stableId>` after a report exists |
-| C7 `repolens hotspots` (git churn) | No git churn table. The review does print complexity hotspots: functions over the cyclomatic or cognitive threshold, and the top of that list is packed into the Slow Brain prompt |
+| C7 `repolens hotspots` (git churn) | CLI: `repolens hotspots --since 6.months` (`--format json`). Complexity hotspots remain a separate Fast Brain table | No tree map |
 
 `--timeout 7200` is time to the first token. After the first token, the pass ends on silence, not on that wall clock.
 
@@ -180,12 +180,11 @@ This writes `.repolens-ignore` in the format the review already honours. The plu
 
 `repolens explain <id>` stays the long-form narrative. The plugin can offer it as a command. It is not part of `repolens check`.
 
-### C7 — Churn as a table, later
-
-After C1–C6:
+### C7 — Churn as a table
 
 ```bash
 repolens hotspots --path . --since 6.months
+repolens hotspots --path . --since 6.months --format json
 ```
 
 Columns: path, commits, lines added, lines deleted, from `git log`. The top rows can be packed into a later review. No tree map.
