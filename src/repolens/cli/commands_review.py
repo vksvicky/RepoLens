@@ -68,6 +68,7 @@ def _run_mode(
     require_sarif_import: bool = False,
     no_model_lock: bool = False,
     model_lock: bool | None = None,
+    resume: bool = True,
 ) -> None:
     resolved = None
 
@@ -168,6 +169,7 @@ def _run_mode(
             import_sarif=import_sarif or [],
             require_sarif_import=require_sarif_import,
             model_lock=model_lock,
+            resume=resume,
         )
 
         _print_summary(
@@ -364,6 +366,11 @@ def review(
             "(default: soft-fail and continue)"
         ),
     ),
+    resume: bool = typer.Option(
+        True,
+        "--resume/--no-resume",
+        help="Reuse finished Slow Brain pass cache (reads journal last-finished)",
+    ),
 ) -> None:
     """Full P1→P2→P3 dual review."""
     _run_mode(
@@ -406,6 +413,7 @@ def review(
         require_sarif_import,
         no_model_lock,
         True if model_lock_flag else False if no_model_lock else None,
+        resume,
     )
 
 

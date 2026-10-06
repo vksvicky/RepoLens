@@ -27,14 +27,21 @@ def _near_symbol(root: Path, issue: Issue) -> bool:
         # Regex extractors returned nothing — do not punish unknown languages.
         return True
     hay = f"{issue.title} {issue.explanation} {issue.codeExample}".lower()
+    cited = False
     for sym in symbols:
-        if abs(sym.start_line - issue.line) > 40 and abs(sym.end_line - issue.line) > 40:
-            if not (sym.start_line <= issue.line <= sym.end_line):
-                continue
-        if sym.name.lower() in hay or sym.name.split(".")[-1].lower() in hay:
-            return True
-    # Location alone can still ground when no symbol name was cited.
-    return False
+        token = sym.name.lower()
+        short = token.split(".")[-1]
+        if token in hay or short in hay:
+            cited = True
+            near = (
+                abs(sym.start_line - issue.line) <= 40
+                or abs(sym.end_line - issue.line) <= 40
+                or (sym.start_line <= issue.line <= sym.end_line)
+            )
+            if near:
+                return True
+    # Location is enough when the finding did not name a symbol.
+    return not cited
 
 
 def apply_verify_findings(

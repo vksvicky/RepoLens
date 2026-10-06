@@ -25,6 +25,42 @@ def append_event(root: Path, event: str, **fields: Any) -> None:
         return
 
 
+def summarize_chars(root: Path) -> dict[str, int]:
+    """Honesty metrics from journal pass_completed rows (no Metis % invented)."""
+    chars_in = 0
+    chars_out = 0
+    completed = 0
+    resumed = 0
+    for row in read_events(root):
+        if row.get("event") != "pass_completed":
+            continue
+        completed += 1
+        if row.get("resumed"):
+            resumed += 1
+        chars_in += int(row.get("chars_in") or 0)
+        chars_out += int(row.get("chars_out") or 0)
+    return {
+        "pass_completed": completed,
+        "resumed": resumed,
+        "chars_in": chars_in,
+        "chars_out": chars_out,
+    }
+
+
+def last_finished_label(root: Path) -> str | None:
+    last: str | None = None
+    for row in read_events(root):
+        if row.get("event") == "pass_completed" and not row.get("degraded"):
+            label = str(row.get("label") or row.get("role") or "").strip()
+            if label:
+                last = label
+        if row.get("event") == "interrupted":
+            fin = str(row.get("last_finished") or "").strip()
+            if fin:
+                last = fin
+    return last
+
+
 def read_events(root: Path) -> list[dict[str, Any]]:
     path = journal_path(root)
     if not path.is_file():

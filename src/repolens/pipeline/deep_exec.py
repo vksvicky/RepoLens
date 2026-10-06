@@ -67,6 +67,7 @@ def _analyze_deep_passes(
     out_dir: Path | None = None,
     fmt: str = "md",
     report_when: object | None = None,
+    skip_cache: bool = False,
 ) -> FindingReport:
     """Heuristics → plan passes → structured LLM per pass → merge + coverage."""
     pack_ids = list(cfg.packs.enabled)
@@ -91,68 +92,31 @@ def _analyze_deep_passes(
         role_packs=bool(cfg.deep.role_packs),
     )
     _announce_deep_runtime(prog, passes, cfg)
-
-    parts: list[FindingReport] = []
-    raw_by_pass: dict[str, str] = {}
-    degraded_by_pass: dict[str, bool] = {}
-    repair_attempts_total = 0
-    all_coverage_ids: list[str] = []
     raw_dir = root / ".repolens"
-    n = len(passes)
-    provider = cfg.model.provider or "unknown"
-    model_name = cfg.model.model or default_model(cfg.model.provider)
-    timeout = resolve_llm_timeout(cfg.model)
-    finished_labels: list[str] = []
-    timed_out_labels: list[str] = []
-    prior_summary = ""
-    try:
-        for idx, deep_pass in enumerate(passes, start=1):
-            prefix = prompt_prefix
-            if cfg.deep.role_packs and prior_summary:
-                block = "## Prior pass findings (compact)\n" + prior_summary
-                prefix = f"{prefix}\n\n{block}" if prefix else block
-            part, raw, degraded, attempts = run_or_resume_pass(
-                root=root,
-                idx=idx,
-                n=n,
-                deep_pass=deep_pass,
-                rules=rules,
-                pack_ids=pack_ids,
-                prompt_prefix=prefix,
-                cfg=cfg,
-                prog=prog,
-                raw_dir=raw_dir,
-                model_name=model_name,
-                provider=provider,
-                timeout=timeout,
-                prior_summary=prior_summary if cfg.deep.role_packs else "",
-            )
-            parts.append(part)
-            raw_by_pass[deep_pass.name] = raw
-            degraded_by_pass[deep_pass.name] = degraded
-            repair_attempts_total += attempts
-            all_coverage_ids.extend(deep_pass.coverage_ids)
-            label = pass_label(deep_pass.name)
-            if degraded and any(
-                "timed out" in gap.lower() for gap in part.durabilityGaps
-            ):
-                timed_out_labels.append(label)
-            elif not degraded:
-                finished_labels.append(label)
-                snapshot_finished(
-                    merge_reports(parts, heur.issues),
-                    out_dir,
-                    fmt,
-                    finished_labels,
-                    mode,
-                    report_when,
-                )
-            if cfg.deep.role_packs and not degraded:
-                from repolens.deep import compact_pass_summary
-
-                prior_summary = compact_pass_summary(part)
-    except KeyboardInterrupt:
-        raise_aborted(parts, heur.issues, finished_labels, root=root)
+    (
+        parts,
+        raw_by_pass,
+        degraded_by_pass,
+        repair_attempts_total,
+        all_coverage_ids,
+        finished_labels,
+        timed_out_labels,
+    ) = _run_planned_passes(
+        root=root,
+        passes=passes,
+        rules=rules,
+        pack_ids=pack_ids,
+        prompt_prefix=prompt_prefix,
+        cfg=cfg,
+        prog=prog,
+        raw_dir=raw_dir,
+        skip_cache=skip_cache,
+        heur_issues=heur.issues,
+        out_dir=out_dir,
+        fmt=fmt,
+        mode=mode,
+        report_when=report_when,
+    )
 
     report = note_timed_out_passes(
         merge_reports(parts, heur.issues),
@@ -248,3 +212,106 @@ def _analyze_deep_passes(
     report.scoreNotes = low_audit_explanations(report)
     _phase_coverage_metrics(prog, report, coverage, unique_ids)
     return report
+
+
+def _run_planned_passes(
+    *,
+    root: Path,
+    passes: list,
+    rules: list[Rule],
+    pack_ids: list[str],
+    prompt_prefix: str,
+    cfg: RepoLensConfig,
+    prog: ReviewProgress,
+    raw_dir: Path,
+    skip_cache: bool,
+    heur_issues: list,
+    out_dir: Path | None,
+    fmt: str,
+    mode: str,
+    report_when: object | None,
+) -> tuple[
+    list[FindingReport],
+    dict[str, str],
+    dict[str, bool],
+    int,
+    list[str],
+    list[str],
+    list[str],
+]:
+    if not skip_cache:
+        from repolens.pipeline.journal import last_finished_label
+
+        last = last_finished_label(root)
+        if last:
+            prog.detail(f"Resume: last finished pass in journal: {last}")
+    parts: list[FindingReport] = []
+    raw_by_pass: dict[str, str] = {}
+    degraded_by_pass: dict[str, bool] = {}
+    repair_attempts_total = 0
+    all_coverage_ids: list[str] = []
+    finished_labels: list[str] = []
+    timed_out_labels: list[str] = []
+    prior_summary = ""
+    n = len(passes)
+    provider = cfg.model.provider or "unknown"
+    model_name = cfg.model.model or default_model(cfg.model.provider)
+    timeout = resolve_llm_timeout(cfg.model)
+    try:
+        for idx, deep_pass in enumerate(passes, start=1):
+            prefix = prompt_prefix
+            if cfg.deep.role_packs and prior_summary:
+                block = "## Prior pass findings (compact)\n" + prior_summary
+                prefix = f"{prefix}\n\n{block}" if prefix else block
+            part, raw, degraded, attempts = run_or_resume_pass(
+                root=root,
+                idx=idx,
+                n=n,
+                deep_pass=deep_pass,
+                rules=rules,
+                pack_ids=pack_ids,
+                prompt_prefix=prefix,
+                cfg=cfg,
+                prog=prog,
+                raw_dir=raw_dir,
+                model_name=model_name,
+                provider=provider,
+                timeout=timeout,
+                prior_summary=prior_summary if cfg.deep.role_packs else "",
+                skip_cache=skip_cache,
+            )
+            parts.append(part)
+            raw_by_pass[deep_pass.name] = raw
+            degraded_by_pass[deep_pass.name] = degraded
+            repair_attempts_total += attempts
+            all_coverage_ids.extend(deep_pass.coverage_ids)
+            label = pass_label(deep_pass.name)
+            if degraded and any(
+                "timed out" in gap.lower() for gap in part.durabilityGaps
+            ):
+                timed_out_labels.append(label)
+            elif not degraded:
+                finished_labels.append(label)
+                snapshot_finished(
+                    merge_reports(parts, heur_issues),
+                    out_dir,
+                    fmt,
+                    finished_labels,
+                    mode,
+                    report_when,
+                )
+            if cfg.deep.role_packs and not degraded:
+                from repolens.deep import compact_pass_summary
+
+                prior_summary = compact_pass_summary(part)
+    except KeyboardInterrupt:
+        raise_aborted(parts, heur_issues, finished_labels, root=root)
+    return (
+        parts,
+        raw_by_pass,
+        degraded_by_pass,
+        repair_attempts_total,
+        all_coverage_ids,
+        finished_labels,
+        timed_out_labels,
+    )

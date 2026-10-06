@@ -47,6 +47,7 @@ class ReviewRun:
     import_sarif: list[Path] | None
     require_sarif_import: bool
     model_lock: bool | None = None
+    resume: bool = True
 
     cfg: Any = None
     aborted: bool = False

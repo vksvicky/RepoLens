@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 
 from repolens.inventory import FileEntry
@@ -22,6 +23,12 @@ def _module_to_candidates(module: str) -> list[str]:
     return [f"{parts}.py", f"{parts}/__init__.py"]
 
 
+@dataclass(frozen=True)
+class BlastRadiusResult:
+    paths: list[str]
+    note: str | None = None
+
+
 def expand_blast_radius_paths(
     root: Path,
     changed_paths: Sequence[str],
@@ -29,28 +36,49 @@ def expand_blast_radius_paths(
     *,
     enabled: bool = True,
 ) -> list[str]:
+    return expand_blast_radius(root, changed_paths, entries, enabled=enabled).paths
+
+
+def expand_blast_radius(
+    root: Path,
+    changed_paths: Sequence[str],
+    entries: Sequence[FileEntry],
+    *,
+    enabled: bool = True,
+) -> BlastRadiusResult:
     """Return changed ∪ direct imports ∪ direct importers (Python via grimp).
 
-    Non-Python changed paths are kept as-is. Failures soft-skip expansion.
+    Non-Python changed paths are kept as-is. Failures keep the change-set and
+    set ``note`` so operators see that expansion did not run.
     """
     base = [p.replace("\\", "/") for p in changed_paths]
     if not enabled or not base:
-        return list(base)
+        return BlastRadiusResult(paths=list(base))
     try:
         from repolens.config import load_config
         from repolens.graph.build import analyse_python_graph
         from repolens.graph.query import direct_dependencies, direct_dependents
         from repolens.graph.types import GraphStatus
     except ImportError:
-        return list(base)
+        return BlastRadiusResult(
+            paths=list(base),
+            note="blast-radius skipped: graph imports unavailable",
+        )
 
     cfg = load_config(root)
     try:
         result = analyse_python_graph(root, config=cfg.graph)
-    except Exception:
-        return list(base)
+    except Exception as exc:
+        return BlastRadiusResult(
+            paths=list(base),
+            note=f"blast-radius skipped: graph failed ({exc})",
+        )
     if result.status != GraphStatus.OK:
-        return list(base)
+        gaps = "; ".join(result.durability_gaps[:3]) or result.status.value
+        return BlastRadiusResult(
+            paths=list(base),
+            note=f"blast-radius skipped: graph {gaps}",
+        )
 
     by_rel = {e.relative.replace("\\", "/"): e for e in entries}
     wanted: set[str] = set(base)
@@ -65,7 +93,6 @@ def expand_blast_radius_paths(
             for cand in _module_to_candidates(neighbour):
                 if cand in by_rel:
                     wanted.add(cand)
-    # Preserve changed-first order, then sorted extras.
     ordered: list[str] = []
     seen: set[str] = set()
     for path in list(base) + sorted(wanted):
@@ -73,7 +100,11 @@ def expand_blast_radius_paths(
             continue
         seen.add(path)
         ordered.append(path)
-    return ordered
+    extra = len(ordered) - len(base)
+    note = None
+    if extra:
+        note = f"blast-radius added {extra} neighbour path(s)"
+    return BlastRadiusResult(paths=ordered, note=note)
 
 
 def filter_entries_blast_radius(

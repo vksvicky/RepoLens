@@ -116,6 +116,11 @@ def check(
         "--diff",
         help="Compare runtime cyclicity to the baseline (graph-only ratchet)",
     ),
+    fmt: str = typer.Option(
+        "",
+        "--format",
+        help="sarif | jsonl — Fast Brain diagnostic stream (no LLM; no --diff needed)",
+    ),
     path: Path = typer.Option(Path("."), "--path", help="Project root to analyse"),
     baseline: Path | None = typer.Option(
         None,
@@ -133,9 +138,16 @@ def check(
         help="Git diff base ref (else GITHUB_BASE_REF / merge-base / working tree)",
     ),
 ) -> None:
-    """Graph-only cyclicity ratchet check for CI and pre-commit."""
+    """Graph-only cyclicity ratchet, or Fast Brain diagnostics with --format."""
     if ctx.invoked_subcommand is not None:
         return
+    fmt_n = fmt.strip().lower()
+    if fmt_n in {"sarif", "jsonl"}:
+        _emit_diagnostics(path.resolve(), fmt_n)
+        return
+    if fmt_n:
+        console.print("[red]--format must be sarif | jsonl[/red]")
+        raise typer.Exit(code=2)
     if not diff:
         console.print(
             "[red]Specify --diff to run the cyclicity ratchet check.[/red] "
@@ -199,3 +211,22 @@ def check(
             console.print(f"[yellow]{_UNANCHORED_NOTE}[/yellow]")
         raise typer.Exit(code=1)
     raise typer.Exit(code=0)
+
+
+def _emit_diagnostics(root: Path, fmt: str) -> None:
+    import json
+
+    from repolens.config import load_config
+    from repolens.diagnostics import (
+        collect_fast_issues,
+        diagnostic_jsonl,
+        diagnostic_sarif,
+    )
+
+    cfg = load_config(root)
+    issues = collect_fast_issues(root, cfg)
+    if fmt == "jsonl":
+        typer.echo(diagnostic_jsonl(issues), nl=False)
+    else:
+        typer.echo(json.dumps(diagnostic_sarif(issues, root=root), indent=2))
+    raise typer.Exit(code=1 if issues else 0)

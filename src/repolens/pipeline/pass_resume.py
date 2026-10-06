@@ -117,6 +117,7 @@ def run_or_resume_pass(
     provider: str,
     timeout: float,
     prior_summary: str = "",
+    skip_cache: bool = False,
 ) -> tuple[FindingReport, str, bool, int]:
     label = pass_label(deep_pass.name)
     key = pass_key(
@@ -136,7 +137,7 @@ def run_or_resume_pass(
         pack_mode=getattr(deep_pass, "pack_mode", "full"),
         role_packs=bool(cfg.deep.role_packs),
     )
-    cached = load_pass(root, key)
+    cached = None if skip_cache else load_pass(root, key)
     if cached is not None:
         prog.phase(
             f"[Slow Brain] Resumed {label} from cache ({len(cached.issues)} findings)"

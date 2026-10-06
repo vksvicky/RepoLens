@@ -1,83 +1,59 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented here (newest first).
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) once the first release is tagged.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+
+Nothing yet.
+
+## [0.1.0] — 2026-10-06 (tag pending)
+
+Not on PyPI until `v0.1.0` is tagged. Clones already report `0.1.0`. Public install remains `repolens-audit==0.1.0a1`.
+
 ### Added
 
-- **CI durability** — least-privilege `permissions: contents: read` on workflows, Dependabot for pip and GitHub Actions, and a CodeQL Python workflow.
-- **Gitleaks git history** — inside a checkout, a second `gitleaks detect` walks the commit log (no `--no-git`) and files P1 `sec.repo_hygiene_secrets` hits separately from the `.gitignore` heuristic. Secret values are not copied into the report.
-- **Complexity Fast Brain (MVP)** — Python stdlib `ast` McCabe + cognitive scores; thresholded Issues (`quality.complexity`); Markdown **Top-10 hotspots** table + p95/max; `[complexity]` config ([#68](https://github.com/vksvicky/RepoLens/issues/68)–[#70](https://github.com/vksvicky/RepoLens/issues/70)); design: [complexity-and-cognitive-ai.md](./design/complexity-and-cognitive-ai.md)
-- **Complexity Slow Brain pack** — top-N (`top_n_ai_explanations`, default 5) hotspot slices in the LLM prompt ([#71](https://github.com/vksvicky/RepoLens/issues/71)); playbook refactor + Right-BICEP B/E/Negative focus ([#72](https://github.com/vksvicky/RepoLens/issues/72))
-- **Testing inventory** — Fast Brain test **files + cases** via `ast`; Markdown scorecard ([#74](https://github.com/vksvicky/RepoLens/issues/74))
-- **Docs** — FAQ/README complexity & testing honesty ([#67](https://github.com/vksvicky/RepoLens/issues/67)); radon/ESLint complexity SARIF recipes ([#73](https://github.com/vksvicky/RepoLens/issues/73))
-- **Design principles themes** — Extended `arch.dry` / `arch.kiss` / `arch.solid_*` + architecture playbook anti-lecture rule; scorecard principle legend; import-cycle DIP/layering copy ([#62](https://github.com/vksvicky/RepoLens/issues/62)–[#64](https://github.com/vksvicky/RepoLens/issues/64))
-- **`--require-sarif-import`** — fail CI (exit 2) when a listed `--import-sarif` path is missing/unreadable ([#65](https://github.com/vksvicky/RepoLens/issues/65))
-- **CI companion recipes** — Sonar / Qodana / Brakeman / PMD / Bearer → SARIF → `--import-sarif` in [ci.md](./ci.md#companion-recipes-sonar--qodana--brakeman--pmd--bearer) ([#66](https://github.com/vksvicky/RepoLens/issues/66))
-- **Phase 9 Vertex + Bedrock** — `repolens init --provider vertex|bedrock`; Vertex Gemini SSE (hybrid `VERTEX_ACCESS_TOKEN` / optional `[vertex]` ADC); Bedrock Converse stream (SigV4 over httpx); mocked stream unit tests (#58)
-- **`--import-sarif`** — defensive SARIF 2.1 import (repeatable); merges CodeQL/Sonar/ESLint (and similar) into one gate report as `source=scanner`; **Automated scanners** shows `sarif:<driver>`; docs in [scanners.md](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-) and [ci.md](./ci.md#import-external-sarif-companion-gate)
-- **`--deep-passes` / `[deep] max_passes`** — cap deep band passes (1 = P1-only iteration); pre-flight Slow Brain wall-time estimate (#15)
-- **`llmRepairAttempts`** on reports — JSON micro-repair hard-capped at 1 per pass (#15)
-- **`--git-diff [base|auto]`** — restrict Slow Brain pack to git change-set; scanners + Fast Brain stay whole-tree; report **Change-set scope** section (#16)
-- **`[deep] role_packs`** — opt-in per-band file packs (P3 outline-cost), rolling ≤200-token prior-pass summary in the next prompt, and pass-cache keys that hash that summary; emits chars-in/out per pass (honesty metrics, not a Metis %-cut claim). Design: [metis-agent-comparison.md](./design/metis-agent-comparison.md)
-- **Review journal** — append-only `.repolens/journal.jsonl` (`pass_started` / `pass_completed` / `queue_wait` / `interrupted`) for interrupt post-mortem alongside pass-cache resume
-- **`repolens plan`** — Slow Brain pack forecast (chars + ETA) without LLM; keeps `--dry-run` as inventory-only
-- **`repolens diff-audit A B`** — resolved / new / confidence drift between two FindingReport JSON files
-- **Verification honesty** — `--verify-findings` grounds Crit/High (location + symbol); Suspect rows lower gate %; Markdown **Grounded** / **Suspect** sections
-- **Blast-radius `--git-diff`** — expand change-set with direct import neighbours (`[deep] blast_radius`, default on)
-- **N/A truth check** — inventory contradiction → `hallucination_residual:*` durability gaps
-- **Learned prefs** — `repolens learn adapt` derives skip globs from feedback into `.repolens/learned_prefs.json`
-- **Provenance attestation** — dirty tree, scanner digests, prompt template hash, journal tip hash on `ProvenanceBlock`
-- **Docs** — [compare.md](./compare.md) Plan/Audit nomenclature vs coding-agent harnesses
+- `repolens plan` — estimate AI-pass size and time without calling the model (`--dry-run` still lists files only)
+- `repolens journal` — last finished pass and chars in/out from `.repolens/journal.jsonl`
+- `repolens diff-audit A B` — resolved vs new findings between two JSON reports
+- `--git-diff` — AI pack limited to the git change-set (plus import neighbours); scanners and fast checks still cover the whole tree
+- `--resume` / `--no-resume` — reuse or skip saved AI passes; Ctrl+C once keeps finished passes
+- `--verify-findings` — Grounded vs Suspect on Critical/High; Suspect rows lower the gate score
+- `--import-sarif` (repeatable) and `--require-sarif-import` — merge CodeQL/Sonar/ESLint-style reports; fail if a listed file is missing
+- `--deep-passes` / `[deep] max_passes` — cap how many AI bands run (1 = security-only)
+- `[deep] role_packs` — optional per-band file packs (architecture pass can use outlines); opt-in, default off
+- Vertex and Bedrock providers (`repolens init --provider vertex|bedrock`)
+- Fast checks: function complexity, test inventory, near-duplicates, scorecard
+- Python import-cycle snapshot: `repolens baseline set` / `show`, `repolens check --diff`, `repolens review --ratchet`
+- Editor/CI helpers (no AI): `repolens check --format sarif|jsonl`, `repolens graph …`, `repolens duplicates`, `repolens ignore add|list`
+- `repolens learn adapt` — local skip patterns from feedback (`[deep] learned_prefs`, default off)
+- Git history secret scan (values not copied into the report)
+- Report provenance: version, dirty tree, scanner/tool hashes
 
 ### Changed
 
-- **Report honesty** — a pass that returned no analysis leaves that band unanswered and names the pass. A model note that says there is no defect, or whose fix is “none” / “n/a”, stays out of the issues list. A placeholder row with no checklist id is named under durability gaps. Suppressed advisories stay out of Plan to fix, matched as a whole package name. Scanner math says how many Critical/High rows were retained, suppressed, or not retained. The summary counts suppressed rows, and every report ends with an audit ledger. When a local model was queued, the ledger splits that Slow Brain time into queued and generating. A `--git-diff` review tags each finding as new in the diff or pre-existing. Plan to fix is grouped into quick wins and structural work, without hour estimates.
-- **Local model lock** — reviews that share one local model (Ollama, or `openai_compatible` on localhost) take a pass-by-pass ticket and say which project is ahead. Cloud providers do not create lock files. `--model-lock` forces the queue on. `--no-model-lock` turns it off. A stream that keeps producing tokens is not cut off at `--timeout`; silence after the first token is 300 seconds.
-- **Pass resume** — a finished P1, P2, P3, or coverage-closure pass is saved and skipped on the next run when the packed files, model, RepoLens version, and unanswered checklist ids are unchanged. A new RepoLens version runs Slow Brain again. The first Ctrl+C writes the passes that finished and exits 130. A second Ctrl+C exits immediately.
-- **Checklist** — the report lists each question as answered (apply the finding’s fix), does not apply (a fact from this repository), or not answered (the step to finish the review). The model’s `N/A` line stays in the prompt.
-- **Metrics table** — Critical, High, Medium, and Low are rows in the Markdown metrics table. Duration is hours, minutes, and seconds.
-- **Skip paths** — `bin/`, `gen/`, `test_output/`, `out/`, and `*.mcgen` stay out of the review by default. `[deep] skip_paths` adds project-specific trees. Scanners still walk the full tree.
-- **Summary counts** — Critical, High, Medium, and Low count scanner and Fast Brain findings. The model’s writing stays in the report under Model notes and does not change those four numbers or the gate.
-- **Generic measurements** — the checklist prompt shows the line shape and asks for a fact from the repository under review. Testing findings on CI pipeline files (GitHub, GitLab, Jenkins, CircleCI, Azure Pipelines, Buildkite, and the other common pipeline names) are left out. A model claim that `.gitignore` is missing secret patterns is left to Fast Brain; a secret finding in any other file still counts. Python outlines include symbols wrapped in a conditional. A Bedrock payload that is not a JSON object is ignored, and an empty stream still raises.
-- **Findings the model does not own** — complexity, `heuristic.*`, and “no unit tests” on a workflow file are left to Fast Brain. The model can still file other findings.
-- **Report wording** — the summary, Markdown, and JSON explain each missed checklist id in one sentence and link the percentages to that section. A checklist line written as `arch.<id>: N/A — <fact>` counts the same as `coverage:<id>: N/A — <fact>`. “Not reviewed” still does not count.
-- **Complexity** — split `triage_llm_plan`, `run_heuristics`, `score_actionability`, `_stream_openai_compatible`, and `build_argv` out of the High band. An empty `changed_files` list is an empty diff and matches no triage hits.
-- **Complexity** — split `_render_provenance_section`, `_load_review_inventory`, `_issues_from_run`, `_cog_node`, and `apply_llm_consistency` so they are no longer medium-band hotspots the model was promoting to High.
-- **Complexity and file size** — split the High-band stream, pyproject, report, and test-inventory functions, and moved review, explain, report, SCA, and deep-pass helpers into modules under the 500-line mega-file bar.
-- **Review summary** — Critical, High, Medium, and Low are the only severity counts. A **Duplicates merged** note appears only when two tools cited the same advisory (`4 tool rows → 2 Critical/High`).
-- **Low audit scores** — when a band or the gate is under 70%, the report and CLI name the missed checklist ids and the Critical/High findings that were subtracted. Medium and Low findings are left out of that breakdown.
-- **Checklist closure** — each deep pass repeats its coverage ids after the source files, and one short follow-up asks only for ids the band passes left unanswered. Ids that are still blank stay missed.
-- **Complexity** — split `find_near_clones`, the SCA dedupe and license helpers, `build_supply_chain`, and `pr_summary_cmd` out of the High band.
-- **Review phases** — `run_review` passes an explicit `ReviewRun` state object into each phase instead of sharing locals with `nonlocal`.
-- **Complexity** — split `parse_trivy_report`, `_collect_choices`, `parse_markdown_report`, `_analyze_deep_passes`, and `apply_feedback_calibrations` out of the High band, and flattened the provider-fallback branch in `run.py`.
-- **Gitignore secrets** — the heuristic now requires `*.pem`, `*.key`, `*.p12`, `*.pfx`, `credentials.json`, `id_rsa`, and `.netrc` as well as `.env`, and reports any missing pattern.
-- **CodeQL** — `github/codeql-action` steps are pinned to the v3.38.2 commit.
-- **Review complexity** — `run_review` and `_run_mode` are split into phases so neither function is in the Critical or High complexity band.
-- Docs: competitive landscape 2026 (Sonar alternatives, SARIF-import strategy, zero-infra personas)
-- FAQ: why not a scanner shell script; air-gap Ollama vs private BYOK honesty
-- Tracker hygiene: Wave C G0–G4 and Phase 8/9 Gemini MVP marked complete in [phases.md](./phases.md) ([#18](https://github.com/vksvicky/RepoLens/issues/18) / PR #56).
-- Tracker hygiene: close residual deferred tracker [#11](https://github.com/vksvicky/RepoLens/issues/11); route teaching/shipping feedback to [Discussions](https://github.com/vksvicky/RepoLens/discussions) + issue templates (closes [#6](https://github.com/vksvicky/RepoLens/issues/6)).
-- Inventory ignores Rust/JVM `target/` build dirs (with existing `node_modules/`, `reports/`, `.repolens/`) to curb cold-cache inflation (#15)
-- FAQ / command atlas: fast vs iteration vs milestone deep profiles; `--changed` (fingerprint) vs `--git-diff` (git) (#15/#16)
-- Ollama Slow Brain pre-flight estimate calibrated from LogViewer dogfood (prompt-eval heavy); roadmap index post-dogfood (#12 / #58 Vertex·Bedrock)
-- Maintainer agent specs/plans under `docs/superpowers/` are local-only (gitignored); public docs point at `docs/design/` and `docs/phases.md`.
+- Severity counts (Critical/High/Medium/Low) come from scanners and fast checks only; AI prose is “Model notes” and does not move the gate
+- Checklist questions show answered / does not apply / not answered; low scores name the missed items
+- Plan to fix is quick wins vs larger work (no hour estimates)
+- `--git-diff` findings tagged new vs already in the tree
+- Duplicate advisories from two tools merged once
+- Local models share a turn-taking queue; cloud providers do not; silence after the first token stops after 5 minutes
+- Default skip of generated trees (`bin/`, `gen/`, `target/`, …); scanners still walk the full tree
+- `.gitignore` check requires common secret patterns (`.env`, keys, `credentials.json`, …)
+- `--timeout` no longer kills a stream that is still producing tokens
+- CI workflows: read-only defaults, Dependabot, pinned CodeQL
+- Docs: [command atlas](./command-atlas.md), [compare.md](./compare.md)
 
+### Fixed
 
-### Added (Python import graph ratchet G2 #35)
-
-- **`repolens baseline set` / `show`** — git-friendly `.repolens/baseline.json` (cyclicity + sorted cycle fingerprints + config snapshot)
-- **`repolens check --diff --require-baseline`** — graph-only Rule 1 gate for CI and pre-commit (fail when runtime cyclicity rises)
-- **`repolens review --ratchet`** and **`[graph] ratchet`** — optional ratchet after review (combines with `--fail-on`)
-- Diff-anchored **`path:line`** hints on breach; GitHub Actions `::error` when `GITHUB_ACTIONS=true`
-- User docs: [FAQ ratchet ladder](./faq.md#cyclicity-ratchet-baseline-g2), [ci.md](./ci.md#python-cyclicity-ratchet-fast-gate-g2), [command atlas](./command-atlas.md#import-graph-ratchet-python-g2)
+- False “N/A — this does not exist” when the tree clearly has matching files
+- Empty / invalid model output no longer counted as a real finding
 
 ## [0.1.0a1] — 2026-09-24
 
-First public PyPI release. Distribution name **`repolens-audit`** (CLI / import: `repolens`).
+
+First public preview on the Python package site. You install **`repolens-audit`**; the command you type is still `repolens`.
 
 ```bash
 pip install "repolens-audit[scanners]==0.1.0a1"

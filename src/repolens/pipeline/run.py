@@ -147,6 +147,7 @@ def _invoke_llm_body(state: ReviewRun) -> None:
                 out_dir=state.out,
                 fmt=state.fmt,
                 report_when=state.report_when,
+                skip_cache=not bool(state.resume),
             )
         else:
             gen = LlmGenerateProgress()
@@ -303,6 +304,7 @@ def run_review(
     import_sarif: list[Path] | None = None,
     require_sarif_import: bool = False,
     model_lock: bool | None = None,
+    resume: bool = True,
 ) -> ReviewResult:
 
     state = ReviewRun(
@@ -335,6 +337,7 @@ def run_review(
         import_sarif=import_sarif,
         require_sarif_import=require_sarif_import,
         model_lock=model_lock,
+        resume=resume,
     )
     _bind_review_config(state)
     _load_review_inventory(state)

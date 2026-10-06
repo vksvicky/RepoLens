@@ -158,8 +158,8 @@ class DeepConfig(BaseModel):
     role_packs: bool = False
     # Expand --git-diff pack with direct import neighbours (grimp).
     blast_radius: bool = True
-    # Apply .repolens/learned_prefs.json skip globs from feedback patterns.
-    learned_prefs: bool = True
+    # Apply skip globs from ``repolens learn adapt`` only when that file exists.
+    learned_prefs: bool = False
 
     def extra_skip_globs(self) -> list[str]:
         """Project globs added on top of the package skip defaults."""

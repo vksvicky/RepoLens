@@ -91,7 +91,9 @@ def _load_review_inventory(state: ReviewRun) -> None:
 
     skip = list(state.cfg.deep.skip_paths)
     if state.cfg.deep.learned_prefs:
-        skip = merge_skip_globs(skip, load_learned_prefs(state.root))
+        prefs = load_learned_prefs(state.root)
+        if prefs.skip_globs:
+            skip = merge_skip_globs(skip, prefs)
     fast_inv = scan_inventory(
         state.root,
         mode=state.review_mode,

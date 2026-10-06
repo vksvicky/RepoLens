@@ -229,6 +229,8 @@ def test_review_help_includes_deep_flags() -> None:
     names = _command_option_names("review")
     assert "--deep" in names
     assert "--no-deep" in names
+    assert "--resume" in names
+    assert "--no-resume" in names
     result = runner.invoke(app, ["review", "--help"])
     assert result.exit_code == 0
     # Rendered help can vary by Rich/Click; registration is the contract.
