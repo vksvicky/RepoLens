@@ -68,6 +68,7 @@ def _analyze_deep_passes(
     fmt: str = "md",
     report_when: object | None = None,
     skip_cache: bool = False,
+    graph: object | None = None,
 ) -> FindingReport:
     """Heuristics → plan passes → structured LLM per pass → merge + coverage."""
     pack_ids = list(cfg.packs.enabled)
@@ -80,6 +81,7 @@ def _analyze_deep_passes(
         pack_ids=pack_ids,
     )
     rules: list[Rule] = load_enabled_rules(project_root=root)
+    p3_gaps: list[str] = []
     passes = plan_deep_passes(
         mode,
         full_audit=full_audit,
@@ -90,6 +92,8 @@ def _analyze_deep_passes(
         rules=rules,
         max_passes=cfg.deep.max_passes,
         role_packs=bool(cfg.deep.role_packs),
+        graph=graph,  # type: ignore[arg-type]
+        durability_gaps_out=p3_gaps,
     )
     _announce_deep_runtime(prog, passes, cfg)
     raw_dir = root / ".repolens"
@@ -123,6 +127,8 @@ def _analyze_deep_passes(
         timed_out_labels,
         finished_labels,
     )
+    if p3_gaps:
+        report.durabilityGaps = list(report.durabilityGaps) + list(p3_gaps)
     if repair_attempts_total:
         report.llmRepairAttempts = repair_attempts_total
         prog.detail(f"LLM JSON micro-repair attempts: {repair_attempts_total}")

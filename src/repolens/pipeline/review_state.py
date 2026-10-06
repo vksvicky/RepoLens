@@ -66,6 +66,7 @@ class ReviewRun:
     graph_block: Any = None
     graph_gaps: Any = None
     graph_issues: Any = None
+    graph_result: Any = None
     heur_issues: Any = None
     heur_result: Any = None
     inventory_notes: Any = None

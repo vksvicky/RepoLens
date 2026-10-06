@@ -39,8 +39,18 @@ class PlanForecast:
 
 
 def _pass_char_estimate(deep_pass: DeepPass) -> int:
-    if getattr(deep_pass, "pack_mode", "full") == "outline":
+    mode = getattr(deep_pass, "pack_mode", "full")
+    modes = getattr(deep_pass, "file_pack_modes", None) or {}
+    if mode == "outline":
         return sum(estimate_outline_chars(entry) for entry in deep_pass.files)
+    if mode == "hybrid":
+        total = 0
+        for entry in deep_pass.files:
+            if modes.get(entry.relative, "outline") == "full":
+                total += int(entry.size)
+            else:
+                total += estimate_outline_chars(entry)
+        return total
     return sum(int(entry.size) for entry in deep_pass.files)
 
 
@@ -71,6 +81,11 @@ def forecast_deep_plan(
         near_clones_config=cfg.fast_brain.near_clones,
     )
     rules = load_enabled_rules(project_root=root)
+    graph = None
+    if cfg.deep.role_packs:
+        from repolens.graph import analyse_repo_graph
+
+        graph = analyse_repo_graph(root, config=cfg.graph)
     passes = plan_deep_passes(
         mode,
         full_audit=full_audit,
@@ -81,6 +96,7 @@ def forecast_deep_plan(
         rules=rules,
         max_passes=cfg.deep.max_passes,
         role_packs=bool(cfg.deep.role_packs),
+        graph=graph,
     )
     forecasts = [
         PassForecast(

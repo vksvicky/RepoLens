@@ -156,6 +156,7 @@ def _invoke_llm_body(state: ReviewRun) -> None:
                 fmt=state.fmt,
                 report_when=state.report_when,
                 skip_cache=not bool(state.resume),
+                graph=state.graph_result,
             )
         else:
             gen = LlmGenerateProgress()
