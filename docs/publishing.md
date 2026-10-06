@@ -8,8 +8,8 @@ Plain `repolens` / `repo-lens` are blocked by PyPI name-similarity against exist
 ## Install paths
 
 ```bash
-# Preferred (PyPI alpha) — CLI entry point is still `repolens`
-pip install "repolens-audit[scanners]==0.1.0a1"
+# Preferred (PyPI) — CLI entry point is still `repolens`
+pip install "repolens-audit[scanners]==0.1.0"
 
 # From git (unreleased tip / contributors)
 pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"

@@ -4,9 +4,9 @@
 
 RepoLens is an open-source CLI that runs structured code reviews against projects you care about: on your machine, or cloned from GitHub, Bitbucket, Hugging Face, or any Git URL. It follows a clear **P1 → P2 → P3** pass (security → bugs/reliability/performance → architecture/quality) and writes audit-friendly reports with impact, remediation steps, and code-example fixes for Critical/High findings.
 
-> **Status:** `0.1.0` in tree (PyPI still has alpha `0.1.0a1` until `v0.1.0` is tagged) as **`repolens-audit`** (CLI: `repolens`) — Phases **0–9** complete  
+> **Status:** **`repolens-audit==0.1.0`** on PyPI (CLI: `repolens`) — Phases **0–9** complete  
 > Local CLI · remotes · optional scanners · explain + diagrams · GitHub Action · opt-in local learning · enterprise CI recipes  
-> Install (published): `pip install "repolens-audit[scanners]==0.1.0a1"` · from a clone: `pip install -e ".[dev]"`  
+> Install: `pip install "repolens-audit[scanners]==0.1.0"` · from a clone: `pip install -e ".[dev]"`  
 > Docs: [phases](./docs/phases.md) · [FAQ](./docs/faq.md) · [rules](./docs/rules.md) · [install extras](./docs/install-extras.md) · [CI / Action](./docs/ci.md) · [remotes](./docs/remote-sources.md) · [scanners](./docs/scanners.md) · [local learning](./docs/local-learning.md) · [publishing](./docs/publishing.md)
 
 ---
@@ -68,8 +68,8 @@ Interactive helper: `./scripts/repolens-guided.sh` (see [try-on-your-repo](docs/
 ## Quick start
 
 ```bash
-# Preferred: PyPI alpha (CLI entry point is still `repolens`)
-pip install "repolens-audit[scanners]==0.1.0a1"
+# Preferred: PyPI (CLI entry point is still `repolens`)
+pip install "repolens-audit[scanners]==0.1.0"
 
 # From a clone (contributors / dogfood)
 python3 -m venv .venv
