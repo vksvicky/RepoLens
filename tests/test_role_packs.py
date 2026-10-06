@@ -379,7 +379,9 @@ def test_deep_run_with_role_packs_journals_and_rolls_summary(
 
     monkeypatch.setenv("REPOLENS_LOCK_DIR", str(tmp_path / "locks"))
     (tmp_path / "src").mkdir()
-    (tmp_path / "src" / "auth_login.py").write_text("def login():\n    return 1\n", encoding="utf-8")
+    (tmp_path / "src" / "auth_login.py").write_text(
+        "def login():\n    return 1\n", encoding="utf-8"
+    )
     (tmp_path / "src" / "retry_backoff.py").write_text(
         "def backoff():\n    return 2\n", encoding="utf-8"
     )

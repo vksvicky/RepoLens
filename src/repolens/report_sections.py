@@ -6,7 +6,7 @@ lazily so the package import does not cycle.
 
 from __future__ import annotations
 
-from repolens.schema import FindingReport, Issue, QualityScorecard
+from repolens.schema import FindingReport, QualityScorecard
 
 
 def _render_quality_scorecard_section(report: FindingReport) -> list[str]:

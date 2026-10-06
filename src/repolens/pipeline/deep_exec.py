@@ -19,13 +19,6 @@ from repolens.inventory import FileEntry
 from repolens.llm import default_model, resolve_llm_timeout
 from repolens.llm.model_lock import bind_lock_context, reset_lock_context
 from repolens.metrics import low_audit_explanations
-from repolens.pipeline.deep_pass import _apply_coverage_closure
-from repolens.pipeline.deep_pass import (
-    _ollama_wait_bits as _ollama_wait_bits,
-)
-from repolens.pipeline.deep_pass import (
-    _pass_report as _pass_report,
-)
 from repolens.pipeline.deep_exec_support import (  # noqa: F401 — re-export for callers
     _announce_deep_runtime,
     _apply_coverage_metrics,
@@ -38,6 +31,13 @@ from repolens.pipeline.deep_exec_support import (  # noqa: F401 — re-export fo
     _sync_adaptive_cache,
     build_pass_confidences_with_floors,
     is_vacuous_llm_report,
+)
+from repolens.pipeline.deep_pass import _apply_coverage_closure
+from repolens.pipeline.deep_pass import (
+    _ollama_wait_bits as _ollama_wait_bits,
+)
+from repolens.pipeline.deep_pass import (
+    _pass_report as _pass_report,
 )
 from repolens.pipeline.pass_cache import pass_label
 from repolens.pipeline.pass_resume import (

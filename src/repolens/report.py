@@ -7,17 +7,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from repolens.disclaimer import disclaimer_markdown_lines
-from repolens.report_metrics import (
-    _render_audit_ledger,
-    _render_metrics_section,
-    format_collapsed_duplicates,
-    suppression_suffix,
-)
 from repolens.report_checklist import (
     _render_coverage_section,
     _render_durability_gaps_section,
     _render_theme_breakdown,
     plan_to_fix_lines,
+)
+from repolens.report_metrics import (
+    _render_audit_ledger,
+    _render_metrics_section,
+    format_collapsed_duplicates,
+    suppression_suffix,
 )
 from repolens.report_sections import (
     _render_change_set_section,

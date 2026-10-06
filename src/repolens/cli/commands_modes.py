@@ -20,6 +20,7 @@ from repolens.cli.pack_scope import (
     option_ref,
 )
 
+
 @app.command()
 def sentinel(
     path: str | None = option_path(),
