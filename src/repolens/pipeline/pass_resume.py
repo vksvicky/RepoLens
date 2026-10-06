@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import time
 from datetime import datetime
 from pathlib import Path
 
 from repolens.config import RepoLensConfig
 from repolens.deep import DeepPass, merge_reports
-from repolens.llm.model_lock import bind_lock_context, reset_lock_context
+from repolens.llm.model_lock import (
+    bind_lock_context,
+    queue_wait_seconds,
+    reset_lock_context,
+)
 from repolens.pipeline.deep_pass import _run_deep_pass
 from repolens.pipeline.journal import append_event
 from repolens.pipeline.pass_cache import load_pass, pass_key, pass_label, save_pass
@@ -151,8 +156,14 @@ def run_or_resume_pass(
             label=label,
             resumed=True,
             findings_count=len(cached.issues),
+            pass_duration_ms=0,
+            queue_wait_ms=0,
+            pack_mode=getattr(deep_pass, "pack_mode", "full"),
+            files_count=len(deep_pass.files),
         )
         return cached, "", False, 0
+    wait_before = queue_wait_seconds()
+    started = time.perf_counter()
     token = bind_lock_context(
         repo=root.name,
         path=str(root),
@@ -176,6 +187,8 @@ def run_or_resume_pass(
         )
     finally:
         reset_lock_context(token)
+    pass_duration_ms = int((time.perf_counter() - started) * 1000)
+    queue_wait_ms = int(max(0.0, queue_wait_seconds() - wait_before) * 1000)
     if not degraded:
         save_pass(root, key, part)
     append_event(
@@ -188,6 +201,10 @@ def run_or_resume_pass(
         findings_count=len(part.issues),
         chars_in=chars_in,
         chars_out=chars_out,
+        pass_duration_ms=pass_duration_ms,
+        queue_wait_ms=queue_wait_ms,
+        pack_mode=getattr(deep_pass, "pack_mode", "full"),
+        files_count=len(deep_pass.files),
         coverage_gap_count=sum(
             1 for gap in part.durabilityGaps if gap.startswith("coverage:")
         ),

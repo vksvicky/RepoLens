@@ -181,9 +181,15 @@ def _write_finished_report(state: ReviewRun) -> ReviewResult:
     from repolens.verify_findings import apply_verify_findings
 
     if state.cfg.deep.verify_findings:
+        import time
+
+        from repolens.pipeline.journal import append_event
+
         state.prog.detail(
             "Verify findings: Critical/High location + symbol grounding…"
         )
+        append_event(state.root, "verify_started")
+        verify_started = time.perf_counter()
         state.report.issues = apply_verify_findings(
             state.root, state.report.issues, state.cfg.deep
         )
@@ -191,6 +197,23 @@ def _write_finished_report(state: ReviewRun) -> ReviewResult:
 
         state.report = apply_unverified_gate_penalty(state.report)
         state.report.summary = state.report.recount_summary()
+        grounded = sum(
+            1
+            for issue in state.report.issues
+            if issue.verificationStatus == "grounded"
+        )
+        suspect = sum(
+            1
+            for issue in state.report.issues
+            if issue.verificationStatus == "suspect"
+        )
+        append_event(
+            state.root,
+            "verify_completed",
+            grounded_count=grounded,
+            suspect_count=suspect,
+            duration_ms=int((time.perf_counter() - verify_started) * 1000),
+        )
 
     from datetime import datetime
 
