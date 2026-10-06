@@ -1,6 +1,6 @@
 # Metis agent harness → RepoLens adopt / refuse
 
-**Status:** Steps 1–6 + A–E thin MVPs. 32B Audit `…_1026` ran with **`role_packs=true`**. Journal `chars_in` is lower than `…_2054`, but the LLM pack was also capped at **200** files (`general.max_files`) vs **435** — **not** a Metis ~60% claim and **not** a like-for-like pack-size experiment.
+**Status:** Steps 1–6 + A–E thin MVPs. **Next:** slice **C** — content-aware compaction + journal post-mortem ([metis-compaction-journal.md](./metis-compaction-journal.md)); then slice **D** like-for-like dogfood. 32B Audit `…_1026` ran with **`role_packs=true`**. Journal `chars_in` is lower than `…_2054`, but the LLM pack was also capped at **200** files (`general.max_files`) vs **435** — **not** a Metis ~60% claim and **not** a like-for-like pack-size experiment.
 **Sources:** [Wholiver/metis](https://github.com/Wholiver/metis) · [metisagent.tech/compare](https://metisagent.tech/compare/)  
 **Related:** [competitive-landscape-sonar-alternatives-2026.md](./competitive-landscape-sonar-alternatives-2026.md) · [sonargraph-architect-comparison.md](./sonargraph-architect-comparison.md) · [which-command.md](../which-command.md) · [zugel-comparison-and-roadmap.md](./zugel-comparison-and-roadmap.md)
 
