@@ -163,6 +163,72 @@ def test_graph_deps_text_and_dependents() -> None:
     json.loads(deps.stdout)
 
 
+def test_graph_breakup_lists_candidates() -> None:
+    result = runner.invoke(
+        app,
+        ["graph", "breakup", "--path", str(CYCLE_PKG), "--format", "json"],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["cyclicity"] >= 1
+    assert payload["candidates"]
+    first = payload["candidates"][0]
+    assert first["edges"]
+    assert "importer" in first["edges"][0]
+    assert "imported" in first["edges"][0]
+    assert "weight" in first["edges"][0]
+
+
+def test_graph_breakup_omit_edge_is_preview_only() -> None:
+    base = runner.invoke(
+        app,
+        ["graph", "breakup", "--path", str(CYCLE_PKG), "--format", "json"],
+    )
+    assert base.exit_code == 0, base.output
+    payload = json.loads(base.stdout)
+    edge = payload["candidates"][0]["edges"][0]
+    token = f"{edge['importer']}:{edge['imported']}"
+    preview = runner.invoke(
+        app,
+        [
+            "graph",
+            "breakup",
+            "--path",
+            str(CYCLE_PKG),
+            "--format",
+            "json",
+            "--omit-edge",
+            token,
+        ],
+    )
+    assert preview.exit_code == 0, preview.output
+    after = json.loads(preview.stdout)
+    assert after["cyclicity"] <= payload["cyclicity"]
+    omitted = after.get("omitted") or []
+    assert any(
+        row["importer"] == edge["importer"] and row["imported"] == edge["imported"]
+        for row in omitted
+    )
+    a_py = (CYCLE_PKG / "packcycle" / "a.py").read_text(encoding="utf-8")
+    assert "from packcycle" in a_py or "import" in a_py
+
+
+def test_graph_breakup_bad_omit_exits_2() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "graph",
+            "breakup",
+            "--path",
+            str(CYCLE_PKG),
+            "--omit-edge",
+            "not-a-pair",
+        ],
+    )
+    assert result.exit_code == 2
+    assert "importer:imported" in result.output.lower() or "omit-edge" in result.output.lower()
+
+
 def test_graph_invalid_format_and_missing_graph(tmp_path: Path) -> None:
     bad = runner.invoke(
         app, ["graph", "cycles", "--path", str(CYCLE_PKG), "--format", "xml"]

@@ -6,7 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- `repolens graph breakup` — candidate cycle cuts; `--omit-edge importer:imported` previews cyclicity without editing files
 
 ## [0.1.0] — 2026-10-06 (tag pending)
 

@@ -152,3 +152,29 @@ def _greedy_cut(
         if not progress:
             break
     return cut
+
+
+def parse_omit_edge_token(token: str) -> tuple[str, str]:
+    """Parse ``importer:imported`` (modules may contain dots, not colons)."""
+    raw = (token or "").strip()
+    if raw.count(":") != 1:
+        raise ValueError("omit-edge must be importer:imported")
+    importer, imported = raw.split(":", 1)
+    importer, imported = importer.strip(), imported.strip()
+    if not importer or not imported:
+        raise ValueError("omit-edge must be importer:imported")
+    return importer, imported
+
+
+def metrics_without_edges(
+    result: GraphResult, omitted: Sequence[tuple[str, str]]
+) -> tuple[int, list[tuple[str, ...]]]:
+    """Cyclicity and SCCs after dropping omitted gated edges. Does not edit the tree."""
+    omit = set(omitted)
+    pairs = [
+        (e.importer, e.imported)
+        for e in result.gated_edges
+        if (e.importer, e.imported) not in omit
+    ]
+    sccs = [s for s in strongly_connected_components(pairs) if len(s) >= 2]
+    return cyclicity(sccs), sccs

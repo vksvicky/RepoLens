@@ -7,6 +7,11 @@ from pathlib import Path
 
 import typer
 
+from repolens.architecture.fas import (
+    candidate_feedback_arc_sets,
+    metrics_without_edges,
+    parse_omit_edge_token,
+)
 from repolens.cli.app import app, console
 from repolens.config import load_config
 from repolens.graph import analyse_python_graph
@@ -108,6 +113,58 @@ def graph_edges(
         for e in result.gated_edges
     ]
     typer.echo(json.dumps(rows, indent=2))
+
+
+@graph_app.command("breakup")
+def graph_breakup(
+    path: Path = typer.Option(Path("."), "--path"),
+    fmt: str = typer.Option("json", "--format", help="json"),
+    omit_edge: list[str] | None = typer.Option(
+        None,
+        "--omit-edge",
+        help="Preview without this import (importer:imported). Repeatable. Does not edit files.",
+    ),
+) -> None:
+    """Candidate cycle cuts, or cyclicity after omitting edges. JSON on stdout."""
+    if fmt.strip().lower() != "json":
+        console.print("[red]--format must be json[/red]")
+        raise typer.Exit(code=2)
+    omitted: list[tuple[str, str]] = []
+    for token in omit_edge or []:
+        try:
+            omitted.append(parse_omit_edge_token(token))
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(code=2) from exc
+    result = _graph(path.resolve())
+    cyclicity_now, sccs = metrics_without_edges(result, omitted)
+    candidates = []
+    if not omitted:
+        for cand in candidate_feedback_arc_sets(result):
+            candidates.append(
+                {
+                    "label": cand.label,
+                    "totalWeight": cand.total_weight,
+                    "edges": [
+                        {
+                            "importer": e.importer,
+                            "imported": e.imported,
+                            "weight": e.weight,
+                            "line": e.line,
+                        }
+                        for e in cand.edges
+                    ],
+                }
+            )
+    payload = {
+        "cyclicity": cyclicity_now,
+        "cycleCount": len(sccs),
+        "cycles": [{"modules": list(s)} for s in sccs],
+        "candidates": candidates,
+        "omitted": [{"importer": a, "imported": b} for a, b in omitted],
+        "note": "Preview only — no files were edited.",
+    }
+    typer.echo(json.dumps(payload, indent=2))
 
 
 @graph_app.command("would-cycle")
