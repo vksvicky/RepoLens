@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-10-06
+
+Published as `repolens-audit==0.1.0`. Does not claim a Metis-style token cut; `role_packs` journal numbers are in [metis-agent-comparison.md](./design/metis-agent-comparison.md).
+
 ### Added
 
 - `repolens graph breakup` — candidate cycle cuts; `--omit-edge importer:imported` previews cyclicity without editing files
@@ -14,13 +18,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Unpacked VS Code / Cursor client in `editors/vscode/` — save runs `repolens check --format sarif`; status bar runs `check --diff`; palette: deps, would-cycle, breakup, omit-edge, duplicates, ignore, explain (never starts a model review on save)
 - Zed tasks and IntelliJ External Tools first versions under `editors/zed/` and `editors/intellij/`
 - `repolens review --role-packs` / `--no-role-packs` overrides `[deep] role_packs` for an Audit
-
-## [0.1.0] — 2026-10-06 (tag pending)
-
-Not on PyPI until `v0.1.0` is tagged. Clones already report `0.1.0`. Public install remains `repolens-audit==0.1.0a1`.
-
-### Added
-
 - `repolens plan` — estimate AI-pass size and time without calling the model (`--dry-run` still lists files only)
 - `repolens journal` — last finished pass and chars in/out from `.repolens/journal.jsonl`
 - `repolens diff-audit A B` — resolved vs new findings between two JSON reports

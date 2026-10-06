@@ -55,3 +55,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-06 | WIP→push | 92% | 0/0/0/1 | C4 optional baseline `metrics`; ratchet extras independently | chat |
 | 2026-10-06 | WIP→commit | 90% | 0/0/0/1 | C7 git hotspots + vscode thin client; extra baseline measure kept; #86 no role_packs Audit | chat |
 | 2026-10-06 | WIP→commit | 89% | 0/0/0/1 | VS Code palette C2–C6 + Zed/IntelliJ READMEs; parked issues #91–#96; #86 Audit running | chat |
+| 2026-10-06 | 530898a→push | 91% | 0/0/0/0 | Publish 0.1.0: changelog fold, install pins; no token-cut claim | chat |
