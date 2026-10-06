@@ -12,10 +12,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Trivy registry env forwarding, secret redaction (needles length ≥ 3), and optional iterative `trivy image` refs (`[scanners.trivy]`)
 - Architecture DSL `forbidden_imports`, `strict`, and `allowed_imports: ["*"]` open-layer wildcard
 - SCIP JSON ingest, JS/TS relative import path resolution, and `[graph]` tree-sitter extra; `analyse_repo_graph` merges sources (`analyse_python_graph` remains)
+- Content-aware `role_packs` sniff (first 4KB) and hybrid P3 packing for import-cycle modules (full bodies); still opt-in, default off
+- `repolens journal` human post-mortem (pass/queue durations, verify counts, `--resume` hint); JSON keeps millisecond integers
 
 ### Changed
 
 - `repolens check architecture`, ratchet, baseline, MCP, and review collect use the merged repo graph
+- Deep pass cache keys include `pack_mode` and per-file pack modes so outline/hybrid never cross-resume
 
 ## [0.1.0] — 2026-10-06
 

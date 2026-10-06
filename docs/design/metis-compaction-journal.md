@@ -1,7 +1,7 @@
 # Metis Step 1∥2 completion — content-aware compaction + journal post-mortem
 
 Date: 2026-10-06  
-Status: **design approved** (slice C); implementation pending  
+Status: **implemented** (slice C on main); slice D like-for-like dogfood still separate  
 Parent rudder: [metis-agent-comparison.md](./metis-agent-comparison.md)
 
 ## Problem
