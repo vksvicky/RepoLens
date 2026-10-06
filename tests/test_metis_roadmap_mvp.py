@@ -5,12 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from repolens.config import AdaptiveConfig, DeepConfig, ModelConfig, RepoLensConfig
+from repolens.deep import DeepPass, estimate_outline_chars
 from repolens.diff_audit import diff_audit_reports
 from repolens.feedback_store import record_feedback
 from repolens.inventory import FileEntry
 from repolens.learned_prefs import derive_learned_prefs, load_learned_prefs, save_learned_prefs
 from repolens.na_truth import reject_false_na_claims
-from repolens.plan_forecast import forecast_deep_plan
+from repolens.plan_forecast import _pass_char_estimate, forecast_deep_plan
 from repolens.schema import FindingReport, Issue, Severity, Summary
 from repolens.verify_findings import apply_unverified_gate_penalty
 
@@ -27,6 +28,25 @@ def test_forecast_deep_plan_no_llm(tmp_path: Path) -> None:
     assert plan.passes
     assert plan.total_estimated_chars >= 0
     assert "Slow Brain estimate" in plan.estimate_line
+
+
+def test_forecast_hybrid_char_estimate_uses_modes() -> None:
+    full = FileEntry(
+        path=Path("/tmp/a.py"), relative="a.py", size=1000, priority_band=1
+    )
+    outline = FileEntry(
+        path=Path("/tmp/b.py"), relative="b.py", size=1000, priority_band=1
+    )
+    deep = DeepPass(
+        name="p3",
+        rule_ids=["architecture"],
+        coverage_ids=[],
+        files=[full, outline],
+        pack_mode="hybrid",
+        file_pack_modes={"a.py": "full", "b.py": "outline"},
+    )
+    est = _pass_char_estimate(deep)
+    assert est == 1000 + estimate_outline_chars(outline)
 
 
 def test_forecast_role_packs_changes_modes(tmp_path: Path) -> None:
