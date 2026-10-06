@@ -354,7 +354,7 @@ Every example is this repository, run from the RepoLens folder. A command you ca
 | `repolens graph breakup --omit-edge` | Preview cycle-debt after cutting an import | `repolens check architecture` candidate cuts (needs rules file) |
 | `repolens duplicates --file …` | Two line ranges for the editor diff | Near-clone findings inside the review report |
 | `repolens ignore add --id --path` | Ignore by rule and file | `repolens feedback down <fingerprint>` |
-| Extra fields on `repolens baseline set` | Also remember boundaries, complexity, duplicates | `baseline set` stores cycle-debt only |
+| Extra fields on `repolens baseline set` | **Now.** Optional `metrics` (boundaries, complexity issues, near-clone clusters) ratchet independently on `check --diff`. | `repolens baseline set --path .` then `repolens check --diff --require-baseline --path .` |
 | `repolens hotspots --since 6.months` | Files that change most in git | Complexity hotspots in the review (“hard functions,” not git churn) |
 
 ---

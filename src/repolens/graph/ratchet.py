@@ -11,6 +11,12 @@ from repolens.graph.baseline import (
 )
 from repolens.graph.types import GraphResult
 
+_OPTIONAL_METRIC_KEYS = (
+    "boundaryViolations",
+    "complexityHotspots",
+    "nearClonePairs",
+)
+
 _CONFIG_MISMATCH_NOTE = (
     "ratchet.config_mismatch: graph settings changed since baseline "
     "(e.g. local_imports exclude→include); re-run `repolens baseline set` "
@@ -66,11 +72,34 @@ def _ratchet_message(*, baseline: int, current: int, delta: int) -> str:
     return f"Cyclicity unchanged at {current}."
 
 
+def _optional_metric_breaches(
+    baseline: dict, current_metrics: dict[str, int] | None
+) -> list[str]:
+    if current_metrics is None:
+        return []
+    stored = baseline.get("metrics")
+    if not isinstance(stored, dict):
+        return []
+    parts: list[str] = []
+    for key in _OPTIONAL_METRIC_KEYS:
+        if key not in stored:
+            continue
+        try:
+            old = int(stored[key])
+            new = int(current_metrics.get(key, 0))
+        except (TypeError, ValueError):
+            continue
+        if new > old:
+            parts.append(f"{key} increased from {old} to {new} (+{new - old})")
+    return parts
+
+
 def evaluate_ratchet(
     *,
     current: GraphResult,
     baseline: dict,
     config: GraphConfig,
+    current_metrics: dict[str, int] | None = None,
 ) -> RatchetResult:
     graph = baseline["graph"]
     baseline_cyclicity = int(graph["cyclicity"])
@@ -99,6 +128,14 @@ def evaluate_ratchet(
         current=current_cyclicity,
         delta=delta,
     )
+    extra = _optional_metric_breaches(baseline, current_metrics)
+    if extra:
+        breached = True
+        extra_msg = "Ratchet breach: " + "; ".join(extra) + "."
+        if delta > 0:
+            message = f"{message} {extra_msg}"
+        else:
+            message = extra_msg
 
     return RatchetResult(
         breached=breached,

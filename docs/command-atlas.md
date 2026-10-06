@@ -180,6 +180,7 @@ Pack-only smoke + if/then: [packs-quickcheck.md](./packs-quickcheck.md).
 | Gate confidence 75% / scanners-only | Heuristic confidence without LLM | Normal for `--scanners-only` |
 | Exit code **1** with `--fail-on HIGH` | Finding at/above threshold (CI: **scanner** + **`source=graph`** import-cycle rows) | Open report **Import graph** section; or `repolens feedback down <fingerprint> --reason false_positive --path "$TARGET"` |
 | `Ratchet breach: runtime cyclicity increased…` | **Rule 1** — cyclicity rose vs baseline | Remove/refactor the new import; or lower debt then `repolens baseline set`; see `path:line` on PR diffs when anchored |
+| `Ratchet breach: complexityHotspots increased…` (or `boundaryViolations` / `nearClonePairs`) | Optional baseline `metrics` rose | Fix the extra debt or re-run `baseline set` after an intentional increase; old baselines without `metrics` skip this |
 | `ratchet.config_mismatch` note | `[graph]` settings differ from baseline snapshot | After intentional config change: `repolens baseline set --path "$TARGET"` |
 | `check --diff` exit **2** (no baseline) | `--require-baseline` or `[graph] require_baseline` | `repolens baseline set --path "$TARGET"` and commit `.repolens/baseline.json` |
 | Exit code **2** / `ScannerRequirementError` | `--require-scanners` and a tool missing | `repolens plugins install all --yes` |
@@ -292,11 +293,11 @@ FAQ: [Python import cycles](./faq.md#python-import-cycles-import-graph-g1).
 
 ## Import graph ratchet (Python, G2)
 
-Graph-only **Rule 1** gate: runtime cyclicity must not **increase** vs `.repolens/baseline.json`. Primary CI path — no LLM, no scanners required.
+Graph-only **Rule 1** gate: runtime cyclicity must not **increase** vs `.repolens/baseline.json`. Optional `metrics` (boundaries, complexity issues, near-clone clusters) fail the same command independently when present. Primary CI path — no LLM, no scanners required.
 
 | Command | Expect | Exit |
 |---------|--------|------|
-| `repolens baseline set --path "$TARGET"` | Writes baseline JSON; prints cyclicity + fingerprint count | **0** ok · **3** graph failed/skipped |
+| `repolens baseline set --path "$TARGET"` | Writes baseline JSON; prints cyclicity, fingerprints, optional metrics | **0** ok · **3** graph failed/skipped |
 | `repolens baseline show --path "$TARGET"` | Prints path, cyclicity, fingerprint count | **0** · **2** missing baseline |
 | `repolens check --diff --require-baseline --path "$TARGET"` | Compares current graph to baseline; `+`/`-` fingerprint delta on stdout | **0** pass · **1** breach · **2** missing baseline or forgot `--diff` · **3** graph failed/skipped |
 | `repolens review … --ratchet` | Same ratchet after report (with or without `--fail-on`) | **1** if either ratchet or `--fail-on` trips |

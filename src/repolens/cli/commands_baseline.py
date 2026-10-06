@@ -17,6 +17,7 @@ from repolens.graph.baseline import (
     write_baseline,
 )
 from repolens.graph.types import GraphStatus
+from repolens.quality_metrics import measure_quality_metrics
 
 
 def _resolve_baseline_path(
@@ -51,7 +52,8 @@ def baseline_set(
 ) -> None:
     """Analyse the Python import graph and write a cyclicity baseline."""
     root = path.resolve()
-    graph_cfg = _graph_config_for_root(root)
+    cfg = load_config(root)
+    graph_cfg = cfg.graph
     target = _resolve_baseline_path(
         root, out=out, baseline_path=graph_cfg.baseline_path
     )
@@ -69,12 +71,19 @@ def baseline_set(
             "baseline not written.[/red]"
         )
         raise typer.Exit(code=3)
-    doc = baseline_from_graph(result, config=graph_cfg, version=__version__)
+    metrics = measure_quality_metrics(root, cfg, result)
+    doc = baseline_from_graph(
+        result, config=graph_cfg, version=__version__, metrics=metrics
+    )
     write_baseline(target, doc)
     fps = doc["graph"]["fingerprints"]
     console.print(f"[green]Wrote[/green] baseline → {target}")
     console.print(f"Cyclicity: {doc['graph']['cyclicity']}")
     console.print(f"Fingerprints: {len(fps)}")
+    stored = doc.get("metrics") or {}
+    console.print(f"boundaryViolations: {stored.get('boundaryViolations', 0)}")
+    console.print(f"complexityHotspots: {stored.get('complexityHotspots', 0)}")
+    console.print(f"nearClonePairs: {stored.get('nearClonePairs', 0)}")
 
 
 @baseline_app.command("show")
@@ -103,3 +112,12 @@ def baseline_show(
     console.print(f"Baseline: {target}")
     console.print(f"Cyclicity: {cyclicity}")
     console.print(f"Fingerprints: {len(fps)}")
+    stored = doc.get("metrics")
+    if isinstance(stored, dict):
+        for key in (
+            "boundaryViolations",
+            "complexityHotspots",
+            "nearClonePairs",
+        ):
+            if key in stored:
+                console.print(f"{key}: {stored[key]}")

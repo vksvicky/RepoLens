@@ -15,6 +15,7 @@ from repolens.graph.ratchet import evaluate_ratchet
 from repolens.graph.types import GraphStatus
 from repolens.llm import LlmError
 from repolens.pipeline import ScannerRequirementError
+from repolens.quality_metrics import measure_quality_metrics
 from repolens.sarif_import import SarifImportError
 
 
@@ -63,7 +64,13 @@ def _ratchet_breached_for_review(root: Path, *, ratchet_flag: bool) -> bool:
         raise typer.Exit(code=3)
 
     doc = load_baseline(target)
-    ratchet = evaluate_ratchet(current=gres, baseline=doc, config=graph_cfg)
+    current_metrics = measure_quality_metrics(root, cfg, gres)
+    ratchet = evaluate_ratchet(
+        current=gres,
+        baseline=doc,
+        config=graph_cfg,
+        current_metrics=current_metrics,
+    )
     console.print(ratchet.message)
     _print_fingerprint_delta(
         added=ratchet.fingerprints_added,

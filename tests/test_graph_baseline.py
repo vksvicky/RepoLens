@@ -85,6 +85,23 @@ def test_round_trip_tmp_path(tmp_path):
     }
 
 
+def test_baseline_from_graph_includes_optional_metrics():
+    result = _sample_result()
+    doc = baseline_from_graph(
+        result,
+        config=GraphConfig(),
+        version="0.0.0-test",
+        metrics={
+            "boundaryViolations": 2,
+            "complexityHotspots": 5,
+            "nearClonePairs": 1,
+        },
+    )
+    assert doc["metrics"]["boundaryViolations"] == 2
+    assert doc["metrics"]["complexityHotspots"] == 5
+    assert doc["metrics"]["nearClonePairs"] == 1
+
+
 def test_write_baseline_sorted_keys_and_trailing_newline(tmp_path):
     doc = baseline_from_graph(_sample_result(), config=GraphConfig(), version="1")
     path = tmp_path / "baseline.json"

@@ -108,3 +108,93 @@ def test_unchanged_cyclicity_flat_message():
     assert out.delta == 0
     assert out.message == "Cyclicity unchanged at 10."
     assert out.config_mismatch is False
+
+
+def test_optional_metrics_missing_do_not_ratchet():
+    baseline = _baseline(cyclicity=4, fingerprints=[["a", "b"]])
+    current = _result(cyclicity=4, cycles=[CycleGroup(modules=("a", "b"))])
+    out = evaluate_ratchet(
+        current=current,
+        baseline=baseline,
+        config=GraphConfig(),
+        current_metrics={
+            "boundaryViolations": 9,
+            "complexityHotspots": 9,
+            "nearClonePairs": 9,
+        },
+    )
+    assert out.breached is False
+
+
+def test_complexity_hotspots_rise_breaches_even_if_cyclicity_flat():
+    baseline = _baseline(cyclicity=4, fingerprints=[["a", "b"]])
+    baseline["metrics"] = {
+        "boundaryViolations": 0,
+        "complexityHotspots": 1,
+        "nearClonePairs": 0,
+    }
+    current = _result(cyclicity=4, cycles=[CycleGroup(modules=("a", "b"))])
+    out = evaluate_ratchet(
+        current=current,
+        baseline=baseline,
+        config=GraphConfig(),
+        current_metrics={
+            "boundaryViolations": 0,
+            "complexityHotspots": 4,
+            "nearClonePairs": 0,
+        },
+    )
+    assert out.breached is True
+    assert "complexityHotspots" in out.message
+    assert "+3" in out.message
+    assert "from 1 to 4" in out.message
+
+
+def test_equal_optional_metrics_do_not_breach():
+    baseline = _baseline(cyclicity=0, fingerprints=[])
+    baseline["metrics"] = {
+        "boundaryViolations": 2,
+        "complexityHotspots": 5,
+        "nearClonePairs": 1,
+    }
+    current = _result(cyclicity=0, cycles=[])
+    out = evaluate_ratchet(
+        current=current,
+        baseline=baseline,
+        config=GraphConfig(),
+        current_metrics={
+            "boundaryViolations": 2,
+            "complexityHotspots": 5,
+            "nearClonePairs": 1,
+        },
+    )
+    assert out.breached is False
+
+
+def test_invalid_stored_metric_is_skipped():
+    baseline = _baseline(cyclicity=0, fingerprints=[])
+    baseline["metrics"] = {"complexityHotspots": "not-a-number"}
+    current = _result(cyclicity=0, cycles=[])
+    out = evaluate_ratchet(
+        current=current,
+        baseline=baseline,
+        config=GraphConfig(),
+        current_metrics={"complexityHotspots": 9},
+    )
+    assert out.breached is False
+
+
+def test_cyclicity_and_optional_metric_both_named():
+    baseline = _baseline(cyclicity=4, fingerprints=[["a", "b"]])
+    baseline["metrics"] = {"boundaryViolations": 1}
+    current = _result(cyclicity=9, cycles=[CycleGroup(modules=("a", "b"))])
+    out = evaluate_ratchet(
+        current=current,
+        baseline=baseline,
+        config=GraphConfig(),
+        current_metrics={"boundaryViolations": 3},
+    )
+    assert out.breached is True
+    assert "from 4 to 9" in out.message
+    assert "boundaryViolations" in out.message
+    assert "from 1 to 3" in out.message
