@@ -48,13 +48,64 @@ def build_prompt(
 
 
 
+def _append_outline_entry(sections: list[str], entry: FileEntry) -> None:
+    from repolens.file_outline import format_file_outline
+
+    sections.append(f"#### {entry.relative} (priority band {entry.priority_band})")
+    outline = format_file_outline(
+        entry.path,
+        min_lines_for_outline=1,
+        display_path=entry.relative,
+    )
+    if outline.strip():
+        sections.append(outline)
+    else:
+        sections.append("```")
+        sections.append(read_excerpt(entry))
+        sections.append("```")
+    sections.append("")
+
+
+def _append_full_entry(sections: list[str], entry: FileEntry, *, heading: str) -> None:
+    sections.append(f"{heading} {entry.relative} (priority band {entry.priority_band})")
+    sections.append("```")
+    sections.append(read_excerpt(entry))
+    sections.append("```")
+    sections.append("")
+
+
 def _append_source_files(
-    prompt: str, files: list[FileEntry], *, pack_mode: str = "full"
+    prompt: str,
+    files: list[FileEntry],
+    *,
+    pack_mode: str = "full",
+    file_pack_modes: dict[str, str] | None = None,
 ) -> str:
     sections = [prompt.rstrip(), "", "## Source files"]
-    if pack_mode == "outline":
-        from repolens.file_outline import format_file_outline
+    modes = file_pack_modes or {}
+    if pack_mode == "hybrid":
+        full_files = [e for e in files if modes.get(e.relative, "outline") == "full"]
+        outline_files = [e for e in files if e not in full_files]
+        if not full_files:
+            pack_mode = "outline"
+            files = outline_files or files
+        else:
+            sections.append(
+                "### Active cycle modules (full bodies for refactoring context)"
+            )
+            for entry in full_files:
+                _append_full_entry(sections, entry, heading="####")
+            if outline_files:
+                sections.append("### Architectural context (structure outlines)")
+                sections.append(
+                    "(Structure outlines — prefer symbols and module shape "
+                    "over guessing bodies.)"
+                )
+                for entry in outline_files:
+                    _append_outline_entry(sections, entry)
+            return "\n".join(sections)
 
+    if pack_mode == "outline":
         sections.append(
             "(Structure outlines — prefer symbols and module shape over guessing bodies.)"
         )
@@ -62,6 +113,8 @@ def _append_source_files(
             sections.append(
                 f"### {entry.relative} (priority band {entry.priority_band})"
             )
+            from repolens.file_outline import format_file_outline
+
             outline = format_file_outline(
                 entry.path,
                 min_lines_for_outline=1,
@@ -77,11 +130,7 @@ def _append_source_files(
         return "\n".join(sections)
 
     for entry in files:
-        sections.append(f"### {entry.relative} (priority band {entry.priority_band})")
-        sections.append("```")
-        sections.append(read_excerpt(entry))
-        sections.append("```")
-        sections.append("")
+        _append_full_entry(sections, entry, heading="###")
     return "\n".join(sections)
 
 

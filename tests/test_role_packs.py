@@ -318,6 +318,32 @@ def test_append_source_files_outline_mode_uses_structure_header(tmp_path: Path) 
     assert "### src/mod.py" in text
 
 
+def test_append_source_files_hybrid_two_headers(tmp_path: Path) -> None:
+    from repolens.pipeline.prompt import _append_source_files
+
+    (tmp_path / "pkg").mkdir()
+    a = tmp_path / "pkg" / "a.py"
+    b = tmp_path / "pkg" / "b.py"
+    a.write_text("def a():\n    return 1\n", encoding="utf-8")
+    b.write_text("def b():\n    return 2\n" + ("    x=1\n" * 30), encoding="utf-8")
+    ea = FileEntry(
+        path=a, relative="pkg/a.py", size=a.stat().st_size, priority_band=1
+    )
+    eb = FileEntry(
+        path=b, relative="pkg/b.py", size=b.stat().st_size, priority_band=1
+    )
+    text = _append_source_files(
+        "BASE",
+        [ea, eb],
+        pack_mode="hybrid",
+        file_pack_modes={"pkg/a.py": "full", "pkg/b.py": "outline"},
+    )
+    assert "Active cycle modules" in text
+    assert "Architectural context" in text
+    assert "def a():" in text
+    assert "Structure outlines" in text or "structure" in text.lower()
+
+
 def test_announce_role_packs_mentions_pack_modes() -> None:
     from unittest.mock import MagicMock
 
