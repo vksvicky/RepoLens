@@ -273,8 +273,8 @@ A plugin would not embed a second scanner. It would run the CLI and show the res
 
 | You do this | The plugin runs | When it becomes real |
 | --- | --- | --- |
-| Save a file, or “RepoLens: Check” | `repolens check --path <project> --format sarif` | After that command exists. Until then: recommended command 3 with `--sarif`. |
-| Click the status bar | `repolens check --path <project> --diff` | **Now** as CLI. Needs `baseline set` once. Plugin chrome is future. |
+| Save a file, or “RepoLens: Check” | `repolens check --path <project> --format sarif` | **Now** in `editors/vscode/` (unpacked). CLI also. |
+| Click the status bar | `repolens check --path <project> --diff` | **Now** as CLI and in `editors/vscode/` status bar. Needs `baseline set` once. |
 | “Review Change-Set” | Recommended command 1 PR variant (`--git-diff auto`, no `--full`) | **Now** as CLI. Plugin command palette entry is future. |
 | “Open Latest Audit Report” | Open newest `gate_review_report_*.md` under `--out` | Future plugin. Today: open the Markdown path from the CLI summary. |
 | “Show dependencies” | `repolens graph deps` / `dependents` | Not built. |
@@ -332,6 +332,7 @@ Every example is this repository, run from the RepoLens folder. A command you ca
 | --- | --- | --- |
 | `repolens baseline set` / `show` | **Now.** Save or print cycle-debt in `.repolens/baseline.json`. | `repolens baseline set --path .` |
 | `repolens check --diff` | **Now.** Fail if cycle-debt grew. No scanners, no model. | `repolens check --diff --require-baseline --path .` |
+| `repolens hotspots --since 6.months` | **Now.** Files that change most in git (not function complexity). | `repolens hotspots --path . --since 6.months --format json` |
 | `repolens check architecture` | **Now, when a rules file exists.** Boundary violations + candidate cuts as text. This checkout has no rules file until you add one. | `repolens check architecture --path .` |
 
 ### After you have a report
@@ -349,13 +350,8 @@ Every example is this repository, run from the RepoLens folder. A command you ca
 
 | Future command | What it would do | Nearest command that exists |
 | --- | --- | --- |
-| `repolens check --format sarif` | Fast diagnostics file for an editor (no model). | Recommended command with `--sarif`, or the faster `--scanners-only --sarif` option |
-| `repolens graph deps` / `dependents` / `edges` / `would-cycle` | Query what a module uses / would cycle | Import graph section inside `repolens review` |
-| `repolens graph breakup --omit-edge` | Preview cycle-debt after cutting an import | `repolens check architecture` candidate cuts (needs rules file) |
-| `repolens duplicates --file …` | Two line ranges for the editor diff | Near-clone findings inside the review report |
-| `repolens ignore add --id --path` | Ignore by rule and file | `repolens feedback down <fingerprint>` |
-| Extra fields on `repolens baseline set` | **Now.** Optional `metrics` (boundaries, complexity issues, near-clone clusters) ratchet independently on `check --diff`. | `repolens baseline set --path .` then `repolens check --diff --require-baseline --path .` |
-| `repolens hotspots --since 6.months` | Files that change most in git | Complexity hotspots in the review (“hard functions,” not git churn) |
+| Zed / IntelliJ plugin | Same CLI in those editors | `editors/vscode/` plus `repolens check --format sarif` |
+| Custom graph canvas | Draw modules as a widget | `repolens graph edges --format json` → editor Markdown preview |
 
 ---
 
