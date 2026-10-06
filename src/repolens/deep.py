@@ -10,12 +10,16 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from repolens.coverage import coverage_ids_for_pass
 from repolens.inventory import FileEntry
 from repolens.prose import BRITISH_ENGLISH_INSTRUCTION
 from repolens.rules.registry import Rule
 from repolens.schema import FindingReport, Issue, Summary
+
+if TYPE_CHECKING:
+    from repolens.graph.types import GraphResult
 
 _MODE_BANDS: dict[str, tuple[str, ...]] = {
     "sentinel": ("p1",),
@@ -141,6 +145,61 @@ _P2_PATH_HINTS = (
 )
 
 
+_MODULE_SUFFIXES = (
+    ".py",
+    ".pyi",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".go",
+    ".rs",
+    ".cs",
+    ".kt",
+    ".java",
+)
+
+
+def module_name_forms(name: str) -> set[str]:
+    """Normalize a module or path into comparable dotted/path forms."""
+    n = name.strip().replace("\\", "/")
+    if not n:
+        return set()
+    forms: set[str] = {n, n.replace("/", ".")}
+    for suf in _MODULE_SUFFIXES:
+        if n.endswith(suf):
+            stem = n[: -len(suf)]
+            forms.add(stem)
+            forms.add(stem.replace("/", "."))
+            n = stem
+            break
+    # Drop a leading ``src.`` / ``src/`` so ``src/pkg/a.py`` matches ``pkg.a``.
+    extras: set[str] = set()
+    for form in list(forms):
+        dotted = form.replace("/", ".")
+        forms.add(dotted)
+        if dotted.startswith("src."):
+            extras.add(dotted[4:])
+        if form.startswith("src/"):
+            extras.add(form[4:])
+            extras.add(form[4:].replace("/", "."))
+    forms |= extras
+    return {f for f in forms if f}
+
+
+def entry_matches_cycle(entry: FileEntry, cycle_modules: set[str]) -> bool:
+    entry_forms = module_name_forms(entry.relative)
+    for mod in cycle_modules:
+        mod_forms = module_name_forms(mod)
+        if entry_forms & mod_forms:
+            return True
+        for ef in entry_forms:
+            for mf in mod_forms:
+                if ef == mf or ef.endswith("." + mf) or mf.endswith("." + ef):
+                    return True
+    return False
+
+
 def estimate_outline_chars(entry: FileEntry) -> int:
     """Char-cost estimate for an outline pack without reading the file.
 
@@ -242,6 +301,7 @@ def _order_for_band(
     band: str,
     hot_paths: Iterable[str],
     adaptive_paths: Iterable[str],
+    cycle_modules: set[str] | None = None,
 ) -> list[FileEntry]:
     from repolens.pack_sniff import is_demoted_asset, sniff_score
 
@@ -250,6 +310,10 @@ def _order_for_band(
     base = _order_entries(
         entries, hot_paths=hot_paths, adaptive_paths=adaptive_paths
     )
+    if band == "p3" and cycle_modules:
+        cycle_hits = [e for e in base if entry_matches_cycle(e, cycle_modules)]
+        rest = [e for e in base if e not in cycle_hits]
+        return cycle_hits + rest
     if band not in {"p1", "p2"}:
         return base
 
@@ -261,6 +325,31 @@ def _order_for_band(
         )
 
     return sorted(base, key=sort_key)
+
+
+def _budget_hybrid_p3(
+    ordered: Sequence[FileEntry],
+    *,
+    max_chars: int,
+    cycle_modules: set[str],
+) -> tuple[list[FileEntry], str, dict[str, str]]:
+    selected: list[FileEntry] = []
+    modes: dict[str, str] = {}
+    used = 0
+    for entry in ordered:
+        is_cycle = entry_matches_cycle(entry, cycle_modules)
+        cost = int(entry.size) if is_cycle else estimate_outline_chars(entry)
+        mode = "full" if is_cycle else "outline"
+        if max_chars <= 0 or cost > max_chars:
+            continue
+        if used + cost > max_chars:
+            continue
+        selected.append(entry)
+        modes[entry.relative] = mode
+        used += cost
+    if any(mode == "full" for mode in modes.values()):
+        return selected, "hybrid", modes
+    return selected, "outline", {rel: "outline" for rel in modes}
 
 
 def _enabled_by_band(rules: Sequence[Rule], band: str) -> list[Rule]:
@@ -279,6 +368,8 @@ def plan_deep_passes(
     rules: list[Rule],
     max_passes: int | None = None,
     role_packs: bool = False,
+    graph: GraphResult | None = None,
+    durability_gaps_out: list[str] | None = None,
 ) -> list[DeepPass]:
     """Plan band-ordered deep passes from enabled rules for ``mode``.
 
@@ -286,8 +377,11 @@ def plan_deep_passes(
     for ``review``). ``None`` or ``<= 0`` keeps the full mode band list.
 
     When ``role_packs`` is true, each band gets its own ordered budget and P3
-    uses outline-cost estimates with ``pack_mode=\"outline\"``.
+    uses outline-cost estimates, or hybrid full bodies for import-cycle modules
+    when ``graph`` is available.
     """
+    from repolens.graph.types import GraphStatus
+
     bands = _MODE_BANDS.get(mode)
     if bands is None:
         raise ValueError(f"Unknown mode: {mode}")
@@ -301,6 +395,15 @@ def plan_deep_passes(
         )
         shared = budget_files(ordered_files, max_chars=chars_per_pass)
 
+    cycle_modules: set[str] = set()
+    graph_usable = (
+        graph is not None
+        and graph.status not in {GraphStatus.FAILED, GraphStatus.SKIPPED}
+    )
+    if graph_usable and graph is not None:
+        for group in graph.cycles:
+            cycle_modules.update(group.modules)
+
     passes: list[DeepPass] = []
     for band in bands:
         band_rules = _enabled_by_band(rules, band)
@@ -312,20 +415,45 @@ def plan_deep_passes(
             full_audit=full_audit,
             enabled_rule_ids=rule_ids,
         )
+        file_pack_modes: dict[str, str] = {}
         if role_packs:
             ordered = _order_for_band(
                 entries,
                 band=band,
                 hot_paths=hot_paths,
                 adaptive_paths=adaptive_paths,
+                cycle_modules=cycle_modules if band == "p3" else None,
             )
             if band == "p3":
-                packed = budget_files(
-                    ordered,
-                    max_chars=chars_per_pass,
-                    cost_fn=estimate_outline_chars,
-                )
-                pack_mode = "outline"
+                if not graph_usable:
+                    if durability_gaps_out is not None:
+                        reason = (
+                            "graph unavailable"
+                            if graph is None
+                            else f"status={graph.status.value}"
+                        )
+                        durability_gaps_out.append(
+                            f"graph.p3_outline_only: {reason}"
+                        )
+                    packed = budget_files(
+                        ordered,
+                        max_chars=chars_per_pass,
+                        cost_fn=estimate_outline_chars,
+                    )
+                    pack_mode = "outline"
+                elif cycle_modules:
+                    packed, pack_mode, file_pack_modes = _budget_hybrid_p3(
+                        ordered,
+                        max_chars=chars_per_pass,
+                        cycle_modules=cycle_modules,
+                    )
+                else:
+                    packed = budget_files(
+                        ordered,
+                        max_chars=chars_per_pass,
+                        cost_fn=estimate_outline_chars,
+                    )
+                    pack_mode = "outline"
             else:
                 packed = budget_files(ordered, max_chars=chars_per_pass)
                 pack_mode = "full"
@@ -339,6 +467,7 @@ def plan_deep_passes(
                 coverage_ids=cov_ids,
                 files=list(packed),
                 pack_mode=pack_mode,
+                file_pack_modes=file_pack_modes,
             )
         )
     return passes

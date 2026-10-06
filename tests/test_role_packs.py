@@ -7,9 +7,12 @@ from pathlib import Path
 from repolens.deep import (
     budget_files,
     compact_pass_summary,
+    entry_matches_cycle,
     estimate_outline_chars,
+    module_name_forms,
     plan_deep_passes,
 )
+from repolens.graph.types import CycleGroup, GraphResult, GraphStatus
 from repolens.inventory import FileEntry
 from repolens.pipeline.pass_cache import pass_key
 from repolens.rules.registry import Rule
@@ -108,6 +111,82 @@ def test_role_packs_p3_fits_more_files_via_outline_budget() -> None:
     assert len(passes) == 1
     assert passes[0].pack_mode == "outline"
     assert len(passes[0].files) > len(raw)
+
+
+def test_module_forms_match_dotted_and_path() -> None:
+    forms = module_name_forms("src/repolens/graph/build.py")
+    assert "repolens.graph.build" in forms or any(
+        "graph.build" in f for f in forms
+    )
+    assert entry_matches_cycle(
+        _entry("src/repolens/graph/build.py", 100),
+        {"repolens.graph.build"},
+    )
+
+
+def test_p3_hybrid_full_bodies_for_cycle_modules(tmp_path: Path) -> None:
+    rules = [_rule("architecture", "p3")]
+    (tmp_path / "pkg").mkdir()
+    a = tmp_path / "pkg" / "a.py"
+    b = tmp_path / "pkg" / "b.py"
+    c = tmp_path / "pkg" / "c.py"
+    for path in (a, b, c):
+        path.write_text("x=1\n" * 100, encoding="utf-8")
+    entries = [
+        FileEntry(
+            path=a, relative="pkg/a.py", size=a.stat().st_size, priority_band=2
+        ),
+        FileEntry(
+            path=b, relative="pkg/b.py", size=b.stat().st_size, priority_band=2
+        ),
+        FileEntry(
+            path=c, relative="pkg/c.py", size=c.stat().st_size, priority_band=2
+        ),
+    ]
+    graph = GraphResult(
+        status=GraphStatus.OK,
+        cycles=[CycleGroup(modules=("pkg.a", "pkg.b"))],
+    )
+    passes = plan_deep_passes(
+        "architecture",
+        full_audit=True,
+        entries=entries,
+        hot_paths=[],
+        adaptive_paths=[],
+        chars_per_pass=500_000,
+        rules=rules,
+        role_packs=True,
+        graph=graph,
+    )
+    assert passes[0].pack_mode == "hybrid"
+    assert passes[0].file_pack_modes["pkg/a.py"] == "full"
+    assert passes[0].file_pack_modes["pkg/b.py"] == "full"
+    assert passes[0].file_pack_modes.get("pkg/c.py", "outline") == "outline"
+    assert set([e.relative for e in passes[0].files][:2]) == {
+        "pkg/a.py",
+        "pkg/b.py",
+    }
+
+
+def test_p3_outline_when_graph_failed() -> None:
+    gaps: list[str] = []
+    rules = [_rule("architecture", "p3")]
+    entries = [_entry("pkg/a.py", 1000)]
+    graph = GraphResult(status=GraphStatus.FAILED, durability_gaps=["boom"])
+    passes = plan_deep_passes(
+        "architecture",
+        full_audit=True,
+        entries=entries,
+        hot_paths=[],
+        adaptive_paths=[],
+        chars_per_pass=50_000,
+        rules=rules,
+        role_packs=True,
+        graph=graph,
+        durability_gaps_out=gaps,
+    )
+    assert passes[0].pack_mode == "outline"
+    assert any("graph.p3_outline_only" in g for g in gaps)
 
 
 def test_role_packs_p1_omits_css_and_prefers_sql_client(tmp_path: Path) -> None:
