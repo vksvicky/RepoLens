@@ -359,3 +359,73 @@ def test_check_uses_default_baseline_path(tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["check", "--diff", "--path", str(root)])
     assert result.exit_code == 0, result.output
+
+
+def test_check_diff_complexity_hotspots_breach_independent(tmp_path, monkeypatch):
+    out = tmp_path / "baseline.json"
+    set_r = runner.invoke(
+        app,
+        ["baseline", "set", "--path", str(CYCLE_PKG), "--out", str(out)],
+    )
+    assert set_r.exit_code == 0, set_r.output
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    doc["metrics"]["complexityHotspots"] = 0
+    out.write_text(json.dumps(doc, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "repolens.cli.commands_check.measure_quality_metrics",
+        lambda *_a, **_k: {
+            "boundaryViolations": int(doc["metrics"]["boundaryViolations"]),
+            "complexityHotspots": 4,
+            "nearClonePairs": int(doc["metrics"]["nearClonePairs"]),
+        },
+    )
+    result = runner.invoke(
+        app,
+        [
+            "check",
+            "--diff",
+            "--path",
+            str(CYCLE_PKG),
+            "--baseline",
+            str(out),
+        ],
+    )
+    assert result.exit_code == 1, result.output
+    assert "complexityHotspots" in result.output
+    assert "from 0 to 4" in result.output
+    assert "+4" in result.output
+
+
+def test_check_diff_old_baseline_without_metrics_skips_extras(tmp_path, monkeypatch):
+    out = tmp_path / "baseline.json"
+    set_r = runner.invoke(
+        app,
+        ["baseline", "set", "--path", str(CYCLE_PKG), "--out", str(out)],
+    )
+    assert set_r.exit_code == 0, set_r.output
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    doc.pop("metrics", None)
+    out.write_text(json.dumps(doc, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "repolens.cli.commands_check.measure_quality_metrics",
+        lambda *_a, **_k: {
+            "boundaryViolations": 99,
+            "complexityHotspots": 99,
+            "nearClonePairs": 99,
+        },
+    )
+    result = runner.invoke(
+        app,
+        [
+            "check",
+            "--diff",
+            "--path",
+            str(CYCLE_PKG),
+            "--baseline",
+            str(out),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "complexityHotspots" not in result.output

@@ -99,7 +99,7 @@ Short ladder for CI or pre-commit (seconds, no LLM):
 
 | Step | What to run |
 |------|-------------|
-| 1 | `repolens baseline set --path .` — writes `.repolens/baseline.json` (cyclicity + cycle fingerprints). Commit the file if you want baseline updates reviewed in PRs. |
+| 1 | `repolens baseline set --path .` — writes `.repolens/baseline.json` (cyclicity, cycle fingerprints, optional `metrics`). Commit the file if you want baseline updates reviewed in PRs. |
 | 2 | `repolens check --diff --require-baseline --path .` — primary gate on every PR or hook. |
 | 3 *(optional)* | `repolens review --ratchet …` or `[graph] ratchet = true` — same Rule 1 after a review (combines with `--fail-on`). |
 

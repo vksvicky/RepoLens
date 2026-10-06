@@ -27,7 +27,15 @@ def test_baseline_set_writes_file(tmp_path: Path) -> None:
     assert doc["kind"] == "cyclicity"
     assert doc["graph"]["cyclicity"] >= 4
     assert len(doc["graph"]["fingerprints"]) >= 1
+    assert "metrics" in doc
+    assert set(doc["metrics"]) >= {
+        "boundaryViolations",
+        "complexityHotspots",
+        "nearClonePairs",
+    }
+    assert all(isinstance(doc["metrics"][k], int) for k in doc["metrics"])
     assert "Wrote" in result.output or "wrote" in result.output.lower()
+    assert "complexityHotspots" in result.output
 
 
 def test_baseline_set_failed_exits_3(tmp_path: Path) -> None:

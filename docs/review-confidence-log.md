@@ -52,3 +52,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-06 | WIP→commit | 92% | 0/0/0/0 | Split deep_exec/report_sections under 500; DRY CLI source options vs selfdog …_2054 | chat |
 | 2026-10-06 | WIP→commit | 90% | 0/0/0/1 | #86–#89 CLI: journal/resume/blast notes/check SARIF/graph/duplicates/ignore; 0.1.0 prep no tag | chat |
 | 2026-10-06 | WIP→commit | 93% | 0/0/0/0 | C3 `graph breakup --omit-edge` preview (no tree edits) | chat |
+| 2026-10-06 | WIP→push | 92% | 0/0/0/1 | C4 optional baseline `metrics`; ratchet extras independently | chat |

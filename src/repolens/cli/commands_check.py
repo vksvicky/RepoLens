@@ -19,6 +19,7 @@ from repolens.graph.diff_anchor import (
 )
 from repolens.graph.ratchet import evaluate_ratchet
 from repolens.graph.types import GraphStatus
+from repolens.quality_metrics import measure_quality_metrics
 
 # Re-export for tests that imported from this module historically.
 _is_safe_git_ref = is_safe_git_ref
@@ -190,7 +191,13 @@ def check(
         raise typer.Exit(code=3)
 
     doc = load_baseline(target)
-    ratchet = evaluate_ratchet(current=result, baseline=doc, config=graph_cfg)
+    current_metrics = measure_quality_metrics(root, cfg, result)
+    ratchet = evaluate_ratchet(
+        current=result,
+        baseline=doc,
+        config=graph_cfg,
+        current_metrics=current_metrics,
+    )
     console.print(ratchet.message)
     _print_fingerprint_delta(
         added=ratchet.fingerprints_added,

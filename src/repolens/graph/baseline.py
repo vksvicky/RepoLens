@@ -46,9 +46,10 @@ def baseline_from_graph(
     *,
     config: GraphConfig,
     version: str,
+    metrics: dict[str, int] | None = None,
 ) -> dict:
     fingerprints = fingerprint_cycles(result)
-    return {
+    doc: dict = {
         "schemaVersion": 1,
         "kind": "cyclicity",
         "generatedAt": _utc_timestamp_z(),
@@ -63,6 +64,13 @@ def baseline_from_graph(
         },
         "configSnapshot": config_snapshot_from_graph_config(config),
     }
+    if metrics is not None:
+        doc["metrics"] = {
+            "boundaryViolations": int(metrics.get("boundaryViolations", 0)),
+            "complexityHotspots": int(metrics.get("complexityHotspots", 0)),
+            "nearClonePairs": int(metrics.get("nearClonePairs", 0)),
+        }
+    return doc
 
 
 def write_baseline(path: Path, doc: dict) -> None:

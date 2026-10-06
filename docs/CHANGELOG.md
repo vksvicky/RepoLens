@@ -9,6 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - `repolens graph breakup` — candidate cycle cuts; `--omit-edge importer:imported` previews cyclicity without editing files
+- `repolens baseline set` also stores optional `metrics` (`boundaryViolations`, `complexityHotspots`, `nearClonePairs`); `check --diff` and `review --ratchet` fail independently if any stored field rises (old files without `metrics` stay cyclicity-only)
 
 ## [0.1.0] — 2026-10-06 (tag pending)
 
