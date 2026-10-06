@@ -54,7 +54,7 @@ repolens review \
 
 **Time:** often an hour or more on local `qwen2.5-coder:32b`. `--timeout 7200` is how long RepoLens waits for the first words from the model, not a promise the whole review finishes in two hours.
 
-If another local review is running, RepoLens queues automatically and yields between passes. Completed passes (P1, P2, P3) are cached on disk, so an interrupted review resumes where it left off — provided the packed files, model, and prompt templates have not changed.
+If another local review is running, RepoLens queues automatically and yields between passes. Completed passes (P1, P2, P3) are cached on disk, so an interrupted review resumes where it left off — provided the packed files, model, and prompt templates have not changed. After a kill or Ctrl+C, run `repolens journal --path .` for a post-mortem (which pass finished, queue wait vs inference, resume hint). That output is an honesty metric, not a Metis token-cut percentage.
 
 **PR / change-set variant** (faster Slow Brain; no `--full`):
 
