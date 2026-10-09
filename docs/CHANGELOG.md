@@ -8,6 +8,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Robust product: coerce null/empty Critical/High `impact`/`codeExample`; normalize `coverage:` gaps; gate insulation so packaging-degraded passes mark **INCOMPLETE** / UNVERIFIED instead of collapsing the gate to 0%
+- `--preset pr|changed|release` and `--retry-pass` (aliases `p1`/`security`, `p2`/`reliability`, `p3`/`architecture`) with per-pass cache skip on resume
+- Deterministic vs AI report blocks; schema immunity tests; FAQ + `docs/design/robust-product-bar.md`
 - Fast Brain: large-function spans (`heuristic.large_function`) and insecure HTTP / weak TLS hints (`heuristic.transport_tls`), with XML/JSON schema namespaces skipped
 - Trivy registry env forwarding, secret redaction (needles length ≥ 3), and optional iterative `trivy image` refs (`[scanners.trivy]`)
 - Architecture DSL `forbidden_imports`, `strict`, and `allowed_imports: ["*"]` open-layer wildcard
@@ -19,6 +22,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `repolens check architecture`, ratchet, baseline, MCP, and review collect use the merged repo graph
 - Deep pass cache keys include `pack_mode` and per-file pack modes so outline/hybrid never cross-resume
+- Degraded-pass detection for gate metrics uses pipeline execution state, not model-authored `durabilityGaps`
+- Near-clone heuristic suppresses multi-line Python `from … import (` regions; metrics explain text split to `metrics_explain.py`
+
+### Fixed
+
+- Selfdog heuristics: mega-file `metrics.py`, large `_drive_planned_passes`, modes↔review import near-clone
 
 ## [0.1.0] — 2026-10-06
 

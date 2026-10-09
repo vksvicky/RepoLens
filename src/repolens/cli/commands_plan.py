@@ -4,57 +4,49 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.table import Table
 
 from repolens.cli.app import app, console
+from repolens.cli.pack_scope import option_trust_project
+from repolens.cli.review_options import (
+    option_plan_full_audit,
+    option_plan_json,
+    option_plan_mode,
+    option_plan_path,
+    option_plan_role_packs,
+)
 from repolens.config import load_config
 from repolens.plan_forecast import forecast_as_dict, forecast_deep_plan
 
 
 @app.command("plan")
 def plan_cmd(
-    path: Path = typer.Option(
-        Path("."),
-        "--path",
-        help="Repository root to forecast (local path)",
-        exists=True,
-        file_okay=False,
-        dir_okay=True,
-        readable=True,
-    ),
-    mode: str = typer.Option(
-        "review",
-        "--mode",
-        help="review | sentinel | architecture (same bands as Audit)",
-    ),
-    full_audit: bool = typer.Option(
-        False,
-        "--full-audit",
-        help="Use full-audit coverage ids when planning",
-    ),
-    role_packs: bool | None = typer.Option(
-        None,
-        "--role-packs/--no-role-packs",
-        help="Override [deep] role_packs for this forecast",
-    ),
-    trust_project: bool = typer.Option(
-        False,
-        "--trust-project-config",
-        help="Load full project .repolens.toml without sanitizing",
-    ),
-    as_json: bool = typer.Option(
-        False,
-        "--json",
-        help="Emit machine-readable JSON",
-    ),
+    path: Path = option_plan_path(),
+    mode: str = option_plan_mode(),
+    full_audit: bool = option_plan_full_audit(),
+    role_packs: bool | None = option_plan_role_packs(),
+    trust_project: bool = option_trust_project(),
+    as_json: bool = option_plan_json(),
 ) -> None:
     """Plan (recon): inventory + Slow Brain pack preview. No LLM, no scanners.
 
     Distinct from ``--dry-run`` (inventory dump only). Use this to compare
     chars-in estimates with and without ``[deep] role_packs`` before an Audit.
     """
+    _body_plan(path, mode, full_audit, role_packs, trust_project, as_json)
+
+
+def _body_plan(
+    path: Path,
+    mode: str,
+    full_audit: bool,
+    role_packs: bool | None,
+    trust_project: bool,
+    as_json: bool,
+) -> None:
     root = path.resolve()
     cfg = load_config(root, trust_project=trust_project)
     if role_packs is not None:
@@ -63,7 +55,10 @@ def plan_cmd(
     if as_json:
         typer.echo(json.dumps(forecast_as_dict(plan), indent=2))
         return
+    _print_plan_table(root, plan)
 
+
+def _print_plan_table(root: Path, plan: Any) -> None:
     console.print(
         f"[bold]Plan (Fast Brain recon)[/bold] — {root}\n"
         f"role_packs={'on' if plan.role_packs else 'off'} · "
@@ -85,16 +80,10 @@ def plan_cmd(
     table.add_column("Coverage ids", justify="right")
     for row in plan.passes:
         table.add_row(
-            row.name,
-            row.pack_mode,
-            str(row.file_count),
-            f"{row.estimated_chars:,}",
-            str(row.rule_count),
-            str(row.coverage_id_count),
+            row.name, row.pack_mode, str(row.file_count),
+            f"{row.estimated_chars:,}", str(row.rule_count), str(row.coverage_id_count),
         )
     console.print(table)
     for row in plan.passes:
         if row.sample_paths:
-            console.print(
-                f"  {row.name} sample: " + ", ".join(row.sample_paths[:5])
-            )
+            console.print(f"  {row.name} sample: " + ", ".join(row.sample_paths[:5]))

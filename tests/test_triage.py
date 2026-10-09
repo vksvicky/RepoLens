@@ -205,7 +205,7 @@ def test_ci_clean_diff_does_not_call_llm(tmp_path: Path) -> None:
             return_value=([fake_run], [], []),
         ),
         patch("repolens.pipeline.run._analyze_with_repair", llm_mock),
-        patch("repolens.pipeline.run._analyze_deep_passes", llm_mock),
+        patch("repolens.pipeline.deep_exec._analyze_deep_passes", llm_mock),
     ):
         result = run_review(
             path=tmp_path,

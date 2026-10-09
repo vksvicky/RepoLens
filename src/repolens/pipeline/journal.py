@@ -178,7 +178,10 @@ def build_postmortem(root: Path) -> str:
     last = data.get("last_finished")
     if last:
         lines.append(f"Last finished: {last}")
-    lines.append(f"Resume: repolens review --resume --path {root}")
+    lines.append(
+        f"Resume: repolens review --resume --path {root} "
+        "(re-run one pass: --retry-pass p3)"
+    )
     chars = data["chars"]
     lines.append(
         f"Honesty: chars_in={chars['chars_in']:,} chars_out={chars['chars_out']:,} "

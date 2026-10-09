@@ -55,8 +55,11 @@ def _http_hits(line: str) -> list[str]:
     hits: list[str] = []
     for match in _HTTP_RE.finditer(line):
         raw = match.group(0).rstrip(").,;]")
-        parsed = urlparse(raw)
-        host = parsed.hostname or ""
+        try:
+            host = urlparse(raw).hostname or ""
+        except ValueError:
+            # Incomplete IPv6 / regex-like literals (e.g. http://[^\s…) must not abort.
+            continue
         if not host:
             continue
         if _host_is_schema_or_loopback(host):
@@ -65,7 +68,24 @@ def _http_hits(line: str) -> list[str]:
     return hits
 
 
+def _is_regex_detector_line(line: str) -> bool:
+    """True for pattern definitions that mention TLS tokens without configuring TLS."""
+    stripped = line.strip()
+    if "re.compile" in stripped or "re.search" in stripped or "re.match" in stripped:
+        return True
+    if "(?!" in stripped or "(?:" in stripped:
+        return True
+    if stripped.startswith("r\"") or stripped.startswith("r'"):
+        return True
+    # Quoted protocol needles used only for membership/search (detector code).
+    if re.search(r"""["']PROTOCOL_SSL""", stripped) and " in " in stripped:
+        return True
+    return False
+
+
 def _weak_tls_hit(line: str) -> bool:
+    if _is_regex_detector_line(line):
+        return False
     if "PROTOCOL_SSLv2" in line or "PROTOCOL_SSLv3" in line:
         return True
     if re.search(r"PROTOCOL_TLSv1(?![_23])", line):

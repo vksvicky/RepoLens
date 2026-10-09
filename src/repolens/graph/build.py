@@ -33,69 +33,23 @@ def analyse_python_graph(root: Path, *, config: GraphConfig | None = None) -> Gr
     if not packages:
         return GraphResult(status=GraphStatus.FAILED, durability_gaps=list(gaps))
 
-    path_extra: list[str] = []
-    if (root / "src").is_dir():
-        path_extra.append(str(root / "src"))
-    path_extra.append(str(root))
-
-    prepended: list[str] = []
-    for entry in reversed(path_extra):
-        if entry not in sys.path:
-            sys.path.insert(0, entry)
-            prepended.append(entry)
-
-    try:
-        graph = grimp.build_graph(
-            *packages,
-            exclude_type_checking_imports=(cfg.type_only == "ignore"),
-            cache_dir=None,
-        )
-    except Exception as exc:
+    graph, build_gaps = _build_grimp_graph(root, packages, cfg)
+    if graph is None:
         return GraphResult(
             status=GraphStatus.FAILED,
             packages=packages,
-            durability_gaps=[*gaps, f"graph.analysis_failed: {exc}"],
+            durability_gaps=[*gaps, *build_gaps],
         )
-    finally:
-        for entry in prepended:
-            sys.path.remove(entry)
 
     scope_cache: dict[str, ScopeRanges] = {}
-    edges: list[ImportEdge] = []
     analysis_gaps: list[str] = []
-
-    for importer in sorted(graph.modules):
-        for imported in sorted(graph.find_modules_directly_imported_by(importer)):
-            details = graph.get_import_details(importer=importer, imported=imported)
-            edge = _edge_from_details(
-                importer,
-                imported,
-                details,
-                root=root,
-                packages=packages,
-                scope_cache=scope_cache,
-                gaps=analysis_gaps,
-            )
-            edges.append(edge)
-
+    edges = _collect_import_edges(
+        graph, root=root, packages=packages, scope_cache=scope_cache, gaps=analysis_gaps
+    )
     gated_edges = [e for e in edges if _passes_gate(e, cfg)]
-    edge_pairs = [(e.importer, e.imported) for e in gated_edges]
-    all_sccs = strongly_connected_components(edge_pairs)
-    cyclic_sccs = [s for s in all_sccs if len(s) >= 2]
-
-    cycles: list[CycleGroup] = []
-    for scc in cyclic_sccs:
-        scc_set = set(scc)
-        representative: ImportEdge | None = None
-        for edge in gated_edges:
-            if edge.importer in scc_set and edge.imported in scc_set:
-                representative = edge
-                break
-        cycles.append(CycleGroup(modules=scc, representative_edge=representative))
-
+    cycles, cyclic_sccs = _build_cycle_groups(gated_edges)
     all_gaps = [*gaps, *analysis_gaps]
     status = GraphStatus.PARTIAL if all_gaps else GraphStatus.OK
-
     return GraphResult(
         status=status,
         packages=packages,
@@ -106,6 +60,74 @@ def analyse_python_graph(root: Path, *, config: GraphConfig | None = None) -> Gr
         module_count=len(graph.modules),
         durability_gaps=all_gaps,
     )
+
+
+def _build_grimp_graph(root: Path, packages: list[str], cfg: GraphConfig):
+    path_extra: list[str] = []
+    if (root / "src").is_dir():
+        path_extra.append(str(root / "src"))
+    path_extra.append(str(root))
+    prepended: list[str] = []
+    for entry in reversed(path_extra):
+        if entry not in sys.path:
+            sys.path.insert(0, entry)
+            prepended.append(entry)
+    try:
+        graph = grimp.build_graph(
+            *packages,
+            exclude_type_checking_imports=(cfg.type_only == "ignore"),
+            cache_dir=None,
+        )
+        return graph, []
+    except Exception as exc:
+        return None, [f"graph.analysis_failed: {exc}"]
+    finally:
+        for entry in prepended:
+            sys.path.remove(entry)
+
+
+def _collect_import_edges(
+    graph,
+    *,
+    root: Path,
+    packages: list[str],
+    scope_cache: dict[str, ScopeRanges],
+    gaps: list[str],
+) -> list[ImportEdge]:
+    edges: list[ImportEdge] = []
+    for importer in sorted(graph.modules):
+        for imported in sorted(graph.find_modules_directly_imported_by(importer)):
+            details = graph.get_import_details(importer=importer, imported=imported)
+            edges.append(
+                _edge_from_details(
+                    importer,
+                    imported,
+                    details,
+                    root=root,
+                    packages=packages,
+                    scope_cache=scope_cache,
+                    gaps=gaps,
+                )
+            )
+    return edges
+
+
+def _build_cycle_groups(
+    gated_edges: list[ImportEdge],
+) -> tuple[list[CycleGroup], list]:
+    edge_pairs = [(e.importer, e.imported) for e in gated_edges]
+    all_sccs = strongly_connected_components(edge_pairs)
+    cyclic_sccs = [s for s in all_sccs if len(s) >= 2]
+    cycles: list[CycleGroup] = []
+    for scc in cyclic_sccs:
+        scc_set = set(scc)
+        representative: ImportEdge | None = None
+        for edge in gated_edges:
+            if edge.importer in scc_set and edge.imported in scc_set:
+                representative = edge
+                break
+        cycles.append(CycleGroup(modules=scc, representative_edge=representative))
+    return cycles, cyclic_sccs
 
 
 def _passes_gate(edge: ImportEdge, cfg: GraphConfig) -> bool:

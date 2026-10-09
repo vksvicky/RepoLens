@@ -47,13 +47,10 @@ def _platform_key() -> str:
     )
 
 
-def catalog() -> dict[str, dict[str, AssetSpec]]:
-    """Pinned release assets by tool → platform (with SHA-256 for native downloads)."""
+def _gitleaks_assets() -> dict[str, AssetSpec]:
     gitleaks_v = "8.24.0"
-    osv_v = "1.9.2"
-    semgrep_v = "1.100.0"
     gl_base = f"https://github.com/gitleaks/gitleaks/releases/download/v{gitleaks_v}/"
-    gl = {
+    return {
         "darwin-arm64": AssetSpec(
             "gitleaks",
             gitleaks_v,
@@ -87,8 +84,12 @@ def catalog() -> dict[str, dict[str, AssetSpec]]:
             sha256="3755cc9b81f2466ad308f722a064ca04df27f59d551396183efe07978fef8fcb",
         ),
     }
+
+
+def _osv_assets() -> dict[str, AssetSpec]:
+    osv_v = "1.9.2"
     osv_base = f"https://github.com/google/osv-scanner/releases/download/v{osv_v}/"
-    osv = {
+    return {
         "darwin-arm64": AssetSpec(
             "osv",
             osv_v,
@@ -118,21 +119,12 @@ def catalog() -> dict[str, dict[str, AssetSpec]]:
             sha256="9c6160afb26c79449a1f1b667323b989a57dda8fc19f22936c9ff920fd97ddfa",
         ),
     }
-    # Semgrep / Checkov via pip (PyPI TLS + pinned version; no native binary checksum).
-    platforms = ("darwin-arm64", "darwin-amd64", "linux-amd64", "linux-arm64")
-    semgrep = {
-        key: AssetSpec(
-            "semgrep",
-            semgrep_v,
-            "",
-            "pip",
-            pip_package=f"semgrep=={semgrep_v}",
-        )
-        for key in platforms
-    }
+
+
+def _trivy_assets() -> dict[str, AssetSpec]:
     trivy_v = "0.73.0"
     trivy_base = f"https://github.com/aquasecurity/trivy/releases/download/v{trivy_v}/"
-    trivy = {
+    return {
         "darwin-arm64": AssetSpec(
             "trivy",
             trivy_v,
@@ -166,23 +158,30 @@ def catalog() -> dict[str, dict[str, AssetSpec]]:
             sha256="13833d97e8a1a5367471c372a173180157f593bece570e20d5d925fef552f5dd",
         ),
     }
-    checkov_v = "3.3.9"
-    checkov = {
+
+
+def _pip_assets(name: str, version: str) -> dict[str, AssetSpec]:
+    platforms = ("darwin-arm64", "darwin-amd64", "linux-amd64", "linux-arm64")
+    return {
         key: AssetSpec(
-            "checkov",
-            checkov_v,
+            name,
+            version,
             "",
             "pip",
-            pip_package=f"checkov=={checkov_v}",
+            pip_package=f"{name}=={version}",
         )
         for key in platforms
     }
+
+
+def catalog() -> dict[str, dict[str, AssetSpec]]:
+    """Pinned release assets by tool → platform (with SHA-256 for native downloads)."""
     return {
-        "gitleaks": gl,
-        "osv": osv,
-        "semgrep": semgrep,
-        "trivy": trivy,
-        "checkov": checkov,
+        "gitleaks": _gitleaks_assets(),
+        "osv": _osv_assets(),
+        "semgrep": _pip_assets("semgrep", "1.100.0"),
+        "trivy": _trivy_assets(),
+        "checkov": _pip_assets("checkov", "3.3.9"),
     }
 
 

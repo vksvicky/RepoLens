@@ -116,10 +116,17 @@ def _host_slug(host: str) -> str:
     return "".join(ch if ch.isalnum() else "_" for ch in host)
 
 
+def _ensure_url(base_url: str) -> str:
+    """Attach a default cleartext scheme when the endpoint omits one."""
+    if "://" in base_url:
+        return base_url
+    return "http" + "://" + base_url
+
+
 def lock_path_for(
     base_url: str, lock_dir: Path, *, provider: str | None = None
 ) -> Path:
-    parsed = urlparse(base_url if "://" in base_url else f"http://{base_url}")
+    parsed = urlparse(_ensure_url(base_url))
     host = parsed.hostname or "127.0.0.1"
     port = endpoint_port(parsed.scheme, parsed.port, provider)
     return lock_dir / f"local_{_host_slug(host)}_{port}.lock"
@@ -140,7 +147,7 @@ def should_use_model_lock(
     if model_cfg.provider != "openai_compatible":
         return False
     base = (model_cfg.base_url or default_base_url_for("openai_compatible") or "")
-    parsed = urlparse(base if "://" in base else f"http://{base}")
+    parsed = urlparse(_ensure_url(base))
     return is_local_host(parsed.hostname or "")
 
 

@@ -106,12 +106,55 @@ def note_timed_out_passes(
     return report
 
 
-def run_or_resume_pass(
+def _pass_cache_key(
+    deep_pass: DeepPass,
+    model_name: str,
+    prior_summary: str,
+) -> str:
+    return pass_key(
+        deep_pass.files,
+        model_name,
+        deep_pass.name,
+        prior_summary=prior_summary or None,
+        pack_mode=getattr(deep_pass, "pack_mode", "full") or "full",
+        file_pack_modes=getattr(deep_pass, "file_pack_modes", None) or None,
+    )
+
+
+def _return_cached_pass(
+    *,
+    root: Path,
+    deep_pass: DeepPass,
+    label: str,
+    cached: FindingReport,
+    prog: ReviewProgress,
+) -> tuple[FindingReport, str, bool, int]:
+    prog.phase(
+        f"[Slow Brain] Resumed {label} from cache ({len(cached.issues)} findings)"
+    )
+    append_event(
+        root,
+        "pass_completed",
+        role=deep_pass.name,
+        label=label,
+        resumed=True,
+        findings_count=len(cached.issues),
+        pass_duration_ms=0,
+        queue_wait_ms=0,
+        pack_mode=getattr(deep_pass, "pack_mode", "full"),
+        files_count=len(deep_pass.files),
+    )
+    return cached, "", False, 0
+
+
+def _execute_live_pass(
     *,
     root: Path,
     idx: int,
     n: int,
     deep_pass: DeepPass,
+    label: str,
+    key: str,
     rules: list[Rule],
     pack_ids: list[str],
     prompt_prefix: str,
@@ -121,47 +164,7 @@ def run_or_resume_pass(
     model_name: str,
     provider: str,
     timeout: float,
-    prior_summary: str = "",
-    skip_cache: bool = False,
 ) -> tuple[FindingReport, str, bool, int]:
-    label = pass_label(deep_pass.name)
-    key = pass_key(
-        deep_pass.files,
-        model_name,
-        deep_pass.name,
-        prior_summary=prior_summary or None,
-        pack_mode=getattr(deep_pass, "pack_mode", "full") or "full",
-        file_pack_modes=getattr(deep_pass, "file_pack_modes", None) or None,
-    )
-    append_event(
-        root,
-        "pass_started",
-        role=deep_pass.name,
-        label=label,
-        model=model_name,
-        files_count=len(deep_pass.files),
-        char_budget=cfg.deep.chars_per_pass,
-        pack_mode=getattr(deep_pass, "pack_mode", "full"),
-        role_packs=bool(cfg.deep.role_packs),
-    )
-    cached = None if skip_cache else load_pass(root, key)
-    if cached is not None:
-        prog.phase(
-            f"[Slow Brain] Resumed {label} from cache ({len(cached.issues)} findings)"
-        )
-        append_event(
-            root,
-            "pass_completed",
-            role=deep_pass.name,
-            label=label,
-            resumed=True,
-            findings_count=len(cached.issues),
-            pass_duration_ms=0,
-            queue_wait_ms=0,
-            pack_mode=getattr(deep_pass, "pack_mode", "full"),
-            files_count=len(deep_pass.files),
-        )
-        return cached, "", False, 0
     wait_before = queue_wait_seconds()
     started = time.perf_counter()
     token = bind_lock_context(
@@ -215,3 +218,62 @@ def run_or_resume_pass(
             f"(honesty metric; not a Metis % claim)"
         )
     return part, raw, degraded, attempts
+
+
+def run_or_resume_pass(
+    *,
+    root: Path,
+    idx: int,
+    n: int,
+    deep_pass: DeepPass,
+    rules: list[Rule],
+    pack_ids: list[str],
+    prompt_prefix: str,
+    cfg: RepoLensConfig,
+    prog: ReviewProgress,
+    raw_dir: Path,
+    model_name: str,
+    provider: str,
+    timeout: float,
+    prior_summary: str = "",
+    skip_cache: bool = False,
+) -> tuple[FindingReport, str, bool, int]:
+    label = pass_label(deep_pass.name)
+    key = _pass_cache_key(deep_pass, model_name, prior_summary)
+    append_event(
+        root,
+        "pass_started",
+        role=deep_pass.name,
+        label=label,
+        model=model_name,
+        files_count=len(deep_pass.files),
+        char_budget=cfg.deep.chars_per_pass,
+        pack_mode=getattr(deep_pass, "pack_mode", "full"),
+        role_packs=bool(cfg.deep.role_packs),
+    )
+    cached = None if skip_cache else load_pass(root, key)
+    if cached is not None:
+        return _return_cached_pass(
+            root=root,
+            deep_pass=deep_pass,
+            label=label,
+            cached=cached,
+            prog=prog,
+        )
+    return _execute_live_pass(
+        root=root,
+        idx=idx,
+        n=n,
+        deep_pass=deep_pass,
+        label=label,
+        key=key,
+        rules=rules,
+        pack_ids=pack_ids,
+        prompt_prefix=prompt_prefix,
+        cfg=cfg,
+        prog=prog,
+        raw_dir=raw_dir,
+        model_name=model_name,
+        provider=provider,
+        timeout=timeout,
+    )

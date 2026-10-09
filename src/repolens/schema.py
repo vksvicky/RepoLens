@@ -248,6 +248,8 @@ class FindingReport(BaseModel):
     reliabilityAuditConfidence: int | None = Field(default=None, ge=0, le=100)
     # Plain sentences for a band or the gate under 70%. Same text as Markdown.
     scoreNotes: list[str] = Field(default_factory=list)
+    # True when a checklist pass failed to package its answer (INCOMPLETE, not 0%).
+    auditIncomplete: bool = False
     # Wall-clock seconds for the full review command (inventory → report write).
     durationSeconds: float | None = Field(default=None, ge=0)
     # True when this report came from a fresh successful LLM call (not reuse).

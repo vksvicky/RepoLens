@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from repolens.disclaimer import disclaimer_markdown_lines
+from repolens.report_blocks import markdown_blocks
 from repolens.report_checklist import (
     _render_coverage_section,
     _render_durability_gaps_section,
@@ -351,6 +352,7 @@ def render_markdown(
         report, mode=mode, commit_go=commit_go, push_go=push_go, when=when
     )
     lines.extend(_markdown_verdict(report))
+    lines.extend(markdown_blocks(report))
     lines.extend(_render_metrics_section(report))
     lines.extend(_markdown_finding_fields())
     lines.extend(_markdown_priority_bands(report))

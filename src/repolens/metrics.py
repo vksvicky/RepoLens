@@ -23,11 +23,12 @@ security findings so 100% is impossible while High/Critical `sec.*` or scanner i
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 
 from repolens.coverage import CoverageResult
-from repolens.schema import FindingReport, Issue, ScannerRun, Severity
+from repolens.schema import Issue, ScannerRun, Severity
 
 _MISSED_PENALTY = 4
 _MISSED_CAP = 40
@@ -51,6 +52,85 @@ class AuditMetrics:
     security_audit_confidence: int | None
     architecture_audit_confidence: int | None
     reliability_audit_confidence: int | None
+    audit_incomplete: bool = False
+
+
+_PASS_LABEL_FROM_KEY = {
+    "p1": "p1",
+    "security": "p1",
+    "p2": "p2",
+    "reliability": "p2",
+    "p3": "p3",
+    "architecture": "p3",
+}
+_PASS_KEY_BAND = {"security": "p1", "reliability": "p2", "architecture": "p3"}
+_PASS_LABEL = {"p1": "Security", "p2": "Reliability", "p3": "Architecture"}
+
+_SCHEMA_INVALID_PASS_PREFIX = re.compile(
+    r"^llm\.schema_invalid\s*\(pass:\s*([^)]+)\)\s*:",
+    re.IGNORECASE,
+)
+
+
+def _normalize_pass_label(raw: str) -> str | None:
+    return _PASS_LABEL_FROM_KEY.get(raw.strip().lower())
+
+
+def _pass_from_degraded_gap(text: str) -> str | None:
+    """Extract p1/p2/p3 from structured gap prefixes only (not free-text bodies)."""
+    if text.startswith("pass_degraded:"):
+        label = text.split(":", 2)[1]
+        return _normalize_pass_label(label)
+
+    if (
+        text.startswith("metrics.vacuous_pass_floor_skipped:")
+        and "pass_degraded" in text
+    ):
+        rest = text.removeprefix("metrics.vacuous_pass_floor_skipped:")
+        if "=" not in rest:
+            return None
+        label, _code = rest.split("=", 1)
+        return _normalize_pass_label(label)
+
+    if text.startswith("llm.schema_invalid (pass:"):
+        match = _SCHEMA_INVALID_PASS_PREFIX.match(text)
+        if match:
+            return _normalize_pass_label(match.group(1))
+        return None
+
+    if text.startswith("llm.schema_invalid:"):
+        rest = text.removeprefix("llm.schema_invalid:")
+        if not rest or rest[0].isspace():
+            return None
+        label = rest.split(":", 1)[0].strip()
+        return _normalize_pass_label(label)
+
+    return None
+
+
+def _is_degraded_gap(text: str) -> bool:
+    return (
+        text.startswith("llm.schema_invalid (pass:")
+        or text.startswith("llm.schema_invalid:")
+        or text.startswith("pass_degraded:")
+        or (
+            text.startswith("metrics.vacuous_pass_floor_skipped:")
+            and "pass_degraded" in text
+        )
+    )
+
+
+def degraded_passes_from_gaps(gaps: Iterable[str]) -> set[str]:
+    """Return {'p1','p2','p3'} subsets marked packaging-degraded."""
+    found: set[str] = set()
+    for gap in gaps:
+        text = str(gap)
+        if not _is_degraded_gap(text):
+            continue
+        band = _pass_from_degraded_gap(text)
+        if band:
+            found.add(band)
+    return found
 
 
 def _clamp(value: int, lo: int = 0, hi: int = 100) -> int:
@@ -147,19 +227,63 @@ def compute_audit_metrics(
     coverage: CoverageResult,
     scanner_runs: list[ScannerRun],
     issues: Iterable[Issue] | None = None,
+    degraded_passes: Iterable[str] | None = None,
 ) -> AuditMetrics:
     """Derive gate + per-band audit confidences after deep merge.
 
     Only bands whose pass ran are scored. Sentinel (``p1`` only) yields a security
     audit % and gate based on that pass — architecture/reliability stay ``None``.
+
+    A pass in ``degraded_passes`` (``p1``/``p2``/``p3``) failed to package its
+    answer. Its band is unscored (``None``), it never enters the gate floor or the
+    scoped checklist penalties, and ``audit_incomplete`` is set.
     """
+    degraded = {str(p).lower() for p in (degraded_passes or ())} & {"p1", "p2", "p3"}
     scanner_bonus = _SCANNER_ALL_RAN_BONUS if _scanners_all_ran(scanner_runs) else 0
     issue_list = list(issues or [])
+    scorable = {
+        key: value
+        for key, value in pass_confidences.items()
+        if _PASS_KEY_BAND.get(key, key) not in degraded
+    }
+    security, reliability, architecture, p1, p2, p3 = _score_band_audits(
+        pass_confidences=scorable,
+        coverage=coverage,
+        scanner_bonus=scanner_bonus,
+        issue_list=issue_list,
+    )
+    present = [
+        v
+        for v in (p1, p2, p3, security, architecture, reliability)
+        if v is not None
+    ]
+    floor = min(present) if present else 0
+    gate = _gate_from_scored_bands(
+        floor=floor,
+        coverage=coverage,
+        security=security,
+        reliability=reliability,
+        architecture=architecture,
+    )
+    return AuditMetrics(
+        gate_confidence=gate,
+        security_audit_confidence=security,
+        architecture_audit_confidence=architecture,
+        reliability_audit_confidence=reliability,
+        audit_incomplete=bool(degraded),
+    )
 
+
+def _score_band_audits(
+    *,
+    pass_confidences: dict[str, int],
+    coverage: CoverageResult,
+    scanner_bonus: int,
+    issue_list: list[Issue],
+) -> tuple[int | None, int | None, int | None, int | None, int | None, int | None]:
     p1 = _lookup_pass(pass_confidences, "p1", "security")
     p2 = _lookup_pass(pass_confidences, "p2", "reliability")
     p3 = _lookup_pass(pass_confidences, "p3", "architecture")
-
     security: int | None = None
     if p1 is not None:
         security = compute_band_confidence(
@@ -169,7 +293,6 @@ def compute_audit_metrics(
             scanner_bonus=scanner_bonus,
             finding_penalty=severity_finding_penalty(issue_list, band="security"),
         )
-
     reliability: int | None = None
     if p2 is not None:
         reliability = compute_band_confidence(
@@ -179,7 +302,6 @@ def compute_audit_metrics(
             scanner_bonus=0,
             finding_penalty=severity_finding_penalty(issue_list, band="reliability"),
         )
-
     architecture: int | None = None
     if p3 is not None:
         architecture = compute_band_confidence(
@@ -189,15 +311,17 @@ def compute_audit_metrics(
             scanner_bonus=0,
             finding_penalty=severity_finding_penalty(issue_list, band="architecture"),
         )
+    return security, reliability, architecture, p1, p2, p3
 
-    present = [
-        v
-        for v in (p1, p2, p3, security, architecture, reliability)
-        if v is not None
-    ]
-    floor = min(present) if present else 0
 
-    # Global coverage penalties only for ids belonging to scored bands.
+def _gate_from_scored_bands(
+    *,
+    floor: int,
+    coverage: CoverageResult,
+    security: int | None,
+    reliability: int | None,
+    architecture: int | None,
+) -> int:
     scored_prefixes: list[str] = []
     if security is not None:
         scored_prefixes.append("sec.")
@@ -213,198 +337,17 @@ def compute_audit_metrics(
     scoped_invalid = [i for i in coverage.invalid_na if _in_scope(i)]
     global_missed = min(_MISSED_CAP, _MISSED_PENALTY * len(scoped_missed))
     global_invalid = min(_INVALID_NA_CAP, _INVALID_NA_PENALTY * len(scoped_invalid))
-    gate = _clamp(floor - global_missed - global_invalid)
-
-    return AuditMetrics(
-        gate_confidence=gate,
-        security_audit_confidence=security,
-        architecture_audit_confidence=architecture,
-        reliability_audit_confidence=reliability,
-    )
+    return _clamp(floor - global_missed - global_invalid)
 
 
-def _titles(issues: Iterable[Issue], pred, severity: Severity) -> list[str]:
-    return [
-        issue.title
-        for issue in issues
-        if issue.source != "llm" and pred(issue) and issue.severity == severity
-    ]
+_EXPLAIN_EXPORTS = frozenset(
+    {"low_audit_brief", "low_audit_explanations", "unverified_band_notes"}
+)
 
 
-def _missed_clause(ids: list[str]) -> str | None:
-    if not ids:
-        return None
-    noun = (
-        "checklist id was not counted"
-        if len(ids) == 1
-        else "checklist ids were not counted"
-    )
-    return f"{len(ids)} {noun}"
+def __getattr__(name: str):
+    if name in _EXPLAIN_EXPORTS:
+        from repolens import metrics_explain
 
-
-def _finding_clause(critical: int, high: int) -> str | None:
-    parts: list[str] = []
-    if critical:
-        noun = "Critical finding" if critical == 1 else "Critical findings"
-        parts.append(f"{critical} {noun}")
-    if high:
-        noun = "High finding" if high == 1 else "High findings"
-        parts.append(f"{high} {noun}")
-    if not parts:
-        return None
-    return " and ".join(parts)
-
-
-_PASS_FOR_PREFIX = {"sec.": "p1", "rel.": "p2", "arch.": "p3"}
-
-
-def _pass_failure_note(report: FindingReport, prefix: str) -> str | None:
-    """A hollow or timed-out band did not answer the checklist."""
-    from repolens.coverage import hollow_pass_note
-
-    hollow = hollow_pass_note(report.durabilityGaps, prefix)
-    if hollow is not None:
-        return hollow
-    band = _PASS_FOR_PREFIX.get(prefix)
-    if band is None:
-        return None
-    marker = f"(pass: {band})"
-    for gap in report.durabilityGaps:
-        if marker in gap and "timed out" in gap.lower():
-            return "the checklist pass timed out before it could answer"
-    return None
-
-
-def _band_sentence(
-    label: str,
-    score: int,
-    *,
-    missed: list[str],
-    issues: list[Issue],
-    pred,
-    detail: bool,
-    pass_note: str | None = None,
-) -> str:
-    critical = _titles(issues, pred, Severity.CRITICAL)
-    high = _titles(issues, pred, Severity.HIGH)
-    clauses = [
-        clause
-        for clause in (
-            pass_note,
-            _missed_clause(missed),
-            _finding_clause(len(critical), len(high)),
-        )
-        if clause
-    ]
-    if clauses:
-        body = "; ".join(clauses)
-    else:
-        body = (
-            "no missed checklist ids and no Critical/High findings in this band, "
-            "so the pass base was already under 70%"
-        )
-    sentence = f"{label} audit {score}%: {body}."
-    if not detail:
-        return sentence
-    extras: list[str] = []
-    if missed:
-        extras.append("Each unanswered question is explained under Checklist.")
-    named = critical + high
-    if named:
-        shown = "; ".join(named[:8])
-        extras.append(f"Open Critical/High in this band: {shown}.")
-        extras.append("Clearing those findings raises this score.")
-    if extras:
-        sentence = f"{sentence} {' '.join(extras)}"
-    return sentence
-
-
-def _scored_bands(report: FindingReport) -> list[tuple[str, str, int]]:
-    rows = [
-        ("Security", "sec.", report.securityAuditConfidence),
-        ("Reliability", "rel.", report.reliabilityAuditConfidence),
-        ("Architecture", "arch.", report.architectureAuditConfidence),
-    ]
-    return [(label, prefix, score) for label, prefix, score in rows if score is not None]
-
-
-def _band_predicate(prefix: str):
-    return {
-        "sec.": _is_security_issue,
-        "rel.": _is_reliability_issue,
-        "arch.": _is_architecture_issue,
-    }[prefix]
-
-
-def _gate_sentence(report: FindingReport, bands: list[tuple[str, str, int]]) -> str | None:
-    if report.confidence >= LOW_AUDIT_BELOW or not bands:
-        return None
-    label, _prefix, lowest = min(bands, key=lambda row: row[2])
-    missed = report.coverage.missed if report.coverage is not None else []
-    prefixes = [prefix for _label, prefix, _score in bands]
-    scoped = [item for item in missed if any(item.startswith(p) for p in prefixes)]
-    if scoped and report.confidence < lowest:
-        return (
-            f"Gate {report.confidence}%: {label.lower()} is the lowest band at "
-            f"{lowest}%, and checklist ids that were not counted lower it further. "
-            "See Coverage."
-        )
-    if report.confidence == lowest:
-        return f"Gate {report.confidence}% matches the lowest band, {label.lower()}."
-    return (
-        f"Gate {report.confidence}%: the lowest band is {label.lower()} at {lowest}%."
-    )
-
-
-def low_audit_explanations(report: FindingReport) -> list[str]:
-    """Why a band or the gate is under 70%, with the ids and findings involved.
-
-    Medium and Low findings are omitted: they do not change these percentages.
-    A Critical/High finding is listed on every band it matches.
-    """
-    missed = report.coverage.missed if report.coverage is not None else []
-    bands = _scored_bands(report)
-    lines: list[str] = []
-    for label, prefix, score in bands:
-        if score >= LOW_AUDIT_BELOW:
-            continue
-        lines.append(
-            _band_sentence(
-                label,
-                score,
-                missed=[item for item in missed if item.startswith(prefix)],
-                issues=list(report.issues),
-                pred=_band_predicate(prefix),
-                detail=True,
-                pass_note=_pass_failure_note(report, prefix),
-            )
-        )
-    gate = _gate_sentence(report, bands)
-    if gate is not None:
-        lines.append(gate)
-    return lines
-
-
-def low_audit_brief(report: FindingReport) -> list[str]:
-    """Same deductions as the report, without the checklist-id list."""
-    missed = report.coverage.missed if report.coverage is not None else []
-    bands = _scored_bands(report)
-    lines: list[str] = []
-    for label, prefix, score in bands:
-        if score >= LOW_AUDIT_BELOW:
-            continue
-        lines.append(
-            _band_sentence(
-                label,
-                score,
-                missed=[item for item in missed if item.startswith(prefix)],
-                issues=list(report.issues),
-                pred=_band_predicate(prefix),
-                detail=False,
-                pass_note=_pass_failure_note(report, prefix),
-            )
-        )
-    gate = _gate_sentence(report, bands)
-    if gate is not None:
-        lines.append(gate)
-    return lines
+        return getattr(metrics_explain, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -182,3 +182,12 @@ def test_raise_aborted_records_interrupted_event(tmp_path: Path) -> None:
     interrupted = next(r for r in rows if r["event"] == "interrupted")
     assert interrupted["last_finished"] == "P1 Security"
     assert interrupted["finished"] == ["P1 Security"]
+
+
+def test_postmortem_resume_hint_mentions_retry_pass(tmp_path: Path) -> None:
+    from repolens.pipeline.journal import build_postmortem
+
+    append_event(tmp_path, "pass_started", role="p3", model="mock")
+    text = build_postmortem(tmp_path)
+    assert f"Resume: repolens review --resume --path {tmp_path}" in text
+    assert "--retry-pass p3" in text

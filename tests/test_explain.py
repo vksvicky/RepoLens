@@ -146,7 +146,7 @@ def test_run_explain_writes_markdown(tmp_path: Path, monkeypatch) -> None:
         }
     )
 
-    with patch("repolens.explain.analyze_raw", return_value=llm_json):
+    with patch("repolens.explain_prompt.analyze_raw", return_value=llm_json):
         artifact = run_explain(
             uuid=run_id,
             project_root=root,
@@ -303,7 +303,7 @@ def test_generic_boilerplate_falls_back_to_outline(tmp_path: Path, monkeypatch) 
             "nextStep": "Evaluate structure",
         }
     )
-    with patch("repolens.explain.analyze_raw", return_value=waffle):
+    with patch("repolens.explain_prompt.analyze_raw", return_value=waffle):
         artifact = run_explain(
             uuid=run_id, project_root=root, out_dir=out, render_image="never"
         )

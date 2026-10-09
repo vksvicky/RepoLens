@@ -98,6 +98,42 @@ def test_transport_skips_xmlns_and_flags_real_http(tmp_path: Path) -> None:
     assert hits[0].severity == Severity.MEDIUM
 
 
+def test_transport_skips_detector_regex_and_scheme_concat(tmp_path: Path) -> None:
+    """Detector patterns and scheme concatenation must not self-flag."""
+    (tmp_path / "detector.py").write_text(
+        'import re\n'
+        '_WEAK = re.compile(r"PROTOCOL_TLSv1(?![_23])")\n'
+        'url = ("http" + "://" + "host.example")\n'
+        'real = "http://evil.example/api"\n'
+        "import ssl\n"
+        "ctx = ssl.PROTOCOL_TLSv1\n",
+        encoding="utf-8",
+    )
+    result = run_heuristics(tmp_path, [_entry(tmp_path, "detector.py")])
+    hits = [i for i in result.issues if i.category == "heuristic.transport_tls"]
+    assert len(hits) == 2
+    explanations = " ".join(i.explanation for i in hits)
+    assert "evil.example" in explanations
+    assert "PROTOCOL_TLSv1" in explanations
+    assert "(?!" not in explanations
+    assert '"http" + "://"' not in explanations
+
+
+def test_transport_skips_malformed_ipv6_like_urls_without_crashing(
+    tmp_path: Path,
+) -> None:
+    """urlparse raises ValueError on incomplete [IPv6]; must not abort the run."""
+    (tmp_path / "regexish.py").write_text(
+        r'_HTTP_RE = re.compile(r"http://[^\s\'\"<>]+")' + "\n"
+        "API = 'http://evil.example/api'\n",
+        encoding="utf-8",
+    )
+    result = run_heuristics(tmp_path, [_entry(tmp_path, "regexish.py")])
+    hits = [i for i in result.issues if i.category == "heuristic.transport_tls"]
+    assert [i.file for i in hits] == ["regexish.py"]
+    assert "evil.example" in hits[0].explanation
+
+
 def test_transport_skips_comments_tests_and_weak_tls_hits(tmp_path: Path) -> None:
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "commented.py").write_text(

@@ -8,6 +8,12 @@ import typer
 from rich.console import Console
 
 from repolens import __version__
+from repolens.cli.review_options import (
+    option_init_base_url,
+    option_init_force,
+    option_init_model,
+    option_init_provider,
+)
 from repolens.config import write_user_config
 from repolens.sources import SourceError
 
@@ -83,28 +89,106 @@ def version() -> None:
 
 @app.command("init")
 def init_cmd(
-    provider: str = typer.Option(
-        ...,
-        "--provider",
-        help=(
-            "openai | anthropic | deepseek | openai_compatible | ollama | gemini | "
-            "vertex | bedrock | none | "
-            "azure | mistral | groq | openrouter | together | fireworks"
-        ),
-        prompt=(
-            "Provider (openai / anthropic / deepseek / openai_compatible / ollama / "
-            "gemini / vertex / bedrock / azure / mistral / groq / openrouter / none)"
-        ),
-    ),
-    model: str | None = typer.Option(None, "--model", help="Default model name"),
-    base_url: str | None = typer.Option(
-        None,
-        "--base-url",
-        help="Override API base URL (required for azure / most openai_compatible hosts)",
-    ),
-    force: bool = typer.Option(False, "--force", help="Overwrite existing user config"),
+    provider: str = option_init_provider(),
+    model: str | None = option_init_model(),
+    base_url: str | None = option_init_base_url(),
+    force: bool = option_init_force(),
 ) -> None:
     """First-run setup: write ~/.config/repolens/config.toml (BYOK, Ollama, or scanners-only)."""
+    _body_init(provider, model, base_url, force)
+
+
+def _init_provider_defaults() -> dict[str, tuple[str | None, str | None, str | None]]:
+    from repolens.providers import PROVIDER_ALIASES
+
+    defaults: dict[str, tuple[str | None, str | None, str | None]] = {
+        "openai": ("gpt-4.1-mini", "OPENAI_API_KEY", None),
+        "anthropic": ("claude-sonnet-4-20250514", "ANTHROPIC_API_KEY", None),
+        "deepseek": ("deepseek-chat", "DEEPSEEK_API_KEY", "https://api.deepseek.com/v1"),
+        "openai_compatible": (
+            "gpt-4.1-mini", "REPOLENS_API_KEY", "https://api.openai.com/v1",
+        ),
+        "ollama": (None, None, "http://127.0.0.1:11434/v1"),
+        "gemini": (
+            "gemini-2.0-flash", "GEMINI_API_KEY",
+            "https://generativelanguage.googleapis.com/v1beta",
+        ),
+        "vertex": ("gemini-2.0-flash", "VERTEX_ACCESS_TOKEN", None),
+        "bedrock": ("amazon.nova-lite-v1:0", "AWS_ACCESS_KEY_ID", None),
+    }
+    for alias_name, alias in PROVIDER_ALIASES.items():
+        defaults[alias_name] = (alias.default_model, alias.api_key_env, alias.base_url)
+    return defaults
+
+
+def _write_none_provider() -> None:
+    written = write_user_config(provider=None)
+    console.print(f"[green]Wrote[/green] {written}")
+    console.print(
+        "No AI provider configured. Use [cyan]--dry-run[/cyan], "
+        "[cyan]--scanners-only[/cyan] after [cyan]repolens plugins install[/cyan], "
+        "or re-run [cyan]repolens init --provider ollama|openai[/cyan]. "
+        "See docs/setup-ai-and-scanners.md and docs/scanners.md"
+    )
+
+
+def _resolve_ollama_init_model(model: str | None) -> str | None:
+    from repolens.llm import resolve_ollama_model
+
+    chosen_model, installed = resolve_ollama_model(model)
+    if installed and (model is None or not model.strip()):
+        console.print(
+            f"[dim]Using installed Ollama model:[/dim] {chosen_model} "
+            f"(from {', '.join(installed[:5])}"
+            f"{'…' if len(installed) > 5 else ''})"
+        )
+    elif not installed:
+        console.print(
+            "[yellow]No Ollama models found.[/yellow] "
+            f"Pull one first, e.g. [cyan]ollama pull {chosen_model}[/cyan], "
+            "or pass [cyan]--model[/cyan] after pulling."
+        )
+    return chosen_model
+
+
+def _print_init_success_hints(
+    *,
+    provider: str,
+    chosen_model: str | None,
+    key_env: str | None,
+    alias: object | None,
+) -> None:
+    if key_env:
+        console.print(f"Export your key: [cyan]export {key_env}=...[/cyan]")
+    if provider == "vertex":
+        console.print(
+            "[dim]Also set VERTEX_PROJECT (or GOOGLE_CLOUD_PROJECT) and optional "
+            "VERTEX_LOCATION. Token: VERTEX_ACCESS_TOKEN=$(gcloud auth print-access-token) "
+            "or pip install 'repolens-audit[vertex]' for ADC.[/dim]"
+        )
+    if provider == "bedrock":
+        console.print(
+            "[dim]Also set AWS_SECRET_ACCESS_KEY, AWS_REGION "
+            "(and AWS_SESSION_TOKEN if using temporary creds).[/dim]"
+        )
+    if alias is not None and getattr(alias, "notes", None):
+        console.print(f"[dim]{alias.notes}[/dim]")
+    if provider == "ollama":
+        console.print(
+            f"Config model is [cyan]{chosen_model}[/cyan]. "
+            "Change anytime with [cyan]repolens init --provider ollama --model NAME --force[/cyan] "
+            "or edit the file."
+        )
+    console.print("Try: [cyan]repolens review --path . --dry-run[/cyan]")
+    console.print("Optional scanners: [cyan]repolens plugins status[/cyan]")
+
+
+def _body_init(
+    provider: str,
+    model: str | None,
+    base_url: str | None,
+    force: bool,
+) -> None:
     from repolens.config import user_config_path
     from repolens.providers import INIT_PROVIDERS, PROVIDER_ALIASES
 
@@ -123,49 +207,10 @@ def init_cmd(
         raise typer.Exit(code=2)
 
     if provider == "none":
-        written = write_user_config(provider=None)
-        console.print(f"[green]Wrote[/green] {written}")
-        console.print(
-            "No AI provider configured. Use [cyan]--dry-run[/cyan], "
-            "[cyan]--scanners-only[/cyan] after [cyan]repolens plugins install[/cyan], "
-            "or re-run [cyan]repolens init --provider ollama|openai[/cyan]. "
-            "See docs/setup-ai-and-scanners.md and docs/scanners.md"
-        )
+        _write_none_provider()
         return
 
-    defaults = {
-        "openai": ("gpt-4.1-mini", "OPENAI_API_KEY", None),
-        "anthropic": ("claude-sonnet-4-20250514", "ANTHROPIC_API_KEY", None),
-        "deepseek": ("deepseek-chat", "DEEPSEEK_API_KEY", "https://api.deepseek.com/v1"),
-        "openai_compatible": (
-            "gpt-4.1-mini",
-            "REPOLENS_API_KEY",
-            "https://api.openai.com/v1",
-        ),
-        "ollama": (None, None, "http://127.0.0.1:11434/v1"),
-        "gemini": (
-            "gemini-2.0-flash",
-            "GEMINI_API_KEY",
-            "https://generativelanguage.googleapis.com/v1beta",
-        ),
-        "vertex": (
-            "gemini-2.0-flash",
-            "VERTEX_ACCESS_TOKEN",
-            None,
-        ),
-        "bedrock": (
-            "amazon.nova-lite-v1:0",
-            "AWS_ACCESS_KEY_ID",
-            None,
-        ),
-    }
-    for alias_name, alias in PROVIDER_ALIASES.items():
-        defaults[alias_name] = (
-            alias.default_model,
-            alias.api_key_env,
-            alias.base_url,
-        )
-
+    defaults = _init_provider_defaults()
     default_model, key_env, base = defaults[provider]
     chosen_model = model or default_model
     chosen_base = base_url or base
@@ -173,8 +218,7 @@ def init_cmd(
     if alias and alias.requires_base_url and not base_url:
         console.print(
             f"[red]{provider}[/red] requires [cyan]--base-url[/cyan] "
-            "(Azure resource endpoint). "
-            + (alias.notes or "")
+            "(Azure resource endpoint). " + (alias.notes or "")
         )
         raise typer.Exit(code=2)
     if provider == "openai_compatible" and not base_url:
@@ -184,52 +228,14 @@ def init_cmd(
             f"Writing placeholder [dim]{chosen_base}[/dim] — edit config if wrong."
         )
     if provider == "ollama":
-        from repolens.llm import resolve_ollama_model
-
-        chosen_model, installed = resolve_ollama_model(model)
-        if installed and (model is None or not model.strip()):
-            console.print(
-                f"[dim]Using installed Ollama model:[/dim] {chosen_model} "
-                f"(from {', '.join(installed[:5])}"
-                f"{'…' if len(installed) > 5 else ''})"
-            )
-        elif not installed:
-            console.print(
-                "[yellow]No Ollama models found.[/yellow] "
-                f"Pull one first, e.g. [cyan]ollama pull {chosen_model}[/cyan], "
-                "or pass [cyan]--model[/cyan] after pulling."
-            )
+        chosen_model = _resolve_ollama_init_model(model)
     written = write_user_config(
-        provider=provider,
-        model=chosen_model,
-        api_key_env=key_env,
-        base_url=chosen_base,
+        provider=provider, model=chosen_model, api_key_env=key_env, base_url=chosen_base,
     )
     console.print(f"[green]Wrote[/green] {written}")
-    if key_env:
-        console.print(f"Export your key: [cyan]export {key_env}=...[/cyan]")
-    if provider == "vertex":
-        console.print(
-            "[dim]Also set VERTEX_PROJECT (or GOOGLE_CLOUD_PROJECT) and optional "
-            "VERTEX_LOCATION. Token: VERTEX_ACCESS_TOKEN=$(gcloud auth print-access-token) "
-            "or pip install 'repolens-audit[vertex]' for ADC.[/dim]"
-        )
-    if provider == "bedrock":
-        console.print(
-            "[dim]Also set AWS_SECRET_ACCESS_KEY, AWS_REGION "
-            "(and AWS_SESSION_TOKEN if using temporary creds).[/dim]"
-        )
-    if alias and alias.notes:
-        console.print(f"[dim]{alias.notes}[/dim]")
-    if provider == "ollama":
-        console.print(
-            f"Config model is [cyan]{chosen_model}[/cyan]. "
-            "Change anytime with [cyan]repolens init --provider ollama --model NAME --force[/cyan] "
-            "or edit the file."
-        )
-    console.print("Try: [cyan]repolens review --path . --dry-run[/cyan]")
-    console.print("Optional scanners: [cyan]repolens plugins status[/cyan]")
-
+    _print_init_success_hints(
+        provider=provider, chosen_model=chosen_model, key_env=key_env, alias=alias,
+    )
 
 
 def run() -> None:

@@ -25,6 +25,18 @@ _GITHUB_HELP = "GitHub OWNER/REPO"
 _BITBUCKET_HELP = "Bitbucket WORKSPACE/REPO"
 _HF_HELP = "Hugging Face Hub id (ORG/NAME or datasets|spaces/ORG/NAME)"
 _REF_HELP = "Branch/tag for remotes"
+_TRUST_PROJECT_HELP = (
+    "Allow project .repolens.toml to set provider/base_url/api_key_env"
+)
+_SCANNERS_HELP = "auto | off | comma list (gitleaks,semgrep,osv,trivy,checkov)"
+_REQUIRE_SCANNERS_HELP = "Exit 2 if a requested scanner is missing"
+_SCANNERS_ONLY_HELP = "Skip LLM; report scanner findings only"
+_QUIET_HELP = "Hide progress status lines"
+_VERBOSE_HELP = "Extra progress detail (file sample, scanner status)"
+_HEARTBEAT_HELP = "Seconds between LLM wait heartbeats (0 disables)"
+_TIMEOUT_HELP = (
+    "LLM HTTP timeout in seconds (default: 900 for ollama, 120 otherwise)"
+)
 
 
 def option_force_full() -> Any:
@@ -61,3 +73,35 @@ def option_hf() -> Any:
 
 def option_ref() -> Any:
     return typer.Option(None, "--ref", help=_REF_HELP)
+
+
+def option_trust_project() -> Any:
+    return typer.Option(False, "--trust-project-config", help=_TRUST_PROJECT_HELP)
+
+
+def option_scanners() -> Any:
+    return typer.Option("auto", "--scanners", help=_SCANNERS_HELP)
+
+
+def option_require_scanners() -> Any:
+    return typer.Option(False, "--require-scanners", help=_REQUIRE_SCANNERS_HELP)
+
+
+def option_scanners_only() -> Any:
+    return typer.Option(False, "--scanners-only", help=_SCANNERS_ONLY_HELP)
+
+
+def option_quiet() -> Any:
+    return typer.Option(False, "--quiet", "-q", help=_QUIET_HELP)
+
+
+def option_verbose() -> Any:
+    return typer.Option(False, "--verbose", "-v", help=_VERBOSE_HELP)
+
+
+def option_heartbeat() -> Any:
+    return typer.Option(15.0, "--heartbeat", help=_HEARTBEAT_HELP)
+
+
+def option_timeout() -> Any:
+    return typer.Option(None, "--timeout", help=_TIMEOUT_HELP)

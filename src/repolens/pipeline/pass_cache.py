@@ -20,6 +20,31 @@ _PASS_LABELS = {
 }
 
 
+_PASS_ALIASES = {
+    "p1": "p1",
+    "security": "p1",
+    "p2": "p2",
+    "reliability": "p2",
+    "p3": "p3",
+    "architecture": "p3",
+    "arch": "p3",
+}
+
+
+def normalize_retry_pass(raw: str) -> str:
+    """Map ``P3`` / ``architecture`` / ``arch`` (any case) to a band key."""
+    key = raw.lower().strip()
+    if key not in _PASS_ALIASES:
+        raise ValueError(
+            f"Unknown pass {raw!r}; use p1|p2|p3 or security|reliability|architecture"
+        )
+    return _PASS_ALIASES[key]
+
+
+def normalize_retry_passes(raw: list[str] | tuple[str, ...] | None) -> frozenset[str]:
+    return frozenset(normalize_retry_pass(item) for item in (raw or ()))
+
+
 def pass_label(pass_name: str) -> str:
     return _PASS_LABELS.get(pass_name, pass_name)
 

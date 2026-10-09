@@ -3,23 +3,20 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC
 
 from repolens.last_llm import (
     save_last_llm_report,
 )
 from repolens.pipeline.review_state import ReviewRun
 from repolens.pipeline.run_support import (
+    _apply_verify_and_consistency,
     _attach_complexity,
     _attach_quality,
     _attach_testing,
-    _git_sha,
+    _build_finished_provenance,
+    _persist_finished_artifacts,
 )
 from repolens.pipeline.types import ReviewResult
-from repolens.report import write_json_report, write_markdown_report
-from repolens.schema import (
-    ProvenanceBlock,
-)
 from repolens.triage import (
     stamp_issue_sources,
 )
@@ -125,15 +122,7 @@ def _stamp_finished_report(state: ReviewRun) -> None:
 
 
 def _write_finished_report(state: ReviewRun) -> ReviewResult:
-    from repolens import __version__
     from repolens.changeset import tag_findings_for_changeset
-    from repolens.llm.model_lock import queue_wait_seconds
-    from repolens.provenance_attest import (
-        git_dirty_tree,
-        journal_tip_hash,
-        prompt_template_hash,
-        scanner_binary_digests,
-    )
 
     if state.git_diff_requested:
         paths = list(state.git_changed_paths or [])
@@ -144,122 +133,6 @@ def _write_finished_report(state: ReviewRun) -> ReviewResult:
         )
     _attach_complexity(state.report, state.complexity_result)
     _attach_testing(state.report, state.testing_result)
-    tools = [r.tool for r in state.report.scannerRuns]
-    state.report.provenance = ProvenanceBlock(
-        repoLensVersion=__version__,
-        gitSha=_git_sha(state.root),
-        model=state.cfg.model.model,
-        provider=state.cfg.model.provider,
-        scannerTools=tools,
-        triageRouting=state.cfg.ci.triage_routing,
-        llmBypassed=bool(state.report.llmBypassed),
-        triageHits=int(state.report.triageHits or 0),
-        failOnScannerOnly=bool(
-            state.cfg.ci.triage_routing and state.cfg.ci.fail_on_scanner_only
-        ),
-        fastBrainFiles=state.fast_brain_file_count,
-        llmPackFiles=state.llm_pack_file_count,
-        fastBrainSeconds=state.fast_brain_seconds,
-        llmSeconds=state.llm_seconds_prov,
-        queueWaitSeconds=round(queue_wait_seconds(), 1),
-        dirtyTree=git_dirty_tree(state.root),
-        scannerDigests=scanner_binary_digests(tools),
-        promptTemplateHash=prompt_template_hash(),
-        journalTipHash=journal_tip_hash(state.root),
-        notes=list(state.triage_plan.notes) if state.triage_plan is not None else [],
-    )
-    # Phase 6.4: stamp locationVerified before Markdown/SARIF write
-    from repolens.sarif import verify_issue_location, write_sarif_report
-
-    for issue in state.report.issues:
-        verify_issue_location(state.root, issue)
-    from repolens.consistency import apply_heuristic_consistency
-
-    if (state.cfg.deep.critical_consistency or "").lower() in {"heuristic", "llm"}:
-        state.report.issues = apply_heuristic_consistency(state.report.issues, state.cfg.deep)
-        state.report.summary = state.report.recount_summary()
-    from repolens.verify_findings import apply_verify_findings
-
-    if state.cfg.deep.verify_findings:
-        import time
-
-        from repolens.pipeline.journal import append_event
-
-        state.prog.detail(
-            "Verify findings: Critical/High location + symbol grounding…"
-        )
-        append_event(state.root, "verify_started")
-        verify_started = time.perf_counter()
-        state.report.issues = apply_verify_findings(
-            state.root, state.report.issues, state.cfg.deep
-        )
-        from repolens.verify_findings import apply_unverified_gate_penalty
-
-        state.report = apply_unverified_gate_penalty(state.report)
-        state.report.summary = state.report.recount_summary()
-        grounded = sum(
-            1
-            for issue in state.report.issues
-            if issue.verificationStatus == "grounded"
-        )
-        suspect = sum(
-            1
-            for issue in state.report.issues
-            if issue.verificationStatus == "suspect"
-        )
-        append_event(
-            state.root,
-            "verify_completed",
-            grounded_count=grounded,
-            suspect_count=suspect,
-            duration_ms=int((time.perf_counter() - verify_started) * 1000),
-        )
-
-    from datetime import datetime
-
-    if state.report_when is None:
-        state.report_when = datetime.now(UTC)
-    state.prog.phase(f"Writing report → {state.out}")
-    state.md = (
-        write_markdown_report(state.report, state.out, mode=state.mode, when=state.report_when)
-        if state.fmt in {"md", "both"}
-        else None
-    )
-    state.js = (
-        write_json_report(state.report, state.out, mode=state.mode, when=state.report_when)
-        if state.fmt in {"json", "both"}
-        else None
-    )
-    if state.js is not None:
-        from repolens.explain import write_last_report_pointer
-
-        write_last_report_pointer(state.root, state.js)
-    elif state.md is not None and state.fmt == "md":
-        # Prefer JSON for explain; when md-only, still write JSON sidecar for lookup.
-        state.js = write_json_report(
-            state.report, state.out, mode=state.mode, when=state.report_when
-        )
-        from repolens.explain import write_last_report_pointer
-
-        write_last_report_pointer(state.root, state.js)
-    sarif_path = None
-    if state.sarif:
-        sarif_path = write_sarif_report(
-            state.report, state.root, out_dir=state.out, mode=state.mode, when=state.report_when
-        )
-        if sarif_path is not None:
-            n = sum(1 for i in state.report.issues if i.locationVerified)
-            state.prog.detail(
-                f"SARIF: {sarif_path.name} "
-                f"({n}/{len(state.report.issues)} location-verified result(s))"
-            )
-    state.prog.phase("Done")
-    return ReviewResult(
-        report=state.report,
-        markdown_path=state.md,
-        json_path=state.js,
-        files_scanned=state.fast_brain_file_count,
-        dry_run=False,
-        sarif_path=sarif_path,
-        aborted=bool(state.aborted),
-    )
+    _build_finished_provenance(state)
+    _apply_verify_and_consistency(state)
+    return _persist_finished_artifacts(state)

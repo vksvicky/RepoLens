@@ -73,6 +73,7 @@ When demoing or comparing RepoLens to other tools on a PatternSorcerer-class rep
 |------|--------|--------|
 | Show Two-Lane scope honestly | `--ci` triage **or** default adaptive (no `--full`) | **Fast Brain** ≈ whole matched tree (up to cap); **Slow Brain** ≈ triage hit files or pack cap — check the **Two-Lane** headline |
 | PR-style gate | `repolens review --ci --fail-on HIGH …` | Often **Slow Brain bypassed** when scanners are clean at the floor |
+| One-flag presets | `--preset pr` (scanners-only, **zero LLM/Ollama**) · `--preset changed` (`--git-diff auto --deep`, 900 s) · `--preset release` (`--full --full-audit --deep`, 3600 s) | Explicit flags override. **`pr` does not imply `--fail-on HIGH` or `--ci`** — add those yourself. **PR fail gate:** `--ci --fail-on HIGH` (see row above) |
 | Release / forced full LLM sample | `--full --deep --timeout 3600` | Slow Brain ≈ `general.max_files`; budget time |
 
 **Latency honesty:** Fast Brain heuristics finish in **seconds** on typical trees. A local **qwen2.5-coder:32b** Slow Brain pass is still usually **much slower** than a cloud **Claude Haiku**-class API on the same pack — model size and prompt eval dominate, not “RepoLens overhead”. For apples-to-apples **quality** demos, compare cloud-to-cloud or local-to-local; for **CI speed**, use `--ci` or `--scanners-only`.
@@ -304,6 +305,14 @@ Post-parse **FP calibrations** (default on) demote patterns such as list-form `s
 | **Checklist** answered / does not apply / not answered | Each security, reliability, and architecture question, and what to do next | Treating an unanswered question as a defect in the code |
 | **Theme breakdown** | The same three results per product theme, plus finding counts | “% clean” per theme |
 | **Duration** | Wall-clock for the whole command | Per-pass LLM time alone |
+
+### Robust-product FAQ (INCOMPLETE, presets, “not % secure”)
+
+- **What does `AI DEEP AUDIT: INCOMPLETE` mean?** One or more deep passes could not package their answer (timeout, transport error, or JSON that failed even the one micro-repair). The affected band shows **UNVERIFIED**, not `0%`. The **deterministic gate** (scanners + Fast Brain) is scored separately, so a healthy P1/P2 plus a broken P3 leaves the gate verdict unchanged. Re-run just the failed pass with `--resume --retry-pass p3`, or raise `--timeout`.
+- **Why is INCOMPLETE not “architecture 0% quality”?** `0%` says the checklist was answered and found badly wanting. INCOMPLETE says nothing was verified. Treat it as “unknown, retry”, never as a poor architecture grade. Only an answered band with open Critical/High findings or missed checklist ids lowers its percentage.
+- **Is any of these numbers “% secure”?** No. Gate and band confidence rate how adequate the *review package* is (checklist coverage, scanners ran, open Critical/High). They are not a security score, not a CVE-completeness claim, and not a percentile against other repos.
+- **Do findings from packaging, not code, zero the gate?** They should not. A null `codeExample`/`impact` on a High finding is filled with a “verify manually” placeholder instead of degrading the pass; only genuinely unparseable output degrades. See [design/robust-product-bar.md](./design/robust-product-bar.md).
+- **Which preset do I want?** `--preset pr` = scanners-only, no LLM (add `--ci --fail-on HIGH` yourself); `--preset changed` = `--git-diff auto --deep`, 900 s; `--preset release` = `--full --full-audit --deep`, 3600 s. Explicit flags override the preset. Recipes: [Two-Lane speed FAQ](#what-is-a-fair-dogfood-recipe-for-two-lane-speed).
 
 ### Checklist: answered, does not apply, not answered
 
