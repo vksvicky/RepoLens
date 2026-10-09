@@ -61,3 +61,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-06 | c47e755→push | 91% | 0/0/1/1 | Metis slice C: sniff, hybrid P3, journal post-mortem; ahead of origin | chat |
 | 2026-10-06 | WIP→push | 96% | 0/0/0/0 | CI: pytest pythonpath + tests/__init__ for `from tests.…` under SAFEPATH | chat |
 | 2026-10-09 | WIP→main | 90% | 0/0/0/2 | Robust-product + High fix (pipeline degraded_passes); selfdog clean 0 findings | chat |
+| 2026-10-09 | v0.1.1 | 94% | 0/0/0/0 | Version bump + changelog fold; tag for PyPI Trusted Publish | chat |

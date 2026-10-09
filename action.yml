@@ -55,7 +55,7 @@ inputs:
   version:
     description: PyPI version when install-from=pypi
     required: false
-    default: "0.1.0"
+    default: "0.1.1"
   install-from:
     description: local (action checkout) | pypi | git
     required: false
