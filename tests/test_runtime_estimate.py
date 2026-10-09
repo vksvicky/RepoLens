@@ -31,3 +31,10 @@ def test_estimate_zero_files_or_passes() -> None:
     assert estimate_deep_runtime_minutes(files=0, passes=3, provider="ollama") == 0
     text = estimate_deep_runtime(files=0, passes=1, provider="ollama")
     assert "no LLM files" in text.lower() or "0" in text
+
+
+def test_estimate_line_names_byok_vs_airgap_class() -> None:
+    ollama = estimate_deep_runtime(files=10, passes=1, provider="ollama")
+    assert "air-gap" in ollama.lower()
+    cloud = estimate_deep_runtime(files=10, passes=1, provider="openai")
+    assert "byok" in cloud.lower()

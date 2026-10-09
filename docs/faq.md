@@ -73,7 +73,7 @@ When demoing or comparing RepoLens to other tools on a PatternSorcerer-class rep
 |------|--------|--------|
 | Show Two-Lane scope honestly | `--ci` triage **or** default adaptive (no `--full`) | **Fast Brain** ≈ whole matched tree (up to cap); **Slow Brain** ≈ triage hit files or pack cap — check the **Two-Lane** headline |
 | PR-style gate | `repolens review --ci --fail-on HIGH …` | Often **Slow Brain bypassed** when scanners are clean at the floor |
-| One-flag presets | `--preset pr` (scanners-only, **zero LLM/Ollama**) · `--preset changed` (`--git-diff auto --deep`, 900 s) · `--preset release` (`--full --full-audit --deep`, 3600 s) | Explicit flags override. **`pr` does not imply `--fail-on HIGH` or `--ci`** — add those yourself. **PR fail gate:** `--ci --fail-on HIGH` (see row above) |
+| One-flag presets | `--preset pr` (scanners-only, **zero LLM/Ollama**) · `--preset changed` (`--git-diff auto --deep`, 900 s) · `--preset release` (`--full --full-audit --deep`, 3600 s) | Explicit flags override. **`pr` does not imply `--fail-on HIGH` or `--ci`** — add those yourself. **PR fail gate:** `--ci --fail-on HIGH` (see row above). **One-command kit:** `repolens audit` (= release + ratchet + verify) |
 | Release / forced full LLM sample | `--full --deep --timeout 3600` | Slow Brain ≈ `general.max_files`; budget time |
 
 **Latency honesty:** Fast Brain heuristics finish in **seconds** on typical trees. A local **qwen2.5-coder:32b** Slow Brain pass is still usually **much slower** than a cloud **Claude Haiku**-class API on the same pack — model size and prompt eval dominate, not “RepoLens overhead”. For apples-to-apples **quality** demos, compare cloud-to-cloud or local-to-local; for **CI speed**, use `--ci` or `--scanners-only`.
@@ -448,13 +448,28 @@ To check the **security audit confidence** fix without a 40‑minute full audit:
 
 Findings quality is mostly **model + pack size**, not CPU brand alone. Apple Silicon (M4) is strong for local LLMs; **unified memory** and model size dominate wall time.
 
+**Recommended:** private-cloud **BYOK** (Bedrock / Vertex / Gemini / Anthropic / OpenAI…) for daily deep audits. **Ollama** is the air-gap path — see [setup guide](./setup-ai-and-scanners.md#recommended-daily-path).
+
+### Runtime estimates by provider class
+
+Order-of-magnitude for a **~100–200 file** Slow Brain pack (not a SLA). `repolens plan` prints a coarse pre-flight estimate for the current tree; use this table to pick a provider class first.
+
+| Provider class | Typical deep wall clock | Cost shape | When to use |
+|----------------|-------------------------|------------|-------------|
+| **Cloud BYOK** (Bedrock / Vertex / Gemini / Anthropic / OpenAI / Groq…) | Often **tens of minutes** (tokens + multi-pass); not a hard “5 minutes” for every repo | API $/token; stays in *your* cloud account | **Daily / release** due diligence |
+| **Local Ollama 14B–32B+** | Often **1–3+ hours** on mid laptops; high-end Apple Silicon still often **≥1 h** for full deep | Electricity / GPU time; no cloud egress | **Air-gap** when policy forbids BYOK |
+| **Local Ollama 7B** | Faster but thinner narrative | Same | Scoped `--changed` only — not full-audit grade |
+| **`--preset pr` / `--scanners-only`** | **Seconds–minutes** | Free (local tools) | PR CI; no LLM |
+
+`repolens plan --path .` (or a dry pre-flight on `review`) surfaces pack size and a lower-band Slow Brain estimate — still budget BYOK vs 32B local from the table above.
+
 | Setup | Quality (depth / adherence) | Speed | Notes |
 |-------|----------------------------|-------|-------|
-| Cloud Claude / GPT (Phase A) | Highest for checklist prose | Minutes | BYOK; same `--deep` pipeline |
-| Local **32B+** coder (e.g. `qwen2.5-coder:32b`) | Strong local | Slow (tens of min / pass) | Needs ~24–48 GB+ unified memory comfortably |
-| Local **14B** | Medium | Medium | Good daily driver on 16–24 GB |
-| Local **7B** | Thinner / more N/A | Faster | Prefer `--changed` / smaller packs; heuristics still help |
-| `--scanners-only` | No LLM narrative | Fast | Complements, does not replace playbook review |
+| Cloud Claude / GPT / Gemini / Bedrock / Vertex | Highest for checklist prose | Minutes–tens of min | **BYOK primary**; same `--deep` pipeline |
+| Local **32B+** coder (e.g. `qwen2.5-coder:32b`) | Strong local | Slow (often ≥1 h full deep) | Air-gap; needs ~24–48 GB+ unified memory |
+| Local **14B** | Medium | Medium–slow | Air-gap daily driver on 16–24 GB |
+| Local **7B** | Thinner / more N/A | Faster | Prefer `--changed` / smaller packs |
+| `--scanners-only` / `--preset pr` | No LLM narrative | Fast | Complements, does not replace playbook review |
 
 **Rough local guidance**
 
@@ -631,13 +646,15 @@ See [competitive landscape](./design/competitive-landscape-sonar-alternatives-20
 ### Air-gapped Ollama vs private BYOK?
 
 **Fast Brain** (heuristics, grimp, scanners) runs on ordinary hardware in
-seconds. **Slow Brain** deep review needs a capable model: local Ollama
-typically wants **14B–32B+** (slow or OOM on thin laptops), while most
-enterprises use **private BYOK** (Bedrock / Vertex / Gemini / Anthropic)
-so code stays in approved cloud boundaries without a RepoLens server.
+seconds. **Slow Brain** deep review needs a capable model: **recommended
+daily path is private BYOK** (Bedrock / Vertex / Gemini / Anthropic /
+OpenAI…) so code stays in approved cloud boundaries without a RepoLens
+server — typically **tens of minutes**, not a hard five-minute SLA.
+Local Ollama typically wants **14B–32B+** (slow or OOM on thin laptops)
+and is the **air-gap** path.
 
 Air-gap is *enabled* by Ollama — not “full deep audit instantly offline
-on every machine.”
+on every machine.” See [runtime estimates by provider class](#runtime-estimates-by-provider-class).
 
 ---
 

@@ -3,15 +3,25 @@
 **Audience:** anyone setting up RepoLens for the first time.  
 **Related:** [FAQ (plain English)](./faq.md#decisions-in-plain-english-start-here) · [Why these options exist](./design/ai-keys-scanners-and-local-learning.md#52-is-repolens-self-sufficient-out-of-the-box)
 
-RepoLens itself is the **review process**. To actually run a review you pick **one** of these paths (you can combine 1 or 2 with 3 later):
+## Recommended daily path
+
+| Path | Role | Typical deep-audit wall clock |
+|------|------|-------------------------------|
+| **[A. Cloud BYOK](#option-a--cloud-ai-your-own-api-key)** (Bedrock / Vertex / Gemini / Anthropic / OpenAI…) | **Primary** — minutes-scale Slow Brain; code stays in *your* cloud boundary (no RepoLens server) | Often **tens of minutes** for a mid-size repo (not “5 minutes” for every tree) |
+| **[B. Local Ollama](#option-b--local-ai-on-your-computer-e-g-ollama)** | **Air-gap / offline** — hardware-dependent; 14B–32B+ models | Often **1–3+ hours** (or OOM) on thin laptops |
+| **[C. Scanners only](#option-c--checklist-scanners-only-no-ai-narrative)** | PR / CI when you need secrets/CVE lists without narrative | **Seconds–minutes** (no LLM) |
+
+Do **not** expect a full local 32B deep audit to finish in a few minutes. Prefer BYOK for day-to-day due diligence; keep Ollama for air-gapped hosts that can run a capable model. Order-of-magnitude table: [FAQ — runtime estimates by provider class](./faq.md#runtime-estimates-by-provider-class) · [command atlas](./command-atlas.md#7-how-long-does-a-review-take).
+
+RepoLens itself is the **review process**. Pick **one** path (you can combine A or B with C later):
 
 | Option | Best when… | Full written report? |
 |--------|------------|----------------------|
-| **[A. Cloud AI key](#option-a--cloud-ai-your-own-api-key)** | You already use OpenAI / Anthropic / similar | Yes |
-| **[B. Local AI](#option-b--local-ai-on-your-computer-e-g-ollama)** | You want code to stay on your machine | Yes |
-| **[C. Scanners only](#option-c--checklist-scanners-only-no-ai-narrative)** | You only need secrets / CVE-style lists | No — inventory only |
+| **[A. Cloud BYOK](#option-a--cloud-ai-your-own-api-key)** | Recommended daily / enterprise private cloud | Yes |
+| **[B. Local Ollama](#option-b--local-ai-on-your-computer-e-g-ollama)** | Air-gap; code must never leave the machine | Yes (if hardware fits) |
+| **[C. Scanners only](#option-c--checklist-scanners-only-no-ai-narrative)** | PR gates / inventory without AI narrative | No — inventory only |
 
-> **Status today:** Phases **0–4** complete — install from source (`pip install -e .`) and run `repolens init`.  
+> **Status today:** Phases **0–9** complete — `pip install "repolens-audit[scanners]==0.1.1"` or from source (`pip install -e .`) then `repolens init`.  
 > - Options **A** and **B** work via the CLI **or** **[playbooks + any LLM chat](./using-playbooks.md)**.  
 > - Option **C** scanners: `repolens plugins install` · [scanners.md](./scanners.md).  
 > - CI: [ci.md](./ci.md) · Local learning: [local-learning.md](./local-learning.md).  
@@ -25,15 +35,15 @@ RepoLens itself is the **review process**. To actually run a review you pick **o
 1. Install **[Git](https://git-scm.com/downloads)** if you do not have it.  
 2. Have the **project folder** on your computer, **or** use a remote (`--github` / `--git-url` — see [remote-sources.md](./remote-sources.md)).  
 3. Decide how private the code is:
-   - OK to send excerpts to a cloud AI provider → Option A is fine.  
-   - Must stay on this machine → Option B (and skip cloud keys).
+   - OK to send excerpts to **your** approved cloud AI (BYOK) → **Option A (recommended)**.  
+   - Must stay on this machine → Option B (air-gap; skip cloud keys; budget hours + RAM).
 
 ---
 
-## Option A — Cloud AI (your own API key)
+## Option A — Cloud AI (your own API key) — recommended daily
 
 ### What you are doing
-You create an account with an AI company, copy a **secret key**, and let RepoLens (or your LLM chat tool) use that key to read your code and write the report.
+You create an account with an AI company (or use Bedrock / Vertex in your cloud), copy a **secret key**, and let RepoLens use that key to read code excerpts and write the report. RepoLens never hosts the model — **bring your own key (BYOK)**.
 
 ### Steps
 
@@ -181,10 +191,12 @@ All first-class BYOK providers and `openai_compatible` use the **same `--deep` p
 
 ---
 
-## Option B — Local AI on your computer (e.g. Ollama)
+## Option B — Local AI on your computer (e.g. Ollama) — air-gap
 
 ### What you are doing
-You install a program that runs an AI model **on your machine**. RepoLens talks to that local program. No cloud API key is required for the AI chat.
+You install a program that runs an AI model **on your machine**. RepoLens talks to that local program. No cloud API key is required for the AI chat. This is the **air-gap** path — not the recommended daily path unless policy forbids BYOK.
+
+**Hardware caveat:** capable deep review usually wants **14B–32B+**. Thin laptops often OOM or take **hours**. Prefer Option A (BYOK) when you need minutes-scale due diligence.
 
 ### Steps
 

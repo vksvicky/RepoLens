@@ -7,6 +7,7 @@ RepoLens is an open-source CLI that runs structured code reviews against project
 > **Status:** **`repolens-audit==0.1.1`** on PyPI (CLI: `repolens`) — Phases **0–9** complete  
 > Local CLI · remotes · optional scanners · explain + diagrams · GitHub Action · opt-in local learning · enterprise CI recipes  
 > Install: `pip install "repolens-audit[scanners]==0.1.1"` · from a clone: `pip install -e ".[dev]"`  
+> **[View a sample due-diligence report](./reports/samples/sample_audit_report.md)** ([PDF](./reports/samples/sample_audit_report.pdf)) — gate ≠ “% secure”; remediation + architecture signals included  
 > Docs: [phases](./docs/phases.md) · [FAQ](./docs/faq.md) · [rules](./docs/rules.md) · [install extras](./docs/install-extras.md) · [CI / Action](./docs/ci.md) · [remotes](./docs/remote-sources.md) · [scanners](./docs/scanners.md) · [local learning](./docs/local-learning.md) · [publishing](./docs/publishing.md)
 
 ---
@@ -27,13 +28,16 @@ RepoLens is **zero-infrastructure** — `pipx` or ephemeral CI runners; no Sonar
 
 RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your test suite. Those stay in CI. RepoLens adds a consistent, human-readable due-diligence layer you can run anywhere.
 
+**Unify existing SARIF** (CodeQL / Sonar / ESLint → one executive gate): [docs/recipes/sarif-unification.md](./docs/recipes/sarif-unification.md).
+
 ---
 
 ## Modes
 
 | Command | What it does |
 |---------|--------------|
-| `repolens review` | Full dual review: P1 security + P2 reliability + P3 architecture |
+| `repolens review` | Full dual review: P1 security + P2 reliability + P3 architecture (`--preset pr\|changed\|release`) |
+| `repolens audit` | One-command due-diligence (= `--preset release` + ratchet + verify) |
 | `repolens sentinel` | **Security-only** scan (P1 playbook) |
 | `repolens architecture` | Architecture / production-readiness audit |
 | `repolens plugins` | Optional scanners: `status` / `list` / `install` |
@@ -53,7 +57,7 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 
 - **CLI:** Python 3.11+  
 - **Reviews:** language-agnostic, with first-class focus on JS/TS, Python, Go, JVM, C#, Ruby, PHP, Rust, Swift (+ IaC/config)  
-- **AI:** Bring your own cloud key (Anthropic, OpenAI, DeepSeek), run a local model (e.g. Ollama), or rely on automatic local fallback (`--fallback`)  
+- **AI:** **BYOK primary** (Bedrock / Vertex / Gemini / Anthropic / OpenAI…) for minutes-scale deep audits; **Ollama for air-gap** (14B–32B+ — often hours on thin laptops); automatic local fallback (`--fallback`) when configured  
 - **CVE / SAST / secrets:** optional plugins (OSV, Semgrep, gitleaks)—not in the slim default install  
 - **Local learning:** opt-in on-disk FTS index (`repolens learn`), informed consent first  
 - **CI:** official GitHub Action (`action.yml`) — see [docs/ci.md](./docs/ci.md)

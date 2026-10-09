@@ -1,0 +1,446 @@
+<h1 id="gate-review-report-sample-anonymized">Gate review report —
+sample (anonymized)</h1>
+<p><strong>Mode:</strong> <code>review</code><br />
+<strong>Generated:</strong> 2026-10-08 14:22 UTC<br />
+<strong>Duration:</strong> 12m 41s (761s)<br />
+<strong>Gate confidence:</strong> 78%<br />
+<strong>Commit go/no-go:</strong> no-go<br />
+<strong>Push go/no-go:</strong> no-go</p>
+<blockquote>
+<p>[!NOTE] <strong>Sample only — fictional product.</strong> Paths and
+names below are anonymized (<code>AcmeLedger</code>). No customer IP,
+secrets, or real API keys appear here.</p>
+<p><strong>Audit confidence &amp; gate interpretation</strong><br />
+Gate confidence reflects review-package adequacy (checklist coverage +
+open severity penalties), <strong>not</strong> a “% secure” score. A
+clean scanner pass with unanswered checklist items still lowers
+confidence. See RepoLens <code>docs/faq.md</code> → <em>What do report
+metrics mean?</em></p>
+</blockquote>
+<p><strong>Two-Lane:</strong> Fast Brain: 186 file(s) in 0.4s · Slow
+Brain: 120 file(s) in 698.2s · 12m 41s · 0 critical · 1 high · 0 medium
+· 1 low</p>
+<hr />
+<h2 id="gate-verdict">Gate verdict</h2>
+<ul>
+<li><strong>Gate confidence:</strong> 78% (review-package adequacy — not
+“% secure”)</li>
+<li><strong>Counts:</strong> Critical 0 · High 1 · Medium 0 · Low 1</li>
+</ul>
+<h2 id="gate-and-ai-audit">Gate and AI audit</h2>
+<p><strong>DETERMINISTIC GATE: FAIL</strong></p>
+<ul>
+<li>Scanners: 5/5 · Fast Brain Critical/High 1</li>
+</ul>
+<p><strong>AI DEEP AUDIT: 82%</strong></p>
+<ul>
+<li>Security 78% · Reliability 95% · Architecture 88%</li>
+</ul>
+<p><em>The gate uses scanners and Fast Brain only. The AI audit is
+scored separately and never changes the gate verdict.</em></p>
+<h2 id="metrics">Metrics</h2>
+<p><strong>Gate</strong> = adequacy of <em>this review package</em> for
+a go/no-go style decision — <strong>not</strong> “% secure” or an
+architecture grade.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 29%" />
+<col style="width: 37%" />
+</colgroup>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gate confidence</td>
+<td>78%</td>
+<td>Lowest band, then a penalty for open Critical/High. Not “%
+secure.”</td>
+</tr>
+<tr>
+<td>Critical</td>
+<td>0</td>
+<td>Scanner and Fast Brain findings at Critical</td>
+</tr>
+<tr>
+<td>High</td>
+<td>1</td>
+<td>Scanner and Fast Brain findings at High</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>0</td>
+<td>Do not change the percentages</td>
+</tr>
+<tr>
+<td>Low</td>
+<td>1</td>
+<td>Do not change the percentages</td>
+</tr>
+<tr>
+<td>Duration</td>
+<td>12m 41s</td>
+<td>Wall-clock time for this review</td>
+</tr>
+<tr>
+<td>Fast Brain files</td>
+<td>186</td>
+<td>Whole-tree heuristics</td>
+</tr>
+<tr>
+<td>LLM pack files</td>
+<td>120</td>
+<td>Files sent to the model</td>
+</tr>
+<tr>
+<td>Security audit confidence</td>
+<td>78%</td>
+<td>Security checklist + Critical/High security findings</td>
+</tr>
+<tr>
+<td>Reliability audit confidence</td>
+<td>95%</td>
+<td>Reliability checklist + Critical/High reliability findings</td>
+</tr>
+<tr>
+<td>Architecture audit confidence</td>
+<td>88%</td>
+<td>Architecture checklist + Critical/High architecture findings</td>
+</tr>
+</tbody>
+</table>
+<h3 id="how-these-are-calculated">How these % are calculated</h3>
+<ul>
+<li><strong>Gate</strong> is the lowest band, then a penalty for missed
+checklist ids and open C/H.</li>
+<li>Medium and Low findings do not change these percentages.</li>
+<li>Full arithmetic: RepoLens <code>docs/faq.md</code> → <em>What do
+report metrics mean?</em></li>
+</ul>
+<hr />
+<h2 id="p1-security">P1 — Security</h2>
+<h3 id="high-webhook-hmac-comparison-uses-timing-leak-risk">HIGH —
+Webhook HMAC comparison uses <code>==</code> (timing-leak risk)</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Priority</strong></td>
+<td>P1</td>
+</tr>
+<tr>
+<td><strong>Fingerprint</strong></td>
+<td><code>a1b2c3d4e5f67890</code></td>
+</tr>
+<tr>
+<td><strong>Occurrence</strong></td>
+<td><code>occ-sample-001</code></td>
+</tr>
+<tr>
+<td><strong>Source</strong></td>
+<td><code>llm</code> (verified location)</td>
+</tr>
+<tr>
+<td><strong>Location</strong></td>
+<td><code>src/acmeledger/webhooks/stripe_receiver.py:88</code> (verified
+→ SARIF-eligible)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Explanation.</strong> The Stripe webhook handler compares the
+computed HMAC digest to the <code>Stripe-Signature</code> header with
+Python’s <code>==</code>. That comparison is not constant-time, so an
+attacker who can measure response latency may recover the signing secret
+byte by byte on a noisy-but-reachable edge.</p>
+<p><strong>Impact.</strong> Forged webhook events can mark invoices
+paid, create phantom refunds, or trigger fulfilment without a real
+charge — direct financial loss and audit-trail gaps.</p>
+<p><strong>Recommended fix.</strong> Use
+<code>hmac.compare_digest</code> (or Stripe’s official SDK verifier) and
+reject on mismatch before parsing the body.</p>
+<p><strong>Code example</strong></p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Before (timing-variable)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> computed_sig <span class="op">==</span> header_sig:</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    handle_event(payload)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># After (constant-time)</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hmac</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">not</span> hmac.compare_digest(computed_sig, header_sig):</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> UnauthorizedWebhook(<span class="st">&quot;bad signature&quot;</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>handle_event(payload)</span></code></pre></div>
+<hr />
+<h2 id="p2-bugs-reliability-performance">P2 — Bugs, reliability,
+performance</h2>
+<p><em>No findings in this band.</em></p>
+<hr />
+<h2 id="p3-architecture-quality">P3 — Architecture &amp; quality</h2>
+<h3 id="low-import-cycle-between-billing-and-notifications">LOW — Import
+cycle between billing and notifications</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Priority</strong></td>
+<td>P3</td>
+</tr>
+<tr>
+<td><strong>Fingerprint</strong></td>
+<td><code>f0e1d2c3b4a59687</code></td>
+</tr>
+<tr>
+<td><strong>Occurrence</strong></td>
+<td><code>occ-sample-002</code></td>
+</tr>
+<tr>
+<td><strong>Source</strong></td>
+<td><code>graph</code></td>
+</tr>
+<tr>
+<td><strong>Location</strong></td>
+<td>cycle group: <code>acmeledger.billing</code> ↔︎
+<code>acmeledger.notifications</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Explanation.</strong> Runtime import graph reports one
+strongly connected component of size 2. <code>billing.ledger</code>
+imports <code>notifications.emailer</code> for receipt sends;
+<code>notifications.emailer</code> imports <code>billing.ledger</code>
+for amount formatting. Cyclicity score contribution: (2^2 = 4).</p>
+<p><strong>Impact.</strong> Hot-reload, testing, and layering suffer;
+Rule 1 ratchet will fail CI if this score rises above baseline.</p>
+<p><strong>Recommended fix.</strong> Extract shared money formatting to
+<code>acmeledger.money</code> (or pass plain values into the notifier)
+so the dependency is one-way: billing → notifications.</p>
+<hr />
+<h2 id="model-notes">Model notes</h2>
+<p>The model wrote these. They do not change Critical, High, Medium, or
+Low.</p>
+<ul>
+<li>Prefer Stripe’s <code>Webhook.construct_event</code> over
+hand-rolled HMAC when the SDK is already a dependency.</li>
+<li>Complexity hotspot: <code>reconcile_day</code>
+(<code>src/acmeledger/billing/reconcile.py:40</code>) — cyclomatic 18 /
+cognitive 24; extract day-part helpers before adding tax
+jurisdictions.</li>
+</ul>
+<h2 id="automated-scanners">Automated scanners</h2>
+<ul>
+<li><strong>gitleaks</strong>: <code>ran</code> (0 finding(s))</li>
+<li><strong>semgrep</strong>: <code>ran</code> (0 finding(s))</li>
+<li><strong>osv</strong>: <code>ran</code> (0 finding(s))</li>
+<li><strong>trivy</strong>: <code>ran</code> (0 finding(s))</li>
+<li><strong>checkov</strong>: <code>ran</code> (0 finding(s))</li>
+</ul>
+<h2 id="quality-scorecard-fast-brain">Quality scorecard (Fast
+Brain)</h2>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th style="text-align: right;">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mega-files</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>Deep nesting</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>Near-clone clusters</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>Files scanned</td>
+<td style="text-align: right;">186</td>
+</tr>
+</tbody>
+</table>
+<h2 id="complexity-fast-brain">Complexity (Fast Brain)</h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th style="text-align: right;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Functions analysed</td>
+<td style="text-align: right;">412</td>
+</tr>
+<tr>
+<td>Issues (above threshold)</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr>
+<td>Max cyclomatic</td>
+<td style="text-align: right;">18</td>
+</tr>
+<tr>
+<td>Max cognitive</td>
+<td style="text-align: right;">24</td>
+</tr>
+</tbody>
+</table>
+<h3 id="top-complexity-hotspots">Top complexity hotspots</h3>
+<table>
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 22%" />
+<col style="width: 13%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>File</th>
+<th>Function</th>
+<th style="text-align: right;">Line</th>
+<th style="text-align: right;">Cyclomatic</th>
+<th style="text-align: right;">Cognitive</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/acmeledger/billing/reconcile.py</code></td>
+<td><code>reconcile_day</code></td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">24</td>
+</tr>
+<tr>
+<td><code>src/acmeledger/webhooks/stripe_receiver.py</code></td>
+<td><code>dispatch</code></td>
+<td style="text-align: right;">120</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">19</td>
+</tr>
+</tbody>
+</table>
+<h2 id="import-graph">Import graph</h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th style="text-align: right;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Status</td>
+<td style="text-align: right;">ok</td>
+</tr>
+<tr>
+<td>Packages</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>Modules</td>
+<td style="text-align: right;">64</td>
+</tr>
+<tr>
+<td>Cycle groups</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>Cyclicity</td>
+<td style="text-align: right;">4</td>
+</tr>
+</tbody>
+</table>
+<p><em>Deterministic Python import cycles (grimp) — DIP /
+module-boundary layering signal, not an architecture
+certification.</em></p>
+<h2 id="provenance">Provenance</h2>
+<ul>
+<li><strong>RepoLens</strong>: <code>0.1.1</code></li>
+<li><strong>Git SHA</strong>:
+<code>deadbeef0123456789abcdef0123456789abcdef</code>
+<em>(sample)</em></li>
+<li><strong>Dirty tree</strong>: no</li>
+<li><strong>Model</strong>: <code>openai</code> /
+<code>gpt-4.1-mini</code> <em>(BYOK sample — minutes-scale; not local
+32B)</em></li>
+<li><strong>Scanners</strong>: gitleaks, semgrep, osv, trivy,
+checkov</li>
+<li><strong>LLM bypassed</strong>: no</li>
+</ul>
+<h2 id="plan-to-fix">Plan to fix</h2>
+<ol type="1">
+<li><strong>P1:</strong> Replace <code>==</code> HMAC compare with
+<code>hmac.compare_digest</code> (or Stripe SDK) in
+<code>stripe_receiver.py</code>; add a unit test that rejects a mutated
+signature.</li>
+<li><strong>P3:</strong> Break the billing ↔︎ notifications import cycle
+via a shared <code>money</code> helper; re-run
+<code>repolens baseline set</code> only after cyclicity drops or stays
+flat.</li>
+<li><strong>Complexity:</strong> Split <code>reconcile_day</code> before
+the next tax-region feature lands.</li>
+</ol>
+<h2 id="durability-gaps">Durability gaps</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" />Add webhook signature tests (happy /
+bad sig / replay window).</label></li>
+<li><label><input type="checkbox" />Keep CodeQL + Semgrep in CI;
+RepoLens complements — does not displace — those engines.</label></li>
+<li><label><input type="checkbox" />Two-Lane: Fast Brain sees 186
+file(s); LLM sample pool is 120.</label></li>
+</ul>
+<h2 id="checklist">Checklist</h2>
+<p>These questions check security, reliability, and architecture. An
+answered question points at a finding. A question that does not apply is
+closed by a fact from this repository. A question that was not answered
+is unfinished review work.</p>
+<ul>
+<li><strong>Answered:</strong> 4 · <strong>Does not apply:</strong> 47 ·
+<strong>Not answered:</strong> 1</li>
+</ul>
+<h3 id="answered">Answered</h3>
+<ul>
+<li>Webhook / callback authenticity (sec.authn_authz). See “Webhook HMAC
+comparison uses <code>==</code>” under P1.</li>
+<li>Import layering / DIP (arch.import_cycles). See “Import cycle
+between billing and notifications” under P3.</li>
+</ul>
+<h3 id="not-answered">Not answered</h3>
+<ul>
+<li>Multi-tenant data isolation (sec.tenant_isolation) — inventory shows
+shared DB schemas; no finding closed this question.
+<strong>Follow-up:</strong> confirm row-level filters on
+<code>org_id</code> or mark N/A with evidence.</li>
+</ul>
+<hr />
+<p><em>End of sample. Generate your own with
+<code>repolens audit --path ./your-repo --out ./reports</code> (or
+<code>repolens review --preset release</code>).</em></p>
