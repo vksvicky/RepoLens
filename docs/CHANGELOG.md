@@ -9,6 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Tracker hygiene: `docs/phases.md` + compare/Metis status reflect PyPI 0.1.1 and closed #86–#89 / #92–#96; sole parked item remains #91 (#17b)
+- Roadmap: GitHub milestones M1–M4 filed as #100–#116 (adoption → deliverables → DX → ecosystem); #100/#107 closed as shipped in 0.1.1
 
 ### Fixed
 
