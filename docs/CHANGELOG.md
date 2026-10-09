@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- CI: wrap long assertion in `tests/test_llm_parse.py` (Ruff E501); Publish workflow now runs Ruff + Pytest before upload; `scripts/ci-check.sh` + optional pre-commit Ruff hook
+
 ## [0.1.1] — 2026-10-09
 
 Published as `repolens-audit==0.1.1`.

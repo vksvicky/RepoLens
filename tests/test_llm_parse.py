@@ -60,8 +60,9 @@ def test_coerce_null_code_example_keeps_high_severity() -> None:
     report = parse_report_json(content)
     assert len(report.issues) == 1
     assert report.issues[0].severity.value == "HIGH"
-    assert report.issues[0].codeExample.strip()
-    assert "omitted" in report.issues[0].codeExample.lower() or "verify" in report.issues[0].codeExample.lower()
+    example = report.issues[0].codeExample.strip().lower()
+    assert example
+    assert "omitted" in example or "verify" in example
 
 
 def test_coerce_empty_impact_and_code_example_strings() -> None:

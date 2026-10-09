@@ -1,0 +1,9 @@
+# Install once: pip install pre-commit && pre-commit install
+# Runs the same Ruff gate as CI so E501/import issues fail before push.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.0
+    hooks:
+      - id: ruff
+        args: [--force-exclude]
+        types_or: [python, pyi]
