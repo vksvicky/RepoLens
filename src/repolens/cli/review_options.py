@@ -177,6 +177,11 @@ def option_ratchet() -> Any:
     return typer.Option(False, "--ratchet", help=_RATCHET_HELP)
 
 
+def option_ratchet_default_on() -> Any:
+    """``repolens audit`` defaults ratchet on; ``--no-ratchet`` opts out."""
+    return typer.Option(True, "--ratchet/--no-ratchet", help=_RATCHET_HELP)
+
+
 def option_import_sarif() -> Any:
     return typer.Option(None, "--import-sarif", help=_IMPORT_SARIF_HELP)
 

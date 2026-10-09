@@ -52,6 +52,7 @@ def estimate_deep_runtime(
         files=files, passes=passes, provider=provider
     )
     provider_label = (provider or "unknown").strip() or "unknown"
+    key = provider_label.lower()
     if minutes < 5:
         band = f"~{minutes} min"
     elif minutes < 60:
@@ -59,7 +60,18 @@ def estimate_deep_runtime(
     else:
         hours = minutes / 60.0
         band = f"~{hours:.1f}–{hours * 1.4:.1f} h (local large models often hit the high end)"
+    tip = _provider_class_tip(key)
     return (
         f"Slow Brain estimate: {files} file(s) × {passes} pass(es) via {provider_label} "
         f"→ {band}"
+        + (f" ({tip})" if tip else "")
     )
+
+
+def _provider_class_tip(provider_key: str) -> str:
+    """Short BYOK vs air-gap hint for plan / pre-flight lines."""
+    if provider_key == "ollama":
+        return "air-gap local — often hours on thin laptops; prefer BYOK for daily audits"
+    if provider_key in _SEC_PER_FILE and provider_key != "ollama":
+        return "cloud BYOK — minutes-scale typical; not a hard 5-minute SLA"
+    return ""

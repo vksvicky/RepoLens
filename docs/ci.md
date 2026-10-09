@@ -6,6 +6,10 @@ Design: [design/phase-4-ci-and-ecosystem.md](./design/phase-4-ci-and-ecosystem.m
 
 ## GitHub Actions
 
+**Default PR path:** prefer scanners-only / triage — e.g. Action `run: auto` or CLI  
+`repolens review --preset pr` (zero LLM; add `--ci --fail-on HIGH` when the job must fail the PR).  
+Reserve `repolens audit` / `--preset release` for scheduled or release due diligence.
+
 ### Minimal (dry-run)
 
 ```yaml
@@ -220,6 +224,8 @@ Sonar / other ASPM: ingest the same SARIF as an external issues file, or archive
 Design: [phase-6.x §6.4](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md)
 
 ### Import external SARIF (companion gate)
+
+Full walkthrough (fixtures + expected outcomes): **[recipes/sarif-unification.md](./recipes/sarif-unification.md)**.
 
 When CodeQL, SonarQube, ESLint, or another step already produces SARIF 2.1, merge it into one RepoLens gate instead of a custom jq/shell aggregator:
 

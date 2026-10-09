@@ -52,6 +52,7 @@ from repolens.cli.review_options import (
     option_pack,
     option_preset,
     option_ratchet,
+    option_ratchet_default_on,
     option_require_sarif_import,
     option_resume,
     option_retry_pass,
@@ -251,4 +252,67 @@ def _body_review(  # type: ignore[no-untyped-def]
         verify_findings, pack, fallback, ratchet, import_sarif,
         require_sarif_import, no_model_lock, lock, resume, role_packs,
         retry_passes=retry_passes,
+    )
+
+
+@app.command("audit")
+def audit(
+    path: str | None = option_path(),
+    git_url: str | None = option_git_url(),
+    github: str | None = option_github(),
+    bitbucket: str | None = option_bitbucket(),
+    hf: str | None = option_hf(),
+    ref: str | None = option_ref(),
+    mode: str = option_review_mode(),
+    since: str | None = option_since(),
+    out: Path | None = option_out(),
+    fmt: str = option_format(),
+    model: str | None = option_model(),
+    fail_on: str | None = option_fail_on(),
+    dry_run: bool = option_dry_run(),
+    full_audit: bool = option_full_audit(),
+    trust_project: bool = option_trust_project(),
+    scanners: str = option_scanners(),
+    require_scanners: bool = option_require_scanners(),
+    scanners_only: bool = option_scanners_only(),
+    quiet: bool = option_quiet(),
+    verbose: bool = option_verbose(),
+    heartbeat: float = option_heartbeat(),
+    timeout: float | None = option_timeout(),
+    model_lock_flag: bool = option_model_lock(),
+    no_model_lock: bool = option_no_model_lock(),
+    force_full: bool = option_force_full(),
+    force_changed: bool = option_force_changed(),
+    git_diff: str | None = option_git_diff(),
+    deep: bool | None = option_deep(),
+    deep_passes: int | None = option_deep_passes(),
+    explain: str | None = option_explain(),
+    ci: bool = option_ci(),
+    sarif: bool = option_sarif(),
+    verify_findings: bool | None = option_verify_findings(),
+    pack: list[str] | None = option_pack(),
+    fallback: bool = option_fallback(),
+    ratchet: bool = option_ratchet_default_on(),
+    import_sarif: list[Path] | None = option_import_sarif(),
+    require_sarif_import: bool = option_require_sarif_import(),
+    resume: bool = option_resume(),
+    role_packs: bool | None = option_role_packs(),
+    retry_pass: list[str] | None = option_retry_pass(),
+) -> None:
+    """One-command due-diligence kit (= ``review --preset release`` + ratchet + verify)."""
+    retry_passes = _normalize_retry_passes_or_exit(retry_pass)
+    (scanners_only, ci, deep, git_diff, force_full, force_changed, full_audit,
+     timeout) = _resolve_preset(
+        "release", scanners_only=scanners_only, ci=ci, dry_run=dry_run, deep=deep,
+        git_diff=git_diff, force_full=force_full, force_changed=force_changed,
+        full_audit=full_audit, timeout=timeout,
+    )
+    verify = True if verify_findings is None else verify_findings
+    _body_review(
+        path, git_url, github, bitbucket, hf, ref, mode, since, out, fmt, model,
+        fail_on, dry_run, full_audit, trust_project, scanners, require_scanners,
+        scanners_only, quiet, verbose, heartbeat, timeout, model_lock_flag,
+        no_model_lock, force_full, force_changed, git_diff, deep, deep_passes,
+        explain, ci, sarif, verify, pack, fallback, ratchet,
+        import_sarif, require_sarif_import, resume, role_packs, retry_passes,
     )

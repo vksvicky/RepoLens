@@ -43,8 +43,10 @@ node_modules/
 .pnpm-store/
 coverage/
 
-# Reports & clones (local runs)
-reports/
+# Reports & clones (local runs) — keep checked-in golden samples
+reports/*
+!reports/samples/
+!reports/samples/**
 reports-dogfood/
 .tmp/
 .cache/
@@ -59,3 +61,5 @@ docs/superpowers/
 scratch.py
 .coverage
 RepoLens.sonargraph/
+Skill.md
+SKILL.md
