@@ -174,17 +174,8 @@ Python can use `ast.parse()`. JS/TS/Go/Rust/C# rely on regex extractors in `file
 
 ---
 
-## Next implementation slice (approved direction)
+## Implementation status (2026-10-09)
 
-Run **in parallel**:
+**Landed:** `[deep] role_packs` (default **off**), journal + `--resume` / `--no-resume`, `repolens plan` forecaster (without changing `--dry-run`), thin MVP harden ([#87](https://github.com/vksvicky/RepoLens/issues/87)), and measured dogfood ([#86](https://github.com/vksvicky/RepoLens/issues/86)) in the success table.
 
-**Step 1** — `[deep].role_packs = true` (default off until dogfood):
-
-1. Distinct file lists (or outline mode) per band.  
-2. P3 uses outline-cost estimator; fixture proves P3 char budget ≪ P1 on large-body trees.  
-3. Inter-pass summary in pass \(N\) prompt; **pass-cache key includes summary hash**.  
-4. Emit chars-in / chars-out per pass for honesty metrics.
-
-**Step 2** — `.repolens/journal.jsonl` + interrupt / resume UX (no LLM dependency).
-
-Then Step 3 forecaster without touching `--dry-run` semantics.
+**Optional later (not filed):** deeper hybrid P3 / outline cost fixtures, multi-language verify polish, editor UX beyond [#89](https://github.com/vksvicky/RepoLens/issues/89). Do **not** claim Metis-style ~60% token cuts.

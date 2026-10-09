@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Tracker hygiene: `docs/phases.md` + compare/Metis status reflect PyPI 0.1.1 and closed #86–#89 / #92–#96; sole parked item remains #91 (#17b)
+
 ### Fixed
 
 - CI: wrap long assertion in `tests/test_llm_parse.py` (Ruff E501); Publish workflow now runs Ruff + Pytest before upload; `scripts/ci-check.sh` + optional pre-commit Ruff hook

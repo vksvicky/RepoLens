@@ -6,10 +6,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–7**, **Wave A/B**, **Wave C (G0–G4)**, Phase **8**, Phase **9** (Gemini + Vertex + Bedrock via [#58](https://github.com/vksvicky/RepoLens/issues/58)), and LogViewer dogfood (**#15/#16/#13**) complete ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)). **Parked:** **#17b** local UI calibrations.
-**Current phase:** Phases **0–9** complete. **[#86](https://github.com/vksvicky/RepoLens/issues/86)** 32B `role_packs=true` Audit recorded (`…_1026`). **[#88](https://github.com/vksvicky/RepoLens/issues/88)** tag `v0.1.0` still needs an explicit publish. **[#89](https://github.com/vksvicky/RepoLens/issues/89)** closed. **Parked:** [#91](https://github.com/vksvicky/RepoLens/issues/91)–[#96](https://github.com/vksvicky/RepoLens/issues/96) (index [#90](https://github.com/vksvicky/RepoLens/issues/90)). Index: [#12](https://github.com/vksvicky/RepoLens/issues/12).
-  
-**Parked (no sticky tracker):** light heuristics / formal Semgrep–CodeQL study cells / full Trivy registry-auth matrix (formerly [#11](https://github.com/vksvicky/RepoLens/issues/11)); **#17b** local UI calibrations. SARIF import shipped (`--import-sarif`).  
+**Current phase:** Phases **0–9**, Waves **A–C**, Metis thin MVPs + `role_packs` dogfood ([#86](https://github.com/vksvicky/RepoLens/issues/86)–[#87](https://github.com/vksvicky/RepoLens/issues/87)), Sonargraph-shaped CLI/editor ([#89](https://github.com/vksvicky/RepoLens/issues/89)), and parked slice [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. PyPI: **`repolens-audit==0.1.1`** ([#88](https://github.com/vksvicky/RepoLens/issues/88) + follow-on). Robust-product shields (INCOMPLETE gate, presets, `--retry-pass`) shipped on `main`.  
+**Parked (not a release gate):** [#91](https://github.com/vksvicky/RepoLens/issues/91) local UI calibrations (#17b). Index: [#12](https://github.com/vksvicky/RepoLens/issues/12).  
 **Feedback:** [Discussions](https://github.com/vksvicky/RepoLens/discussions) + [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose) (feedback mega-thread [#6](https://github.com/vksvicky/RepoLens/issues/6) closed).
 
 **CLI language:** Python 3.11+
@@ -24,7 +22,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | ↳ Gate UX & copy MVP (A2) | [#17](https://github.com/vksvicky/RepoLens/issues/17) | [x] Merged via PR #23; #17b pinned |
 | **Wave B: Distribution & CI** | | **Done** |
 | ↳ Phase 7: Enterprise CI/CD (B1) | [#3](https://github.com/vksvicky/RepoLens/issues/3) | [x] Closed — docs MVP + Sourcery follow-ups (#26/#31) |
-| ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | [x] Closed — `repolens-audit==0.1.0a1` on PyPI |
+| ↳ PyPI alpha (B2) | [#1](https://github.com/vksvicky/RepoLens/issues/1) | [x] Closed — `repolens-audit==0.1.0a1`; non-alpha **0.1.0** / **0.1.1** via [#88](https://github.com/vksvicky/RepoLens/issues/88) |
 | **Wave C: Structure / Zügel-aligned** | [#18](https://github.com/vksvicky/RepoLens/issues/18) | **Done** — G0–G4 (umbrella closing) |
 | ↳ G0 Fast Brain quality / DRY | [#33](https://github.com/vksvicky/RepoLens/issues/33) | [x] Merged via [PR #45](https://github.com/vksvicky/RepoLens/pull/45) |
 | ↳ G1 Python import graph | [#34](https://github.com/vksvicky/RepoLens/issues/34) | [x] Merged via [PR #46](https://github.com/vksvicky/RepoLens/pull/46) |
@@ -34,12 +32,14 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [x] Sourcery/CodeRabbit vs gate — see [repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit) |
 | 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) / [#58](https://github.com/vksvicky/RepoLens/issues/58) | Phase 8 done ([PR #51](https://github.com/vksvicky/RepoLens/pull/51)); Phase 9 Gemini + Vertex + Bedrock ([PR #52](https://github.com/vksvicky/RepoLens/pull/52) + #58) |
 | Dogfood: 32B cost / change-set | [#15](https://github.com/vksvicky/RepoLens/issues/15) / [#16](https://github.com/vksvicky/RepoLens/issues/16) | **Done** ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)); umbrella [#13](https://github.com/vksvicky/RepoLens/issues/13) closed |
-| Deferred residuals | formerly [#11](https://github.com/vksvicky/RepoLens/issues/11) | **Closed** — parked in phases header (heuristics / study / Trivy registry); SARIF **import** shipped (`--import-sarif`) |
+| Deferred residuals | formerly [#11](https://github.com/vksvicky/RepoLens/issues/11) → [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) | **Closed** — heuristics, Semgrep–CodeQL note, Trivy registry matrix, multi-lang graph, strict DSL |
 | Design principles (DRY/KISS/SOLID) | [#62](https://github.com/vksvicky/RepoLens/issues/62)–[#64](https://github.com/vksvicky/RepoLens/issues/64) | Themes + scorecard legend + graph DIP copy |
 | SARIF CI ergonomics | [#65](https://github.com/vksvicky/RepoLens/issues/65) / [#66](https://github.com/vksvicky/RepoLens/issues/66) | `--require-sarif-import` + companion recipes |
-| Complexity + cognitive + AI | [#67](https://github.com/vksvicky/RepoLens/issues/67)–[#74](https://github.com/vksvicky/RepoLens/issues/74) | Design: [complexity-and-cognitive-ai.md](./design/complexity-and-cognitive-ai.md) — MVP issues filed |
+| Complexity + cognitive + AI | [#67](https://github.com/vksvicky/RepoLens/issues/67)–[#74](https://github.com/vksvicky/RepoLens/issues/74) | **Closed** — Fast/Slow Brain MVP ([complexity-and-cognitive-ai.md](./design/complexity-and-cognitive-ai.md)) |
+| Metis / compare lane | [#86](https://github.com/vksvicky/RepoLens/issues/86)–[#87](https://github.com/vksvicky/RepoLens/issues/87) · [compare.md](./compare.md) | **Closed** — measured `role_packs` table; no Metis ~60% claims |
+| Sonargraph-shaped editor | [#89](https://github.com/vksvicky/RepoLens/issues/89) | **Closed** — C1–C7 CLI + VS Code client; Zed/IntelliJ first READMEs |
 | Community feedback | formerly [#6](https://github.com/vksvicky/RepoLens/issues/6) | **Closed** — [Discussions](https://github.com/vksvicky/RepoLens/discussions) + issue templates |
-| Local UI calibrations | #17b on [#17](https://github.com/vksvicky/RepoLens/issues/17) | Parked |
+| Local UI calibrations | [#91](https://github.com/vksvicky/RepoLens/issues/91) (#17b on [#17](https://github.com/vksvicky/RepoLens/issues/17)) | **Parked** — not a release gate |
 ---
 
 ## Legend
@@ -446,7 +446,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **#21** Vacuous pass confidence floor | [x] | Merged via PR #22; auto-floors clean passes to 75/55; respects declarative seeds |
 | **#14** Cross-source SCA deduplication (A1) | [x] | Merged via PR #23 (+ #24/#25 Sourcery harden) |
 | **#17** Gate UX & copy alignment MVP (A2) | [x] | Merged via PR #23; FAQ-aligned one-liner + Unique Critical/High |
-| **#17b** Local UI attack surface calibrations | [ ] | Pinned on [#17](https://github.com/vksvicky/RepoLens/issues/17#issuecomment-5558813811); Phase 7 done — unpark after #1 if desired |
+| **#17b** Local UI attack surface calibrations | [ ] | Still parked as [#91](https://github.com/vksvicky/RepoLens/issues/91); unpark only on explicit ask |
 | **Former parked:** #15 / #16 | [~] | Unparked as next dogfood; #18 Wave C closed when G0–G4 confirmed |
 
 **Wave A exit criteria:** Met for MVP (unique SCA ≈ unique Crit/High; vacuous floor; gate ≠ "% secure" copy).
