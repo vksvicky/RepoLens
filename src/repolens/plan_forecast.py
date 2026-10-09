@@ -62,6 +62,43 @@ def forecast_deep_plan(
     full_audit: bool = False,
 ) -> PlanForecast:
     """Inventory + plan_deep_passes only. Never calls an LLM or scanners."""
+    fast_files, llm_files, passes = _plan_forecast_passes(
+        root, cfg, mode=mode, full_audit=full_audit
+    )
+    forecasts = [
+        PassForecast(
+            name=p.name,
+            pack_mode=getattr(p, "pack_mode", "full"),
+            file_count=len(p.files),
+            estimated_chars=_pass_char_estimate(p),
+            rule_count=len(p.rule_ids),
+            coverage_id_count=len(p.coverage_ids),
+            sample_paths=[e.relative for e in p.files[:8]],
+        )
+        for p in passes
+    ]
+    minutes, estimate_line, provider = _forecast_runtime(cfg, forecasts)
+    return PlanForecast(
+        root=str(root),
+        role_packs=bool(cfg.deep.role_packs),
+        inventory_kept=len(fast_files),
+        llm_pool=len(llm_files),
+        chars_per_pass=cfg.deep.chars_per_pass,
+        provider=provider,
+        estimate_minutes=minutes,
+        estimate_line=estimate_line,
+        total_estimated_chars=sum(f.estimated_chars for f in forecasts),
+        passes=forecasts,
+    )
+
+
+def _plan_forecast_passes(
+    root: Path,
+    cfg: RepoLensConfig,
+    *,
+    mode: str,
+    full_audit: bool,
+) -> tuple[list, list, list]:
     inv = scan_inventory(
         root,
         mode="full",
@@ -98,18 +135,12 @@ def forecast_deep_plan(
         role_packs=bool(cfg.deep.role_packs),
         graph=graph,
     )
-    forecasts = [
-        PassForecast(
-            name=p.name,
-            pack_mode=getattr(p, "pack_mode", "full"),
-            file_count=len(p.files),
-            estimated_chars=_pass_char_estimate(p),
-            rule_count=len(p.rule_ids),
-            coverage_id_count=len(p.coverage_ids),
-            sample_paths=[e.relative for e in p.files[:8]],
-        )
-        for p in passes
-    ]
+    return fast_files, llm_files, passes
+
+
+def _forecast_runtime(
+    cfg: RepoLensConfig, forecasts: list[PassForecast]
+) -> tuple[int, str, str]:
     file_proxy = max((f.file_count for f in forecasts), default=0)
     provider = cfg.model.provider or "unknown"
     if cfg.deep.role_packs and forecasts:
@@ -131,18 +162,7 @@ def forecast_deep_plan(
         estimate_line = estimate_deep_runtime(
             files=file_proxy, passes=len(forecasts), provider=provider
         )
-    return PlanForecast(
-        root=str(root),
-        role_packs=bool(cfg.deep.role_packs),
-        inventory_kept=len(fast_files),
-        llm_pool=len(llm_files),
-        chars_per_pass=cfg.deep.chars_per_pass,
-        provider=provider,
-        estimate_minutes=minutes,
-        estimate_line=estimate_line,
-        total_estimated_chars=sum(f.estimated_chars for f in forecasts),
-        passes=forecasts,
-    )
+    return minutes, estimate_line, provider
 
 
 def forecast_as_dict(plan: PlanForecast) -> dict:

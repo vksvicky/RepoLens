@@ -135,32 +135,13 @@ def _trivy_config(root: Path, trivy_cfg: Any) -> Any:
     return load_config(root).scanners.trivy
 
 
-def run_trivy(
-    root: Path,
+def _run_trivy_fs(
     *,
-    trivy_cfg: Any | None = None,
-    environ: Mapping[str, str] | None = None,
-) -> ScannerResult:
-    """Run ``trivy fs`` (and optional ``trivy image``) as JSON against ``root``."""
-    env_src = environ if environ is not None else os.environ
-    cfg = _trivy_config(root, trivy_cfg)
-    if cfg.pass_registry_env and registry_auth_incomplete(env_src):
-        return ScannerResult(
-            run=ScannerRun(
-                tool="trivy",
-                status="failed",
-                detail=INCOMPLETE_AUTH_DETAIL,
-            )
-        )
-    binary = resolve_binary("trivy")
-    if binary is None:
-        return ScannerResult(
-            run=ScannerRun(tool="trivy", status="skipped", detail="not found on PATH or cache")
-        )
-    child = trivy_child_env(env_src, pass_registry_env=cfg.pass_registry_env)
-    issues: list[Issue] = []
-    details: list[str] = []
-
+    binary: Path,
+    root: Path,
+    child: dict[str, str],
+    env_src: Mapping[str, str],
+) -> ScannerResult | list[Issue]:
     completed = subprocess.run(
         [
             str(binary),
@@ -188,22 +169,34 @@ def run_trivy(
             )
         )
     raw = (completed.stdout or "").strip()
-    if raw:
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError:
-            return ScannerResult(
-                run=ScannerRun(
-                    tool="trivy",
-                    status="failed",
-                    detail="invalid JSON output",
-                )
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return ScannerResult(
+            run=ScannerRun(
+                tool="trivy",
+                status="failed",
+                detail="invalid JSON output",
             )
-        if not isinstance(data, dict):
-            data = {}
-        issues.extend(parse_trivy_report(data))
+        )
+    if not isinstance(data, dict):
+        data = {}
+    return parse_trivy_report(data)
 
-    for ref in cfg.images:
+
+def _run_trivy_images(
+    *,
+    binary: Path,
+    root: Path,
+    images: list,
+    child: dict[str, str],
+    env_src: Mapping[str, str],
+) -> tuple[list[Issue], list[str]]:
+    issues: list[Issue] = []
+    details: list[str] = []
+    for ref in images:
         image = str(ref).strip()
         if not image:
             continue
@@ -238,7 +231,44 @@ def run_trivy(
             continue
         if isinstance(data, dict):
             issues.extend(parse_trivy_report(data))
+    return issues, details
 
+
+def run_trivy(
+    root: Path,
+    *,
+    trivy_cfg: Any | None = None,
+    environ: Mapping[str, str] | None = None,
+) -> ScannerResult:
+    """Run ``trivy fs`` (and optional ``trivy image``) as JSON against ``root``."""
+    env_src = environ if environ is not None else os.environ
+    cfg = _trivy_config(root, trivy_cfg)
+    if cfg.pass_registry_env and registry_auth_incomplete(env_src):
+        return ScannerResult(
+            run=ScannerRun(
+                tool="trivy",
+                status="failed",
+                detail=INCOMPLETE_AUTH_DETAIL,
+            )
+        )
+    binary = resolve_binary("trivy")
+    if binary is None:
+        return ScannerResult(
+            run=ScannerRun(tool="trivy", status="skipped", detail="not found on PATH or cache")
+        )
+    child = trivy_child_env(env_src, pass_registry_env=cfg.pass_registry_env)
+    fs_result = _run_trivy_fs(binary=binary, root=root, child=child, env_src=env_src)
+    if isinstance(fs_result, ScannerResult):
+        return fs_result
+    issues = list(fs_result)
+    image_issues, details = _run_trivy_images(
+        binary=binary,
+        root=root,
+        images=cfg.images,
+        child=child,
+        env_src=env_src,
+    )
+    issues.extend(image_issues)
     detail = redact_secrets("; ".join(details), env_src) if details else ""
     return ScannerResult(
         run=ScannerRun(

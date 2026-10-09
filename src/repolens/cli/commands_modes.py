@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import typer
-
 from repolens.cli.app import app
 from repolens.cli.commands_review import _run_mode
 from repolens.cli.pack_scope import (
@@ -15,9 +13,35 @@ from repolens.cli.pack_scope import (
     option_git_diff,
     option_git_url,
     option_github,
+    option_heartbeat,
     option_hf,
     option_path,
+    option_quiet,
     option_ref,
+    option_require_scanners,
+    option_scanners,
+    option_scanners_only,
+    option_timeout,
+    option_trust_project,
+    option_verbose,
+)
+from repolens.cli.review_options import (
+    option_ci,
+    option_deep,
+    option_deep_passes,
+    option_dry_run,
+    option_fail_on_short,
+    option_fallback,
+    option_format,
+    option_import_sarif,
+    option_model,
+    option_out,
+    option_pack,
+    option_require_sarif_import,
+    option_review_mode,
+    option_sarif,
+    option_since,
+    option_verify_findings,
 )
 
 
@@ -29,138 +53,57 @@ def sentinel(
     bitbucket: str | None = option_bitbucket(),
     hf: str | None = option_hf(),
     ref: str | None = option_ref(),
-    mode: str = typer.Option("full", "--mode", help="full | diff"),
-    since: str | None = typer.Option(None, "--since", help="Diff base ref"),
-    out: Path | None = typer.Option(None, "--out", help="Report directory"),
-    fmt: str = typer.Option("md", "--format", help="md | json | both"),
-    model: str | None = typer.Option(None, "--model", help="Override model name"),
-    fail_on: str | None = typer.Option(None, "--fail-on", help="Exit 1 severity threshold"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Inventory only; no LLM call"),
-    trust_project: bool = typer.Option(
-        False,
-        "--trust-project-config",
-        help="Allow project .repolens.toml to set provider/base_url/api_key_env",
-    ),
-    scanners: str = typer.Option(
-        "auto",
-        "--scanners",
-        help="auto | off | comma list (gitleaks,semgrep,osv,trivy,checkov)",
-    ),
-    require_scanners: bool = typer.Option(
-        False, "--require-scanners", help="Exit 2 if a requested scanner is missing"
-    ),
-    scanners_only: bool = typer.Option(
-        False, "--scanners-only", help="Skip LLM; report scanner findings only"
-    ),
-    quiet: bool = typer.Option(False, "--quiet", "-q", help="Hide progress status lines"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Extra progress detail (file sample, scanner status)"
-    ),
-    heartbeat: float = typer.Option(
-        15.0,
-        "--heartbeat",
-        help="Seconds between LLM wait heartbeats (0 disables)",
-    ),
-    timeout: float | None = typer.Option(
-        None,
-        "--timeout",
-        help="LLM HTTP timeout in seconds (default: 900 for ollama, 120 otherwise)",
-    ),
+    mode: str = option_review_mode(),
+    since: str | None = option_since(),
+    out: Path | None = option_out(),
+    fmt: str = option_format(),
+    model: str | None = option_model(),
+    fail_on: str | None = option_fail_on_short(),
+    dry_run: bool = option_dry_run(),
+    trust_project: bool = option_trust_project(),
+    scanners: str = option_scanners(),
+    require_scanners: bool = option_require_scanners(),
+    scanners_only: bool = option_scanners_only(),
+    quiet: bool = option_quiet(),
+    verbose: bool = option_verbose(),
+    heartbeat: float = option_heartbeat(),
+    timeout: float | None = option_timeout(),
     force_full: bool = option_force_full(),
     force_changed: bool = option_force_changed(),
     git_diff: str | None = option_git_diff(),
-    deep: bool | None = typer.Option(
-        None,
-        "--deep/--no-deep",
-        help="Multi-pass deep coverage (default: on; --no-deep = single-shot)",
-    ),
-    deep_passes: int | None = typer.Option(
-        None,
-        "--deep-passes",
-        help="Cap deep band passes (1 = P1-only). Overrides [deep].max_passes.",
-        min=1,
-    ),
-    ci: bool = typer.Option(
-        False,
-        "--ci",
-        help="PR/CI recipe: triage routing, --changed pack, single-shot LLM on scanner hits only",
-    ),
-    sarif: bool = typer.Option(
-        False,
-        "--sarif",
-        help="Write anchored SARIF 2.1 (scanner locations + resolvable anchors only)",
-    ),
-    verify_findings: bool | None = typer.Option(
-        None,
-        "--verify-findings/--no-verify-findings",
-        help="Re-check Critical locations (non-fatal; default: [deep].verify_findings)",
-    ),
-    pack: list[str] | None = typer.Option(
-        None,
-        "--pack",
-        help="Enable a domain pack (repeatable); see `repolens packs list`",
-    ),
-    fallback: bool = typer.Option(
-        True,
-        "--fallback/--no-fallback",
-        help=(
-            "Automatically fall back to local Ollama or SAST scanners "
-            "when Cloud AI is unavailable"
-        ),
-    ),
-    import_sarif: list[Path] | None = typer.Option(
-        None,
-        "--import-sarif",
-        help="Merge findings from a SARIF 2.1 file (repeatable). Treated as scanner evidence.",
-    ),
-    require_sarif_import: bool = typer.Option(
-        False,
-        "--require-sarif-import",
-        help=(
-            "Exit 2 if any --import-sarif path is missing or unreadable "
-            "(default: soft-fail and continue)"
-        ),
-    ),
+    deep: bool | None = option_deep(),
+    deep_passes: int | None = option_deep_passes(),
+    ci: bool = option_ci(),
+    sarif: bool = option_sarif(),
+    verify_findings: bool | None = option_verify_findings(),
+    pack: list[str] | None = option_pack(),
+    fallback: bool = option_fallback(),
+    import_sarif: list[Path] | None = option_import_sarif(),
+    require_sarif_import: bool = option_require_sarif_import(),
 ) -> None:
     """Security-only review (P1 playbook)."""
+    _body_sentinel(
+        path, git_url, github, bitbucket, hf, ref, mode, since, out, fmt, model,
+        fail_on, dry_run, trust_project, scanners, require_scanners, scanners_only,
+        quiet, verbose, heartbeat, timeout, force_full, force_changed, git_diff,
+        deep, deep_passes, ci, sarif, verify_findings, pack, fallback,
+        import_sarif, require_sarif_import,
+    )
+
+
+def _body_sentinel(
+    path, git_url, github, bitbucket, hf, ref, mode, since, out, fmt, model,
+    fail_on, dry_run, trust_project, scanners, require_scanners, scanners_only,
+    quiet, verbose, heartbeat, timeout, force_full, force_changed, git_diff,
+    deep, deep_passes, ci, sarif, verify_findings, pack, fallback,
+    import_sarif, require_sarif_import,
+) -> None:
     _run_mode(
-        "sentinel",
-        path,
-        git_url,
-        github,
-        bitbucket,
-        hf,
-        ref,
-        mode,
-        since,
-        out,
-        fmt,
-        model,
-        fail_on,
-        dry_run,
-        False,
-        trust_project,
-        scanners,
-        require_scanners,
-        scanners_only,
-        quiet,
-        verbose,
-        heartbeat,
-        timeout,
-        force_full,
-        force_changed,
-        git_diff,
-        deep_passes,
-        deep,
-        None,
-        ci,
-        sarif,
-        verify_findings,
-        pack,
-        fallback,
-        False,
-        import_sarif,
-        require_sarif_import,
+        "sentinel", path, git_url, github, bitbucket, hf, ref, mode, since, out, fmt,
+        model, fail_on, dry_run, False, trust_project, scanners, require_scanners,
+        scanners_only, quiet, verbose, heartbeat, timeout, force_full, force_changed,
+        git_diff, deep_passes, deep, None, ci, sarif, verify_findings, pack, fallback,
+        False, import_sarif, require_sarif_import,
     )
 
 
@@ -172,136 +115,55 @@ def architecture(
     bitbucket: str | None = option_bitbucket(),
     hf: str | None = option_hf(),
     ref: str | None = option_ref(),
-    mode: str = typer.Option("full", "--mode", help="full | diff"),
-    since: str | None = typer.Option(None, "--since", help="Diff base ref"),
-    out: Path | None = typer.Option(None, "--out", help="Report directory"),
-    fmt: str = typer.Option("md", "--format", help="md | json | both"),
-    model: str | None = typer.Option(None, "--model", help="Override model name"),
-    fail_on: str | None = typer.Option(None, "--fail-on", help="Exit 1 severity threshold"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Inventory only; no LLM call"),
-    trust_project: bool = typer.Option(
-        False,
-        "--trust-project-config",
-        help="Allow project .repolens.toml to set provider/base_url/api_key_env",
-    ),
-    scanners: str = typer.Option(
-        "auto",
-        "--scanners",
-        help="auto | off | comma list (gitleaks,semgrep,osv,trivy,checkov)",
-    ),
-    require_scanners: bool = typer.Option(
-        False, "--require-scanners", help="Exit 2 if a requested scanner is missing"
-    ),
-    scanners_only: bool = typer.Option(
-        False, "--scanners-only", help="Skip LLM; report scanner findings only"
-    ),
-    quiet: bool = typer.Option(False, "--quiet", "-q", help="Hide progress status lines"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Extra progress detail (file sample, scanner status)"
-    ),
-    heartbeat: float = typer.Option(
-        15.0,
-        "--heartbeat",
-        help="Seconds between LLM wait heartbeats (0 disables)",
-    ),
-    timeout: float | None = typer.Option(
-        None,
-        "--timeout",
-        help="LLM HTTP timeout in seconds (default: 900 for ollama, 120 otherwise)",
-    ),
+    mode: str = option_review_mode(),
+    since: str | None = option_since(),
+    out: Path | None = option_out(),
+    fmt: str = option_format(),
+    model: str | None = option_model(),
+    fail_on: str | None = option_fail_on_short(),
+    dry_run: bool = option_dry_run(),
+    trust_project: bool = option_trust_project(),
+    scanners: str = option_scanners(),
+    require_scanners: bool = option_require_scanners(),
+    scanners_only: bool = option_scanners_only(),
+    quiet: bool = option_quiet(),
+    verbose: bool = option_verbose(),
+    heartbeat: float = option_heartbeat(),
+    timeout: float | None = option_timeout(),
     force_full: bool = option_force_full(),
     force_changed: bool = option_force_changed(),
     git_diff: str | None = option_git_diff(),
-    deep: bool | None = typer.Option(
-        None,
-        "--deep/--no-deep",
-        help="Multi-pass deep coverage (default: on; --no-deep = single-shot)",
-    ),
-    deep_passes: int | None = typer.Option(
-        None,
-        "--deep-passes",
-        help="Cap deep band passes (1 = P1-only). Overrides [deep].max_passes.",
-        min=1,
-    ),
-    ci: bool = typer.Option(
-        False,
-        "--ci",
-        help="PR/CI recipe: triage routing, --changed pack, single-shot LLM on scanner hits only",
-    ),
-    sarif: bool = typer.Option(
-        False,
-        "--sarif",
-        help="Write anchored SARIF 2.1 (scanner locations + resolvable anchors only)",
-    ),
-    verify_findings: bool | None = typer.Option(
-        None,
-        "--verify-findings/--no-verify-findings",
-        help="Re-check Critical locations (non-fatal; default: [deep].verify_findings)",
-    ),
-    pack: list[str] | None = typer.Option(
-        None,
-        "--pack",
-        help="Enable a domain pack (repeatable); see `repolens packs list`",
-    ),
-    fallback: bool = typer.Option(
-        True,
-        "--fallback/--no-fallback",
-        help=(
-            "Automatically fall back to local Ollama or SAST scanners "
-            "when Cloud AI is unavailable"
-        ),
-    ),
-    import_sarif: list[Path] | None = typer.Option(
-        None,
-        "--import-sarif",
-        help="Merge findings from a SARIF 2.1 file (repeatable). Treated as scanner evidence.",
-    ),
-    require_sarif_import: bool = typer.Option(
-        False,
-        "--require-sarif-import",
-        help=(
-            "Exit 2 if any --import-sarif path is missing or unreadable "
-            "(default: soft-fail and continue)"
-        ),
-    ),
+    deep: bool | None = option_deep(),
+    deep_passes: int | None = option_deep_passes(),
+    ci: bool = option_ci(),
+    sarif: bool = option_sarif(),
+    verify_findings: bool | None = option_verify_findings(),
+    pack: list[str] | None = option_pack(),
+    fallback: bool = option_fallback(),
+    import_sarif: list[Path] | None = option_import_sarif(),
+    require_sarif_import: bool = option_require_sarif_import(),
 ) -> None:
     """Architecture / production-readiness audit."""
+    _body_architecture(
+        path, git_url, github, bitbucket, hf, ref, mode, since, out, fmt, model,
+        fail_on, dry_run, trust_project, scanners, require_scanners, scanners_only,
+        quiet, verbose, heartbeat, timeout, force_full, force_changed, git_diff,
+        deep, deep_passes, ci, sarif, verify_findings, pack, fallback,
+        import_sarif, require_sarif_import,
+    )
+
+
+def _body_architecture(
+    path, git_url, github, bitbucket, hf, ref, mode, since, out, fmt, model,
+    fail_on, dry_run, trust_project, scanners, require_scanners, scanners_only,
+    quiet, verbose, heartbeat, timeout, force_full, force_changed, git_diff,
+    deep, deep_passes, ci, sarif, verify_findings, pack, fallback,
+    import_sarif, require_sarif_import,
+) -> None:
     _run_mode(
-        "architecture",
-        path,
-        git_url,
-        github,
-        bitbucket,
-        hf,
-        ref,
-        mode,
-        since,
-        out,
-        fmt,
-        model,
-        fail_on,
-        dry_run,
-        True,
-        trust_project,
-        scanners,
-        require_scanners,
-        scanners_only,
-        quiet,
-        verbose,
-        heartbeat,
-        timeout,
-        force_full,
-        force_changed,
-        git_diff,
-        deep_passes,
-        deep,
-        None,
-        ci,
-        sarif,
-        verify_findings,
-        pack,
-        fallback,
-        False,
-        import_sarif,
-        require_sarif_import,
+        "architecture", path, git_url, github, bitbucket, hf, ref, mode, since, out,
+        fmt, model, fail_on, dry_run, True, trust_project, scanners, require_scanners,
+        scanners_only, quiet, verbose, heartbeat, timeout, force_full, force_changed,
+        git_diff, deep_passes, deep, None, ci, sarif, verify_findings, pack, fallback,
+        False, import_sarif, require_sarif_import,
     )

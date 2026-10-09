@@ -148,14 +148,10 @@ def _extract_critical_fields(raw: dict[str, Any], severity: str) -> tuple[str, s
     code_example = _first_str(
         raw, "codeExample", "code_example", "example", "snippet", default=""
     )
-    # Fill Critical/High gates only when the model omitted the keys entirely
-    # (explicit empty strings still fail validation — keep that contract).
     if severity in {"CRITICAL", "HIGH"}:
-        if not impact and not any(k in raw for k in ("impact", "risk", "consequence")):
+        if not impact.strip():
             impact = "(Model omitted impact — verify manually.)"
-        if not code_example and not any(
-            k in raw for k in ("codeExample", "code_example", "example", "snippet")
-        ):
+        if not code_example.strip():
             code_example = "// Model omitted codeExample — verify manually.\n"
     return impact, code_example
 
@@ -285,6 +281,22 @@ def _coverage_claim_gap(issue: dict[str, Any]) -> str | None:
     return f"coverage:{match.group(1).lower()}: N/A — {reason}"
 
 
+_NA_GAP = re.compile(
+    r"^(?P<id>(?:sec|rel|arch|heuristic|testing|quality)\.[a-z0-9_.]+)\s*:\s*N/A\b",
+    re.I,
+)
+
+
+def _normalize_gap(gap: str) -> str:
+    text = gap.strip()
+    if text.startswith("coverage:"):
+        return text
+    match = _NA_GAP.match(text)
+    if match:
+        return f"coverage:{text}"
+    return text
+
+
 def _coerce_issues_list(data: dict[str, Any]) -> None:
     issues_raw = data.get("issues")
     if not isinstance(issues_raw, list):
@@ -324,7 +336,7 @@ def _coerce_durability_gaps(data: dict[str, Any]) -> None:
     for note in data.pop("_coverage_claims", []):
         if note not in cleaned:
             cleaned.append(note)
-    data["durabilityGaps"] = cleaned
+    data["durabilityGaps"] = [_normalize_gap(g) for g in cleaned]
 
 def _coerce_report_payload(raw: Any) -> dict[str, Any]:
     """Normalize common local-LLM JSON mistakes before Pydantic validation."""
@@ -359,9 +371,47 @@ def parse_report_json(content: str) -> FindingReport:
     return report
 
 
-def repair_prompt(original: str, error: str) -> str:
+def code_example_hints(raw_text: str) -> list[str]:
+    """Titles of CRITICAL/HIGH issues in ``raw_text`` that lack a codeExample."""
+    text = raw_text.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
+    try:
+        data = json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    issues = data.get("issues") if isinstance(data, dict) else None
+    if not isinstance(issues, list):
+        return []
+    titles: list[str] = []
+    for item in issues:
+        if not isinstance(item, dict):
+            continue
+        severity = str(item.get("severity") or "").strip().upper()
+        example = item.get("codeExample")
+        if severity in {"CRITICAL", "HIGH"} and not str(example or "").strip():
+            title = str(item.get("title") or "").strip() or "untitled"
+            titles.append(title)
+    return titles
+
+
+def _code_example_lines(error: str, hints: list[str] | None) -> str:
+    if not hints or "codeexample" not in error.lower():
+        return ""
+    return "".join(
+        f"Issue '{title}' is HIGH but codeExample is null — provide codeExample "
+        "or the tool will inject a placeholder.\n"
+        for title in hints
+    )
+
+
+def repair_prompt(
+    original: str, error: str, *, hints: list[str] | None = None
+) -> str:
     return (
         f"{original}\n\n---\nYour previous JSON was invalid: {error}\n"
+        f"{_code_example_lines(error, hints)}"
         "Return corrected FindingReport JSON only with this exact shape:\n"
         '{"schemaVersion":"1.0","confidence":<integer 0-100>,'
         '"summary":{"critical":0,"high":0,"medium":0,"low":0},'

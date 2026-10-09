@@ -11,6 +11,7 @@
 | --- | --- | --- |
 | **Plan** (recon) | `repolens plan --path .` | Inventory + Slow Brain pack forecast + chars estimate. **No LLM.** Optional `--role-packs` / `--no-role-packs`. |
 | **Plan** (scanners) | `repolens review --path . --scanners-only …` | Scanners without Slow Brain. |
+| **Preset** | `repolens review --preset pr\|changed\|release` | `pr` = scanners-only (zero LLM/Ollama); `changed` = `--git-diff auto --deep`; `release` = `--full --full-audit --deep`. Explicit flags override. **`pr` is not a CI gate** — no `--fail-on` / `--ci` unless you add them; use `--ci --fail-on HIGH` for PR fail behavior. |
 | **Audit** (synthesis) | `repolens review --deep …` (command 1 below) | Slow Brain P1→P2→P3 + report. |
 | Inventory only | `repolens review --dry-run` | **Protected** semantics — inventory dump; do not overload with forecast/scanners. |
 

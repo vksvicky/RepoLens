@@ -9,6 +9,14 @@ from pathlib import Path
 import typer
 
 from repolens.cli.app import check_app, console
+from repolens.cli.review_options import (
+    option_base,
+    option_baseline,
+    option_check_diff,
+    option_check_format,
+    option_check_path,
+    option_require_baseline,
+)
 from repolens.config import GraphConfig, load_config
 from repolens.git_refs import git_available, is_safe_git_ref, resolve_diff_base
 from repolens.graph import analyse_repo_graph
@@ -112,34 +120,26 @@ def _maybe_anchor_breach(
 @check_app.callback(invoke_without_command=True)
 def check(
     ctx: typer.Context,
-    diff: bool = typer.Option(
-        False,
-        "--diff",
-        help="Compare runtime cyclicity to the baseline (graph-only ratchet)",
-    ),
-    fmt: str = typer.Option(
-        "",
-        "--format",
-        help="sarif | jsonl — Fast Brain diagnostic stream (no LLM; no --diff needed)",
-    ),
-    path: Path = typer.Option(Path("."), "--path", help="Project root to analyse"),
-    baseline: Path | None = typer.Option(
-        None,
-        "--baseline",
-        help="Baseline JSON path (default: config baseline_path or .repolens/baseline.json)",
-    ),
-    require_baseline: bool = typer.Option(
-        False,
-        "--require-baseline",
-        help="Exit 2 when no baseline file is present (recommended for CI)",
-    ),
-    base: str | None = typer.Option(
-        None,
-        "--base",
-        help="Git diff base ref (else GITHUB_BASE_REF / merge-base / working tree)",
-    ),
+    diff: bool = option_check_diff(),
+    fmt: str = option_check_format(),
+    path: Path = option_check_path(),
+    baseline: Path | None = option_baseline(),
+    require_baseline: bool = option_require_baseline(),
+    base: str | None = option_base(),
 ) -> None:
     """Graph-only cyclicity ratchet, or Fast Brain diagnostics with --format."""
+    _body_check(ctx, diff, fmt, path, baseline, require_baseline, base)
+
+
+def _body_check(
+    ctx: typer.Context,
+    diff: bool,
+    fmt: str,
+    path: Path,
+    baseline: Path | None,
+    require_baseline: bool,
+    base: str | None,
+) -> None:
     if ctx.invoked_subcommand is not None:
         return
     fmt_n = fmt.strip().lower()
@@ -155,15 +155,21 @@ def check(
             "Example: [cyan]repolens check --diff[/cyan]"
         )
         raise typer.Exit(code=2)
+    _run_check_ratchet(path.resolve(), baseline, require_baseline, base)
 
-    root = path.resolve()
+
+def _run_check_ratchet(
+    root: Path,
+    baseline: Path | None,
+    require_baseline: bool,
+    base: str | None,
+) -> None:
     cfg = load_config(root)
     graph_cfg: GraphConfig = cfg.graph
     target = _resolve_baseline_path(
         root, baseline=baseline, baseline_path=graph_cfg.baseline_path
     )
     must_have = require_baseline or graph_cfg.require_baseline
-
     if not target.is_file():
         if must_have:
             console.print(f"[red]No baseline found at[/red] {target}")
@@ -193,27 +199,20 @@ def check(
     doc = load_baseline(target)
     current_metrics = measure_quality_metrics(root, cfg, result)
     ratchet = evaluate_ratchet(
-        current=result,
-        baseline=doc,
-        config=graph_cfg,
-        current_metrics=current_metrics,
+        current=result, baseline=doc, config=graph_cfg, current_metrics=current_metrics,
     )
     console.print(ratchet.message)
     _print_fingerprint_delta(
-        added=ratchet.fingerprints_added,
-        removed=ratchet.fingerprints_removed,
+        added=ratchet.fingerprints_added, removed=ratchet.fingerprints_removed,
     )
     for note in ratchet.notes:
         console.print(f"[yellow]{note}[/yellow]")
     if ratchet.config_mismatch and ratchet.config_mismatch_detail:
         console.print(f"[dim]Config drift: {ratchet.config_mismatch_detail}[/dim]")
-
     if ratchet.breached:
         if not _maybe_anchor_breach(
-            root=root,
-            cli_base=base,
-            added_fingerprints=ratchet.fingerprints_added,
-            message=ratchet.message,
+            root=root, cli_base=base,
+            added_fingerprints=ratchet.fingerprints_added, message=ratchet.message,
         ):
             console.print(f"[yellow]{_UNANCHORED_NOTE}[/yellow]")
         raise typer.Exit(code=1)

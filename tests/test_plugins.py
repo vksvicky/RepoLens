@@ -139,7 +139,7 @@ def test_cli_require_scanners_exit_2(tmp_path: Path) -> None:
     from repolens.pipeline import ScannerRequirementError
 
     with patch(
-        "repolens.cli.commands_review.run_review",
+        "repolens.cli.commands_review_support.run_review",
         side_effect=ScannerRequirementError(["gitleaks"]),
     ):
         result = runner.invoke(
@@ -175,7 +175,7 @@ def test_cli_scanners_only_mocked(tmp_path: Path) -> None:
         files_scanned=1,
         dry_run=False,
     )
-    with patch("repolens.cli.commands_review.run_review", return_value=fake):
+    with patch("repolens.cli.commands_review_support.run_review", return_value=fake):
         result = runner.invoke(
             app,
             [

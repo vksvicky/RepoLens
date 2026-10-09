@@ -101,6 +101,7 @@ Set once in the shell: `TARGET=/Users/[username]/Development/[your-project]`
 | Dry-run inventory | Inventory only; **no** scanners/LLM | `repolens review --path "$TARGET" --out "$TARGET/reports" --dry-run` |
 | Scanners-only | Summary + MD/JSON; Fast Brain heuristics | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only` |
 | Scanners-only verbose | Extra `·` detail (scanners, SBOM, packs) | `repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only -v` |
+| **Preset** | `pr` = scanners-only (no LLM/Ollama); `changed` = `--git-diff auto --deep`; `release` = `--full --full-audit --deep`. Does **not** set `--fail-on` or `--ci` — add explicitly for a PR gate | `repolens review --path "$TARGET" --out "$TARGET/reports" --preset pr` |
 | CI gate (**fair Two-Lane demo**) | Triage; **`Two-Lane:`** headline; often **`LLM bypassed…`** when clean | `repolens review --path "$TARGET" --out "$TARGET/reports" --ci --fail-on HIGH -q` |
 | Adaptive deep (no `--full`) | Fast Brain ≈ tree; Slow Brain ≈ adaptive pack — check headline | `repolens review --path "$TARGET" --out "$TARGET/reports" --deep --verbose --timeout 3600` |
 | Force full Slow Brain pack (slow — not a speed demo) | Full LLM inventory; often **≥1 h** on local 32B | `repolens review --path "$TARGET" --out "$TARGET/reports" --full --deep --verbose --timeout 3600` |

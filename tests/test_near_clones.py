@@ -123,6 +123,36 @@ def test_import_only_suppressed(tmp_path: Path) -> None:
     assert result.issues == []
 
 
+def test_python_multiline_from_import_suppressed(tmp_path: Path) -> None:
+    """Parenthesized ``from … import (`` members are import-only, not clones."""
+    names = [
+        "option_bitbucket",
+        "option_force_changed",
+        "option_force_full",
+        "option_git_diff",
+        "option_git_url",
+        "option_github",
+        "option_heartbeat",
+        "option_hf",
+        "option_path",
+        "option_quiet",
+        "option_ref",
+        "option_require_scanners",
+        "option_scanners",
+        "option_scanners_only",
+        "option_timeout",
+        "option_trust_project",
+        "option_verbose",
+    ]
+    block = "from repolens.cli.pack_scope import (\n" + "".join(
+        f"    {name},\n" for name in names
+    ) + ")\n"
+    (tmp_path / "a.py").write_text(block, encoding="utf-8")
+    (tmp_path / "b.py").write_text(block, encoding="utf-8")
+    result = find_near_clones(_entries_under(tmp_path), config=NearClonesConfig())
+    assert result.issues == []
+
+
 def test_go_block_comment_header_suppressed(tmp_path: Path) -> None:
     # /* … */ style header within header_comment_lines (default 15)
     lines = ["/*"] + [f" * copyright line {i}" for i in range(10)] + [" */"]

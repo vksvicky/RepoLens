@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import time
 from datetime import UTC
-from pathlib import Path
 
 from repolens.config import resolve_report_dir
 from repolens.pipeline.deep_exec import (
@@ -18,7 +17,6 @@ from repolens.scanners.runner import missing_required, parse_scanners_flag, run_
 from repolens.scanners.sca import build_supply_chain, dedupe_sca_issues
 from repolens.schema import (
     FindingReport,
-    GraphBlock,
     ProvenanceBlock,
     Summary,
 )
@@ -316,28 +314,6 @@ def _run_fast_brain_phase(state: ReviewRun) -> None:
             f"ratio {tb.testsPerProductionFunction} tests/prod fn"
         )
 
-    state.graph_issues = []
-    state.graph_block = None
-    state.graph_gaps = []
-    state.graph_result = None
-    if any(Path(f.relative).suffix == ".py" for f in state.fast_files):
-        from repolens.graph import analyse_repo_graph
-        from repolens.graph.findings import cycles_to_issues
+    from repolens.pipeline.run_support import _run_graph_phase
 
-        gres = analyse_repo_graph(state.root, config=state.cfg.graph)
-        state.graph_result = gres
-        state.graph_gaps = list(gres.durability_gaps)
-        state.graph_issues = cycles_to_issues(
-            gres, critical_scc_size=state.cfg.graph.critical_scc_size
-        )
-        state.graph_block = GraphBlock(
-            status=gres.status.value,
-            cyclicity=gres.cyclicity,
-            cycleCount=len(gres.cycles),
-            moduleCount=gres.module_count,
-            packageCount=len(gres.packages),
-        )
-        state.prog.detail(
-            f"Import graph: {state.graph_block.cycleCount} cycle group(s), "
-            f"{len(state.graph_issues)} finding(s), cyclicity={state.graph_block.cyclicity}"
-        )
+    _run_graph_phase(state)

@@ -10,24 +10,9 @@ from repolens.quality_metrics import measure_quality_metrics
 
 
 def test_measure_quality_metrics_counts_boundary_violations(tmp_path: Path) -> None:
-    pkg = tmp_path / "packcycle"
-    pkg.mkdir()
-    (pkg / "__init__.py").write_text("", encoding="utf-8")
-    (pkg / "a.py").write_text("from packcycle import b\n", encoding="utf-8")
-    (pkg / "b.py").write_text("from packcycle import a\n", encoding="utf-8")
-    (tmp_path / "repolens.yaml").write_text(
-        """
-schemaVersion: 1
-boundaries:
-  - name: a_layer
-    path: packcycle/a*
-    allowed_imports: []
-  - name: b_layer
-    path: packcycle/b*
-    allowed_imports: [a_layer]
-""",
-        encoding="utf-8",
-    )
+    from tests.architecture_fixtures import write_packcycle_with_boundaries
+
+    write_packcycle_with_boundaries(tmp_path)
     cfg = load_config(tmp_path)
     graph = analyse_python_graph(tmp_path, config=cfg.graph)
     metrics = measure_quality_metrics(tmp_path, cfg, graph)

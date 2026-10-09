@@ -6,6 +6,7 @@ from repolens.llm.errors import LlmError
 from repolens.llm.gemini import _parse_gemini_sse_text_delta
 from repolens.llm.parse import (
     _coerce_report_payload,
+    code_example_hints,
     parse_report_json,
     repair_prompt,
 )
@@ -48,6 +49,7 @@ __all__ = [
     "parse_report_json",
     "pick_ollama_model",
     "provider_setup_hints",
+    "code_example_hints",
     "repair_prompt",
     "resolve_llm_timeout",
     "resolve_ollama_model",

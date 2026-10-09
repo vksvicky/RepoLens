@@ -16,6 +16,7 @@ from repolens.llm import (
     LlmError,
     _coerce_report_payload,
     analyze_raw,
+    code_example_hints,
     parse_report_json,
     repair_prompt,
 )
@@ -116,7 +117,9 @@ def _analyze_structured_body(
     except (LlmError, ValidationError, json.JSONDecodeError, TypeError, ValueError) as parse_exc:
         # Micro-repair (hard cap: exactly one attempt)
         prog.phase("LLM: first response invalid — retrying with repair prompt…")
-        repair_msg = repair_prompt(raw_text, str(parse_exc))
+        repair_msg = repair_prompt(
+            raw_text, str(parse_exc), hints=code_example_hints(raw_text)
+        )
         try:
             repaired_raw = analyze_raw(repair_msg, model_cfg, on_delta=on_delta)
             try:

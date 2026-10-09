@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from repolens.explain import ExplainDoc, ExplainSolution
+    from repolens.explain_prompt import ExplainDoc, ExplainSolution
 
 from repolens.diagrams import normalize_mermaid_node_ids, process_diagram
 from repolens.report import render_code_example_fenced
@@ -158,7 +158,7 @@ def build_diagram_from_moves(
 
 
 def _degraded_doc(issue: Issue, *, error: str, outline: str = "") -> ExplainDoc:
-    from repolens.explain import ExplainDoc, ExplainSolution
+    from repolens.explain_prompt import ExplainDoc, ExplainSolution
     moves: list[str] = []
     if outline:
         # Pull first few `function`/`class` lines as hints for the human

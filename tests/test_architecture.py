@@ -87,25 +87,9 @@ def test_remediation_context_includes_guidance() -> None:
 
 
 def test_check_architecture_cli_fails_on_violation(tmp_path: Path) -> None:
-    # Copy minimal cycle package into tmp with architecture yaml
-    pkg = tmp_path / "packcycle"
-    pkg.mkdir()
-    (pkg / "__init__.py").write_text("", encoding="utf-8")
-    (pkg / "a.py").write_text("from packcycle import b  # noqa\n", encoding="utf-8")
-    (pkg / "b.py").write_text("from packcycle import a  # noqa\n", encoding="utf-8")
-    (tmp_path / "repolens.yaml").write_text(
-        """
-schemaVersion: 1
-boundaries:
-  - name: a_layer
-    path: packcycle/a*
-    allowed_imports: []
-  - name: b_layer
-    path: packcycle/b*
-    allowed_imports: [a_layer]
-""",
-        encoding="utf-8",
-    )
+    from tests.architecture_fixtures import write_packcycle_with_boundaries
+
+    write_packcycle_with_boundaries(tmp_path, noqa=True)
     result = runner.invoke(app, ["check", "architecture", "--path", str(tmp_path)])
     assert result.exit_code == 1, result.output
     assert "Boundary violations" in result.output or "FAIL" in result.output

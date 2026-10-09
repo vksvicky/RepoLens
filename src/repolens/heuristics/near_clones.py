@@ -9,13 +9,14 @@ from pathlib import Path
 
 from repolens.config import NearClonesConfig
 from repolens.heuristics.mega_files import is_mega_file_excluded
+from repolens.heuristics.near_clones_skip import (
+    py_import_region_mask,
+    should_skip_window,
+)
 from repolens.inventory import FileEntry
 from repolens.schema import Issue, Severity
 
 CODE_SUFFIXES = {".py", ".pyi", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".kt"}
-
-# C-family line/block comments: // and /* … */
-_C_STYLE_COMMENT_SUFFIXES = {".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".kt"}
 
 DEFAULT_NEAR_CLONE_EXCLUDE_GLOBS: tuple[str, ...] = (
     "**/migrations/**",
@@ -198,98 +199,6 @@ class _LocatedHit:
     norm_chunk: tuple[str, ...]
 
 
-def _is_comment_line(line: str, suffix: str) -> bool:
-    stripped = line.strip()
-    if not stripped:
-        return True
-    if suffix in {".py", ".pyi"}:
-        return stripped.startswith("#")
-    if suffix in _C_STYLE_COMMENT_SUFFIXES:
-        return (
-            stripped.startswith("//")
-            or stripped.startswith("*")
-            or stripped.startswith("/*")
-            or stripped.endswith("*/")
-        )
-    return stripped.startswith("#") or stripped.startswith("//")
-
-
-def _is_go_import_member(stripped: str) -> bool:
-    """True for lines inside a Go ``import ( … )`` group."""
-    if stripped in {"(", ")"}:
-        return True
-    # "fmt" / `"example.com/pkg"`
-    if stripped.startswith('"') and stripped.endswith('"'):
-        return True
-    # . "fmt"  or  alias "fmt"
-    if '"' in stripped:
-        head, _, tail = stripped.partition(" ")
-        path = tail.strip() if tail else ""
-        if path.startswith('"') and path.endswith('"'):
-            return head == "." or head.isidentifier()
-    return False
-
-
-def _is_import_line(line: str, suffix: str) -> bool:
-    stripped = line.strip()
-    if not stripped:
-        return True
-    if suffix in {".py", ".pyi"}:
-        return stripped.startswith("import ") or stripped.startswith("from ")
-    if suffix in {".js", ".jsx", ".ts", ".tsx"}:
-        return stripped.startswith("import ") or "require(" in stripped
-    if suffix == ".go":
-        # Single-line imports only; group members need ``_chunk_is_import_only``.
-        return stripped.startswith("import ") or stripped.startswith("import(")
-    if suffix == ".rs":
-        return stripped.startswith("use ") or stripped.startswith("extern crate ")
-    if suffix == ".kt":
-        return stripped.startswith("import ")
-    return False
-
-
-def _chunk_is_import_only(norm_chunk: Sequence[str], suffix: str) -> bool:
-    non_blank = [line.strip() for line in norm_chunk if line.strip()]
-    if not non_blank:
-        return False
-    if suffix == ".go":
-        # Require an ``import`` keyword so bare string-literal windows are not suppressed.
-        has_import = any(
-            line.startswith("import ") or line.startswith("import(") or line == "import"
-            for line in non_blank
-        )
-        if not has_import:
-            return False
-        return all(
-            line.startswith("import ")
-            or line.startswith("import(")
-            or line == "import"
-            or _is_go_import_member(line)
-            for line in non_blank
-        )
-    return all(_is_import_line(line, suffix) for line in non_blank)
-
-
-def _should_skip_window(
-    *,
-    norm_chunk: Sequence[str],
-    phys_start: int,
-    phys_end: int,
-    raw_lines: Sequence[str],
-    suffix: str,
-    header_n: int,
-) -> bool:
-    if phys_end <= header_n:
-        phys_text = [
-            raw_lines[i - 1]
-            for i in range(phys_start, phys_end + 1)
-            if 1 <= i <= len(raw_lines)
-        ]
-        if phys_text and all(_is_comment_line(line, suffix) for line in phys_text):
-            return True
-    return _chunk_is_import_only(norm_chunk, suffix)
-
-
 def _exclude_globs_for(config: NearClonesConfig) -> tuple[str, ...]:
     return DEFAULT_NEAR_CLONE_EXCLUDE_GLOBS + tuple(config.exclude_globs)
 
@@ -345,15 +254,19 @@ def _index_entry_windows(
         return
     raw_lines = text.splitlines()
     norm, phys = normalize_lines(text)
+    import_mask = (
+        py_import_region_mask(raw_lines) if suffix in {".py", ".pyi"} else None
+    )
     for hit in iter_windows(norm, phys, window=cfg.window_lines, stride=cfg.stride):
         chunk = tuple(norm[hit.norm_start : hit.norm_end])
-        if _should_skip_window(
+        if should_skip_window(
             norm_chunk=chunk,
             phys_start=hit.phys_start,
             phys_end=hit.phys_end,
             raw_lines=raw_lines,
             suffix=suffix,
             header_n=cfg.header_comment_lines,
+            import_mask=import_mask,
         ):
             continue
         by_hash.setdefault(hit.hash, []).append(

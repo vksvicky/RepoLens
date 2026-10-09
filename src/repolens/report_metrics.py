@@ -52,6 +52,136 @@ def _clock(seconds: float | None) -> str:
     return text.split(" (", 1)[0]
 
 
+def _metrics_severity_rows(report: FindingReport) -> list[str]:
+    counts = report.summary
+    rows: list[str] = []
+    for label, count, meaning in (
+        (
+            "Critical",
+            counts.critical,
+            "Scanner and Fast Brain findings at Critical. Model notes are not included.",
+        ),
+        (
+            "High",
+            counts.high,
+            "Scanner and Fast Brain findings at High. Model notes are not included.",
+        ),
+        (
+            "Medium",
+            counts.medium,
+            "Scanner and Fast Brain findings at Medium. These do not change the percentages.",
+        ),
+        (
+            "Low",
+            counts.low,
+            "Scanner and Fast Brain findings at Low. These do not change the percentages.",
+        ),
+    ):
+        rows.append(f"| {label} | {count} | {meaning} |")
+    if report.suppressedIssues:
+        rows.append(
+            f"| Suppressed | {len(report.suppressedIssues)} | "
+            f"Reviewed and excluded from the gate{suppression_suffix(report)} |"
+        )
+    if report.durationSeconds is not None:
+        rows.append(
+            f"| Duration | {_clock(report.durationSeconds)} | Wall-clock time for "
+            "this review |"
+        )
+    return rows
+
+
+def _metrics_provenance_rows(report: FindingReport) -> list[str]:
+    prov = report.provenance
+    if prov is None or prov.fastBrainFiles is None:
+        return []
+    rows = [
+        f"| Fast Brain files | {prov.fastBrainFiles} | Inventory used for "
+        "whole-tree heuristics (Phase 6.11 Two-Lane) |"
+    ]
+    if prov.llmPackFiles is not None:
+        rows.append(
+            f"| LLM pack files | {prov.llmPackFiles} | Files sent to the model "
+            "(0 if bypassed / scanners-only) |"
+        )
+    if prov.fastBrainSeconds is not None:
+        rows.append(
+            f"| Fast Brain time | {_clock(prov.fastBrainSeconds)} | Wall time "
+            "for whole-tree heuristics |"
+        )
+    if prov.llmSeconds is not None:
+        rows.append(
+            f"| Slow Brain time | {_clock(prov.llmSeconds)} | Wall time for "
+            "LLM / deep analysis |"
+        )
+    return rows
+
+
+def _metrics_band_rows(report: FindingReport) -> list[str]:
+    rows: list[str] = []
+    if report.securityAuditConfidence is not None:
+        rows.append(
+            f"| Security audit confidence | {report.securityAuditConfidence}% | "
+            "Security checklist plus Critical/High security findings. "
+            "[Why](#why-a-score-is-low) |"
+        )
+    if report.reliabilityAuditConfidence is not None:
+        rows.append(
+            f"| Reliability audit confidence | {report.reliabilityAuditConfidence}% | "
+            "Reliability checklist plus Critical/High reliability findings. "
+            "[Why](#why-a-score-is-low) |"
+        )
+    if report.architectureAuditConfidence is not None:
+        rows.append(
+            f"| Architecture audit confidence | {report.architectureAuditConfidence}% | "
+            "Architecture checklist plus Critical/High architecture findings. "
+            "[Why](#why-a-score-is-low) |"
+        )
+    collapsed = format_collapsed_duplicates(report)
+    if collapsed is not None:
+        rows.append(
+            f"| Critical/High rows | {collapsed} | Scanner rows at Critical or High, "
+            "then how many were kept, suppressed, or not retained |"
+        )
+    return rows
+
+
+def _metrics_why_low_section(report: FindingReport) -> list[str]:
+    lines = [
+        (
+            "| Checklist | (below) | [Checklist](#checklist): answered, "
+            "does not apply, or not answered |"
+        ),
+        "",
+        "### How these % are calculated",
+        "",
+        "- **Gate** is the lowest band, then a penalty for missed checklist ids.",
+        "- **Security, reliability, and architecture** drop when that band has "
+        "a missed checklist id or a Critical/High finding.",
+        "- Medium and Low findings do not change these percentages.",
+        "- Each unanswered question is explained under [Checklist](#checklist).",
+        "- Full arithmetic: RepoLens `docs/faq.md` → *What do report metrics mean?*",
+        "",
+    ]
+    from repolens.metrics import low_audit_explanations
+
+    reasons = list(report.scoreNotes) or low_audit_explanations(report)
+    if reasons:
+        lines.extend(
+            [
+                "### Why a score is low",
+                "",
+                "Shown when a band or the gate is under 70%. Medium and Low findings "
+                "do not change these percentages. Each unanswered question is "
+                "explained under [Checklist](#checklist).",
+                "",
+            ]
+        )
+        lines.extend(f"- {reason}" for reason in reasons)
+        lines.append("")
+    return lines
+
+
 def _render_metrics_section(report: FindingReport) -> list[str]:
     """Glossary + band audit confidences (Phase 5.1) + Two-Lane counts (6.11)."""
     has_bands = (
@@ -82,119 +212,11 @@ def _render_metrics_section(report: FindingReport) -> list[str]:
             "[Checklist](#checklist) |"
         ),
     ]
-    counts = report.summary
-    for label, count, meaning in (
-        (
-            "Critical",
-            counts.critical,
-            "Scanner and Fast Brain findings at Critical. Model notes are not included.",
-        ),
-        (
-            "High",
-            counts.high,
-            "Scanner and Fast Brain findings at High. Model notes are not included.",
-        ),
-        (
-            "Medium",
-            counts.medium,
-            "Scanner and Fast Brain findings at Medium. These do not change the percentages.",
-        ),
-        (
-            "Low",
-            counts.low,
-            "Scanner and Fast Brain findings at Low. These do not change the percentages.",
-        ),
-    ):
-        lines.append(f"| {label} | {count} | {meaning} |")
-    if report.suppressedIssues:
-        lines.append(
-            f"| Suppressed | {len(report.suppressedIssues)} | "
-            f"Reviewed and excluded from the gate{suppression_suffix(report)} |"
-        )
-    if report.durationSeconds is not None:
-        lines.append(
-            f"| Duration | {_clock(report.durationSeconds)} | Wall-clock time for "
-            "this review |"
-        )
-    if prov is not None and prov.fastBrainFiles is not None:
-        lines.append(
-            f"| Fast Brain files | {prov.fastBrainFiles} | Inventory used for "
-            "whole-tree heuristics (Phase 6.11 Two-Lane) |"
-        )
-        if prov.llmPackFiles is not None:
-            lines.append(
-                f"| LLM pack files | {prov.llmPackFiles} | Files sent to the model "
-                "(0 if bypassed / scanners-only) |"
-            )
-        if prov.fastBrainSeconds is not None:
-            lines.append(
-                f"| Fast Brain time | {_clock(prov.fastBrainSeconds)} | Wall time "
-                "for whole-tree heuristics |"
-            )
-        if prov.llmSeconds is not None:
-            lines.append(
-                f"| Slow Brain time | {_clock(prov.llmSeconds)} | Wall time for "
-                "LLM / deep analysis |"
-            )
-    if report.securityAuditConfidence is not None:
-        lines.append(
-            f"| Security audit confidence | {report.securityAuditConfidence}% | "
-            "Security checklist plus Critical/High security findings. "
-            "[Why](#why-a-score-is-low) |"
-        )
-    if report.reliabilityAuditConfidence is not None:
-        lines.append(
-            f"| Reliability audit confidence | {report.reliabilityAuditConfidence}% | "
-            "Reliability checklist plus Critical/High reliability findings. "
-            "[Why](#why-a-score-is-low) |"
-        )
-    if report.architectureAuditConfidence is not None:
-        lines.append(
-            f"| Architecture audit confidence | {report.architectureAuditConfidence}% | "
-            "Architecture checklist plus Critical/High architecture findings. "
-            "[Why](#why-a-score-is-low) |"
-        )
-    collapsed = format_collapsed_duplicates(report)
-    if collapsed is not None:
-        lines.append(
-            f"| Critical/High rows | {collapsed} | Scanner rows at Critical or High, "
-            "then how many were kept, suppressed, or not retained |"
-        )
+    lines.extend(_metrics_severity_rows(report))
+    lines.extend(_metrics_provenance_rows(report))
+    lines.extend(_metrics_band_rows(report))
     if has_bands:
-        lines.extend(
-            [
-                (
-                    "| Checklist | (below) | [Checklist](#checklist): answered, "
-                    "does not apply, or not answered |"
-                ),
-                "",
-                "### How these % are calculated",
-                "",
-                "- **Gate** is the lowest band, then a penalty for missed checklist ids.",
-                "- **Security, reliability, and architecture** drop when that band has "
-                "a missed checklist id or a Critical/High finding.",
-                "- Medium and Low findings do not change these percentages.",
-                "- Each unanswered question is explained under [Checklist](#checklist).",
-                "- Full arithmetic: RepoLens `docs/faq.md` → *What do report metrics mean?*",
-                "",
-            ]
-        )
-        from repolens.metrics import low_audit_explanations
-
-        reasons = list(report.scoreNotes) or low_audit_explanations(report)
-        if reasons:
-            lines.extend(
-                [
-                    "### Why a score is low",
-                    "",
-                    "Shown when a band or the gate is under 70%. Medium and Low findings "
-                    "do not change these percentages. Each unanswered question is "
-                    "explained under [Checklist](#checklist).",
-                    "",
-                ]
-            )
-            lines.extend(f"- {reason}" for reason in reasons)
-            lines.append("")
+        lines.extend(_metrics_why_low_section(report))
     else:
         lines.append("")
     return lines

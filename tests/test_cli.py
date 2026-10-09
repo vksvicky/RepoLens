@@ -192,7 +192,7 @@ def test_github_dry_run_mocked(tmp_path: Path, monkeypatch) -> None:
     (tmp_path / "a.py").write_text("x=1\n", encoding="utf-8")
     out = tmp_path / "reports-out"
     with (
-        patch("repolens.cli.commands_review.resolve_source", return_value=fake),
+        patch("repolens.cli.commands_review_support.resolve_source", return_value=fake),
         patch("repolens.cli.commands_review.cleanup_source") as cleanup,
     ):
         result = runner.invoke(

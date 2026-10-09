@@ -47,6 +47,17 @@ def llm_status_label(report: FindingReport) -> str | None:
     return None
 
 
+def _print_gate_and_ai_blocks(report: FindingReport) -> None:
+    """Deterministic gate and AI deep audit, kept visually separate."""
+    from rich.markup import escape
+
+    from repolens.report_blocks import ai_audit_lines, deterministic_gate_lines
+
+    for head, detail in (deterministic_gate_lines(report), ai_audit_lines(report)):
+        console.print(f"[bold]{escape(head)}[/bold]")
+        console.print(escape(detail))
+
+
 def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_run: bool) -> None:
     from repolens.metrics import low_audit_brief
     from repolens.report import (
@@ -104,6 +115,7 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     if headline:
         console.print(f"[bold]Two-Lane[/bold]: {headline}")
     console.print(table)
+    _print_gate_and_ai_blocks(report)
     notes = list(report.scoreNotes) or low_audit_brief(report)
     for reason in notes:
         console.print(reason)
