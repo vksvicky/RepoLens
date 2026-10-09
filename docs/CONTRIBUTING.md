@@ -20,8 +20,8 @@ Thanks for helping make repository reviews clearer and more useful for everyone.
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-pytest -q
-ruff check src tests
+./scripts/ci-check.sh   # same Ruff + pytest as GitHub CI (required before push)
+# optional: pip install pre-commit && pre-commit install
 ```
 
 ```powershell
@@ -29,11 +29,12 @@ ruff check src tests
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-pytest -q
 ruff check src tests
+pytest -q
+# optional: pip install pre-commit; pre-commit install
 ```
 
-3. Open a Pull Request against `main`
+3. Open a Pull Request against `main`. Do not push to `main` / tag a release until `./scripts/ci-check.sh` (or the Windows equivalent) is green — the Publish workflow also runs Ruff + Pytest before uploading to PyPI.
 
 Docs/playbook-only changes do not require the Python toolchain.
 

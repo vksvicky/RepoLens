@@ -27,10 +27,18 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install build
+      - name: Install build + package (dev)
         run: |
           python -m pip install --upgrade pip
+          pip install -e ".[dev]"
           pip install build
+
+      # Same gates as ci.yml — refuse to publish a tag that would fail CI.
+      - name: Ruff
+        run: ruff check src tests
+
+      - name: Pytest
+        run: pytest -q
 
       - name: Build sdist and wheel
         run: python -m build
