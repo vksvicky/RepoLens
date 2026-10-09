@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-10-09
+
+Published as `repolens-audit==0.1.1`.
+
 ### Added
 
 - Robust product: coerce null/empty Critical/High `impact`/`codeExample`; normalize `coverage:` gaps; gate insulation so packaging-degraded passes mark **INCOMPLETE** / UNVERIFIED instead of collapsing the gate to 0%

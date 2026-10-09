@@ -7,6 +7,7 @@ RepoLens is in early development. Security fixes will target the latest `main` b
 | Version | Supported |
 |---------|-----------|
 | `main`  | Yes       |
+| 0.1.x   | Yes       |
 | < 0.1.0 | N/A (pre-release) |
 
 ## Reporting a vulnerability
