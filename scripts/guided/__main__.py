@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import sys
 
-from guided.argv import build_argv, format_command
+from guided.argv import build_argv, format_command, which_tip
 from guided.caps import full_pack_large_model_warning, probe_review_cli_caps
 from guided.prompts import _collect_choices, _prompt_yes
 
@@ -27,6 +27,7 @@ def main() -> int:
         argv = build_argv(choices)
         print("\nCommand:")
         print(f"  {format_command(argv)}")
+        print(which_tip(choices))
         if choices.scanners_only or choices.dry_run:
             print("ETA tip: typically completes in seconds.")
         else:

@@ -149,7 +149,10 @@ def run_review(
     resume: bool = True,
     role_packs: bool | None = None,
     retry_passes: list[str] | None = None,
+    invoked_command: str | None = None,
+    expanded_argv: list[str] | None = None,
 ) -> ReviewResult:
+    expanded_argv = list(expanded_argv or [])
     state = ReviewRun(**locals())
     _bind_review_config(state)
     _load_review_inventory(state)

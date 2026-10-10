@@ -143,6 +143,8 @@ def _write_dry_run(state: ReviewRun) -> ReviewResult:
             gitSha=_git_sha(state.root),
             fastBrainFiles=state.fast_brain_file_count,
             llmPackFiles=0,
+            command=state.invoked_command,
+            expandedArgv=list(state.expanded_argv or []),
         ),
     )
     state.report_when = datetime.now(UTC)

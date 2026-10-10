@@ -205,6 +205,9 @@ class ProvenanceBlock(BaseModel):
     promptTemplateHash: str | None = None
     journalTipHash: str | None = None
     notes: list[str] = Field(default_factory=list)
+    # Invocation recorded after preset resolution (optional on older reports).
+    command: str | None = None
+    expandedArgv: list[str] = Field(default_factory=list)
 
 
 class SuppressedIssue(BaseModel):

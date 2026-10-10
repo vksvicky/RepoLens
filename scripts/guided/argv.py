@@ -113,3 +113,29 @@ def build_argv(choices: GuidedChoices) -> list[str]:
 def format_command(argv: list[str]) -> str:
     return shlex.join(argv)
 
+
+def which_scenario(choices: GuidedChoices) -> str | None:
+    """Nearest ``repolens which`` scenario for a finished guided choice."""
+    if choices.command == "sentinel":
+        return "security"
+    if choices.command == "architecture":
+        return "architecture"
+    if choices.command != "review":
+        return None
+    if choices.scanners_only:
+        return "pr"
+    if choices.force_changed:
+        return "changed"
+    if choices.force_full or choices.full_audit:
+        return "release"
+    return None
+
+
+def which_tip(choices: GuidedChoices) -> str:
+    scenario = which_scenario(choices)
+    if scenario is None:
+        return (
+            "Next time: repolens which pr|changed|release|audit|security|architecture"
+        )
+    return f"Next time: repolens which {scenario}"
+

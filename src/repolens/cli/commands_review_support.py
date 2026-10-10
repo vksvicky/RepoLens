@@ -284,6 +284,8 @@ def _call_run_review(
     resume: bool,
     role_packs: bool | None,
     retry_passes: list[str] | None = None,
+    invoked_command: str | None = None,
+    expanded_argv: list[str] | None = None,
 ) -> Any:
     return run_review(
         path=resolved_root, mode=mode, review_mode=review_mode, since=since,
@@ -296,7 +298,8 @@ def _call_run_review(
         verify_findings=verify_findings, packs=packs, fallback=fallback,
         import_sarif=import_sarif or [], require_sarif_import=require_sarif_import,
         model_lock=model_lock, resume=resume, role_packs=role_packs,
-        retry_passes=retry_passes,
+        retry_passes=retry_passes, invoked_command=invoked_command,
+        expanded_argv=expanded_argv,
     )
 
 
@@ -325,6 +328,8 @@ def _execute_run_mode(**kw: Any) -> Any:
         require_sarif_import=kw["require_sarif_import"], model_lock=kw["model_lock"],
         resume=kw["resume"], role_packs=kw["role_packs"],
         retry_passes=kw.get("retry_passes"),
+        invoked_command=kw.get("invoked_command"),
+        expanded_argv=kw.get("expanded_argv"),
     )
     _print_run_result_paths(result)
     if kw["explain_uuids"] and not result.dry_run:

@@ -2,6 +2,8 @@
 
 RepoLens can merge **deterministic** tool output into the same gate report. Scanners are **optional** — missing tools never stop an LLM review unless you pass `--require-scanners`.
 
+The built-in catalog is **gitleaks, semgrep, osv, trivy, and checkov**. Anything else comes in through `--import-sarif` and is folded into the same findings. See [scanner-catalog-boundary.md](./design/scanner-catalog-boundary.md).
+
 ## Quick start
 
 ```bash

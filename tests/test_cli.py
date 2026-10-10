@@ -39,7 +39,11 @@ def test_review_dry_run_writes_report(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     reports = list(out.glob("gate_review_report_*.md"))
     assert len(reports) == 1
-    assert "dry-run" in reports[0].read_text(encoding="utf-8")
+    text = reports[0].read_text(encoding="utf-8")
+    assert "dry-run" in text
+    assert "- **Command**:" in text
+    assert "- **Expanded argv**:" in text
+    assert "--dry-run" in text
     assert "Inventory:" in result.output
 
 

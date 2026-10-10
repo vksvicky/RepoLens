@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from repolens.schema import FindingReport, Issue, Severity
+from repolens.schema import FindingReport, Issue, ProvenanceBlock, Severity
 
 
 def _issue(**overrides: object) -> dict[str, object]:
@@ -57,6 +57,40 @@ def test_low_may_omit_code_example() -> None:
         _issue(severity="LOW", priority="P3", codeExample="", impact="Minor info leak.")
     )
     assert issue.severity == Severity.LOW
+
+
+def test_provenance_command_defaults_and_roundtrip() -> None:
+    block = ProvenanceBlock()
+    assert block.command is None
+    assert block.expandedArgv == []
+
+    loaded = ProvenanceBlock.model_validate({"repoLensVersion": "0.1.2"})
+    assert loaded.command is None
+    assert loaded.expandedArgv == []
+
+    full = ProvenanceBlock(
+        command="repolens review --path .",
+        expandedArgv=["repolens", "review", "--path", "."],
+    )
+    again = ProvenanceBlock.model_validate(full.model_dump())
+    assert again.command == full.command
+    assert again.expandedArgv == full.expandedArgv
+
+
+def test_finding_report_loads_provenance_without_argv_fields() -> None:
+    report = FindingReport.model_validate(
+        {
+            "schemaVersion": "1.0",
+            "confidence": 10,
+            "summary": {"critical": 0, "high": 0, "medium": 0, "low": 0},
+            "issues": [],
+            "provenance": {"gitSha": "abc"},
+        }
+    )
+    assert report.schemaVersion == "1.0"
+    assert report.provenance is not None
+    assert report.provenance.command is None
+    assert report.provenance.expandedArgv == []
 
 
 def test_confidence_bounds() -> None:

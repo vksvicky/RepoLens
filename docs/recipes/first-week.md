@@ -16,6 +16,16 @@
 
 Install: `pip install "repolens-audit[scanners]==0.1.2"` (or editable clone). Primary zero-infra story stays **pipx/pip**, not Docker.
 
+Not sure which flags to pass? Ask the catalog, then run the line it prints:
+
+```bash
+repolens which pr       # fast gate, no model
+repolens which changed  # review what you just changed
+repolens which audit    # full due diligence
+```
+
+`--explain` adds one line on why. The Markdown report records that command under Provenance, plus the expanded flags, so someone else can re-run it.
+
 ---
 
 ## Day 1 — See a gate without burning tokens
