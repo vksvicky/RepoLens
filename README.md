@@ -144,7 +144,7 @@ Full examples: [docs/try-on-your-repo.md](./docs/try-on-your-repo.md) · [docs/r
 ### GitHub Actions
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v7
 - uses: vksvicky/RepoLens@main
   with:
     path: .

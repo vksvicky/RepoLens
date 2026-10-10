@@ -37,7 +37,7 @@ jobs:
     container:
       image: ghcr.io/vksvicky/repolens:0.1.2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: repolens review --path . --out reports --preset pr --fail-on HIGH --ci
 ```
 
