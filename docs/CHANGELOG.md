@@ -13,6 +13,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - M2: `repolens export --evidence-pack` — timestamped M&A zip (Markdown/JSON/SARIF/SBOM/provenance)
 - M2: `repolens export --executive-summary` — 2-page board MD/HTML (traffic lights, top C/H, attestation)
 - M2: `repolens diff-audit --format md|html` — client one-pager (closed / new / debt drift)
+- M3: `repolens fix <fingerprint> --patch|--interactive` — grounded single-file remediation (refuses multi-file self-heal)
+- M3: `repolens blast-radius <path|module>` — transitive consumers, % of graph, boundary hits, test density
+- M3: `repolens view [report.json]` — zero-dep local HTML viewer (filter + remediation + cycle SVG)
+- M3: `repolens portfolio --paths-file repos.txt` — offline multi-repo scanners batch + `index.md` rollup
 
 ### Changed
 

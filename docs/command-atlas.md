@@ -151,6 +151,10 @@ Copy **Fingerprint** from the gate report (Occurrence also works) — [which UUI
 | `… --json` | Same metrics as JSON | `repolens score-report "$TARGET/reports/….json" --json` |
 | `repolens export …` | `--pdf` / `--evidence-pack` / `--executive-summary` | `repolens export "$TARGET/reports/gate_….md" --evidence-pack --out "$TARGET/reports"` |
 | `repolens diff-audit A B` | Table, `--json`, or `--format md\|html` client one-pager | `repolens diff-audit a.json b.json --format md --out diff.md` |
+| `repolens fix FP` | `--patch` / `--interactive` grounded single-file fix | `repolens fix <fingerprint> --patch` |
+| `repolens blast-radius SEED` | Transitive consumers + % graph + boundaries | `repolens blast-radius pkg/core.py --json` |
+| `repolens view [JSON]` | Local HTML viewer (`--serve`, `--no-open`) | `repolens view reports/gate_….json --no-open` |
+| `repolens portfolio` | Multi-repo scanners batch + `index.md` | `repolens portfolio --paths-file repos.txt --out portfolio-reports/` |
 | `repolens feedback down <fingerprint>` | Appends `.repolens-ignore` (local) | `repolens feedback down a08697ac-a881-53ca-a8a0-92d86ca3da5b --reason false_positive --path "$TARGET"` |
 | `repolens feedback list` | Lists active ignore entries | `repolens feedback list --path "$TARGET"` |
 

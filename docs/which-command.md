@@ -17,6 +17,10 @@
 | **Evidence pack** (data room) | `repolens export REPORT.md --evidence-pack` | Timestamped zip: audit Markdown (+ PDF if pandoc), findings JSON/SARIF, SBOM when present, `provenance.json`. |
 | **Executive summary** (board) | `repolens export REPORT.md --executive-summary` | 2-page MD/HTML: traffic lights + top Critical/High + attestation. Gate ≠ “% secure”. |
 | **Audit diff** (client update) | `repolens diff-audit A.json B.json --format md --out diff.md` | Closed findings · New regressions · Debt drift (cyclicity + complexity). |
+| **Fix** (grounded patch) | `repolens fix <fingerprint> --patch` | Unified diff from `# Before`/`# After` codeExample. `--interactive --yes` applies one file + Python `ast.parse`. Refuses multi-file loops. |
+| **Blast radius** | `repolens blast-radius pkg/core.py` | Transitive consumers + % of graph + boundary violations + test density (`--json`). |
+| **View** (local UI) | `repolens view report.json --no-open` | Filterable HTML + expandable remediation + cycle SVG; optional `--serve`. |
+| **Portfolio** (batch) | `repolens portfolio --paths-file repos.txt --out portfolio-reports/` | Fast Brain+scanners per repo (Slow Brain off by default); soft-fail; `index.md`. Exit 0 all ok / 1 some failed / 2 setup. |
 | Inventory only | `repolens review --dry-run` | **Protected** semantics — inventory dump; do not overload with forecast/scanners. |
 
 See [compare.md](./compare.md) for “we audit, they edit” vs coding-agent harnesses.
