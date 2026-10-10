@@ -9,6 +9,7 @@ Thin client. It shells the `repolens` CLI. It does **not** parse Python, call a 
 3. Save and **RepoLens: Check** → `repolens check --format sarif`.
 4. Status bar → `repolens check --diff`.
 5. Palette also: Show dependencies, Would this import cycle, Why this cycle, Preview cut, Compare duplicate, Ignore, Explain, Copy full review command.
+6. **RepoLens Architecture** side panel lists circular import chains from `repolens graph cycles` (CLI only). Click an edge to jump to the import site. Save refreshes check SARIF + cycles — never starts Slow Brain / a model review.
 
 Architecture YAML/JSON: the extension ships `schemas/architecture.schema.json` (same file as the Python package). For `repolens.yaml`, point the Red Hat YAML extension at that schema, or copy `"yaml.schemas"` in user settings to `./schemas/architecture.schema.json` for `repolens.yaml` / `repolens.yml` / `.repolens/architecture.yaml`.
 

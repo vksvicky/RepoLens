@@ -85,10 +85,24 @@ def graph_cycles(
         console.print("[red]--format must be json[/red]")
         raise typer.Exit(code=2)
     result = _graph(path.resolve())
+    cycles_out = []
+    for c in result.cycles:
+        scc = set(c.modules)
+        edges = [
+            {
+                "importer": e.importer,
+                "imported": e.imported,
+                "line": e.line,
+                "kind": str(e.kind),
+            }
+            for e in result.gated_edges
+            if e.importer in scc and e.imported in scc
+        ]
+        cycles_out.append({"modules": list(c.modules), "edges": edges})
     payload = {
         "cyclicity": result.cyclicity,
         "cycleCount": len(result.cycles),
-        "cycles": [{"modules": list(c.modules)} for c in result.cycles],
+        "cycles": cycles_out,
     }
     typer.echo(json.dumps(payload, indent=2))
 

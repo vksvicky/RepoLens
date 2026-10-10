@@ -316,9 +316,143 @@ async function copyFullReview() {
   );
 }
 
+function moduleToCandidates(mod) {
+  const parts = String(mod || "").replace(/\./g, "/");
+  return [`${parts}.py`, `${parts}/__init__.py`, `src/${parts}.py`, `src/${parts}/__init__.py`];
+}
+
+class CycleTreeProvider {
+  constructor() {
+    this._onDidChange = new vscode.EventEmitter();
+    this.onDidChangeTreeData = this._onDidChange.event;
+    this._cycles = [];
+    this._cyclicity = 0;
+  }
+
+  refresh() {
+    this._onDidChange.fire();
+  }
+
+  async load() {
+    const folder = workspaceRoot();
+    if (!folder) {
+      this._cycles = [];
+      this._cyclicity = 0;
+      this.refresh();
+      return;
+    }
+    const root = folder.uri.fsPath;
+    // CLI only — no Slow Brain / model on this path.
+    const { stdout, code } = await runCli(root, [
+      "graph",
+      "cycles",
+      "--path",
+      root,
+      "--format",
+      "json",
+    ]);
+    if (code !== 0) {
+      this._cycles = [];
+      this._cyclicity = 0;
+      this.refresh();
+      return;
+    }
+    try {
+      const payload = JSON.parse(stdout || "{}");
+      this._cyclicity = payload.cyclicity || 0;
+      this._cycles = payload.cycles || [];
+    } catch (_err) {
+      this._cycles = [];
+      this._cyclicity = 0;
+    }
+    this.refresh();
+  }
+
+  getTreeItem(element) {
+    return element;
+  }
+
+  getChildren(element) {
+    if (!element) {
+      if (!this._cycles.length) {
+        const empty = new vscode.TreeItem(
+          this._cyclicity === 0 ? "No import cycles" : "Cycles unavailable",
+          vscode.TreeItemCollapsibleState.None
+        );
+        empty.tooltip = `cyclicity=${this._cyclicity}`;
+        return [empty];
+      }
+      return this._cycles.map((cycle, idx) => {
+        const label = `Cycle ${idx + 1} (${(cycle.modules || []).length} modules)`;
+        const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.Collapsed);
+        item.contextValue = "cycle";
+        item.tooltip = (cycle.modules || []).join(" → ");
+        item.cycle = cycle;
+        return item;
+      });
+    }
+    const cycle = element.cycle;
+    if (!cycle || !cycle.edges) {
+      return (cycle.modules || []).map((mod) => {
+        const item = new vscode.TreeItem(mod, vscode.TreeItemCollapsibleState.None);
+        item.tooltip = mod;
+        return item;
+      });
+    }
+    return cycle.edges.map((edge) => {
+      const label = `${edge.importer} → ${edge.imported}`;
+      const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
+      item.command = {
+        command: "repolens.openCycleEdge",
+        title: "Open",
+        arguments: [edge],
+      };
+      item.tooltip = edge.line ? `line ${edge.line}` : "import edge";
+      return item;
+    });
+  }
+}
+
+async function openCycleEdge(edge) {
+  const folder = workspaceRoot();
+  if (!folder || !edge || !edge.importer) {
+    return;
+  }
+  const root = folder.uri.fsPath;
+  const candidates = moduleToCandidates(edge.importer);
+  let uri = null;
+  for (const rel of candidates) {
+    const trial = vscode.Uri.joinPath(folder.uri, rel);
+    try {
+      await vscode.workspace.fs.stat(trial);
+      uri = trial;
+      break;
+    } catch (_err) {
+      // try next
+    }
+  }
+  if (!uri) {
+    vscode.window.showWarningMessage(`RepoLens: could not map ${edge.importer} to a file`);
+    return;
+  }
+  const doc = await vscode.workspace.openTextDocument(uri);
+  const editor = await vscode.window.showTextDocument(doc);
+  const line = Math.max(0, (edge.line || 1) - 1);
+  const pos = new vscode.Position(line, 0);
+  editor.selection = new vscode.Selection(pos, pos);
+  editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
+  void root;
+}
+
 function activate(context) {
   const collection = vscode.languages.createDiagnosticCollection(COLLECTION);
   context.subscriptions.push(collection);
+
+  const cycleProvider = new CycleTreeProvider();
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider("repolens.cycles", cycleProvider)
+  );
+  cycleProvider.load();
 
   context.subscriptions.push(
     vscode.commands.registerCommand("repolens.check", () => runCheck(collection))
@@ -344,6 +478,12 @@ function activate(context) {
   context.subscriptions.push(
     vscode.commands.registerCommand("repolens.copyFullReview", copyFullReview)
   );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("repolens.refreshCycles", () => cycleProvider.load())
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("repolens.openCycleEdge", openCycleEdge)
+  );
 
   let timer = null;
   context.subscriptions.push(
@@ -352,7 +492,9 @@ function activate(context) {
         clearTimeout(timer);
       }
       timer = setTimeout(() => {
+        // Save path: check SARIF + refresh cycles via CLI only (no model).
         runCheck(collection);
+        cycleProvider.load();
       }, 500);
     })
   );

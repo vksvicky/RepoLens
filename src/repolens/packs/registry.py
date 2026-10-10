@@ -41,6 +41,18 @@ def _azure_sentinel_heuristics(root: Path, entries: list[FileEntry]) -> list[Iss
     return scan_azure_sentinel(root, entries)
 
 
+def _fintech_heuristics(root: Path, entries: list[FileEntry]) -> list[Issue]:
+    from repolens.packs.fintech.heuristics import scan_fintech
+
+    return scan_fintech(root, entries)
+
+
+def _healthtech_heuristics(root: Path, entries: list[FileEntry]) -> list[Issue]:
+    from repolens.packs.healthtech.heuristics import scan_healthtech
+
+    return scan_healthtech(root, entries)
+
+
 _PACKS: dict[str, DomainPack] | None = None
 
 
@@ -58,7 +70,27 @@ def _ensure_packs() -> dict[str, DomainPack]:
             ),
             playbook_body=_load_playbook("azure-sentinel"),
             run_heuristics=_azure_sentinel_heuristics,
-        )
+        ),
+        "fintech": DomainPack(
+            id="fintech",
+            title="Fintech compliance overlay",
+            description=(
+                "Opt-in due-diligence themes for payments/ledgers (PCI-adjacent). "
+                "Not a QSA certification — complements scanners."
+            ),
+            playbook_body=_load_playbook("fintech"),
+            run_heuristics=_fintech_heuristics,
+        ),
+        "healthtech": DomainPack(
+            id="healthtech",
+            title="Healthtech compliance overlay",
+            description=(
+                "Opt-in due-diligence themes for PHI-adjacent systems. "
+                "Not a HIPAA certification — complements scanners and assessors."
+            ),
+            playbook_body=_load_playbook("healthtech"),
+            run_heuristics=_healthtech_heuristics,
+        ),
     }
     return _PACKS
 
