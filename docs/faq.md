@@ -692,6 +692,23 @@ Turn hints/clustering off with `[deep] usage_hints = false` / `cluster_duplicate
 
 Optional niche packs (e.g. `azure-sentinel` for Logic Apps / SOAR) are **off by default**. Enable with `--pack <id>` or `[packs] enabled = […]`. They add a playbook slice plus light heuristics; they do **not** replace Checkov/ARM-TTK and do **not** change core `repolens sentinel` when disabled. See [packs.md](./packs.md).
 
+**Compliance overlays (#114):** `fintech` and `healthtech` are the same mechanism — enable with:
+
+```toml
+[packs]
+overlays = ["fintech"]   # or healthtech; alias of enabled=
+```
+
+Namespaced checklist ids (`fintech.*`, `healthtech.*`). **Not** PCI / HIPAA / HITRUST certification — overlays complement scanners and human assessors (QSA / HIPAA).
+
+### Monorepo / workspace graphs (#113)
+
+`analyse_repo_graph` detects `pnpm-workspace.yaml`, npm `workspaces`, Cargo `[workspace]`, and `go.work`, then merges **package-level** dependency edges into the repo graph. **Python `grimp` remains the primary module graph**; workspace mode does not invent language-level imports for JS/Rust/Go source — it surfaces inter-package cycles declared in manifests so Turborepo/pnpm/Cargo/Go workspaces are not invisible.
+
+### Docker image for locked-down CI (#116)
+
+See [docker.md](./docker.md). Image `ghcr.io/vksvicky/repolens` ships pinned gitleaks/osv/trivy/semgrep for air-gap runners. Local `pipx` install remains the primary zero-infra path.
+
 ---
 
 ## Can RepoLens learn from my repo with ML? Is that local?

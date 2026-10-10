@@ -17,6 +17,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - M3: `repolens blast-radius <path|module>` — transitive consumers, % of graph, boundary hits, test density
 - M3: `repolens view [report.json]` — zero-dep local HTML viewer (filter + remediation + cycle SVG)
 - M3: `repolens portfolio --paths-file repos.txt` — offline multi-repo scanners batch + `index.md` rollup
+- M4: workspace graph detection (pnpm/npm/Cargo/go.work) merged into repo graph (#113)
+- M4: `fintech` / `healthtech` compliance overlays (`[packs] overlays = […]`) (#114)
+- M4: VS Code “RepoLens Architecture” cycle side panel (CLI-backed) (#115)
+- M4: official slim `Dockerfile` + `docs/docker.md` for GHCR / air-gap CI (#116)
 
 ### Changed
 

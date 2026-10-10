@@ -21,6 +21,8 @@
 | **Blast radius** | `repolens blast-radius pkg/core.py` | Transitive consumers + % of graph + boundary violations + test density (`--json`). |
 | **View** (local UI) | `repolens view report.json --no-open` | Filterable HTML + expandable remediation + cycle SVG; optional `--serve`. |
 | **Portfolio** (batch) | `repolens portfolio --paths-file repos.txt --out portfolio-reports/` | Fast Brain+scanners per repo (Slow Brain off by default); soft-fail; `index.md`. Exit 0 all ok / 1 some failed / 2 setup. |
+| **Compliance overlays** | `[packs] overlays = ["fintech"]` (or `healthtech`) | Opt-in domain checklists + light heuristics. **Not** PCI/HIPAA certification. |
+| **Docker CI image** | `ghcr.io/vksvicky/repolens` | Slim image with pinned scanners — see [docker.md](./docker.md). Local `pipx` remains primary. |
 | Inventory only | `repolens review --dry-run` | **Protected** semantics — inventory dump; do not overload with forecast/scanners. |
 
 See [compare.md](./compare.md) for “we audit, they edit” vs coding-agent harnesses.

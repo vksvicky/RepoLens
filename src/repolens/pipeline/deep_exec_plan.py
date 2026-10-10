@@ -161,7 +161,7 @@ def _prepare_deep_plan(
     from repolens.deep import plan_deep_passes
     from repolens.rules.registry import Rule, load_enabled_rules
 
-    pack_ids = list(cfg.packs.enabled)
+    pack_ids = list(cfg.packs.resolved())
     heur = _load_deep_heuristics(
         root=root,
         files=files,

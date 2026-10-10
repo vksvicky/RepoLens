@@ -18,6 +18,8 @@ Today:
 | Id | Focus |
 |----|--------|
 | `azure-sentinel` | Microsoft Sentinel analytics, Logic Apps, SOAR workflows |
+| `fintech` | Payments / ledger due-diligence overlay (**not** PCI certification) |
+| `healthtech` | PHI-adjacent due-diligence overlay (**not** HIPAA certification) |
 
 ## Enable a pack
 
@@ -33,9 +35,12 @@ repolens sentinel --path . --pack azure-sentinel --ci --fail-on HIGH
 ```toml
 [packs]
 enabled = ["azure-sentinel"]
+# Alias (merged into enabled):
+overlays = ["fintech"]   # or "healthtech"
 ```
 
-CLI `--pack` merges with config (deduped). Unknown ids are ignored.
+CLI `--pack` merges with config (deduped). Unknown ids are ignored. Overlays
+complement scanners and human assessors — they do not stamp compliance.
 
 ## What `azure-sentinel` does
 

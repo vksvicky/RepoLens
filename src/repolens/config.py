@@ -198,9 +198,23 @@ class CiConfig(BaseModel):
 
 
 class PacksConfig(BaseModel):
-    """Phase 6.10 optional domain packs (off by default)."""
+    """Phase 6.10 optional domain packs / compliance overlays (off by default)."""
 
     enabled: list[str] = Field(default_factory=list)
+    # Alias accepted in .repolens.toml — merged into ``enabled`` at resolve time.
+    overlays: list[str] = Field(default_factory=list)
+
+    def resolved(self) -> list[str]:
+        """Deduped pack ids from ``enabled`` + ``overlays`` (stable order)."""
+        out: list[str] = []
+        seen: set[str] = set()
+        for raw in [*self.enabled, *self.overlays]:
+            pid = (raw or "").strip().lower()
+            if not pid or pid in seen:
+                continue
+            seen.add(pid)
+            out.append(pid)
+        return out
 
 
 class GraphConfig(BaseModel):

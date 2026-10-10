@@ -34,7 +34,7 @@ def collect_fast_issues(root: Path, cfg: RepoLensConfig) -> list[Issue]:
         inv.files,
         mega_file_lines=cfg.deep.mega_file_lines,
         mega_file_exclude_globs=cfg.deep.extra_skip_globs() or None,
-        pack_ids=list(cfg.packs.enabled) or None,
+        pack_ids=list(cfg.packs.resolved()) or None,
         workers=cfg.fast_brain.parallel_workers,
         near_clones_config=cfg.fast_brain.near_clones,
     )

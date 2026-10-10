@@ -86,7 +86,9 @@ def _bind_review_config(state: ReviewRun) -> None:
     _apply_deep_cli_overrides(state)
     from repolens.packs.registry import resolve_enabled_packs
 
-    state.pack_ids = resolve_enabled_packs([*state.cfg.packs.enabled, *(state.packs or [])])
+    state.pack_ids = resolve_enabled_packs(
+        [*state.cfg.packs.resolved(), *(state.packs or [])]
+    )
     state.cfg.packs.enabled = list(state.pack_ids)
 
     state.change_set_block = None

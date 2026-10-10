@@ -40,6 +40,12 @@ def analyse_repo_graph(root: Path, *, config: GraphConfig | None = None) -> Grap
     python = analyse_python_graph(root, config=cfg)
     parts.append(python)
 
+    from repolens.graph.workspace import workspace_graph_result
+
+    workspace = workspace_graph_result(root)
+    if workspace.status is not GraphStatus.SKIPPED:
+        parts.append(workspace)
+
     ts = collect_tree_sitter_edges(root, config=cfg)
     if ts.status is not GraphStatus.SKIPPED:
         parts.append(ts)
