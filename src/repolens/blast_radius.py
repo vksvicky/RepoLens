@@ -154,6 +154,47 @@ def _graph_module_set(result: object) -> set[str]:
     return modules
 
 
+def _radius_test_counts(
+    root: Path,
+    entries: list,
+    *,
+    seed_module: str,
+    consumers: list[str],
+) -> tuple[int, int]:
+    """Count test files whose text mentions the seed or a transitive consumer."""
+    radius_paths: set[str] = set()
+    for mod in [seed_module, *consumers]:
+        radius_paths.update(_module_to_candidates(mod))
+    test_files = 0
+    test_cases = 0
+    for entry in entries:
+        rel = entry.relative.replace("\\", "/")
+        if not rel.endswith(".py"):
+            continue
+        name = Path(rel).name
+        if not (
+            name.startswith("test_")
+            or name.endswith("_test.py")
+            or "/tests/" in f"/{rel.lower()}/"
+        ):
+            continue
+        try:
+            text = (root / rel).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        mentioned = any(
+            cand.replace(".py", "").replace("/", ".") in text or cand in text
+            for cand in radius_paths
+        ) or any(mod in text for mod in [seed_module, *consumers])
+        if not mentioned:
+            continue
+        test_files += 1
+        test_cases += sum(
+            1 for line in text.splitlines() if line.lstrip().startswith("def test")
+        )
+    return test_files, test_cases
+
+
 def simulate_blast_radius(root: Path, seed: str) -> BlastRadiusSimulation:
     """Transitive importers of *seed* (path or dotted module) + boundary/test signals."""
     from repolens.architecture.load import discover_architecture_path, load_architecture
@@ -192,38 +233,9 @@ def simulate_blast_radius(root: Path, seed: str) -> BlastRadiusSimulation:
 
     entries = list_files(root, max_files=0)
     testing = run_testing_inventory(root, entries, enabled=True)
-    # Density in radius: test files that import any radius module (best-effort path match)
-    radius_paths = set()
-    for mod in [seed_module, *consumers]:
-        radius_paths.update(_module_to_candidates(mod))
-    test_files = 0
-    test_cases = 0
-    for entry in entries:
-        rel = entry.relative.replace("\\", "/")
-        if not rel.endswith(".py"):
-            continue
-        name = Path(rel).name
-        if not (
-            name.startswith("test_")
-            or name.endswith("_test.py")
-            or "/tests/" in f"/{rel.lower()}/"
-        ):
-            continue
-        try:
-            text = (root / rel).read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-        if any(
-            cand.replace(".py", "").replace("/", ".") in text
-            or cand in text
-            for cand in radius_paths
-        ) or any(mod in text for mod in [seed_module, *consumers]):
-            test_files += 1
-            test_cases += sum(
-                1
-                for line in text.splitlines()
-                if line.lstrip().startswith("def test")
-            )
+    test_files, test_cases = _radius_test_counts(
+        root, entries, seed_module=seed_module, consumers=consumers,
+    )
 
     block = testing.block if testing is not None else None
     note = None

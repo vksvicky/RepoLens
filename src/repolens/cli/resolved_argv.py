@@ -84,9 +84,7 @@ def _extend_flag(argv: list[str], flag: str, value: str | None = None) -> None:
         argv.append(value)
 
 
-def build_expanded_argv(inv: ResolvedInvocation) -> list[str]:
-    """Return the argv a reader can re-run. Typer defaults are omitted."""
-    argv = ["repolens", inv.mode]
+def _append_target(argv: list[str], inv: ResolvedInvocation) -> None:
     if inv.git_url:
         _extend_flag(argv, "--git-url", strip_url_userinfo(inv.git_url))
     if inv.github:
@@ -99,6 +97,9 @@ def build_expanded_argv(inv: ResolvedInvocation) -> list[str]:
         _extend_flag(argv, "--ref", inv.ref)
     if inv.path:
         _extend_flag(argv, "--path", inv.path)
+
+
+def _append_scope(argv: list[str], inv: ResolvedInvocation) -> None:
     if inv.dry_run:
         argv.append("--dry-run")
     if inv.scanners_only:
@@ -125,6 +126,9 @@ def build_expanded_argv(inv: ResolvedInvocation) -> list[str]:
         argv.append("--verify-findings")
     elif inv.verify_findings is False:
         argv.append("--no-verify-findings")
+
+
+def _append_output(argv: list[str], inv: ResolvedInvocation) -> None:
     if inv.out:
         _extend_flag(argv, "--out", inv.out)
     if inv.review_mode and inv.review_mode != "full":
@@ -165,6 +169,14 @@ def build_expanded_argv(inv: ResolvedInvocation) -> list[str]:
         argv.append("--model-lock")
     elif inv.model_lock is False:
         argv.append("--no-model-lock")
+
+
+def build_expanded_argv(inv: ResolvedInvocation) -> list[str]:
+    """Return the argv a reader can re-run. Typer defaults are omitted."""
+    argv = ["repolens", inv.mode]
+    _append_target(argv, inv)
+    _append_scope(argv, inv)
+    _append_output(argv, inv)
     return argv
 
 
