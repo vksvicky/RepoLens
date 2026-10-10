@@ -14,7 +14,7 @@ Image: `ghcr.io/vksvicky/repolens` (multi-arch `linux/amd64`, `linux/arm64` when
 | trivy | 0.73.0 |
 | semgrep | via `pip install ".[scanners]"` + semgrep |
 
-No API keys or cloud credentials are baked into the image.
+No API keys or cloud credentials are baked into the image. The runtime stage defines a `HEALTHCHECK` that runs `repolens version`.
 
 ## Build locally
 

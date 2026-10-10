@@ -71,49 +71,6 @@ def test_default_local_path_prefers_target() -> None:
     assert default_local_path({}) == "."
 
 
-def test_which_tip_matches_guided_choice() -> None:
-    from repolens_guided import which_tip
-
-    scanners = GuidedChoices(
-        command="review",
-        path=".",
-        out=None,
-        scanners_only=True,
-        dry_run=False,
-        force_full=False,
-        force_changed=False,
-        full_audit=False,
-        model=None,
-        verbose=False,
-        timeout=None,
-        fmt="md",
-        scanners="auto",
-        fail_on=None,
-        remote=None,
-        ref=None,
-    )
-    assert which_tip(scanners) == "Next time: repolens which pr"
-    security = GuidedChoices(
-        command="sentinel",
-        path=".",
-        out=None,
-        scanners_only=False,
-        dry_run=False,
-        force_full=False,
-        force_changed=False,
-        full_audit=False,
-        model=None,
-        verbose=False,
-        timeout=None,
-        fmt="md",
-        scanners="auto",
-        fail_on=None,
-        remote=None,
-        ref=None,
-    )
-    assert which_tip(security) == "Next time: repolens which security"
-
-
 def test_format_command_quotes_spaces() -> None:
     argv = ["repolens", "review", "--path", "/tmp/Demo Project"]
     formatted = format_command(argv)

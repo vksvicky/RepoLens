@@ -69,5 +69,9 @@ RUN useradd --create-home --uid 10001 repolens
 USER repolens
 WORKDIR /work
 
+# DS-0026 / CKV_DOCKER_2: the image is a CLI, so health is "version runs".
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD repolens version || exit 1
+
 ENTRYPOINT ["repolens"]
 CMD ["--help"]
