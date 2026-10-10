@@ -9,7 +9,7 @@ Plain `repolens` / `repo-lens` are blocked by PyPI name-similarity against exist
 
 ```bash
 # Preferred (PyPI) — CLI entry point is still `repolens`
-pip install "repolens-audit[scanners]==0.1.1"
+pip install "repolens-audit[scanners]==0.1.2"
 
 # From git (unreleased tip / contributors)
 pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
@@ -20,10 +20,12 @@ pip install -e ".[dev]"
 
 ## Release workflow (automated)
 
-Tag a version matching `pyproject.toml` (e.g. `v0.1.0a1`) and push the tag.  
+Tag a version matching `pyproject.toml` (e.g. `v0.1.2`) and push the tag.  
 [`.github/workflows/publish.yml`](../.github/workflows/publish.yml) builds the sdist/wheel and uploads via **Trusted Publishing** (OIDC). No long-lived PyPI API token in GitHub secrets.
 
-The publish Action is **pinned to a commit SHA** (`pypa/gh-action-pypi-publish@ed0c539…` = v1.13.0). Do not switch back to floating tags.
+The same `v*` tag also triggers [`.github/workflows/publish-ghcr.yml`](../.github/workflows/publish-ghcr.yml), which builds the slim multi-arch image and pushes `ghcr.io/<owner>/repolens` (semver + `latest` for non-prerelease). Uses `GITHUB_TOKEN` only — no registry password in secrets. Details: [docker.md](./docker.md).
+
+The PyPI publish Action is **pinned to a commit SHA**. Do not switch back to floating tags for that action.
 
 ---
 

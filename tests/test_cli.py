@@ -19,6 +19,16 @@ def test_version() -> None:
     assert __version__ in result.stdout
 
 
+def test_package_version_matches_pyproject() -> None:
+    """Cross-check: __version__ stays aligned with pyproject.toml (release hygiene)."""
+    import tomllib
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    data = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    assert data["project"]["version"] == __version__
+
+
 def test_review_dry_run_writes_report(tmp_path: Path) -> None:
     (tmp_path / "main.py").write_text("print(1)\n", encoding="utf-8")
     out = tmp_path / "out"

@@ -25,6 +25,7 @@
 | **Docker CI image** | `ghcr.io/vksvicky/repolens` | Slim image with pinned scanners — see [docker.md](./docker.md). Local `pipx` remains primary. |
 | Inventory only | `repolens review --dry-run` | **Protected** semantics — inventory dump; do not overload with forecast/scanners. |
 
+**New operator?** Follow [first-week.md](./recipes/first-week.md) (preset → deep → evidence → fix → CI).  
 See [compare.md](./compare.md) for “we audit, they edit” vs coding-agent harnesses.
 
 ### 1. Full combined result (use this)

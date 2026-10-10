@@ -66,3 +66,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-10 | WIP→commit | 92% | 0/0/0/1 | M2 deliverables: evidence pack, executive summary, diff-audit md/html | chat |
 | 2026-10-10 | WIP→commit | 91% | 0/0/0/1 | M3 DX: fix / blast-radius / view / portfolio | chat |
 | 2026-10-10 | WIP→commit | 90% | 0/0/0/1 | M4 ecosystem: workspace graph, overlays, VS Code panel, Docker | chat |
+| 2026-10-10 | v0.1.2 | 92% | 0/0/1/0 | M5 release: 0.1.2 + GHCR workflow + first-week recipe; unpinned docker/* actions (Med) | chat |

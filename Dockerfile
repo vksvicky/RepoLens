@@ -1,7 +1,7 @@
 # Official slim RepoLens image for air-gapped / locked-down CI.
 # Does NOT replace pipx/local install as the primary zero-infra story.
 #
-# Build:  docker build -t ghcr.io/vksvicky/repolens:0.1.1 .
+# Build:  docker build -t ghcr.io/vksvicky/repolens:0.1.2 .
 # Multi-arch (CI): docker buildx build --platform linux/amd64,linux/arm64 -t …
 #
 # Pinned scanner versions (match src/repolens/plugins.py):
