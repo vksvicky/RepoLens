@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from guided.argv import GuidedChoices, build_argv, format_command
+from guided.argv import GuidedChoices, build_argv, format_command, which_tip
 from guided.caps import (
     RemoteKind,
     ReviewCliCaps,
@@ -38,4 +38,5 @@ __all__ = [
     "run_capture",
     "suggest_timeout_seconds",
     "validate_remote_value",
+    "which_tip",
 ]

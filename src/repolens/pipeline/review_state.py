@@ -6,7 +6,7 @@ locals through ``nonlocal``.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -50,6 +50,8 @@ class ReviewRun:
     resume: bool = True
     retry_passes: list[str] | None = None
     role_packs: bool | None = None
+    invoked_command: str | None = None
+    expanded_argv: list[str] = field(default_factory=list)
 
     cfg: Any = None
     aborted: bool = False

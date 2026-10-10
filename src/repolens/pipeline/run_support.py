@@ -340,6 +340,8 @@ def _build_finished_provenance(state):
         promptTemplateHash=prompt_template_hash(),
         journalTipHash=journal_tip_hash(state.root),
         notes=list(state.triage_plan.notes) if state.triage_plan is not None else [],
+        command=state.invoked_command,
+        expandedArgv=list(state.expanded_argv or []),
     )
 
 

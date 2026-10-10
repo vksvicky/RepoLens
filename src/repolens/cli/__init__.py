@@ -25,6 +25,7 @@ from repolens.cli import commands_portfolio as commands_portfolio  # noqa: F401
 from repolens.cli import commands_pr_summary as commands_pr_summary  # noqa: F401
 from repolens.cli import commands_review as commands_review  # noqa: F401
 from repolens.cli import commands_view as commands_view  # noqa: F401
+from repolens.cli import commands_which as commands_which  # noqa: F401
 from repolens.cli import export as export  # noqa: F401
 from repolens.cli import plugins as plugins  # noqa: F401
 from repolens.cli.app import app, run

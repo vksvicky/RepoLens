@@ -1,5 +1,24 @@
 # Which RepoLens command to run
 
+If you do not want to assemble flags yourself:
+
+```bash
+repolens which pr
+repolens which --explain release
+repolens which audit
+```
+
+| You type | You get |
+| --- | --- |
+| `pr` | `repolens review --preset pr --path .` — scanners only, no model |
+| `changed` | `repolens review --preset changed --path .` — this change-set, with the model |
+| `release` | `repolens review --preset release --path .` — full tree, architecture pass |
+| `audit` or `m-and-a` | `repolens audit --path .` — release preset, plus ratchet and verify |
+| `security` | `repolens sentinel --path .` — P1 only |
+| `architecture` | `repolens architecture --path .` — P3 only |
+
+`--explain` prints why those flags were chosen. `--json` prints `scenario`, `command`, and `why`. An unknown name exits 2 and lists the names above. The report's Provenance section then shows both the command you typed and the expanded flags that actually ran (for example `--preset release` becomes `--full --full-audit --deep --timeout 3600`).
+
 - [Recommended commands](#recommended-commands)
 - [Editor UI mockups](#editor-ui-mockups) — images + text sketches in this same document
 

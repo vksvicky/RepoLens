@@ -28,6 +28,16 @@ RepoLens is **zero-infrastructure** — `pipx` or ephemeral CI runners; no Sonar
 
 RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your test suite. Those stay in CI. RepoLens adds a consistent, human-readable due-diligence layer you can run anywhere.
 
+**Start here.** Install, ask which command to run, then open the Markdown report. You do not need to memorize flags.
+
+```bash
+pip install "repolens-audit[scanners]==0.1.2"
+repolens which pr          # prints the exact command
+repolens review --preset pr --path .
+```
+
+`pr` is a fast check (scanners, no model). `repolens which audit` is the full due-diligence command. `repolens which` also knows `changed`, `release`, `security`, and `architecture`. An unknown name exits 2 and lists the names. Each report records the command you typed and the flags that actually ran.
+
 **First week** (audit → evidence → fix): [docs/recipes/first-week.md](./docs/recipes/first-week.md).  
 **Unify existing SARIF** (CodeQL / Sonar / ESLint → one executive gate): [docs/recipes/sarif-unification.md](./docs/recipes/sarif-unification.md).
 
@@ -37,6 +47,7 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 
 | Command | What it does |
 |---------|--------------|
+| `repolens which` | Print the command for `pr`, `changed`, `release`, `audit`, `security`, or `architecture` |
 | `repolens review` | Full dual review: P1 security + P2 reliability + P3 architecture (`--preset pr\|changed\|release`) |
 | `repolens audit` | One-command due-diligence (= `--preset release` + ratchet + verify) |
 | `repolens sentinel` | **Security-only** scan (P1 playbook) |

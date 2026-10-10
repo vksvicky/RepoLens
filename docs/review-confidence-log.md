@@ -68,3 +68,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-10 | WIP→commit | 90% | 0/0/0/1 | M4 ecosystem: workspace graph, overlays, VS Code panel, Docker | chat |
 | 2026-10-10 | v0.1.2 | 92% | 0/0/1/0 | M5 release: 0.1.2 + GHCR workflow + first-week recipe; unpinned docker/* actions (Med) | chat |
 | 2026-10-10 | WIP→push | 94% | 0/0/0/0 | Dependabot #97/#98/#99: checkout@v7, setup-python@v7, tree-sitter&lt;0.27; 96 graph tests | chat |
+| 2026-10-10 | WIP→push | 92% | 0/0/0/2 | which catalog + sanitized argv provenance; URL userinfo stripped; 118 related pytest | chat |

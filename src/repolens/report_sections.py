@@ -6,6 +6,8 @@ lazily so the package import does not cycle.
 
 from __future__ import annotations
 
+import shlex
+
 from repolens.schema import FindingReport, QualityScorecard
 
 
@@ -207,6 +209,10 @@ def _provenance_identity_lines(prov) -> list[str]:
         lines.append(f"- **Prompt template**: `{prov.promptTemplateHash}`")
     if prov.journalTipHash:
         lines.append(f"- **Journal tip**: `{prov.journalTipHash}`")
+    if prov.command:
+        lines.append(f"- **Command**: `{prov.command}`")
+    if prov.expandedArgv:
+        lines.append(f"- **Expanded argv**: `{shlex.join(prov.expandedArgv)}`")
     return lines
 
 

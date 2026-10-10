@@ -33,6 +33,11 @@ from repolens.cli.pack_scope import (
     option_verbose,
 )
 from repolens.cli.presets import ReviewFlagBag, apply_preset, parse_preset
+from repolens.cli.resolved_argv import (
+    ResolvedInvocation,
+    build_expanded_argv,
+    command_for_provenance,
+)
 from repolens.cli.review_options import (
     normalize_retry_passes,
     option_ci,
@@ -119,6 +124,22 @@ def _run_mode(
     progress = ReviewProgress(
         quiet=quiet, verbose=verbose, heartbeat_seconds=heartbeat, console=console,
     )
+    expanded_argv = build_expanded_argv(
+        _resolved_invocation(
+            mode=mode, path=path, git_url=git_url, github=github, bitbucket=bitbucket,
+            hf=hf, ref=ref, review_mode=review_mode, since=since, out=out, fmt=fmt,
+            model=model, fail_on=fail_on, dry_run=dry_run, full_audit=full_audit,
+            trust_project=trust_project, scanners=scanners,
+            require_scanners=require_scanners, scanners_only=scanners_only,
+            timeout=timeout, force_full=force_full, force_changed=force_changed,
+            git_diff=git_diff, deep_passes=deep_passes, deep=deep, ci=ci, sarif=sarif,
+            verify_findings=verify_findings, packs=packs, fallback=fallback,
+            ratchet=ratchet, import_sarif=import_sarif,
+            require_sarif_import=require_sarif_import, model_lock=model_lock,
+            role_packs=role_packs, retry_passes=retry_passes,
+        )
+    )
+    invoked_command = command_for_provenance(expanded_argv)
     resolved = None
     try:
         resolved = _execute_run_mode(
@@ -134,7 +155,8 @@ def _run_mode(
             ratchet=ratchet, import_sarif=import_sarif,
             require_sarif_import=require_sarif_import, model_lock=model_lock,
             resume=resume, role_packs=role_packs, progress=progress,
-            retry_passes=retry_passes,
+            retry_passes=retry_passes, invoked_command=invoked_command,
+            expanded_argv=expanded_argv,
         )
     except typer.Exit:
         raise
@@ -144,6 +166,54 @@ def _run_mode(
     finally:
         if resolved is not None:
             cleanup_source(resolved)
+
+
+def _as_str(value: str | Path | None) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
+def _resolved_invocation(**kw: Any) -> ResolvedInvocation:
+    """Build argv inputs from the operator's flags, not the resolved checkout."""
+    return ResolvedInvocation(
+        mode=str(kw["mode"]),
+        path=_as_str(kw["path"]),
+        git_url=kw["git_url"],
+        github=kw["github"],
+        bitbucket=kw["bitbucket"],
+        hf=kw["hf"],
+        ref=kw["ref"],
+        force_full=bool(kw["force_full"]),
+        force_changed=bool(kw["force_changed"]),
+        full_audit=bool(kw["full_audit"]),
+        scanners_only=bool(kw["scanners_only"]),
+        deep=kw["deep"],
+        timeout=kw["timeout"],
+        git_diff=kw["git_diff"],
+        scanners=kw["scanners"],
+        fail_on=kw["fail_on"],
+        ratchet=bool(kw["ratchet"]),
+        verify_findings=kw["verify_findings"],
+        out=_as_str(kw["out"]),
+        fmt=kw["fmt"],
+        ci=bool(kw["ci"]),
+        model=kw["model"],
+        deep_passes=kw["deep_passes"],
+        sarif=bool(kw["sarif"]),
+        role_packs=kw["role_packs"],
+        import_sarif=tuple(_as_str(path) or "" for path in (kw["import_sarif"] or [])),
+        require_scanners=bool(kw["require_scanners"]),
+        since=kw["since"],
+        retry_passes=tuple(kw["retry_passes"] or ()),
+        packs=tuple(kw["packs"] or ()),
+        trust_project=bool(kw["trust_project"]),
+        dry_run=bool(kw["dry_run"]),
+        review_mode=kw["review_mode"],
+        require_sarif_import=bool(kw["require_sarif_import"]),
+        fallback=kw["fallback"],
+        model_lock=kw["model_lock"],
+    )
 
 
 def _normalize_retry_passes_or_exit(raw: list[str] | None) -> list[str] | None:
