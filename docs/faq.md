@@ -819,6 +819,37 @@ No. It produces reports and exit codes. Git push stays under your control.
 
 ---
 
+## How do I get a board-ready 2-page summary?
+
+```bash
+repolens export reports/gate_review_report_review_….md --executive-summary --out reports/
+# HTML: add --format html; PDF: add --pdf when pandoc is installed
+```
+
+Page 1 = traffic-light Security / Reliability / Architecture + gate status + debt signal.
+Page 2 = top Critical/High in plain English + remediation burden band + attestation seal.
+**Honesty:** gate % is package adequacy, not “% secure”; person-weeks are order-of-magnitude.
+
+## How do I compare two audits for a client update?
+
+```bash
+repolens diff-audit earlier.json later.json --format md --out audit-diff.md
+# or --format html
+```
+
+Sections: **Closed findings**, **New regressions**, **Debt drift** (cyclicity + complexity deltas).
+Default CLI remains the Rich table; `--json` still works for automation.
+
+## How do I build an M&A evidence pack?
+
+After a review writes Markdown + JSON (+ SARIF/SBOM) under `--out`:
+
+```bash
+repolens export reports/gate_review_report_review_….md --evidence-pack --out reports/
+```
+
+Creates `repolens-evidence-<UTC>.zip` with deterministic member order: `audit.md`, optional `audit.pdf` (pandoc), `findings.json`, `findings.sarif.json`, `sbom.cdx.json` when present, `provenance.json` (git SHA, scanner digests, model, journal tip). Missing optionals are listed in `NOTES.txt` — not inventing empty SBOMs.
+
 ## How do I export a PDF?
 
 Prefer Markdown reports, then:

@@ -149,7 +149,8 @@ Copy **Fingerprint** from the gate report (Occurrence also works) — [which UUI
 | `… --annotate` | `::error` / `::warning` for Actions | `repolens pr-summary --annotate` |
 | `repolens score-report …` | Actionability metrics table | `repolens score-report "$TARGET/reports/gate_review_report_review_2026-08-06_1928.json"` |
 | `… --json` | Same metrics as JSON | `repolens score-report "$TARGET/reports/….json" --json` |
-| `repolens export …` | Echo/convert; `--pdf` if `pandoc` | `repolens export "$TARGET/reports/gate_review_report_review_2026-08-06_1928.md"` |
+| `repolens export …` | `--pdf` / `--evidence-pack` / `--executive-summary` | `repolens export "$TARGET/reports/gate_….md" --evidence-pack --out "$TARGET/reports"` |
+| `repolens diff-audit A B` | Table, `--json`, or `--format md\|html` client one-pager | `repolens diff-audit a.json b.json --format md --out diff.md` |
 | `repolens feedback down <fingerprint>` | Appends `.repolens-ignore` (local) | `repolens feedback down a08697ac-a881-53ca-a8a0-92d86ca3da5b --reason false_positive --path "$TARGET"` |
 | `repolens feedback list` | Lists active ignore entries | `repolens feedback list --path "$TARGET"` |
 

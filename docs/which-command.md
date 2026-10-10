@@ -14,6 +14,9 @@
 | **Preset** | `repolens review --preset pr\|changed\|release` | `pr` = scanners-only (zero LLM/Ollama); `changed` = `--git-diff auto --deep`; `release` = `--full --full-audit --deep`. Explicit flags override. **`pr` is not a CI gate** — no `--fail-on` / `--ci` unless you add them; use `--ci --fail-on HIGH` for PR fail behavior. |
 | **Audit** (one command) | `repolens audit …` | Alias for release due-diligence: scanners + Fast Brain + Slow Brain + `--full-audit` + `--ratchet` + `--verify-findings` + Markdown out. Same as `review --preset release` with ratchet/verify on. |
 | **Audit** (flags) | `repolens review --preset release …` | Same kit without the `audit` alias. |
+| **Evidence pack** (data room) | `repolens export REPORT.md --evidence-pack` | Timestamped zip: audit Markdown (+ PDF if pandoc), findings JSON/SARIF, SBOM when present, `provenance.json`. |
+| **Executive summary** (board) | `repolens export REPORT.md --executive-summary` | 2-page MD/HTML: traffic lights + top Critical/High + attestation. Gate ≠ “% secure”. |
+| **Audit diff** (client update) | `repolens diff-audit A.json B.json --format md --out diff.md` | Closed findings · New regressions · Debt drift (cyclicity + complexity). |
 | Inventory only | `repolens review --dry-run` | **Protected** semantics — inventory dump; do not overload with forecast/scanners. |
 
 See [compare.md](./compare.md) for “we audit, they edit” vs coding-agent harnesses.

@@ -63,3 +63,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-09 | WIP→main | 90% | 0/0/0/2 | Robust-product + High fix (pipeline degraded_passes); selfdog clean 0 findings | chat |
 | 2026-10-09 | v0.1.1 | 94% | 0/0/0/0 | Version bump + changelog fold; tag for PyPI Trusted Publish | chat |
 | 2026-10-09 | WIP→commit | 93% | 0/0/0/1 | M1 adoption: sample report, BYOK docs, SARIF recipe, `repolens audit` | chat |
+| 2026-10-10 | WIP→commit | 92% | 0/0/0/1 | M2 deliverables: evidence pack, executive summary, diff-audit md/html | chat |
