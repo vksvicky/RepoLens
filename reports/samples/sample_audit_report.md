@@ -190,7 +190,7 @@ _Deterministic Python import cycles (grimp) — DIP / module-boundary layering s
 
 ## Provenance
 
-- **RepoLens**: `0.1.1`
+- **RepoLens**: `0.1.2`
 - **Git SHA**: `deadbeef0123456789abcdef0123456789abcdef` *(sample)*
 - **Dirty tree**: no
 - **Model**: `openai` / `gpt-4.1-mini` *(BYOK sample — minutes-scale; not local 32B)*

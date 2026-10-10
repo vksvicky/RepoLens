@@ -4,9 +4,9 @@
 
 RepoLens is an open-source CLI that runs structured code reviews against projects you care about: on your machine, or cloned from GitHub, Bitbucket, Hugging Face, or any Git URL. It follows a clear **P1 → P2 → P3** pass (security → bugs/reliability/performance → architecture/quality) and writes audit-friendly reports with impact, remediation steps, and code-example fixes for Critical/High findings.
 
-> **Status:** **`repolens-audit==0.1.1`** on PyPI (CLI: `repolens`) — Phases **0–9** complete  
+> **Status:** **`repolens-audit==0.1.2`** (CLI: `repolens`) — Phases **0–9** complete; M1–M4 shipped  
 > Local CLI · remotes · optional scanners · explain + diagrams · GitHub Action · opt-in local learning · enterprise CI recipes  
-> Install: `pip install "repolens-audit[scanners]==0.1.1"` · from a clone: `pip install -e ".[dev]"`  
+> Install: `pip install "repolens-audit[scanners]==0.1.2"` · from a clone: `pip install -e ".[dev]"`  
 > **[View a sample due-diligence report](./reports/samples/sample_audit_report.md)** ([PDF](./reports/samples/sample_audit_report.pdf)) — gate ≠ “% secure”; remediation + architecture signals included  
 > Docs: [phases](./docs/phases.md) · [FAQ](./docs/faq.md) · [rules](./docs/rules.md) · [install extras](./docs/install-extras.md) · [CI / Action](./docs/ci.md) · [remotes](./docs/remote-sources.md) · [scanners](./docs/scanners.md) · [local learning](./docs/local-learning.md) · [publishing](./docs/publishing.md)
 
@@ -28,6 +28,7 @@ RepoLens is **zero-infrastructure** — `pipx` or ephemeral CI runners; no Sonar
 
 RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your test suite. Those stay in CI. RepoLens adds a consistent, human-readable due-diligence layer you can run anywhere.
 
+**First week** (audit → evidence → fix): [docs/recipes/first-week.md](./docs/recipes/first-week.md).  
 **Unify existing SARIF** (CodeQL / Sonar / ESLint → one executive gate): [docs/recipes/sarif-unification.md](./docs/recipes/sarif-unification.md).
 
 ---
@@ -73,7 +74,7 @@ Interactive helper: `./scripts/repolens-guided.sh` (see [try-on-your-repo](docs/
 
 ```bash
 # Preferred: PyPI (CLI entry point is still `repolens`)
-pip install "repolens-audit[scanners]==0.1.1"
+pip install "repolens-audit[scanners]==0.1.2"
 
 # From a clone (contributors / dogfood)
 python3 -m venv .venv

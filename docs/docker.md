@@ -19,9 +19,11 @@ No API keys or cloud credentials are baked into the image.
 ## Build locally
 
 ```bash
-docker build -t ghcr.io/vksvicky/repolens:0.1.1 .
+docker build -t ghcr.io/vksvicky/repolens:0.1.2 .
 # optional SBOM for the image (Syft / BuildKit):
-# docker buildx build --sbom=true --provenance=true -t ghcr.io/vksvicky/repolens:0.1.1 .
+# docker buildx build --sbom=true --provenance=true -t ghcr.io/vksvicky/repolens:0.1.2 .
+
+CI publishes the same tags on `v*` pushes via [`.github/workflows/publish-ghcr.yml`](../.github/workflows/publish-ghcr.yml) (`0.1.2`, `0.1`, `latest` for non-prerelease tags).
 ```
 
 ## Entrypoint recipes
@@ -33,7 +35,7 @@ jobs:
   repolens:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/vksvicky/repolens:0.1.1
+      image: ghcr.io/vksvicky/repolens:0.1.2
     steps:
       - uses: actions/checkout@v4
       - run: repolens review --path . --out reports --preset pr --fail-on HIGH --ci
@@ -43,7 +45,7 @@ jobs:
 
 ```yaml
 repolens:
-  image: ghcr.io/vksvicky/repolens:0.1.1
+  image: ghcr.io/vksvicky/repolens:0.1.2
   script:
     - repolens review --path . --out reports --preset pr --fail-on HIGH --ci
   artifacts:
@@ -56,9 +58,9 @@ repolens:
 phases:
   build:
     commands:
-      - docker pull ghcr.io/vksvicky/repolens:0.1.1
+      - docker pull ghcr.io/vksvicky/repolens:0.1.2
       - docker run --rm -v "$CODEBUILD_SRC_DIR:/work" -w /work
-          ghcr.io/vksvicky/repolens:0.1.1
+          ghcr.io/vksvicky/repolens:0.1.2
           review --path . --out reports --preset pr --fail-on HIGH --ci
 ```
 

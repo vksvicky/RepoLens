@@ -21,7 +21,7 @@ RepoLens itself is the **review process**. Pick **one** path (you can combine A 
 | **[B. Local Ollama](#option-b--local-ai-on-your-computer-e-g-ollama)** | Air-gap; code must never leave the machine | Yes (if hardware fits) |
 | **[C. Scanners only](#option-c--checklist-scanners-only-no-ai-narrative)** | PR gates / inventory without AI narrative | No — inventory only |
 
-> **Status today:** Phases **0–9** complete — `pip install "repolens-audit[scanners]==0.1.1"` or from source (`pip install -e .`) then `repolens init`.  
+> **Status today:** Phases **0–9** complete — `pip install "repolens-audit[scanners]==0.1.2"` or from source (`pip install -e .`) then `repolens init`.  
 > - Options **A** and **B** work via the CLI **or** **[playbooks + any LLM chat](./using-playbooks.md)**.  
 > - Option **C** scanners: `repolens plugins install` · [scanners.md](./scanners.md).  
 > - CI: [ci.md](./ci.md) · Local learning: [local-learning.md](./local-learning.md).  

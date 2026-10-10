@@ -8,6 +8,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- (none yet)
+
+## [0.1.2] — 2026-10-10
+
+Published as `repolens-audit==0.1.2` (tag when ready; does not auto-push).
+
+### Added
+
 - M1 adoption: golden sample report (`reports/samples/`), SARIF unification recipe, `repolens audit` alias (release + ratchet + verify)
 - Plan / pre-flight estimate lines name BYOK vs Ollama air-gap class; setup/FAQ lead with cloud BYOK as daily path
 - M2: `repolens export --evidence-pack` — timestamped M&A zip (Markdown/JSON/SARIF/SBOM/provenance)
@@ -21,11 +29,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - M4: `fintech` / `healthtech` compliance overlays (`[packs] overlays = […]`) (#114)
 - M4: VS Code “RepoLens Architecture” cycle side panel (CLI-backed) (#115)
 - M4: official slim `Dockerfile` + `docs/docker.md` for GHCR / air-gap CI (#116)
+- M5: GHCR publish workflow on `v*` tags (`ghcr.io/<owner>/repolens`); first-week operator recipe (#117–#120)
 
 ### Changed
 
-- Tracker hygiene: `docs/phases.md` + compare/Metis status reflect PyPI 0.1.1 and closed #86–#89 / #92–#96; sole parked item remains #91 (#17b)
-- Roadmap: GitHub milestones M1–M4 filed as #100–#116 (adoption → deliverables → DX → ecosystem); #100/#107 closed as shipped in 0.1.1
+- Tracker: M1–M4 complete on `main`; active program **M5** (release hardening & distribution); sole parked item remains #91 (#17b)
 - CI docs: default PR path points at `--preset pr`; `audit` reserved for release due diligence
 
 ### Fixed
