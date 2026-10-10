@@ -88,7 +88,10 @@ def test_detect_cargo_and_go_work(tmp_path: Path) -> None:
 
     go_root = tmp_path / "gowork"
     go_root.mkdir()
-    (go_root / "go.work").write_text("go 1.22\n\nuse (\n\t./svc-a\n\t./svc-b\n)\n", encoding="utf-8")
+    (go_root / "go.work").write_text(
+        "go 1.22\n\nuse (\n\t./svc-a\n\t./svc-b\n)\n",
+        encoding="utf-8",
+    )
     (go_root / "svc-a").mkdir()
     (go_root / "svc-b").mkdir()
     gows = detect_workspace(go_root)
