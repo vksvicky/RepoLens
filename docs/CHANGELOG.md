@@ -10,6 +10,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - M1 adoption: golden sample report (`reports/samples/`), SARIF unification recipe, `repolens audit` alias (release + ratchet + verify)
 - Plan / pre-flight estimate lines name BYOK vs Ollama air-gap class; setup/FAQ lead with cloud BYOK as daily path
+- M2: `repolens export --evidence-pack` — timestamped M&A zip (Markdown/JSON/SARIF/SBOM/provenance)
+- M2: `repolens export --executive-summary` — 2-page board MD/HTML (traffic lights, top C/H, attestation)
+- M2: `repolens diff-audit --format md|html` — client one-pager (closed / new / debt drift)
 
 ### Changed
 
