@@ -6,8 +6,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==0.1.2`** (tag/PyPI when operator publishes).  
-**Active program:** [Milestone M5](https://github.com/vksvicky/RepoLens/milestone/5) — release hardening & distribution (#117–#120; index [#12](https://github.com/vksvicky/RepoLens/issues/12)). M1–M4 complete on `main`.  
+**Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==0.1.3`** (tag/PyPI when the operator pushes `v0.1.3`).  
+**Active program:** 0.1.3 industrial cut — provenance sanitation and scanner checksums. [M5](https://github.com/vksvicky/RepoLens/milestone/5) (#117–#120) is done. Index [#12](https://github.com/vksvicky/RepoLens/issues/12).  
 **Parked (not a release gate):** [#91](https://github.com/vksvicky/RepoLens/issues/91) local UI calibrations (#17b).  
 **Feedback:** [Discussions](https://github.com/vksvicky/RepoLens/discussions) + [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose).
 
@@ -45,7 +45,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **M2 Due-diligence deliverables** | [#105](https://github.com/vksvicky/RepoLens/issues/105)–[#108](https://github.com/vksvicky/RepoLens/issues/108) | **Done** — evidence pack, exec summary, audit-diff, `--retry-pass` |
 | **M3 Deep DX** | [#109](https://github.com/vksvicky/RepoLens/issues/109)–[#112](https://github.com/vksvicky/RepoLens/issues/112) | **Done** — fix / blast-radius / view / portfolio |
 | **M4 Ecosystem** | [#113](https://github.com/vksvicky/RepoLens/issues/113)–[#116](https://github.com/vksvicky/RepoLens/issues/116) | **Done** — workspace graph, overlays, VS Code panel, Docker (`832d249`) |
-| **M5 Release & distribution** | [#117](https://github.com/vksvicky/RepoLens/issues/117)–[#120](https://github.com/vksvicky/RepoLens/issues/120) | Tracker sync, 0.1.2, GHCR publish, first-week recipe |
+| **M5 Release & distribution** | [#117](https://github.com/vksvicky/RepoLens/issues/117)–[#120](https://github.com/vksvicky/RepoLens/issues/120) | **Done** — 0.1.2, GHCR publish, first-week recipe |
 ---
 
 ## Legend

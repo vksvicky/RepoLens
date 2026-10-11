@@ -10,6 +10,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - (none yet)
 
+## [0.1.3] — 2026-10-11
+
+Published as `repolens-audit==0.1.3` when the `v0.1.3` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tag `v0.1.2`.
+
+### Fixed
+
+- Provenance URLs drop userinfo, query, and fragment so forwarded reports do not keep access tokens. `git@host:path` and `ssh://` URLs are left unchanged.
+- A command that contains a backtick is fenced in the Markdown provenance section. JSON `command` and `expandedArgv` stay plain strings.
+- `plugins install` checks the Semgrep 1.100.0 and Checkov 3.3.9 wheel SHA-256 before pip runs. A mismatch never reaches pip. Semgrep on any interpreter other than Python 3.9–3.11 fails closed with an explicit message, before download.
+- The slim image checks the linux gitleaks, osv-scanner, and trivy archives against the plugin catalog before extract. The image build does not import `plugins.py`.
+
+### Changed
+
+- Reports state that Slow Brain files are capped at 200 by default and are not the whole tree
+- First-week and `repolens which` docs name industrial PR CI as `repolens review --preset pr --path . --ci --fail-on HIGH`. `repolens which pr` prints the preset command and does not add `--ci` or `--fail-on`.
+
 ## [0.1.2] — 2026-10-10
 
 Published as `repolens-audit==0.1.2` (tag when ready; does not auto-push).
