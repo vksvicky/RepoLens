@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: vksvicky/RepoLens@v0.1.2   # or @main while iterating
+      - uses: vksvicky/RepoLens@v0.1.3   # or @main while iterating
         with:
           path: .
           run: dry-run
