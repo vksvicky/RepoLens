@@ -6,6 +6,7 @@ from repolens.cli.resolved_argv import (
     ResolvedInvocation,
     build_expanded_argv,
     sanitize_invoked_command,
+    strip_url_userinfo,
 )
 
 
@@ -158,6 +159,26 @@ def test_git_url_userinfo_stripped() -> None:
     assert "https://github.com/org/repo.git" in argv
     assert "token" not in argv
     assert "user:token" not in " ".join(argv)
+
+
+def test_git_url_query_and_fragment_stripped() -> None:
+    raw = "https://user:token@github.com/org/repo.git?access_token=sekret&x=1#frag"
+    argv = build_expanded_argv(ResolvedInvocation(mode="review", git_url=raw))
+    joined = " ".join(argv)
+    assert "https://github.com/org/repo.git" in argv
+    assert "sekret" not in joined
+    assert "token" not in joined
+    assert "frag" not in joined
+    assert "?" not in joined
+    assert "#" not in joined
+
+
+def test_strip_url_leaves_scp_and_ssh_urls_alone() -> None:
+    scp = "git@github.com:org/repo.git"
+    ssh = "ssh://git@github.com/org/repo.git"
+    assert strip_url_userinfo(scp) == scp
+    assert strip_url_userinfo(ssh) == ssh
+    assert strip_url_userinfo("not a url") == "not a url"
 
 
 def test_sanitize_invoked_command_normalizes_argv0_and_urls() -> None:

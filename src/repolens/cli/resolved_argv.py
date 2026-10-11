@@ -59,17 +59,22 @@ class ResolvedInvocation:
 
 
 def strip_url_userinfo(value: str) -> str:
-    """Drop ``user:password@`` from an HTTP(S) URL. Other strings pass through."""
-    if "://" not in value or "@" not in value:
+    """Drop userinfo, query, and fragment from an HTTP(S) URL.
+
+    Other strings, including ``git@host:path`` and ``ssh://`` URLs, pass
+    through. Query strings are removed even when they hold a token and there
+    is no ``user:pass@``.
+    """
+    if "://" not in value:
         return value
     parts = urlsplit(value)
-    if parts.username is None and parts.password is None:
+    if parts.scheme not in {"http", "https"}:
         return value
     host = parts.hostname or ""
     if ":" in host and not host.startswith("["):
         host = f"[{host}]"
     netloc = f"{host}:{parts.port}" if parts.port is not None else host
-    return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+    return urlunsplit((parts.scheme, netloc, parts.path, "", ""))
 
 
 def _timeout_token(timeout: float) -> str:
