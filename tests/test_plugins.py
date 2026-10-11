@@ -25,6 +25,16 @@ def test_catalog_has_mvp_tools() -> None:
         assert spec.sha256 and len(spec.sha256) == 64, plat
     for plat, spec in cat["trivy"].items():
         assert spec.sha256 and len(spec.sha256) == 64, plat
+    for tool in ("semgrep", "checkov"):
+        for plat, spec in cat[tool].items():
+            assert spec.kind == "pip", (tool, plat)
+            assert spec.url.startswith("https://files.pythonhosted.org/"), (tool, plat)
+            assert spec.sha256 and len(spec.sha256) == 64, (tool, plat)
+    assert cat["checkov"]["linux-amd64"].sha256 == cat["checkov"]["darwin-arm64"].sha256
+    assert (
+        cat["semgrep"]["linux-amd64"].sha256
+        == "13a55457577d59daee1b1068832102f1da96bbaef84ed238e64f24af96918ec2"
+    )
 
 
 def test_download_rejects_checksum_mismatch(tmp_path: Path) -> None:
@@ -156,6 +166,37 @@ def test_cli_require_scanners_exit_2(tmp_path: Path) -> None:
         )
     assert result.exit_code == 2
     assert "missing" in result.output.lower()
+
+
+def test_pip_install_does_not_run_when_wheel_hash_mismatches(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    with (
+        patch("repolens.plugins._platform_key", return_value="linux-amd64"),
+        patch("repolens.plugins._download", side_effect=RuntimeError("checksum mismatch")),
+        patch("repolens.plugins.subprocess.run") as run,
+    ):
+        messages = install_plugins(["checkov"], yes=True)
+    assert any("checksum mismatch" in message for message in messages)
+    run.assert_not_called()
+
+
+def test_semgrep_on_python_312_fails_before_download(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    with (
+        patch("repolens.plugins._platform_key", return_value="linux-amd64"),
+        patch("repolens.plugins._interpreter_python", return_value=(3, 12)),
+        patch("repolens.plugins._download") as download,
+        patch("repolens.plugins.subprocess.run") as run,
+    ):
+        messages = install_plugins(["semgrep"], yes=True)
+    joined = "\n".join(messages)
+    assert "Semgrep plugin requires Python 3.9–3.11" in joined
+    assert "3.12" in joined
+    assert "checksum" not in joined.lower()
+    download.assert_not_called()
+    run.assert_not_called()
 
 
 def test_cli_scanners_only_mocked(tmp_path: Path) -> None:

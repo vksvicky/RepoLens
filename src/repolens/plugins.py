@@ -160,18 +160,59 @@ def _trivy_assets() -> dict[str, AssetSpec]:
     }
 
 
-def _pip_assets(name: str, version: str) -> dict[str, AssetSpec]:
-    platforms = ("darwin-arm64", "darwin-amd64", "linux-amd64", "linux-arm64")
-    return {
-        key: AssetSpec(
-            name,
-            version,
-            "",
-            "pip",
-            pip_package=f"{name}=={version}",
-        )
-        for key in platforms
+_PYPI = "https://files.pythonhosted.org/packages"
+_PLATFORMS = ("darwin-arm64", "darwin-amd64", "linux-amd64", "linux-arm64")
+
+
+def _wheel(name: str, version: str, url: str, sha256: str) -> AssetSpec:
+    return AssetSpec(
+        name,
+        version,
+        url,
+        "pip",
+        pip_package=f"{name}=={version}",
+        sha256=sha256,
+    )
+
+
+def _semgrep_assets() -> dict[str, AssetSpec]:
+    """CPython 3.9–3.11 wheels. A newer interpreter fails closed."""
+    version = "1.100.0"
+    tag = "semgrep-1.100.0-cp39.cp310.cp311.py39.py310.py311-none-"
+    rows = {
+        "darwin-amd64": (
+            f"{_PYPI}/72/35/0de87cc04dc1909648138043e0859592860426ef61e7934c37f58fba53d0/"
+            f"{tag}macosx_10_14_x86_64.whl",
+            "c2ac42a60f913ef6057921df4808ebadb81a7f37ab2f80b88725a60fddb22d79",
+        ),
+        "darwin-arm64": (
+            f"{_PYPI}/49/82/f3b342c0b439109bd36aaf99bddb1980632206ce740f130400c88d4f1b26/"
+            f"{tag}macosx_11_0_arm64.whl",
+            "faf1e290d05e7e2b8c2cec208e93032633dffea9b4c5071f24277cee45ac8ccd",
+        ),
+        "linux-amd64": (
+            f"{_PYPI}/76/7d/67a224de76ebf69f375fd3a5f1ae837423a6ebb60c68fa4323f8ccb504ee/"
+            f"{tag}musllinux_1_0_x86_64.manylinux2014_x86_64.whl",
+            "13a55457577d59daee1b1068832102f1da96bbaef84ed238e64f24af96918ec2",
+        ),
+        "linux-arm64": (
+            f"{_PYPI}/3c/a0/d53b29a3919da0e5a770cfd5842c5586811b1290ab97317a2abd16aa919c/"
+            f"{tag}musllinux_1_0_aarch64.manylinux2014_aarch64.whl",
+            "bf3333aa83cfc1f22cb67a36736b13af0c6b05ac3256f7e8c1f63b2ca733cb46",
+        ),
     }
+    return {key: _wheel("semgrep", version, url, digest) for key, (url, digest) in rows.items()}
+
+
+def _checkov_assets() -> dict[str, AssetSpec]:
+    spec = _wheel(
+        "checkov",
+        "3.3.9",
+        f"{_PYPI}/2e/e0/4ac809cad74692e388db251467352b1f3e5ec22c546a419e1db58a5628e5/"
+        "checkov-3.3.9-py3-none-any.whl",
+        "0852ba478587b0e1d8e8f802cfbaa7d9901cf1b30d425abce0a257b3170ba0b7",
+    )
+    return {key: spec for key in _PLATFORMS}
 
 
 def catalog() -> dict[str, dict[str, AssetSpec]]:
@@ -179,9 +220,9 @@ def catalog() -> dict[str, dict[str, AssetSpec]]:
     return {
         "gitleaks": _gitleaks_assets(),
         "osv": _osv_assets(),
-        "semgrep": _pip_assets("semgrep", "1.100.0"),
+        "semgrep": _semgrep_assets(),
         "trivy": _trivy_assets(),
-        "checkov": _pip_assets("checkov", "3.3.9"),
+        "checkov": _checkov_assets(),
     }
 
 
@@ -343,26 +384,45 @@ def _install_archive(spec: AssetSpec) -> None:
     tmp.unlink(missing_ok=True)
 
 
+def _interpreter_python() -> tuple[int, int]:
+    return sys.version_info[:2]
+
+
+def _require_semgrep_python(spec: AssetSpec) -> None:
+    """The pinned Semgrep wheel is CPython 3.9–3.11. Fail before any download."""
+    if spec.name != "semgrep":
+        return
+    major, minor = _interpreter_python()
+    if (major, minor) < (3, 9) or (major, minor) >= (3, 12):
+        raise RuntimeError(
+            "Semgrep plugin requires Python 3.9–3.11 "
+            f"(this interpreter is {major}.{minor}). "
+            "The pinned 1.100.0 wheel does not install on other versions."
+        )
+
+
+def _ensure_venv_python(name: str) -> Path:
+    venv = tools_cache_dir() / f"{name}-venv"
+    for candidate in (venv / "bin" / "python", venv / "Scripts" / "python.exe"):
+        if candidate.exists():
+            return candidate
+    subprocess.run([sys.executable, "-m", "venv", str(venv)], check=True)
+    for candidate in (venv / "bin" / "python", venv / "Scripts" / "python.exe"):
+        if candidate.exists():
+            return candidate
+    raise RuntimeError(f"venv for {name} has no python interpreter")
+
+
 def _install_pip_tool(spec: AssetSpec) -> None:
-    """Install a pinned pip package into ``~/.cache/repolens/tools/<name>-venv``."""
-    venv = tools_cache_dir() / f"{spec.name}-venv"
-    py = venv / "bin" / "python"
-    if not py.exists():
-        py = venv / "Scripts" / "python.exe"
-    if not py.exists():
-        subprocess.run([sys.executable, "-m", "venv", str(venv)], check=True)
-        py = venv / "bin" / "python"
-        if not py.exists():
-            py = venv / "Scripts" / "python.exe"
-    subprocess.run(
-        [str(py), "-m", "pip", "install", "--upgrade", "pip"],
-        check=True,
-        capture_output=True,
-    )
-    subprocess.run(
-        [str(py), "-m", "pip", "install", spec.pip_package or spec.name],
-        check=True,
-    )
+    """Install one hash-checked wheel. Its dependencies still come from PyPI."""
+    _require_semgrep_python(spec)
+    digest = _require_sha256(spec)
+    if not spec.url.startswith("https://files.pythonhosted.org/"):
+        raise RuntimeError(f"refusing unpinned pip URL for {spec.name}")
+    wheel_path = tools_cache_dir() / f"{spec.name}-wheels" / Path(spec.url).name
+    _download(spec.url, wheel_path, sha256=digest)
+    venv_python = _ensure_venv_python(spec.name)
+    subprocess.run([str(venv_python), "-m", "pip", "install", str(wheel_path)], check=True)
 
 
 # Back-compat alias for older tests / call sites
