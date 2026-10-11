@@ -101,8 +101,9 @@ def _metrics_provenance_rows(report: FindingReport) -> list[str]:
     ]
     if prov.llmPackFiles is not None:
         rows.append(
-            f"| LLM pack files | {prov.llmPackFiles} | Files sent to the model "
-            "(0 if bypassed / scanners-only) |"
+            f"| LLM pack files | {prov.llmPackFiles} | Files sent to the model, "
+            "capped at 200 by default, not the whole tree. "
+            "0 if bypassed or scanners-only |"
         )
     if prov.fastBrainSeconds is not None:
         rows.append(

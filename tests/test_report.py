@@ -279,6 +279,8 @@ def test_metrics_includes_fast_brain_without_band_audits(tmp_path: Path) -> None
     assert "## Metrics" in text
     assert "| Fast Brain files | 286 |" in text
     assert "| LLM pack files | 0 |" in text
+    assert "capped at 200" in text
+    assert "not the whole tree" in text
     assert "### How these % are calculated" not in text
 
 
