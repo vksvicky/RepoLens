@@ -13,7 +13,7 @@ repolens which audit
 | `pr` | `repolens review --preset pr --path .` — scanners only, no model |
 | `changed` | `repolens review --preset changed --path .` — this change-set, with the model |
 | `release` | `repolens review --preset release --path .` — full tree, architecture pass |
-| `audit` or `m-and-a` | `repolens audit --path .` — release preset, plus ratchet and verify |
+| `audit` or `m-and-a` | `repolens audit --path .` — release preset, plus ratchet and verify. The expanded command includes `--deep`. Slow Brain still packs at most `max_files` (default 200), which is not the whole tree. |
 | `security` | `repolens sentinel --path .` — P1 only |
 | `architecture` | `repolens architecture --path .` — P3 only |
 

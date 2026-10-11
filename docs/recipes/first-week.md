@@ -14,7 +14,17 @@
 | **Ollama air-gap** | Policy forbids cloud keys | Often **1–3+ hours** for full deep on mid hardware — not a “fast local” substitute |
 | **`--preset pr` / scanners-only** | Every PR CI gate | Seconds–minutes; **no** Slow Brain narrative |
 
-Install: `pip install "repolens-audit[scanners]==0.1.2"` (or editable clone). Primary zero-infra story stays **pipx/pip**, not Docker.
+Industrial PR CI is the command `repolens which pr` prints, plus the fail flags that catalog does not include:
+
+```bash
+repolens which pr
+# repolens review --preset pr --path .
+repolens review --preset pr --path . --ci --fail-on HIGH
+```
+
+`repolens which pr` itself does not add `--ci` or `--fail-on`. `repolens which audit` also runs Slow Brain, which packs at most the default 200 files. A 95% gate confidence is review-package adequacy, not a percent-secure score, and it does not mean the model read every file the scanners scanned. Markdown provenance fences a command that contains a backtick; JSON `command` and `expandedArgv` stay plain strings.
+
+Install: `pip install "repolens-audit[scanners]==0.1.3"` (or editable clone). Primary zero-infra story stays **pipx/pip**, not Docker.
 
 Not sure which flags to pass? Ask the catalog, then run the line it prints:
 
@@ -86,7 +96,7 @@ repolens view reports/latest.json
 repolens portfolio --paths-file repos.txt --out portfolio-out
 
 # Locked-down runners: pull the slim image (pinned scanners; no baked keys)
-# ghcr.io/vksvicky/repolens:0.1.2 — see docs/docker.md
+# ghcr.io/vksvicky/repolens:0.1.3 — see docs/docker.md
 ```
 
 Wire `--preset pr` into GitHub Actions / GitLab / CodeBuild using [ci.md](../ci.md) and [docker.md](../docker.md).
