@@ -190,6 +190,17 @@ def _render_import_graph_section(report: FindingReport) -> list[str]:
     return lines
 
 
+def _md_inline_or_fence(label: str, value: str) -> str:
+    """Inline span, or a fenced block when a backtick would break the span.
+
+    JSON provenance keeps ``command`` and ``expandedArgv`` as strings. Only
+    the Markdown rendering changes.
+    """
+    if "`" in value or "\n" in value:
+        return f"- **{label}**:\n\n```text\n{value}\n```"
+    return f"- **{label}**: `{value}`"
+
+
 def _provenance_identity_lines(prov) -> list[str]:
     lines: list[str] = []
     if prov.repoLensVersion:
@@ -210,9 +221,9 @@ def _provenance_identity_lines(prov) -> list[str]:
     if prov.journalTipHash:
         lines.append(f"- **Journal tip**: `{prov.journalTipHash}`")
     if prov.command:
-        lines.append(f"- **Command**: `{prov.command}`")
+        lines.append(_md_inline_or_fence("Command", prov.command))
     if prov.expandedArgv:
-        lines.append(f"- **Expanded argv**: `{shlex.join(prov.expandedArgv)}`")
+        lines.append(_md_inline_or_fence("Expanded argv", shlex.join(prov.expandedArgv)))
     return lines
 
 
