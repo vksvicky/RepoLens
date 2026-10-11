@@ -71,3 +71,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-10 | WIP→push | 92% | 0/0/0/2 | which catalog + sanitized argv provenance; URL userinfo stripped; 118 related pytest | chat |
 | 2026-10-10 | WIP→push | 91% | 0/0/0/2 | Selfdog hygiene: HEALTHCHECK, cycle-tree split, mega-file and 80-line spans; 69 related pytest | chat |
 | 2026-10-11 | industrial-0.1.3 | 91% | 0/0/1/1 | 0.1.3 provenance query strip, wheel SHA-256, image sha256sum; pip deps and Docker Semgrep extra stay unhashed; not tagged | chat |
+| 2026-10-11 | WIP→commit | 94% | 0/0/0/0 | Overlay scanners: extract Issue builders so fintech/healthtech clear deep-nesting; 5 overlay pytest | chat |

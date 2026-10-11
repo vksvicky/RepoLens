@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from repolens.config import PacksConfig
+from repolens.heuristics.deep_nesting import find_deep_nesting
 from repolens.inventory import FileEntry
 from repolens.packs.fintech.heuristics import scan_fintech
 from repolens.packs.healthtech.heuristics import scan_healthtech
@@ -42,3 +43,18 @@ def test_healthtech_heuristic_flags_phi_log(tmp_path: Path) -> None:
     entry = FileEntry(path=f, relative="clinical.py", size=1, priority_band=1)
     issues = scan_healthtech(tmp_path, [entry])
     assert issues and issues[0].category == "healthtech.phi_logging"
+
+
+def test_overlay_heuristics_stay_under_deep_nesting_gate() -> None:
+    root = Path(__file__).resolve().parents[1]
+    entries = []
+    for rel in (
+        "src/repolens/packs/fintech/heuristics.py",
+        "src/repolens/packs/healthtech/heuristics.py",
+    ):
+        path = root / rel
+        entries.append(
+            FileEntry(path=path, relative=rel, size=path.stat().st_size, priority_band=1)
+        )
+    issues = find_deep_nesting(entries)
+    assert issues == []

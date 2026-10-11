@@ -16,6 +16,28 @@ _CLEAR_LOG = re.compile(
 )
 
 
+def _card_issue(rel: str, line: int) -> Issue:
+    return Issue(
+        severity=Severity.HIGH,
+        priority="P1",
+        category="fintech.pci_pan",
+        file=rel,
+        line=line,
+        title="Possible card data in source / logs",
+        explanation=(
+            "Line looks like PAN or card data assignment/logging. "
+            "Not a PCI finding — verify with your QSA tools."
+        ),
+        impact="Card data exposure risk if real PAN reaches logs or git.",
+        recommendedFix="Tokenize / mask; never log PAN/CVV; use vault/HSM for keys.",
+        codeExample=(
+            "# Before\nlog.info('pan=%s', pan)\n\n"
+            "# After\nlog.info('pan=%s', mask_pan(pan))"
+        ),
+        source="heuristic",
+    )
+
+
 def scan_fintech(root: Path, entries: list[FileEntry]) -> list[Issue]:
     issues: list[Issue] = []
     for entry in entries:
@@ -28,28 +50,6 @@ def scan_fintech(root: Path, entries: list[FileEntry]) -> list[Issue]:
             continue
         for i, line in enumerate(text.splitlines(), start=1):
             if _PAN_HINT.search(line) or _CLEAR_LOG.search(line):
-                issues.append(
-                    Issue(
-                        severity=Severity.HIGH,
-                        priority="P1",
-                        category="fintech.pci_pan",
-                        file=rel,
-                        line=i,
-                        title="Possible card data in source / logs",
-                        explanation=(
-                            "Line looks like PAN or card data assignment/logging. "
-                            "Not a PCI finding — verify with your QSA tools."
-                        ),
-                        impact="Card data exposure risk if real PAN reaches logs or git.",
-                        recommendedFix=(
-                            "Tokenize / mask; never log PAN/CVV; use vault/HSM for keys."
-                        ),
-                        codeExample=(
-                            "# Before\nlog.info('pan=%s', pan)\n\n"
-                            "# After\nlog.info('pan=%s', mask_pan(pan))"
-                        ),
-                        source="heuristic",
-                    )
-                )
+                issues.append(_card_issue(rel, i))
                 break
     return issues
