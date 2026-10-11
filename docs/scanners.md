@@ -34,7 +34,7 @@ Pinned native downloads (gitleaks, osv-scanner) currently cover:
 | Linux | amd64, arm64 |
 | Windows | **Not pinned yet** — put tools on `PATH` yourself, or run under [WSL](https://learn.microsoft.com/windows/wsl/) and use Linux steps |
 
-Semgrep is installed via pip (`repolens-audit[scanners]` or `plugins install semgrep`) and usually works on all three platforms when Python supports it.
+`repolens plugins install` verifies the Semgrep 1.100.0 and Checkov 3.3.9 wheel SHA-256 before pip runs. That check covers the named wheel only, not a hermetic lock of its dependencies; those still come from PyPI. The Semgrep wheel is CPython 3.9–3.11, so a 3.12 plugin install fails closed with “Semgrep plugin requires Python 3.9–3.11” and does not fetch a different build. The Docker image installs Semgrep from the `scanners` extra on Python 3.12 (`semgrep>=1.100,<2`), which is a separate pin from the plugin wheel.
 
 What the `[scanners]` **pip extra** contains (and that it is a RepoLens install option, not per-project config): [install-extras.md](./install-extras.md).  
 Cross-OS CLI walkthrough: [try-on-your-repo.md](./try-on-your-repo.md).
