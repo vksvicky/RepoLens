@@ -1,7 +1,7 @@
 """Supporting benchmark metrics from FindingReport (Phase 6.6).
 
 Headline human metrics (remediation rate, MTTR, suggested-fix apply %) are
-defined in ``docs/benchmarks/methodology.md`` and require a study protocol.
+defined by a study protocol that stays with the maintainer.
 This module scores **supporting** actionability signals from an existing report
 so dogfood and CI can publish honest precursor numbers without inventing F1.
 """

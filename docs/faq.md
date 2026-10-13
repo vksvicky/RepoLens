@@ -23,7 +23,7 @@ If you will read the report and not run the tool, start with [for-everyone.md](.
 | **Python import cycles?** | **Always on** when the matched inventory includes `.py` files: deterministic **grimp** graph + Tarjan SCCs (`source=graph`). Non-Python repos skip the lane silently. See [import graph FAQ](#python-import-cycles-import-graph-g1). |
 | **Cyclicity ratchet?** | Optional **Rule 1** gate: fail only when **runtime cyclicity** rises vs a stored baseline (`repolens baseline set` → `repolens check --diff`). Same section — [ratchet ladder](#cyclicity-ratchet-baseline-g2). |
 
-Longer narrative: [design/ai-keys-scanners-and-local-learning.md §5](./design/ai-keys-scanners-and-local-learning.md#5-decision-summary-plain-language).  
+The plain-language summary is in the decisions section above.  
 
 **Setup steps for all three options:** [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) (cloud key · local Ollama · scanners only).
 
@@ -96,7 +96,7 @@ When a review’s matched inventory includes **Python** files, RepoLens runs a *
 | **Package names** | Inferred from layout (`src/` children, flat packages, `pyproject.toml` hints) unless you override `[graph] packages = […]` in config. Script folders without importable packages may yield an empty graph — expected, not a crash. |
 | **CI `--fail-on`** | Under `--ci` / `scanner_only`, **graph** findings count like **scanner** rows (High/Critical can fail the gate). Heuristic and LLM findings stay excluded unless you drop `scanner_only`. |
 | **MCP / DSL** | Optional. MCP: [mcp.md](./mcp.md). Architecture DSL: `repolens check architecture` + `repolens.yaml` (G4). CLI/CI remains the primary gate. |
-| **Sonargraph / SCIP** | Python stays **grimp**. Custom JSON edge lists exist today. **SCIP JSON ingest** + tree-sitter imports for JS/TS/Go/Rust/C# are specified in [graph-languages-scip.md](./design/graph-languages-scip.md) (#95) — not an indexer we run. |
+| **Sonargraph / SCIP** | Python stays **grimp**. Custom JSON edge lists exist today. **SCIP JSON ingest** + tree-sitter imports for JS/TS/Go/Rust/C# are specified in graph-languages-scip.md (#95) — not an indexer we run. |
 
 ### Cyclicity ratchet (baseline, G2)
 
@@ -127,7 +127,7 @@ Analysis failures (SyntaxError, discovery miss) append **`graph.analysis_failed:
 
 Playbooks in chat and RepoLens share review *ideas*; they are not the same product surface. See [using-playbooks.md](./using-playbooks.md).
 
-**Sourcery / CodeRabbit** optimise for PR/IDE velocity (inline comments, summaries, refactor idioms); **RepoLens** is the portable dual-review **gate/audit** (P1→P3 playbooks, scanners, SARIF/SBOM, BYOK/local). Use them together — see [repolens-vs-appsec-tools.md — PR/IDE velocity tools](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit).
+**Sourcery / CodeRabbit** optimise for PR/IDE velocity (inline comments, summaries, refactor idioms); **RepoLens** is the portable dual-review **gate/audit** (P1→P3 playbooks, scanners, SARIF/SBOM, BYOK/local). Use them together — see repolens-vs-appsec-tools.md — PR/IDE velocity tools.
 
 ---
 
@@ -168,7 +168,7 @@ RepoLens does **not** run a Sonar-style OOP rule engine or claim “SOLID certif
 
 ## Do we measure complexity and test coverage?
 
-**Complexity (Fast Brain, Python MVP):** cyclomatic (McCabe) + cognitive complexity via stdlib `ast` (zero extra deps). Clean functions stay on the scorecard only; Issues start at cyclo ≥ 11 or cognitive ≥ 16. Markdown always shows a **Top-10 hotspots** table; Slow Brain gets detailed refactor help for at most **`top_n_ai_explanations`** (default **5**, max 10). See [complexity-and-cognitive-ai.md](./design/complexity-and-cognitive-ai.md).
+**Complexity (Fast Brain, Python MVP):** cyclomatic (McCabe) + cognitive complexity via stdlib `ast` (zero extra deps). Clean functions stay on the scorecard only; Issues start at cyclo ≥ 11 or cognitive ≥ 16. Markdown always shows a **Top-10 hotspots** table; Slow Brain gets detailed refactor help for at most **`top_n_ai_explanations`** (default **5**, max 10). See complexity-and-cognitive-ai.md.
 
 **Test inventory (Fast Brain):** counts **test files and test cases** (Python `def test_*` / `unittest.TestCase` methods), not a misleading file-only ratio. Scorecard: `Test files | Test cases | Ratio (tests/production function)`.
 
@@ -205,7 +205,7 @@ On each review RepoLens can maintain `.repolens/repolens.sqlite` (local): file f
 | Force full pack (slow) | `repolens review --path "$TARGET" --out "$TARGET/reports" --full --deep --timeout 3600` |
 | Full audit + Extended themes | add `--full-audit` (slowest) |
 
-Fingerprints never store file contents. FTS content learning stays opt-in (`repolens learn` + consent). Design: [phase-5-adaptive-cache-and-recommendations.md](./design/phase-5-adaptive-cache-and-recommendations.md).
+Fingerprints never store file contents. FTS content learning stays opt-in (`repolens learn` + consent). Design: phase-5-adaptive-cache-and-recommendations.md.
 
 ---
 
@@ -263,7 +263,7 @@ Lookup order inside RepoLens: match **Occurrence** (`runId`) first if present, e
 
 JSON still uses `stableId` / `runId` for compatibility; Markdown shows the human labels above.
 
-Schema: [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) · design:.
+Schema:  · design:.
 
 ## How do I deep-dive one finding (Phase 6 explain)?
 
@@ -315,7 +315,7 @@ Post-parse **FP calibrations** (default on) demote patterns such as list-form `s
 - **What does `AI DEEP AUDIT: INCOMPLETE` mean?** One or more deep passes could not package their answer (timeout, transport error, or JSON that failed even the one micro-repair). The affected band shows **UNVERIFIED**, not `0%`. The **deterministic gate** (scanners + Fast Brain) is scored separately, so a healthy P1/P2 plus a broken P3 leaves the gate verdict unchanged. Re-run just the failed pass with `--resume --retry-pass p3`, or raise `--timeout`.
 - **Why is INCOMPLETE not “architecture 0% quality”?** `0%` says the checklist was answered and found badly wanting. INCOMPLETE says nothing was verified. Treat it as “unknown, retry”, never as a poor architecture grade. Only an answered band with open Critical/High findings or missed checklist ids lowers its percentage.
 - **Is any of these numbers “% secure”?** No. Gate and band confidence rate how adequate the *review package* is (checklist coverage, scanners ran, open Critical/High). They are not a security score, not a CVE-completeness claim, and not a percentile against other repos.
-- **Do findings from packaging, not code, zero the gate?** They should not. A null `codeExample`/`impact` on a High finding is filled with a “verify manually” placeholder instead of degrading the pass; only genuinely unparseable output degrades. See [design/robust-product-bar.md](./design/robust-product-bar.md).
+- **Do findings from packaging, not code, zero the gate?** They should not. A null `codeExample`/`impact` on a High finding is filled with a “verify manually” placeholder instead of degrading the pass; only genuinely unparseable output degrades. 
 - **Which preset do I want?** `--preset pr` = scanners-only, no LLM (add `--ci --fail-on HIGH` yourself); `--preset changed` = `--git-diff auto --deep`, 900 s; `--preset release` = `--full --full-audit --deep`, 3600 s. Explicit flags override the preset. Recipes: [Two-Lane speed FAQ](#what-is-a-fair-dogfood-recipe-for-two-lane-speed).
 
 ### Checklist: answered, does not apply, not answered
@@ -415,7 +415,7 @@ Deep reports include a **Theme breakdown** section:
 
 Heuristics (mega-files, sibling duplication, gitignore/secrets, CI gaps, …) map into theme finding counts. Deprecated ids such as `sec.secrets` / `sec.deps_config` alias to the new theme ids so older N/A notes still resolve. Themes are **not** a substitute for Semgrep/OSV/gitleaks/CodeQL.
 
-Design: [phase-5.2-theme-coverage-and-report-breakdown.md](./design/phase-5.2-theme-coverage-and-report-breakdown.md) · [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md). Config: `[deep]` (`enabled`, `chars_per_pass`, `mega_file_lines`, `mega_file_exclude_globs`, `skip_paths`). `skip_paths` adds trees on top of the defaults (`bin/`, `gen/`, `test_output/`, `out/`, `*.mcgen`).
+Design: phase-5.2-theme-coverage-and-report-breakdown.md · phase-5.1-deep-hardening.md. Config: `[deep]` (`enabled`, `chars_per_pass`, `mega_file_lines`, `mega_file_exclude_globs`, `skip_paths`). `skip_paths` adds trees on top of the defaults (`bin/`, `gen/`, `test_output/`, `out/`, `*.mcgen`).
 
 **Rules** load by **id** from a registry (project `.repolens/rules/` → user config → packaged defaults)—not hard-coded Markdown paths on the author’s machine. Override a rule with `.repolens/rules/<id>.md`.
 
@@ -580,7 +580,7 @@ Full table and examples: [install-extras.md](./install-extras.md).
 - **Privacy-sensitive / air-gapped:** use **local LLM + optional local scanners**.  
 - RepoLens never embeds a shared vendor API key.
 
-Keys stay in environment variables or your config secret references — **never** in git or report files. Details: [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md).
+Keys stay in environment variables or your config secret references — **never** in git or report files. 
 
 **Concrete setup steps:** [setup-ai-and-scanners.md](./setup-ai-and-scanners.md).
 
@@ -607,7 +607,7 @@ Hugging Face repos (models/datasets/Spaces) are reviewed as **git content** (cod
 
 ### 2) Language the **RepoLens CLI** is written in
 
-**Python 3.11+** (decision locked in Phase 0). Install target: `pipx` / `uv` / PyPI as `repolens`. Details: [design/cli-and-report-schema.md](./design/cli-and-report-schema.md).
+**Python 3.11+** (decision locked in Phase 0). Install target: `pipx` / `uv` / PyPI as `repolens`. 
 
 ---
 
@@ -634,7 +634,7 @@ Hugging Face repos (models/datasets/Spaces) are reviewed as **git content** (cod
 **Can we build them in?**  
 Use `repolens plugins install …` (consent download) or `pip install "repolens-audit[scanners]"` for Semgrep via pip — large native scanners stay out of the slim default wheel. Missing scanners never break the LLM review path unless you pass `--require-scanners`.
 
-Guide: [scanners.md](./scanners.md) · Design: [ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) · Private registries: [trivy-registry-auth.md](./design/trivy-registry-auth.md).
+Guide: [scanners.md](./scanners.md) · Design: ai-keys-scanners-and-local-learning.md · Private registries: trivy-registry-auth.md.
 
 ### Why not just `semgrep && trivy && gitleaks`?
 
@@ -645,7 +645,7 @@ scanner evidence into one prioritized P1→P2→P3 decision; use
 [`--import-sarif`](./scanners.md#import-third-party-sarif-codeql-sonar-eslint-)
 to fold CodeQL/Sonar/ESLint SARIF into the same gate report.
 
-See [competitive landscape](./design/competitive-landscape-sonar-alternatives-2026.md) and the [Semgrep vs CodeQL study](./design/semgrep-codeql-comparison.md) (#93): keep both as evidence; RepoLens does not pick a SAST winner.
+See competitive landscape and the Semgrep vs CodeQL study (#93): keep both as evidence; RepoLens does not pick a SAST winner.
 
 ### Air-gapped Ollama vs private BYOK?
 
@@ -728,7 +728,7 @@ See [docker.md](./docker.md). Image `ghcr.io/vksvicky/repolens` ships pinned git
 | Default | **Off** until you accept |
 | Cloud LLM caveat | If you still use a **cloud** API key, **excerpts may go to that provider**; local learning does not remove that. Use Ollama for fully local prompts |
 
-Disable by config or deleting `.repolens/`. Full policy: [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md).
+Disable by config or deleting `.repolens/`. 
 
 ---
 
@@ -761,7 +761,7 @@ See [scanners.md](./scanners.md).
 
 RepoLens complements—does **not** replace—**pytest/jest/etc.**, **CI**, **Dependabot/Renovate**, **CodeQL**, **Snyk**, or your hosting provider’s secret scanning.
 
-Longer comparison (Checkmarx, Veracode, Fortify, Semgrep, Trivy, Checkov, GHAS, ZAP, …): [design/repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md).
+RepoLens sits beside Checkmarx, Veracode, Fortify, Semgrep, Trivy, Checkov, GHAS, and ZAP. It does not replace them. 
 
 ### Hosting sources (Phase 2)
 
@@ -830,7 +830,7 @@ Each report also records **Duration** (wall clock for the whole command).
 | Push protection vs RepoLens? | Forge **secret push protection** blocks pre-receive secrets; RepoLens audits **landed / PR** code in CI. Use both. |
 | Cloud LLM in CI forbidden? | `--scanners-only`, or Ollama on a private runner. |
 
-Design: [phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md).
+Design: phase-7-enterprise-ci-and-report-delivery.md.
 
 ---
 
@@ -905,7 +905,7 @@ Suppressed rows leave fail-on and SARIF, but stay listed under **Suppressed** in
 
 ## Do you publish detection F1 / “beats Semgrep” numbers?
 
-No as a marketing lead. Phase 6.6 pre-registers a methodology that leads with **remediation rate**, **MTTR**, and **suggested-fix apply %** — not synthetic F1 alone. See [benchmarks/methodology.md](./benchmarks/methodology.md) and the honest MVP table ([results](./benchmarks/results/mvp-2026-08-06.md)). Supporting readiness metrics: `repolens score-report path/to/report.json`.
+No as a marketing lead. Phase 6.6 leads with **remediation rate**, **MTTR**, and **suggested-fix apply %** — not synthetic F1 alone. Supporting readiness metrics: `repolens score-report path/to/report.json`.
 
 ## How do Critical/High suggested fixes show up on a PR?
 
@@ -924,7 +924,7 @@ On PRs, prefer **`repolens review --ci --fail-on HIGH`** (Action `ci: true` by d
 3. If there are hits → LLM runs on **hit files only** (not a full-repo deep).  
 4. `--fail-on` gates on **scanner** findings; LLM/heuristic rows do not sole-fail the build.
 
-Use full `--deep` for scheduled/release audits. See [ci.md](./ci.md) and [phase-6.x §6.3](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md).
+Use full `--deep` for scheduled/release audits. See [ci.md](./ci.md) and phase-6.x §6.3.
 
 ## Can we use this in corporate CI/CD (Jenkins, email, dashboards)?
 
@@ -936,7 +936,7 @@ Yes — see **[Corporate CI/CD & delivery (Phase 7)](#corporate-cicd--delivery-p
 
 ## How does RepoLens analyse a repository?
 
-See **[ADR-01: Analysis runtime architecture](./adr/01_analysis_runtime_architecture.md)** for pipeline diagrams. Colour legend: [adr/_diagram_legend.md](./adr/_diagram_legend.md).
+Pipeline diagrams stay with the maintainer. 
 
 ---
 

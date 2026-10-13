@@ -241,7 +241,7 @@ Same list in Zed (command palette) and IntelliJ (Find Action). Tags match the pl
 │ 4 modules · cyclicity 16                              │
 │                                                       │
 │ Candidate cuts                                        │
-│  ( ) run_route → run_collect          weight 2        │
+│   run_route → run_collect          weight 2        │
 │  (•) run_collect → run_finish         weight 1        │
 │                                                       │
 │  If those edges are omitted: cyclicity 0              │
@@ -340,7 +340,7 @@ A plugin would not embed a second scanner. It would run the CLI and show the res
 
 ## Other commands (by job)
 
-Every example is this repository, run from the RepoLens folder. A command you can run today is marked **now**. A command from the [Sonargraph comparison](./design/sonargraph-architect-comparison.md) that is not implemented yet is marked **not built**. Do not paste a **not built** row into a terminal.
+Every example is this repository, run from the RepoLens folder. A command you can run today is marked **now**. A command from the Sonargraph comparison that is not implemented yet is marked **not built**. Do not paste a **not built** row into a terminal.
 
 ### See the project, change nothing
 

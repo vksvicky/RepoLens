@@ -49,4 +49,4 @@ Product behaviour (for operators of the CLI):
 | Local learning (shipped) | Opt-in index/memory under `.repolens/`; **no** upload to a RepoLens training service; informed consent on enable (`repolens learn`) |
 | Scanners | Optional plugins; do not require cloud accounts for gitleaks/Semgrep/OSV-style tools |
 
-Details: [local-learning.md](./local-learning.md) · [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) · [faq.md](./faq.md).
+Details: [local-learning.md](./local-learning.md) · [faq.md](./faq.md).

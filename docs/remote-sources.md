@@ -100,5 +100,5 @@ Private clone failures typically exit with code **3**.
 
 - [try-on-your-repo.md](./try-on-your-repo.md) — install + local/remote examples  
 - [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) — LLM provider setup  
-- [design/phase-2-multi-source-ingest.md](./design/phase-2-multi-source-ingest.md) — design decisions  
+-  — design decisions  
 - [faq.md](./faq.md#hosting-sources-phase-2) — hosting matrix  

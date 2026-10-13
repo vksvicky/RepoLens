@@ -30,13 +30,13 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | ↳ G2 Cyclicity ratchet | [#35](https://github.com/vksvicky/RepoLens/issues/35) | [x] Merged via [PR #48](https://github.com/vksvicky/RepoLens/pull/48) |
 | ↳ G3 Graph-backed MCP | [#36](https://github.com/vksvicky/RepoLens/issues/36) | [x] Optional `repolens-mcp` — [PR #51](https://github.com/vksvicky/RepoLens/pull/51) |
 | ↳ G4 Architecture DSL + weighted LLM | [#37](https://github.com/vksvicky/RepoLens/issues/37) | [x] `repolens.yaml` + FAS candidates — [PR #51](https://github.com/vksvicky/RepoLens/pull/51) |
-| Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [x] Sourcery/CodeRabbit vs gate — see [repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md#pr--ide-velocity-tools-sourcery--coderabbit) |
+| Docs: competitive note | [#28](https://github.com/vksvicky/RepoLens/issues/28) | [x] Sourcery/CodeRabbit vs gate — see repolens-vs-appsec-tools.md |
 | 8 / 9 | [#4](https://github.com/vksvicky/RepoLens/issues/4) / [#5](https://github.com/vksvicky/RepoLens/issues/5) / [#58](https://github.com/vksvicky/RepoLens/issues/58) | Phase 8 done ([PR #51](https://github.com/vksvicky/RepoLens/pull/51)); Phase 9 Gemini + Vertex + Bedrock ([PR #52](https://github.com/vksvicky/RepoLens/pull/52) + #58) |
 | Dogfood: 32B cost / change-set | [#15](https://github.com/vksvicky/RepoLens/issues/15) / [#16](https://github.com/vksvicky/RepoLens/issues/16) | **Done** ([PR #57](https://github.com/vksvicky/RepoLens/pull/57)); umbrella [#13](https://github.com/vksvicky/RepoLens/issues/13) closed |
 | Deferred residuals | formerly [#11](https://github.com/vksvicky/RepoLens/issues/11) → [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) | **Closed** — heuristics, Semgrep–CodeQL note, Trivy registry matrix, multi-lang graph, strict DSL |
 | Design principles (DRY/KISS/SOLID) | [#62](https://github.com/vksvicky/RepoLens/issues/62)–[#64](https://github.com/vksvicky/RepoLens/issues/64) | Themes + scorecard legend + graph DIP copy |
 | SARIF CI ergonomics | [#65](https://github.com/vksvicky/RepoLens/issues/65) / [#66](https://github.com/vksvicky/RepoLens/issues/66) | `--require-sarif-import` + companion recipes |
-| Complexity + cognitive + AI | [#67](https://github.com/vksvicky/RepoLens/issues/67)–[#74](https://github.com/vksvicky/RepoLens/issues/74) | **Closed** — Fast/Slow Brain MVP ([complexity-and-cognitive-ai.md](./design/complexity-and-cognitive-ai.md)) |
+| Complexity + cognitive + AI | [#67](https://github.com/vksvicky/RepoLens/issues/67)–[#74](https://github.com/vksvicky/RepoLens/issues/74) | **Closed** — Fast/Slow Brain MVP (complexity-and-cognitive-ai.md) |
 | Metis / compare lane | [#86](https://github.com/vksvicky/RepoLens/issues/86)–[#87](https://github.com/vksvicky/RepoLens/issues/87) · [compare.md](./compare.md) | **Closed** — measured `role_packs` table; no Metis ~60% claims |
 | Sonargraph-shaped editor | [#89](https://github.com/vksvicky/RepoLens/issues/89) | **Closed** — C1–C7 CLI + VS Code client; Zed/IntelliJ first READMEs |
 | Community feedback | formerly [#6](https://github.com/vksvicky/RepoLens/issues/6) | **Closed** — [Discussions](https://github.com/vksvicky/RepoLens/discussions) + issue templates |
@@ -77,9 +77,9 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | GitHub issue / PR templates | [x] | `.github/` |
 | Placeholder CI workflow | [x] | Docs / lint later |
 | Choose implementation language (Python vs TypeScript) | [x] | **Python 3.11+** — see design doc + FAQ |
-| Design spec for CLI UX & report schema | [x] | `docs/design/cli-and-report-schema.md` |
+| Design spec for CLI UX & report schema | [x] | `docs/ |
 | FAQ (incl. target languages / tools) | [x] | `docs/faq.md` |
-| ADR-01 analysis runtime + diagram legend | [x] | `docs/adr/` (Mermaid HLD / sequence / zones) |
+| ADR-01 analysis runtime + diagram legend | [x] | `docs/ (Mermaid HLD / sequence / zones) |
 | Remote published (`vksvicky/RepoLens`) | [x] | https://github.com/vksvicky/RepoLens |
 
 **Phase 0 exit criteria:** Docs + playbooks + community files on `main`; language/design decided. → **Met (2026-08-04).**
@@ -171,7 +171,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design: dual-store fingerprint + opt-in content | [x] | [phase-5-adaptive-cache-and-recommendations.md](./design/phase-5-adaptive-cache-and-recommendations.md) |
+| Design: dual-store fingerprint + opt-in content | [x] | phase-5-adaptive-cache-and-recommendations.md |
 | Unified SQLite (`repolens.sqlite`) + FTS5 | [x] | `ProjectStore` + migrate `index.sqlite` → `.bak`; learning uses same DB |
 | Fingerprint sync + timeout helpers | [x] | `adaptive.py` + `[adaptive]` config (pipeline wire-up next) |
 | Adaptive LLM pack (`auto` / `full` / `changed`) | [x] | Wired in `run_review`; CLI `--full` / `--changed` |
@@ -207,7 +207,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design approved | [x] | [phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md) |
+| Design approved | [x] | phase-5.1-deep-hardening.md |
 | Lazy N/A rejection + coverage honesty | [x] | `is_lazy_na_reason` → missed |
 | Gate + security (+ arch/rel) audit confidence + glossary | [x] | `metrics.py` + report Metrics section |
 | Mega-file ignore globs (docs/xcuserdata/pbxproj) | [x] | Configurable via `[deep]` |
@@ -226,7 +226,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design approved (Core + Extended) | [x] | [phase-5.2-theme-coverage-and-report-breakdown.md](./design/phase-5.2-theme-coverage-and-report-breakdown.md) |
+| Design approved (Core + Extended) | [x] | phase-5.2-theme-coverage-and-report-breakdown.md |
 | Core theme ids (18) + deprecations/aliases | [x] | Replaced coarse `arch.code_quality` / `arch.structure` |
 | Extended theme ids (~19) | [x] | full-audit in Theme breakdown; N/A when out of scope |
 | Heuristic → theme mapping | [x] | mega_file, siblings, gitignore_secrets, … |
@@ -244,7 +244,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design approved | [x] | [phase-6-issue-explain-diagrams.md](./design/phase-6-issue-explain-diagrams.md) |
+| Design approved | [x] | phase-6-issue-explain-diagrams.md |
 | Issue IDs on FindingReport | [x] | `stableId` (v5) + `runId` (v4); stamped before report write |
 | `[explain]` config + `repolens explain` + `review --explain` | [x] | |
 | Diagram spine (validate → repair → fallback → optional image) | [x] | Exit 0 |
@@ -257,8 +257,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 **Goal:** Close product debt vs free/enterprise AppSec tools: Trivy/Checkov, SBOM/licenses, deterministic scanner gates, thin SARIF/ASPM handoff, playbook gaps, public benchmark — then extended trust/UX packs (6.7–6.10) — without building a RepoLens ASPM/SSO portal.
 
-**Umbrella design:** [phase-6.x-scanner-depth-ci-gates-and-credibility.md](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md)  
-**Does not reopen:** [phase-6-issue-explain-diagrams.md](./design/phase-6-issue-explain-diagrams.md)
+**Umbrella design:** phase-6.x-scanner-depth-ci-gates-and-credibility.md  
+**Does not reopen:** phase-6-issue-explain-diagrams.md
 
 | Slice | Scope | Status |
 |-------|--------|--------|
@@ -361,10 +361,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | Item | Status | Notes |
 |------|--------|-------|
 | Design | [x] | Umbrella §3 / 6.6 |
-| Methodology doc (pre-registered) | [x] | [benchmarks/methodology.md](./benchmarks/methodology.md) |
+| Methodology doc (pre-registered) | [x] |  |
 | Headline: remediation rate + MTTR (+ suggested-fix apply %) | [x] | Defined as primary; P/R supporting |
 | MVP run vs Semgrep CE + CodeQL | [~] | Table + arms published; formal cells TBD |
-| Publish results (incl. losses) | [x] | [mvp-2026-08-06.md](./benchmarks/results/mvp-2026-08-06.md) + dogfood proxies |
+| Publish results (incl. losses) | [x] | mvp-2026-08-06.md + dogfood proxies |
 | `repolens score-report` | [x] | Supporting readiness metrics |
 
 **Exit:** Methodology + MVP table led by remediation metrics (not P/R alone). → **Met (2026-08-06)** (partial dogfood; no invented F1)
@@ -463,14 +463,14 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 **Goal:** Production-minded corporate use: CI agents (Jenkins, CircleCI, GitLab, …), artifact export, email/chat/dashboard handoff — without building a RepoLens SaaS UI.  
 *(Formerly Phase 6 — renumbered 2026-08-04.)*  
-**Execution checklist:** [docs/design/phase-7-execution-checklist.md](./design/phase-7-execution-checklist.md)  
+**Execution checklist:** docs/  
 **Consumes:** Phase 6.x SARIF/SBOM/gates (ideally 6.1–6.6) and Wave A gate honesty.  
 **Parallel Track:** PyPI alpha ([#1](https://github.com/vksvicky/RepoLens/issues/1)) proceeds in parallel (Trusted Publisher + local dogfood + tag; TestPyPI optional).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design sketch | [x] | [phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md) |
-| Thin execution checklist | [x] | [phase-7-execution-checklist.md](./design/phase-7-execution-checklist.md) |
+| Design sketch | [x] | phase-7-enterprise-ci-and-report-delivery.md |
+| Thin execution checklist | [x] | phase-7-execution-checklist.md |
 | Expand [ci.md](./ci.md) (Jenkins / CircleCI / GitLab) | [x] | Core recipes; Azure DevOps stretch sketch |
 | Artifact → email / webhook recipes | [x] | Corporate SMTP / Slack-Teams summary payload (no code dumps) |
 | Adaptive cache guidance for ephemeral CI | [x] | Default off (`enabled = false`) or restore via CI cache |
@@ -486,7 +486,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 ## Wave C — Structure programme (Zügel-aligned)
 
 **Goal:** Deterministic import graph + ratchet + optional MCP/DSL without becoming Sonargraph.  
-**Design:** [zugel-comparison-and-roadmap.md](./design/zugel-comparison-and-roadmap.md) (rev 2026-09-24: grimp core, CLI-primary gates, FAS-as-candidate).  
+**Design:** zugel-comparison-and-roadmap.md (rev 2026-09-24: grimp core, CLI-primary gates, FAS-as-candidate).  
 **Umbrella:** [#18](https://github.com/vksvicky/RepoLens/issues/18)
 
 | Phase | Issue | Status | Notes |
@@ -508,7 +508,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design sketch | [x] | [phase-8-provider-aliases-and-recipes.md](./design/phase-8-provider-aliases-and-recipes.md) |
+| Design sketch | [x] | phase-8-provider-aliases-and-recipes.md |
 | P0 aliases: Azure, Mistral, Groq, OpenRouter | [x] | Map to OpenAI-compatible + stream |
 | Setup/FAQ recipes (P0–P2) | [x] | LM Studio / vLLM as `openai_compatible` |
 | Gemini: recipe or “see Phase 9” | [x] | No half-native adapter in Phase 8 |
@@ -523,7 +523,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design sketch | [x] | [phase-9-native-provider-sdks.md](./design/phase-9-native-provider-sdks.md) |
+| Design sketch | [x] | phase-9-native-provider-sdks.md |
 | Native Gemini (AI Studio) | [x] | `provider=gemini` + `GEMINI_API_KEY`; stream → `on_delta` — [PR #52](https://github.com/vksvicky/RepoLens/pull/52) |
 | Native Vertex AI | [x] | Hybrid env token + optional ADC — [#58](https://github.com/vksvicky/RepoLens/issues/58) |
 | Native Bedrock (if demanded) | [x] | Converse stream + SigV4 httpx — [#58](https://github.com/vksvicky/RepoLens/issues/58) |

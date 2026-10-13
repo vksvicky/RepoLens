@@ -355,7 +355,7 @@ boundaries:
 | `repolens check architecture --path "$TARGET"` | Deterministic boundary verify + print weighted FAS **candidates** | **0** ok · **1** violations · **2** missing/invalid DSL · **3** graph failed |
 | `repolens check architecture --json` | Emit remediation context (subgraph + FAS candidates) for LLM / agents | same |
 
-**FAS = candidate:** lightest feedback-arc-set cuts are suggestions only — choose the cut that respects layer direction. See [zugel-comparison-and-roadmap.md](./design/zugel-comparison-and-roadmap.md).
+**FAS = candidate:** lightest feedback-arc-set cuts are suggestions only — choose the cut that respects layer direction. See zugel-comparison-and-roadmap.md.
 
 ---
 

@@ -39,4 +39,4 @@ Hot path is deterministic (grimp + in-memory BFS). **No LLM** inside these tools
 - `repolens check --diff` — G2 cyclicity ratchet  
 - `repolens check architecture` — G4 boundary verify + FAS candidates  
 
-Design: [zugel-comparison-and-roadmap.md](./design/zugel-comparison-and-roadmap.md).
+Design: zugel-comparison-and-roadmap.md.

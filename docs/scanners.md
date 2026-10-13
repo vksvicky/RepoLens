@@ -2,7 +2,7 @@
 
 RepoLens can merge **deterministic** tool output into the same gate report. Scanners are **optional** — missing tools never stop an LLM review unless you pass `--require-scanners`.
 
-The built-in catalog is **gitleaks, semgrep, osv, trivy, and checkov**. Anything else comes in through `--import-sarif` and is folded into the same findings. See [scanner-catalog-boundary.md](./design/scanner-catalog-boundary.md).
+The built-in catalog is **gitleaks, semgrep, osv, trivy, and checkov**. Anything else comes in through `--import-sarif` and is folded into the same findings. See scanner-catalog-boundary.md.
 
 ## Quick start
 
@@ -50,7 +50,7 @@ Cross-OS CLI walkthrough: [try-on-your-repo.md](./try-on-your-repo.md).
 | `osv` | Dependency CVEs | `osv-scanner` |
 | `trivy` | FS vulns + misconfig (+ secrets) | `trivy` (pinned archive) |
 
-Private registries: set `TRIVY_USERNAME` / `TRIVY_PASSWORD` or `TRIVY_REGISTRY_TOKEN` in the **environment** (never in TOML). Details: [trivy-registry-auth.md](./design/trivy-registry-auth.md).
+Private registries: set `TRIVY_USERNAME` / `TRIVY_PASSWORD` or `TRIVY_REGISTRY_TOKEN` in the **environment** (never in TOML). Details: trivy-registry-auth.md.
 
 | `checkov` | IaC policy (Terraform/K8s/…) | `checkov` (pip cache venv) |
 
@@ -139,7 +139,7 @@ repolens review --path . --scanners semgrep
 ## Related
 
 - [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) — Option C checklist  
-- [design/phase-3-scanners.md](./design/phase-3-scanners.md)  
-- [design/repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md) — honest comparison vs Checkmarx, Snyk, CodeQL, Trivy, …  
+-   
+-  — honest comparison vs Checkmarx, Snyk, CodeQL, Trivy, …  
 - [ci.md](./ci.md) — GitHub Action  
 

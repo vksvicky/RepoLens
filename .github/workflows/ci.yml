@@ -26,11 +26,6 @@ jobs:
             docs/README.md
             docs/phases.md
             docs/faq.md
-            docs/design/cli-and-report-schema.md
-            docs/design/ai-keys-scanners-and-local-learning.md
-            docs/adr/README.md
-            docs/adr/_diagram_legend.md
-            docs/adr/01_analysis_runtime_architecture.md
             docs/CHANGELOG.md
             docs/CONTRIBUTING.md
             docs/CODE_OF_CONDUCT.md
@@ -45,13 +40,6 @@ jobs:
             docs/try-on-your-repo.md
             docs/install-extras.md
             docs/local-learning.md
-            docs/design/phase-2-multi-source-ingest.md
-            docs/design/phase-3-scanners.md
-            docs/design/phase-4-ci-and-ecosystem.md
-            docs/design/phase-5-adaptive-cache-and-recommendations.md
-            docs/design/phase-5.1-deep-hardening.md
-            docs/design/phase-6-issue-explain-diagrams.md
-            docs/design/phase-7-enterprise-ci-and-report-delivery.md
             action.yml
             playbooks/security.md
             playbooks/architecture.md

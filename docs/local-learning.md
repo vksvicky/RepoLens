@@ -2,9 +2,9 @@
 
 RepoLens can keep a **local** index of your repository to improve later reviews. Nothing is uploaded to a RepoLens service.
 
-**Related (not shipped yet):** Phase 5 uses one **SQLite + FTS5** store (`.repolens/repolens.sqlite`): always-on fingerprints/timings (no contents) + the same opt-in `chunks` FTS index. See [design/phase-5-adaptive-cache-and-recommendations.md](./design/phase-5-adaptive-cache-and-recommendations.md).
+**Related (not shipped yet):** Phase 5 uses one **SQLite + FTS5** store (`.repolens/repolens.sqlite`): always-on fingerprints/timings (no contents) + the same opt-in `chunks` FTS index. 
 
-Design: [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) · [design/phase-4-ci-and-ecosystem.md](./design/phase-4-ci-and-ecosystem.md)
+
 
 ## Enable
 
@@ -34,7 +34,7 @@ When `enabled = true` **and** consent exists, reviews prepend retrieved local ch
 
 ## Where it runs
 
-**Local-first:** adaptive fingerprints and FTS assume a normal local project checkout. Network/SMB paths may come later and will need **read-write** access to create `.repolens/` (or a local cache redirect). See [design/phase-5-adaptive-cache-and-recommendations.md §8](./design/phase-5-adaptive-cache-and-recommendations.md#8-deployment-model-local-first-network-later).
+**Local-first:** adaptive fingerprints and FTS assume a normal local project checkout. Network/SMB paths may come later and will need **read-write** access to create `.repolens/` (or a local cache redirect).  §8.
 
 ## Storage (gitignored)
 

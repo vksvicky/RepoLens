@@ -2,7 +2,7 @@
 
 Use the official **GitHub Action** (composite) or a small shell script (Bitbucket Pipelines, generic CI).
 
-Design: [design/phase-4-ci-and-ecosystem.md](./design/phase-4-ci-and-ecosystem.md)
+
 
 ## GitHub Actions
 
@@ -55,7 +55,7 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # optional
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always
         with:
           name: repolens-reports
           path: reports/
@@ -126,7 +126,7 @@ Separate job or step — graph-only, no API key. Commit `.repolens/baseline.json
         pass_filenames: false
 ```
 
-Design: [phase-6.x §6.3](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md) · blog: [enterprise-scale-llm-review-ci](./blog-ideas/enterprise-scale-llm-review-ci.md)
+Design: phase-6.x §6.3 · blog: enterprise-scale-llm-review-ci
 
 ### Inputs
 
@@ -209,11 +209,11 @@ repolens review --ci --scanners auto --fail-on HIGH --format both --sarif
           fail-on: HIGH
           ci: "true"
       - name: RepoLens SARIF (optional local CLI)
-        if: always()
+        if: always
         run: |
           repolens review --path . --ci --scanners-only --sarif --fail-on "" || true
       - uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always
         with:
           sarif_file: reports/
           # or a single reports/*.sarif.json path
@@ -221,7 +221,7 @@ repolens review --ci --scanners auto --fail-on HIGH --format both --sarif
 
 Sonar / other ASPM: ingest the same SARIF as an external issues file, or archive `reports/**` (JSON + SARIF + `sbom.cdx.json`) as CI artifacts. RepoLens does **not** host an ASPM portal.
 
-Design: [phase-6.x §6.4](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md)
+Design: phase-6.x §6.4
 
 ### Import external SARIF (companion gate)
 
@@ -335,7 +335,7 @@ Or wipe `.repolens/` at the start of each job.
 
 Long-lived / shared agents: treat `.repolens/` as workspace-local; clean between unrelated jobs.
 
-Design: [phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md).
+Design: phase-7-enterprise-ci-and-report-delivery.md.
 
 ## Corporate CI (Phase 7)
 
@@ -495,7 +495,7 @@ steps:
     inputs:
       PathtoPublish: reports
       ArtifactName: repolens-reports
-    condition: always()
+    condition: always
 ```
 
 ### Email notification
@@ -574,7 +574,7 @@ Use `--format json|both` and ingest `FindingReport` JSON (and/or anchored SARIF)
 
 Use both: forge push protection stops secret leaks at the gate; RepoLens reviews what already reached the branch or merge request. RepoLens is **not** a pre-receive server.
 
-Checklist: [phase-7-execution-checklist.md](./design/phase-7-execution-checklist.md) · design: [phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md).
+Checklist: phase-7-execution-checklist.md · design: phase-7-enterprise-ci-and-report-delivery.md.
 
 ## Related
 
@@ -582,5 +582,5 @@ Checklist: [phase-7-execution-checklist.md](./design/phase-7-execution-checklist
 - [setup-ai-and-scanners.md](./setup-ai-and-scanners.md)  
 - [publishing.md](./publishing.md) — PyPI releases for `install-from: pypi`  
 - [faq.md](./faq.md) — *Corporate CI/CD & delivery*  
-- [phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md) — enterprise delivery design  
+- phase-7-enterprise-ci-and-report-delivery.md — enterprise delivery design  
 

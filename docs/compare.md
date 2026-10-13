@@ -1,7 +1,7 @@
 # RepoLens vs coding-agent harnesses (compare)
 
 **Status:** public positioning (updated 2026-10-10 — measurement table in metis note; package 0.1.3)  
-**Related:** [metis-agent-comparison.md](./design/metis-agent-comparison.md) · [which-command.md](./which-command.md) · [repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md) · tracker [#12](https://github.com/vksvicky/RepoLens/issues/12)
+**Related:** metis-agent-comparison.md · [which-command.md](./which-command.md) · repolens-vs-appsec-tools.md · tracker [#12](https://github.com/vksvicky/RepoLens/issues/12)
 
 ## Bottom line
 

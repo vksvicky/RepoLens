@@ -35,30 +35,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [publishing.md](./publishing.md) | PyPI Trusted Publisher UI + pre-publish dogfood |
 | [local-learning.md](./local-learning.md) | Opt-in on-disk index + memory |
 | [review-confidence-log.md](./review-confidence-log.md) | Confidence history template |
-| [design/phase-2-multi-source-ingest.md](./design/phase-2-multi-source-ingest.md) | Phase 2 MVP design decisions |
-| [design/phase-3-scanners.md](./design/phase-3-scanners.md) | Phase 3 scanner plugin decisions |
-| [design/phase-4-ci-and-ecosystem.md](./design/phase-4-ci-and-ecosystem.md) | Phase 4 CI Action, PyPI, local learning |
-| [design/phase-5-adaptive-cache-and-recommendations.md](./design/phase-5-adaptive-cache-and-recommendations.md) | Phase 5 design: fingerprint cache, progressive review, per-project timeout |
-| [design/phase-5.1-deep-hardening.md](./design/phase-5.1-deep-hardening.md) | Phase 5.1: honest coverage, security audit confidence, quieter deep reports |
-| [design/phase-6-issue-explain-diagrams.md](./design/phase-6-issue-explain-diagrams.md) | Phase 6: UUID explain + foolproof Mermaid diagrams |
-| [design/phase-6.x-scanner-depth-ci-gates-and-credibility.md](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md) | Phase 6.1–6.10: scanners/SBOM/gates/SARIF (core) + feedback/PR UX/reachability/domain packs (extended) |
-| [benchmarks/methodology.md](./benchmarks/methodology.md) | Pre-registered benchmark: remediation rate / MTTR lead (Phase 6.6) |
-| [benchmarks/results/mvp-2026-08-06.md](./benchmarks/results/mvp-2026-08-06.md) | MVP results (partial dogfood; formal study TBD) |
-| [blog-ideas/enterprise-scale-llm-review-ci.md](./blog-ideas/enterprise-scale-llm-review-ci.md) | Blog draft: why 10k-file repos cannot full-LLM on every PR |
-| [design/phase-7-enterprise-ci-and-report-delivery.md](./design/phase-7-enterprise-ci-and-report-delivery.md) | Phase 7 design: Jenkins/CircleCI, artifacts, email/dashboard (not SaaS) |
-| [design/cli-and-report-schema.md](./design/cli-and-report-schema.md) | CLI UX, exit codes, finding/report schema |
-| [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) | AI keys, OWASP/CVE layers, bundled vs optional scanners, local ML |
-| [design/repolens-vs-appsec-tools.md](./design/repolens-vs-appsec-tools.md) | Honest comparison vs Checkmarx, Snyk, Semgrep, CodeQL, Trivy, … (product positioning) |
-| [design/semgrep-codeql-comparison.md](./design/semgrep-codeql-comparison.md) | Formal Semgrep vs CodeQL study cell (#93): use both as evidence, no winner bake-off |
-| [design/trivy-registry-auth.md](./design/trivy-registry-auth.md) | Trivy registry env allowlist, redaction, image refs (#94) |
-| [design/graph-languages-scip.md](./design/graph-languages-scip.md) | tree-sitter extra `[graph]` + SCIP JSON ingest (#95); Python stays grimp |
-| [design/competitive-landscape-sonar-alternatives-2026.md](./design/competitive-landscape-sonar-alternatives-2026.md) | Sonar/Qodana/Macroscope/CodeRabbit/DeepSource + PMD/ESLint/Bearer/… — adopt / refuse matrix (2026) |
-| [design/sonargraph-architect-comparison.md](./design/sonargraph-architect-comparison.md) | Sonargraph-Architect vs RepoLens: CLI diagnostic stream first, then a thin VS Code / Zed / IntelliJ client |
 | [compare.md](./compare.md) | We audit, they edit — Plan vs Audit vocabulary vs coding-agent harnesses |
-| [design/metis-agent-comparison.md](./design/metis-agent-comparison.md) | Metis coding-agent harness vs RepoLens: adopt compaction/verify/journal; refuse edit/self-heal product shape |
-| [design/metis-compaction-journal.md](./design/metis-compaction-journal.md) | Slice C: content-aware pack sniff + hybrid P3 + journal post-mortem (before like-for-like dogfood) |
-| [adr/](./adr/) | ADRs + diagram legend (how analysis works) |
-| [adr/01_analysis_runtime_architecture.md](./adr/01_analysis_runtime_architecture.md) | Pipeline, modes, security zones (diagrams) |
 | [using-playbooks.md](./using-playbooks.md) | Run reviews via playbooks (with or without the CLI) |
 | [publishing-checklist.md](./publishing-checklist.md) | Publish / maintain the GitHub remote |
 | [CHANGELOG.md](./CHANGELOG.md) | User-facing release notes |

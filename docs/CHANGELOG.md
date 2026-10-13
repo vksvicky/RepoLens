@@ -80,7 +80,7 @@ Published as `repolens-audit==0.1.1`.
 
 - Robust product: coerce null/empty Critical/High `impact`/`codeExample`; normalize `coverage:` gaps; gate insulation so packaging-degraded passes mark **INCOMPLETE** / UNVERIFIED instead of collapsing the gate to 0%
 - `--preset pr|changed|release` and `--retry-pass` (aliases `p1`/`security`, `p2`/`reliability`, `p3`/`architecture`) with per-pass cache skip on resume
-- Deterministic vs AI report blocks; schema immunity tests; FAQ + `docs/design/robust-product-bar.md`
+- Deterministic vs AI report blocks; schema immunity tests; FAQ + `docs/
 - Fast Brain: large-function spans (`heuristic.large_function`) and insecure HTTP / weak TLS hints (`heuristic.transport_tls`), with XML/JSON schema namespaces skipped
 - Trivy registry env forwarding, secret redaction (needles length ≥ 3), and optional iterative `trivy image` refs (`[scanners.trivy]`)
 - Architecture DSL `forbidden_imports`, `strict`, and `allowed_imports: ["*"]` open-layer wildcard
@@ -101,7 +101,7 @@ Published as `repolens-audit==0.1.1`.
 
 ## [0.1.0] — 2026-10-06
 
-Published as `repolens-audit==0.1.0`. Does not claim a Metis-style token cut; `role_packs` journal numbers are in [metis-agent-comparison.md](./design/metis-agent-comparison.md).
+Published as `repolens-audit==0.1.0`. Does not claim a Metis-style token cut; `role_packs` journal numbers are in metis-agent-comparison.md.
 
 ### Added
 
@@ -262,8 +262,8 @@ repolens version
 
 ### Added (Phase 6.6 public benchmark & credibility)
 
-- Pre-registered methodology led by **remediation rate / MTTR / suggested-fix apply %** ([benchmarks/methodology.md](./benchmarks/methodology.md))
-- MVP results table with honest TBD + dogfood latency/triage proxies ([benchmarks/results/mvp-2026-08-06.md](./benchmarks/results/mvp-2026-08-06.md))
+- Pre-registered methodology led by **remediation rate / MTTR / suggested-fix apply %** 
+- MVP results table with honest TBD + dogfood latency/triage proxies 
 - `repolens score-report` — supporting actionability metrics from FindingReport JSON (not remediation rate)
 
 ### Added (Phase 6 issue explain + diagrams)
@@ -309,9 +309,9 @@ repolens version
 
 ### Added (Phase 6.x design — remaining slices)
 
-- Roadmap for CI triage / anchored SARIF / suppressions before Phase 7 ([design](./design/phase-6.x-scanner-depth-ci-gates-and-credibility.md))
+- Roadmap for CI triage / anchored SARIF / suppressions before Phase 7 (design)
 - Implementation plan for enterprise CI triage routing (maintainer-local; see design umbrella)
-- Blog draft: enterprise scale vs full-LLM PR checks ([blog](./blog-ideas/enterprise-scale-llm-review-ci.md))
+- Blog draft: enterprise scale vs full-LLM PR checks (blog)
 - End-user [rules.md](./rules.md) + AppSec comparison note
 
 ### Added
@@ -389,7 +389,7 @@ repolens version
 - Review flags: `--scanners`, `--require-scanners`, `--scanners-only`
 - Report section **Automated scanners** + JSON `scannerRuns`
 - Optional extra `pip install -e ".[scanners]"` (Semgrep via pip)
-- Guide: [scanners.md](./scanners.md) · [design/phase-3-scanners.md](./design/phase-3-scanners.md)
+- Guide: [scanners.md](./scanners.md)
 
 ### Added
 
@@ -399,10 +399,10 @@ repolens version
 - GitHub issue/PR templates and placeholder CI workflow
 - Docs reorganized: root keeps `README.md` + `LICENSE`; community docs under `docs/`
 - [FAQ](./faq.md): target languages, CLI language, tools/plugins, modes
-- [CLI & report schema design](./design/cli-and-report-schema.md) (Phase 0 exit)
-- [ADR-01](./adr/01_analysis_runtime_architecture.md) analysis runtime architecture with Mermaid HLD/sequence/component diagrams
-- [ADR diagram legend](./adr/_diagram_legend.md) (shared Mermaid colours and prefixes)
-- [AI keys, scanners, OWASP/CVE, local learning](./design/ai-keys-scanners-and-local-learning.md) design + FAQ answers
+- CLI & report schema design (Phase 0 exit)
+- ADR-01 analysis runtime architecture with Mermaid HLD/sequence/component diagrams
+- ADR diagram legend (shared Mermaid colours and prefixes)
+- AI keys, scanners, OWASP/CVE, local learning design + FAQ answers
 
 ### Changed
 

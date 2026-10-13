@@ -1,7 +1,7 @@
 # Setup guide: three ways to run reviews
 
 **Audience:** anyone setting up RepoLens for the first time.  
-**Related:** [FAQ (plain English)](./faq.md#decisions-in-plain-english-start-here) · [Why these options exist](./design/ai-keys-scanners-and-local-learning.md#52-is-repolens-self-sufficient-out-of-the-box)
+**Related:** [FAQ (plain English)](./faq.md#decisions-in-plain-english-start-here) · Why these options exist
 
 ## Recommended daily path
 
@@ -122,7 +122,7 @@ export REPOLENS_API_KEY="..."
 > **Automatic Fallback Cascade (`--fallback`):**  
 > By default, if a cloud API key is missing or unavailable, RepoLens automatically checks for a local Ollama instance. If Ollama is not running, it degrades gracefully to local SAST scanners and Fast-Brain static heuristics instead of failing. Use `--no-fallback` to disable fallback.
 
-Design notes: [phase-8-provider-aliases-and-recipes.md](./design/phase-8-provider-aliases-and-recipes.md) · native Gemini: [phase-9-native-provider-sdks.md](./design/phase-9-native-provider-sdks.md).
+Design notes: phase-8-provider-aliases-and-recipes.md · native Gemini: phase-9-native-provider-sdks.md.
 
 1. Sign up / sign in.  
 2. Add billing if the provider requires it.  
@@ -404,5 +404,5 @@ Want both understanding and inventories? → (A or B) + C
 
 - [using-playbooks.md](./using-playbooks.md) — reviews **today** without the CLI  
 - [faq.md](./faq.md) — short answers  
-- [design/ai-keys-scanners-and-local-learning.md](./design/ai-keys-scanners-and-local-learning.md) — product decisions  
+-  — product decisions  
 - [`.repolens.example.toml`](../.repolens.example.toml) — config template  

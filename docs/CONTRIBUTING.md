@@ -87,4 +87,4 @@ Do **not** open a public issue for vulnerabilities in RepoLens itself. See [SECU
 
 ## Maintainer notes
 
-These stay on the maintainer machine and are gitignored: `docs/superpowers/` (agent plans and specs), `docs/plans/` (the earlier plan notes), `docs/learn/`, `docs/recipes/`, `docs/reviews/`, and `.superpowers/`. Public design lives under `docs/design/` and the tracker in `docs/phases.md`.
+Learn notes, both plan folders, specs, recipes, reviews, ADRs, benchmarks, blog drafts, and design notes stay on the maintainer machine and are gitignored. The public tracker is `docs/phases.md`.

@@ -35,7 +35,7 @@ All other external tools or signals enter as imported SARIF (`--import-sarif`), 
 - **Tests**: Place all tests in `tests/` following existing pytest conventions. New production logic must always have a failing test first.
 
 ## Files Agents Must Not Hand-Edit
-- **Local-only docs** (gitignored, never commit): `docs/learn/`, `docs/plans/`, `docs/superpowers/` (this is where agent plans and specs live; `docs/plans/` is the older plan folder), `docs/recipes/`, `docs/reviews/`, and `.superpowers/`.
+- **Local-only docs** (gitignored, never commit): learn notes, both plan folders, specs, recipes, reviews, ADRs, benchmarks, blog drafts, design notes, and `.superpowers/`.
 - **Generated Learn Notes**: Never edit files in `docs/learn/src/` or `docs/learn/tests/` manually. They are generated deterministically by `scripts/generate_learn_file_notes.py`.
 - **Handwritten Course Notes**: `docs/learn/00-start-here.md` through `docs/learn/06-order-complexity-and-your-own-model.md` are written by hand and are outside `--check`.
 - **Changelog**: Add user-visible features and fixes as bullets under `## [Unreleased]` in `docs/CHANGELOG.md`.

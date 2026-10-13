@@ -61,6 +61,10 @@ docs/plans/
 docs/reviews/
 docs/recipes/
 docs/learn/
+docs/adr/
+docs/benchmarks/
+docs/blog-ideas/
+docs/design/
 .superpowers/
 scratch.py
 .coverage

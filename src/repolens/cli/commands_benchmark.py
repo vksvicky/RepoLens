@@ -67,6 +67,5 @@ def score_report_cmd(
     )
     console.print(table)
     console.print(
-        "[dim]Headline remediation rate / MTTR require the human study in "
-        "docs/benchmarks/methodology.md[/dim]"
+        "[dim]Headline remediation rate / MTTR require a human study protocol.[/dim]"
     )

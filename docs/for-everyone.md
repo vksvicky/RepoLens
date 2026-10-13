@@ -82,4 +82,4 @@ repolens export --executive-summary --out reports
 |--------------|------|
 | Which command to run | [which-command.md](./which-command.md) |
 | How to set up cloud AI, a local AI, or checkers only | [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) |
-| The longer answers, still in plain words | [design §5](./design/ai-keys-scanners-and-local-learning.md#5-decision-summary-plain-language) |
+| The longer answers, still in plain words | [faq.md](./faq.md) |

@@ -22,9 +22,9 @@ RepoLens is an open-source CLI that runs structured code reviews against project
 | Shareable audits | Markdown reports (PDF via pandoc / Print) |
 | Production honesty | Complements—does not replace—CI, tests, and scanners |
 | Python **cyclicity ratchet** | Baseline + `repolens check --diff` for fast CI (Rule 1 — debt must not rise); see [FAQ](./docs/faq.md#cyclicity-ratchet-baseline-g2) |
-| **Complexity + test inventory** | Fast Brain McCabe/cognitive (Python) + Top-10 table; test file/case counts; AI refactor capped at top-5 — [design](./docs/design/complexity-and-cognitive-ai.md) · [FAQ](./docs/faq.md#do-we-measure-complexity-and-test-coverage) |
+| **Complexity + test inventory** | Fast Brain McCabe/cognitive (Python) + Top-10 table; test file/case counts; AI refactor capped at top-5 — [FAQ](./docs/faq.md#do-we-measure-complexity-and-test-coverage) |
 
-RepoLens is **zero-infrastructure** — `pipx` or ephemeral CI runners; no SonarQube server and no PR-review SaaS. Built for **M&A auditors**, **fractional CTOs**, and **pre-release platform gates** who need portable dual-review evidence. See [competitive landscape 2026](./docs/design/competitive-landscape-sonar-alternatives-2026.md).
+RepoLens is **zero-infrastructure** — `pipx` or ephemeral CI runners; no SonarQube server and no PR-review SaaS. Built for **M&A auditors**, **fractional CTOs**, and **pre-release platform gates** who need portable dual-review evidence.
 
 RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your test suite. Those stay in CI. RepoLens adds a consistent, human-readable due-diligence layer you can run anywhere.
 
@@ -73,7 +73,7 @@ repolens review --preset pr --path .
 - **Local learning:** opt-in on-disk FTS index (`repolens learn`), informed consent first  
 - **CI:** official GitHub Action (`action.yml`) — see [docs/ci.md](./docs/ci.md)
 
-Full answers: **[docs/faq.md](./docs/faq.md)** · **[docs/design/ai-keys-scanners-and-local-learning.md](./docs/design/ai-keys-scanners-and-local-learning.md)**.  
+Full answers: **[docs/faq.md](./docs/faq.md)**.  
 **Setup (cloud / Ollama / scanners):** **[docs/setup-ai-and-scanners.md](./docs/setup-ai-and-scanners.md)**.  
 **Try it (local + GitHub / Bitbucket / HF / git URL):** **[docs/try-on-your-repo.md](./docs/try-on-your-repo.md)**.  
 Interactive helper: `./scripts/repolens-guided.sh` (see [try-on-your-repo](docs/try-on-your-repo.md#guided-review-interactive)).
@@ -232,7 +232,7 @@ Naming conventions: [docs/README.md](./docs/README.md#naming-pattern).
 | **4** | GitHub Action, PyPI publish path, local learning | Done |
 | **Next** | Harden publish / marketplace polish / richer embeddings | Open |
 
-Tracker: **[docs/phases.md](./docs/phases.md)** · Design: **[docs/design/](./docs/design/)** · ADR: **[docs/adr/01_analysis_runtime_architecture.md](./docs/adr/01_analysis_runtime_architecture.md)**.
+Tracker: **[docs/phases.md](./docs/phases.md)**.
 
 ---
 
