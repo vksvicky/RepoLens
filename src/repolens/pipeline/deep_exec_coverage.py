@@ -15,6 +15,22 @@ from repolens.progress import ReviewProgress
 from repolens.schema import FindingReport, ScannerRun
 
 
+def _seeded_coverage(
+    cfg: RepoLensConfig,
+    *,
+    full_audit: bool,
+    change_set: object | None,
+) -> tuple[dict[str, str], dict[str, str]]:
+    from repolens.blast_radius import merge_blast_radius_coverage_seeds
+
+    return merge_blast_radius_coverage_seeds(
+        cfg.coverage.na,
+        cfg.coverage.covered,
+        full_audit=full_audit,
+        change_set=change_set,
+    )
+
+
 def _ordered_unique(ids: list[str]) -> list[str]:
     seen: set[str] = set()
     unique: list[str] = []
@@ -111,6 +127,8 @@ def _run_coverage_closure_if_needed(
     fmt: str,
     mode: str,
     report_when: object | None,
+    full_audit: bool = False,
+    change_set: object | None = None,
 ) -> tuple[FindingReport, CoverageResult]:
     from repolens.coverage import evaluate_coverage
     from repolens.llm.model_lock import bind_lock_context, reset_lock_context
@@ -148,12 +166,15 @@ def _run_coverage_closure_if_needed(
             mode,
             report_when,
         )
+    seeded_na, seeded_covered = _seeded_coverage(
+        cfg, full_audit=full_audit, change_set=change_set
+    )
     coverage = evaluate_coverage(
         unique_ids,
         report.issues,
         report.durabilityGaps,
-        seeded_na=cfg.coverage.na,
-        seeded_covered=cfg.coverage.covered,
+        seeded_na=seeded_na,
+        seeded_covered=seeded_covered,
     )
     return report, coverage
 

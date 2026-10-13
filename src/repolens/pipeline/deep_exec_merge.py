@@ -11,6 +11,7 @@ from repolens.inventory import FileEntry
 from repolens.pipeline.deep_exec_coverage import (
     _ordered_unique,
     _run_coverage_closure_if_needed,
+    _seeded_coverage,
     _stamp_coverage_and_themes,
 )
 from repolens.progress import ReviewProgress
@@ -157,6 +158,7 @@ def _finish_deep_after_passes(
     out_dir: Path | None,
     fmt: str,
     report_when: object | None,
+    change_set: object | None = None,
 ) -> FindingReport:
     from repolens.coverage import evaluate_coverage
 
@@ -167,15 +169,18 @@ def _finish_deep_after_passes(
         cfg=cfg, prog=prog, llm_files=llm_files, files=files, root=root,
     )
     unique_ids = _ordered_unique(all_coverage_ids)
+    seeded_na, seeded_covered = _seeded_coverage(
+        cfg, full_audit=full_audit, change_set=change_set
+    )
     coverage = evaluate_coverage(
         unique_ids, report.issues, report.durabilityGaps,
-        seeded_na=cfg.coverage.na, seeded_covered=cfg.coverage.covered,
+        seeded_na=seeded_na, seeded_covered=seeded_covered,
     )
     report, coverage = _run_coverage_closure_if_needed(
         report=report, coverage=coverage, unique_ids=unique_ids, cfg=cfg, prog=prog,
         raw_dir=raw_dir, root=root, parts=parts, heur_issues=heur_issues,
         finished_labels=finished_labels, out_dir=out_dir, fmt=fmt, mode=mode,
-        report_when=report_when,
+        report_when=report_when, full_audit=full_audit, change_set=change_set,
     )
     report, pass_confidences = build_pass_confidences_with_floors(
         _pass_outcomes(passes, parts, raw_by_pass, degraded_by_pass),

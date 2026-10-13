@@ -225,8 +225,6 @@ Design: [phase-6.x §6.4](./design/phase-6.x-scanner-depth-ci-gates-and-credibil
 
 ### Import external SARIF (companion gate)
 
-Full walkthrough (fixtures + expected outcomes): **[recipes/sarif-unification.md](./recipes/sarif-unification.md)**.
-
 When CodeQL, SonarQube, ESLint, or another step already produces SARIF 2.1, merge it into one RepoLens gate instead of a custom jq/shell aggregator:
 
 ```bash

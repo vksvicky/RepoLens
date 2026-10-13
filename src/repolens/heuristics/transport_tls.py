@@ -64,6 +64,9 @@ def _http_hits(line: str) -> list[str]:
             continue
         if _host_is_schema_or_loopback(host):
             continue
+        path = (urlparse(raw).path or "").lower()
+        if path.startswith("/xml/") or "/schema" in path:
+            continue
         hits.append(raw)
     return hits
 

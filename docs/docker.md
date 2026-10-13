@@ -1,7 +1,8 @@
 # Official RepoLens container image
 
-**Primary zero-infra story remains** `pipx install "repolens-audit[scanners]"` (or editable clone).  
-This image is for **locked-down CI / air-gap runners** that cannot download scanner binaries at job time.
+This is a ready-made copy of RepoLens for a computer that is not allowed to download extra tools at review time. It already includes the checkers, on known versions, including the Semgrep pattern check for Python 3.12. Nothing in the image is a password or a cloud key.
+
+Most people should still install RepoLens with `pipx install "repolens-audit[scanners]"` on their own computer. Use this image when company policy says the review has to run inside a locked-down container. Plain-language overview: [for-everyone.md](./for-everyone.md).
 
 Image: `ghcr.io/vksvicky/repolens` (multi-arch `linux/amd64`, `linux/arm64` when published).
 
@@ -12,7 +13,7 @@ Image: `ghcr.io/vksvicky/repolens` (multi-arch `linux/amd64`, `linux/arm64` when
 | gitleaks | 8.24.0 |
 | osv-scanner | 1.9.2 |
 | trivy | 0.73.0 |
-| semgrep | via `pip install ".[scanners]"` + semgrep |
+| semgrep | 1.180.0, Python 3.12, fixed list of every piece it needs |
 
 No API keys or cloud credentials are baked into the image. The runtime stage defines a `HEALTHCHECK` that runs `repolens version`.
 

@@ -8,7 +8,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- (none yet)
+- Semgrep 1.180.0 and Checkov 3.3.9 plugin installs use hashed requirement locks (`pip --require-hashes`), so dependencies are pinned as well as the named wheel. Locks are CPython 3.12. The Docker image installs the matching linux Semgrep lock instead of the unhashed `scanners` extra.
+- [for-everyone.md](./for-everyone.md) explains the review, the score, and the fixed checker list for someone who will read a report and not run the tool.
+- A cancelled review continues from the saved passes. The progress line shows file checks done, still to go, and a percentage. A pass stopped mid-write starts again. A saved pass whose files no longer match says so and runs again.
+- `./scripts/coverage.sh` runs the full pytest suite and writes a line-and-branch coverage report to the terminal, `coverage/html/index.html`, and `coverage/coverage.xml`.
+- Fast Brain clean-code checks, for Python and for JavaScript, Go, and Rust: eager log formatting, credential names passed into a log or print, handlers that drop the traceback, functions with 7 or more parameters, a repeated numeric literal, and a boolean parameter the function branches on. The architecture playbook keeps boundary logging and Demeter chains as reviewer judgments.
+
+### Fixed
+
+- A model pass now stops at the `--timeout` you set, even while text is still arriving. The progress line says the model is writing, how fast, and that Ctrl+C keeps finished passes.
+- An aborted review says which pass finished. It does not say the whole AI audit never ran.
+- The architecture note explains what zones Z0–Z5 mean, what may cross each boundary, and why. Remotes and scanners are current zones, not dashed future boxes. The student note uses the same names.
+- The student guide calls the Fast Brain pool 8 threads, names `repolens audit`, and lists the hygiene rules and near-clone defaults.
+- XML namespace URLs, including Garmin Connect IQ, are not treated as insecure HTTP. Files named `test_*.py` are treated as tests.
+
+### Fixed
+
+- `arch.blast_radius` is answered from the git change-set when one exists, and with a concrete N/A when the run has no change-set. A project coverage seed still wins.
 
 ## [0.1.3] — 2026-10-11
 
@@ -364,7 +380,7 @@ repolens version
 - Publish workflow pins `pypa/gh-action-pypi-publish` to commit SHA (v1.13.0)
 - Action `git-repository` restricted to https GitHub/GitLab/Bitbucket URLs
 - Semgrep config overridable via `REPOLENS_SEMGREP_CONFIG` (offline-friendly)
-- Dual-review gate process documented in CONTRIBUTING + exported reports under `docs/reviews/`
+- Dual-review gate process documented in CONTRIBUTING. Full exports stay on the maintainer machine.
 
 ### Added (Phase 3 scanners)
 

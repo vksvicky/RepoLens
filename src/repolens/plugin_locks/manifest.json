@@ -1,0 +1,55 @@
+{
+  "python": "3.12",
+  "tools": {
+    "semgrep": {
+      "version": "1.180.0",
+      "platforms": {
+        "linux-amd64": {
+          "filename": "semgrep-1.180.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-manylinux_2_34_x86_64.whl",
+          "sha256": "16db2e2706ab814a975eeec25debfad49abba846b7c513d88e041447152f8447",
+          "url": "https://files.pythonhosted.org/packages/7c/1f/f4af9cc92651f04ab973eac214a62ed23260da9e0696c105b4b9734da453/semgrep-1.180.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-manylinux_2_34_x86_64.whl"
+        },
+        "linux-arm64": {
+          "filename": "semgrep-1.180.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-manylinux_2_34_aarch64.whl",
+          "sha256": "cba06f64b10e5ec86a0b3a9757cfdfdf3ce6c2bbdb5e98762aa2a4b0a296f8ca",
+          "url": "https://files.pythonhosted.org/packages/38/60/66135de6020e792491b0973d95efc89ef729a38c58106394b2798bf58dda/semgrep-1.180.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-manylinux_2_34_aarch64.whl"
+        },
+        "darwin-arm64": {
+          "filename": "semgrep-1.180.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-macosx_11_0_arm64.whl",
+          "sha256": "9c61070eaa7de785a8318e1d00de6c9151efa660cc3e58c3e2ffd6f5e6180af7",
+          "url": "https://files.pythonhosted.org/packages/c1/a1/e29003080506e7666ba8225df63632f1ac6417764d4ee991e5dae04f2c0c/semgrep-1.180.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-macosx_11_0_arm64.whl"
+        },
+        "darwin-amd64": {
+          "filename": "semgrep-1.180.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-macosx_10_14_x86_64.whl",
+          "sha256": "f074dcfd6a56095fde32c354af27ef0cce6d15607bef42fa50964dd7042b667d",
+          "url": "https://files.pythonhosted.org/packages/6e/94/8ca81606f09f2c33630409f7e1f2ad89c5841f5da062eec8452cee6d51d7/semgrep-1.180.0-cp310.cp311.cp312.cp313.cp314.py310.py311.py312.py313.py314-none-macosx_10_14_x86_64.whl"
+        }
+      }
+    },
+    "checkov": {
+      "version": "3.3.9",
+      "platforms": {
+        "linux-amd64": {
+          "filename": "checkov-3.3.9-py3-none-any.whl",
+          "sha256": "0852ba478587b0e1d8e8f802cfbaa7d9901cf1b30d425abce0a257b3170ba0b7",
+          "url": "https://files.pythonhosted.org/packages/2e/e0/4ac809cad74692e388db251467352b1f3e5ec22c546a419e1db58a5628e5/checkov-3.3.9-py3-none-any.whl"
+        },
+        "linux-arm64": {
+          "filename": "checkov-3.3.9-py3-none-any.whl",
+          "sha256": "0852ba478587b0e1d8e8f802cfbaa7d9901cf1b30d425abce0a257b3170ba0b7",
+          "url": "https://files.pythonhosted.org/packages/2e/e0/4ac809cad74692e388db251467352b1f3e5ec22c546a419e1db58a5628e5/checkov-3.3.9-py3-none-any.whl"
+        },
+        "darwin-arm64": {
+          "filename": "checkov-3.3.9-py3-none-any.whl",
+          "sha256": "0852ba478587b0e1d8e8f802cfbaa7d9901cf1b30d425abce0a257b3170ba0b7",
+          "url": "https://files.pythonhosted.org/packages/2e/e0/4ac809cad74692e388db251467352b1f3e5ec22c546a419e1db58a5628e5/checkov-3.3.9-py3-none-any.whl"
+        },
+        "darwin-amd64": {
+          "filename": "checkov-3.3.9-py3-none-any.whl",
+          "sha256": "0852ba478587b0e1d8e8f802cfbaa7d9901cf1b30d425abce0a257b3170ba0b7",
+          "url": "https://files.pythonhosted.org/packages/2e/e0/4ac809cad74692e388db251467352b1f3e5ec22c546a419e1db58a5628e5/checkov-3.3.9-py3-none-any.whl"
+        }
+      }
+    }
+  }
+}

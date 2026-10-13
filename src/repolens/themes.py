@@ -31,6 +31,12 @@ HEURISTIC_TO_THEME: dict[str, str] = {
     "arch.complexity": "arch.kiss",
     "testing.missing_tests": "arch.testing",
     "testing.scenario_gap": "arch.testing",
+    "heuristic.logging_eager": "arch.consistency_style",
+    "heuristic.logging_secret": "sec.data_exposure",
+    "heuristic.swallowed_exception": "arch.consistency_style",
+    "heuristic.long_parameter_list": "arch.structure_size",
+    "heuristic.magic_number": "arch.kiss",
+    "heuristic.boolean_flag": "arch.solid_srp",
 }
 
 CORE_THEME_IDS: frozenset[str] = frozenset(

@@ -44,7 +44,8 @@ repolens which audit
 | **Docker CI image** | `ghcr.io/vksvicky/repolens` | Slim image with pinned scanners — see [docker.md](./docker.md). Local `pipx` remains primary. |
 | Inventory only | `repolens review --dry-run` | **Protected** semantics — inventory dump; do not overload with forecast/scanners. |
 
-**New operator?** Follow [first-week.md](./recipes/first-week.md) (preset → deep → evidence → fix → CI).  
+**Reading the report, not running commands?** [for-everyone.md](./for-everyone.md).
+
 See [compare.md](./compare.md) for “we audit, they edit” vs coding-agent harnesses.
 
 ### 1. Full combined result (use this)
@@ -83,9 +84,9 @@ repolens review \
 | `--format both` | Markdown and JSON reports in one run |
 | `--git-diff auto` | PR / change-set Slow Brain: model packs the git diff only (scanners still see the whole tree). **Cannot combine with `--full`** — drop `--full` when you use this; it is usually much faster than packing the whole tree |
 
-**Time:** often an hour or more on local `qwen2.5-coder:32b`. `--timeout 7200` is how long RepoLens waits for the first words from the model, not a promise the whole review finishes in two hours.
+**Time:** often an hour or more on local `qwen2.5-coder:32b`. `--timeout 7200` is the longest one model pass may run. If text is still arriving at that limit, the pass stops and finished passes are kept.
 
-If another local review is running, RepoLens queues automatically and yields between passes. Completed passes (P1, P2, P3) are cached on disk, so an interrupted review resumes where it left off — provided the packed files, model, and prompt templates have not changed. After a kill or Ctrl+C, run `repolens journal --path .` for a post-mortem (which pass finished, queue wait vs inference, resume hint). That output is an honesty metric, not a Metis token-cut percentage.
+If another local review is running, RepoLens queues automatically and yields between passes. Completed passes (P1, P2, P3) are cached on disk. Ctrl+C keeps those passes. The next `repolens review` (resume is on by default) skips a saved pass when the packed files, model, and prompt templates still match, and says so: `16 of 48 file checks done (33%). 32 files still to go.` A pass cancelled mid-write is not kept, so that pass starts again. If the file list changed, the line says the saved pass does not match and runs again. After a kill or Ctrl+C, run `repolens journal --path .` for a post-mortem (which pass finished, queue wait vs inference, resume hint). That output is an honesty metric, not a Metis token-cut percentage.
 
 **PR / change-set variant** (faster Slow Brain; no `--full`):
 

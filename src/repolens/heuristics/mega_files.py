@@ -20,6 +20,10 @@ DEFAULT_MEGA_FILE_EXCLUDES: tuple[str, ...] = (
     "**/xcuserdata/**",
     "**/*.xcuserstate",
     "**/*.pbxproj",
+    "**/plugin_locks/**",
+    "**/*-lock.json",
+    "**/*.lock",
+    "scripts/generate_learn_file_notes.py",
 )
 # Docs stay in the review. Generated trees are also omitted from the mega-file check.
 DEFAULT_MEGA_AND_SKIP_EXCLUDES: tuple[str, ...] = merge_globs(

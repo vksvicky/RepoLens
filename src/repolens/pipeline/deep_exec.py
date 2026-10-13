@@ -60,8 +60,8 @@ def _analyze_deep_passes(
     skip_cache: bool = False,
     graph: object | None = None,
     retry_passes: frozenset[str] = frozenset(),
+    change_set: object | None = None,
 ) -> FindingReport:
-    """Heuristics → plan passes → structured LLM per pass → merge + coverage."""
     _journal_review_started(root, cfg)
     heur, rules, passes, p3_gaps, pack_ids = _prepare_deep_plan(
         root=root,
@@ -75,7 +75,6 @@ def _analyze_deep_passes(
         graph=graph,
     )
     _announce_deep_runtime(prog, passes, cfg)
-    raw_dir = root / ".repolens"
     planned = _run_planned_passes(
         root=root,
         passes=passes,
@@ -84,7 +83,6 @@ def _analyze_deep_passes(
         prompt_prefix=prompt_prefix,
         cfg=cfg,
         prog=prog,
-        raw_dir=raw_dir,
         skip_cache=skip_cache,
         retry_passes=retry_passes,
         heur_issues=heur.issues,
@@ -92,6 +90,7 @@ def _analyze_deep_passes(
         fmt=fmt,
         mode=mode,
         report_when=report_when,
+        raw_dir=root / ".repolens",
     )
     parts, raw_by_pass, degraded_by_pass, repairs, ids, finished, timed_out = planned
     return _finish_deep_after_passes(
@@ -114,10 +113,11 @@ def _analyze_deep_passes(
         timed_out_labels=timed_out,
         heur_issues=heur.issues,
         p3_gaps=p3_gaps,
-        raw_dir=raw_dir,
+        raw_dir=root / ".repolens",
         out_dir=out_dir,
         fmt=fmt,
         report_when=report_when,
+        change_set=change_set,
     )
 
 

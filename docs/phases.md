@@ -6,8 +6,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==0.1.3`** (tag/PyPI when the operator pushes `v0.1.3`).  
-**Active program:** 0.1.3 industrial cut — provenance sanitation and scanner checksums. [M5](https://github.com/vksvicky/RepoLens/milestone/5) (#117–#120) is done. Index [#12](https://github.com/vksvicky/RepoLens/issues/12).  
+**Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==0.1.3`**, tag `v0.1.3` (publish workflow succeeded 2026-10-11).  
+**Active program:** none. [M1](https://github.com/vksvicky/RepoLens/milestone/1)–[M5](https://github.com/vksvicky/RepoLens/milestone/5) are done. Index [#12](https://github.com/vksvicky/RepoLens/issues/12).  
 **Parked (not a release gate):** [#91](https://github.com/vksvicky/RepoLens/issues/91) local UI calibrations (#17b).  
 **Feedback:** [Discussions](https://github.com/vksvicky/RepoLens/discussions) + [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose).
 
@@ -503,7 +503,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 ## Phase 8 — Provider aliases & setup recipes (design)
 
-**Goal:** Named `repolens init` aliases + docs/recipes for common hosts (Azure OpenAI, Mistral, Groq, OpenRouter, …) on the existing OpenAI-compatible transport. **Options 1 + 2** from the provider expansion discussion.  
+**Goal:** Named `repolens init` aliases and setup notes for common hosts (Azure OpenAI, Mistral, Groq, OpenRouter, …) on the existing OpenAI-compatible transport. **Options 1 + 2** from the provider expansion discussion.  
 **Not in this phase:** Native Gemini/Bedrock SDKs → Phase 9. Enterprise CI → Phase 7.
 
 | Item | Status | Notes |
@@ -603,6 +603,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-09-26 | Dogfood next | Unpark [#15](https://github.com/vksvicky/RepoLens/issues/15) then [#16](https://github.com/vksvicky/RepoLens/issues/16); refresh [#12](https://github.com/vksvicky/RepoLens/issues/12); triage [#11](https://github.com/vksvicky/RepoLens/issues/11) |
 | 2026-09-26 | Dogfood #15/#16 landed | [PR #57](https://github.com/vksvicky/RepoLens/pull/57); [#13](https://github.com/vksvicky/RepoLens/issues/13) closed; LogViewer `--git-diff auto --deep-passes 1` validated; Vertex/Bedrock → [#58](https://github.com/vksvicky/RepoLens/issues/58) |
 | 2026-09-26 | Tracker hygiene | Close [#11](https://github.com/vksvicky/RepoLens/issues/11) (parked residuals, no sticky issue); close [#6](https://github.com/vksvicky/RepoLens/issues/6) → Discussions + issue templates |
+| 2026-10-13 | Tracker sync ([#12](https://github.com/vksvicky/RepoLens/issues/12)) | M1–M5 done; `v0.1.3` published; no active milestone; [#91](https://github.com/vksvicky/RepoLens/issues/91) stays parked |
 
 ---
 

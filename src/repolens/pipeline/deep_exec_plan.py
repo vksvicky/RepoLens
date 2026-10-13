@@ -273,6 +273,8 @@ def _run_and_record_planned_pass(
     fmt: str,
     mode: str,
     report_when: object | None,
+    files_done: int = 0,
+    files_total: int = 0,
 ) -> tuple[int, str]:
     from repolens.pipeline.pass_resume import run_or_resume_pass
 
@@ -295,6 +297,8 @@ def _run_and_record_planned_pass(
         timeout=timeout,
         prior_summary=prior_summary if cfg.deep.role_packs else "",
         skip_cache=skip_cache,
+        files_done=files_done,
+        files_total=files_total,
     )
     return _record_one_planned_pass(
         deep_pass=deep_pass,
@@ -346,6 +350,8 @@ def _drive_planned_passes(
 
     repair_attempts_total = 0
     prior_summary = ""
+    files_total = sum(len(getattr(item, "files", []) or []) for item in passes)
+    files_done = 0
     n = len(passes)
     provider = cfg.model.provider or "unknown"
     model_name = cfg.model.model or default_model(cfg.model.provider)
@@ -380,16 +386,20 @@ def _drive_planned_passes(
             fmt=fmt,
             mode=mode,
             report_when=report_when,
+            files_done=files_done,
+            files_total=files_total,
         )
         repair_attempts_total += added
+        if not degraded_by_pass.get(deep_pass.name):
+            files_done += len(getattr(deep_pass, "files", []) or [])
     return repair_attempts_total
 
 
 def _note_resume_hint(root: Path, skip_cache: bool, prog: ReviewProgress) -> None:
     if skip_cache:
         return
-    from repolens.pipeline.journal import last_finished_label
+    from repolens.pipeline.pass_progress import continue_line
 
-    last = last_finished_label(root)
-    if last:
-        prog.detail(f"Resume: last finished pass in journal: {last}")
+    text = continue_line(root)
+    if text:
+        prog.phase(text)

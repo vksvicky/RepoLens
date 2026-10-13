@@ -130,6 +130,7 @@ def _invoke_deep_llm(state) -> None:
         skip_cache=not bool(state.resume),
         retry_passes=normalize_retry_passes(state.retry_passes),
         graph=state.graph_result,
+        change_set=state.change_set_block,
     )
 
 

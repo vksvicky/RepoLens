@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import platform
 import shutil
 import stat
@@ -160,10 +161,6 @@ def _trivy_assets() -> dict[str, AssetSpec]:
     }
 
 
-_PYPI = "https://files.pythonhosted.org/packages"
-_PLATFORMS = ("darwin-arm64", "darwin-amd64", "linux-amd64", "linux-arm64")
-
-
 def _wheel(name: str, version: str, url: str, sha256: str) -> AssetSpec:
     return AssetSpec(
         name,
@@ -175,44 +172,19 @@ def _wheel(name: str, version: str, url: str, sha256: str) -> AssetSpec:
     )
 
 
-def _semgrep_assets() -> dict[str, AssetSpec]:
-    """CPython 3.9–3.11 wheels. A newer interpreter fails closed."""
-    version = "1.100.0"
-    tag = "semgrep-1.100.0-cp39.cp310.cp311.py39.py310.py311-none-"
-    rows = {
-        "darwin-amd64": (
-            f"{_PYPI}/72/35/0de87cc04dc1909648138043e0859592860426ef61e7934c37f58fba53d0/"
-            f"{tag}macosx_10_14_x86_64.whl",
-            "c2ac42a60f913ef6057921df4808ebadb81a7f37ab2f80b88725a60fddb22d79",
-        ),
-        "darwin-arm64": (
-            f"{_PYPI}/49/82/f3b342c0b439109bd36aaf99bddb1980632206ce740f130400c88d4f1b26/"
-            f"{tag}macosx_11_0_arm64.whl",
-            "faf1e290d05e7e2b8c2cec208e93032633dffea9b4c5071f24277cee45ac8ccd",
-        ),
-        "linux-amd64": (
-            f"{_PYPI}/76/7d/67a224de76ebf69f375fd3a5f1ae837423a6ebb60c68fa4323f8ccb504ee/"
-            f"{tag}musllinux_1_0_x86_64.manylinux2014_x86_64.whl",
-            "13a55457577d59daee1b1068832102f1da96bbaef84ed238e64f24af96918ec2",
-        ),
-        "linux-arm64": (
-            f"{_PYPI}/3c/a0/d53b29a3919da0e5a770cfd5842c5586811b1290ab97317a2abd16aa919c/"
-            f"{tag}musllinux_1_0_aarch64.manylinux2014_aarch64.whl",
-            "bf3333aa83cfc1f22cb67a36736b13af0c6b05ac3256f7e8c1f63b2ca733cb46",
-        ),
+def _lock_manifest() -> dict:
+    path = Path(__file__).resolve().parent / "plugin_locks" / "manifest.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _pip_assets(tool: str) -> dict[str, AssetSpec]:
+    """Named-wheel identity from the hashed lock manifest."""
+    block = _lock_manifest()["tools"][tool]
+    version = str(block["version"])
+    return {
+        key: _wheel(tool, version, row["url"], row["sha256"])
+        for key, row in block["platforms"].items()
     }
-    return {key: _wheel("semgrep", version, url, digest) for key, (url, digest) in rows.items()}
-
-
-def _checkov_assets() -> dict[str, AssetSpec]:
-    spec = _wheel(
-        "checkov",
-        "3.3.9",
-        f"{_PYPI}/2e/e0/4ac809cad74692e388db251467352b1f3e5ec22c546a419e1db58a5628e5/"
-        "checkov-3.3.9-py3-none-any.whl",
-        "0852ba478587b0e1d8e8f802cfbaa7d9901cf1b30d425abce0a257b3170ba0b7",
-    )
-    return {key: spec for key in _PLATFORMS}
 
 
 def catalog() -> dict[str, dict[str, AssetSpec]]:
@@ -220,9 +192,9 @@ def catalog() -> dict[str, dict[str, AssetSpec]]:
     return {
         "gitleaks": _gitleaks_assets(),
         "osv": _osv_assets(),
-        "semgrep": _semgrep_assets(),
+        "semgrep": _pip_assets("semgrep"),
         "trivy": _trivy_assets(),
-        "checkov": _checkov_assets(),
+        "checkov": _pip_assets("checkov"),
     }
 
 
@@ -388,16 +360,24 @@ def _interpreter_python() -> tuple[int, int]:
     return sys.version_info[:2]
 
 
-def _require_semgrep_python(spec: AssetSpec) -> None:
-    """The pinned Semgrep wheel is CPython 3.9–3.11. Fail before any download."""
-    if spec.name != "semgrep":
-        return
+def _plugin_lock_file(name: str, platform_key: str) -> Path:
+    """Hashed requirement lock for this interpreter. Missing lock fails closed."""
     major, minor = _interpreter_python()
-    if (major, minor) < (3, 9) or (major, minor) >= (3, 12):
+    filename = f"{name}-{platform_key}-cp{major}{minor}.txt"
+    path = Path(__file__).resolve().parent / "plugin_locks" / filename
+    if not path.is_file():
         raise RuntimeError(
-            "Semgrep plugin requires Python 3.9–3.11 "
-            f"(this interpreter is {major}.{minor}). "
-            "The pinned 1.100.0 wheel does not install on other versions."
+            f"{name.capitalize()} hash lock has no pin for {platform_key} "
+            f"CPython {major}.{minor}."
+        )
+    return path
+
+
+def _require_lock_pins_wheel(lock: Path, digest: str, name: str) -> None:
+    text = lock.read_text(encoding="utf-8")
+    if f"--hash=sha256:{digest}" not in text:
+        raise RuntimeError(
+            f"checksum mismatch: {name} lock {lock.name} does not pin {digest}"
         )
 
 
@@ -414,15 +394,17 @@ def _ensure_venv_python(name: str) -> Path:
 
 
 def _install_pip_tool(spec: AssetSpec) -> None:
-    """Install one hash-checked wheel. Its dependencies still come from PyPI."""
-    _require_semgrep_python(spec)
-    digest = _require_sha256(spec)
+    """Install the tool and its dependencies with pip --require-hashes."""
     if not spec.url.startswith("https://files.pythonhosted.org/"):
         raise RuntimeError(f"refusing unpinned pip URL for {spec.name}")
-    wheel_path = tools_cache_dir() / f"{spec.name}-wheels" / Path(spec.url).name
-    _download(spec.url, wheel_path, sha256=digest)
+    digest = _require_sha256(spec)
+    lock = _plugin_lock_file(spec.name, _platform_key())
+    _require_lock_pins_wheel(lock, digest, spec.name)
     venv_python = _ensure_venv_python(spec.name)
-    subprocess.run([str(venv_python), "-m", "pip", "install", str(wheel_path)], check=True)
+    subprocess.run(
+        [str(venv_python), "-m", "pip", "install", "--require-hashes", "-r", str(lock)],
+        check=True,
+    )
 
 
 # Back-compat alias for older tests / call sites

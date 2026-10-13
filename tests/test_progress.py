@@ -45,7 +45,7 @@ def test_waiting_heartbeat(monkeypatch) -> None:
         time.sleep(0.12)
     text = buf.getvalue()
     assert "LLM: qwen via ollama" in text
-    assert "still waiting" in text
+    assert "Ctrl+C keeps" in text
 
 
 def test_waiting_heartbeat_includes_hint_and_status_fn() -> None:
@@ -62,7 +62,7 @@ def test_waiting_heartbeat_includes_hint_and_status_fn() -> None:
     ):
         time.sleep(0.12)
     text = buf.getvalue()
-    assert "still waiting" in text
+    assert "Deep pass 1/3" in text
     # Static hint once (verbose detail); heartbeats prefer live status_fn.
     assert "prompt ≈ 12,000 chars" in text
     assert "Ollama: qwen" in text.replace("\n", "")
@@ -70,10 +70,10 @@ def test_waiting_heartbeat_includes_hint_and_status_fn() -> None:
 
 def test_llm_generate_progress_summary() -> None:
     gen = LlmGenerateProgress()
-    assert "waiting for first token" in gen.summary()
+    assert "first token" in gen.summary().lower()
     gen.note_delta('{"confidence":')
     gen.note_delta(" 80}")
-    assert "chars" in gen.summary()
+    assert "characters" in gen.summary()
     assert "2 chunk" in gen.summary()
 
 
@@ -85,7 +85,7 @@ def test_waiting_heartbeat_disabled() -> None:
     )
     with prog.waiting("LLM: test"):
         time.sleep(0.05)
-    assert "still waiting" not in buf.getvalue()
+    assert "Ctrl+C keeps" not in buf.getvalue()
     assert "LLM: test" in buf.getvalue()
 
 

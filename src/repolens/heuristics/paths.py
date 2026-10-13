@@ -18,6 +18,8 @@ def is_test_source(relative: str) -> bool:
     name = parts[-1]
     if any(fnmatch(part, "test*") for part in parts[:-1]):
         return True
-    if fnmatch(name, "*_test.*") or fnmatch(name, "*.test.*") or fnmatch(name, "*.spec.*"):
+    if fnmatch(name, "*_test.*") or fnmatch(name, "test_*.*"):
+        return True
+    if fnmatch(name, "*.test.*") or fnmatch(name, "*.spec.*"):
         return True
     return False

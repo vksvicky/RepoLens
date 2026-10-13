@@ -21,6 +21,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 ./scripts/ci-check.sh   # same Ruff + pytest as GitHub CI (required before push)
+./scripts/coverage.sh   # full pytest suite plus HTML/XML coverage report
 # optional: pip install pre-commit && pre-commit install
 ```
 
@@ -31,6 +32,7 @@ py -3.11 -m venv .venv
 pip install -e ".[dev]"
 ruff check src tests
 pytest -q
+pytest -q --cov=repolens --cov-report=term-missing --cov-report=html --cov-report=xml
 # optional: pip install pre-commit; pre-commit install
 ```
 
@@ -51,7 +53,7 @@ Docs/playbook-only changes do not require the Python toolchain.
 Before **commit** or **push** on this repo, run the Cursor **pre-commit dual-review** gate (security → bugs → architecture). Deliver:
 
 1. Chat gate verdict with confidence %  
-2. Durable report under `docs/reviews/gate_review_report_YYYY-MM-DD.md` for ship/push  
+2. A local export for ship/push. Do not commit that file.  
 3. A row in [review-confidence-log.md](./review-confidence-log.md)  
 
 Do **not** skip the gate for “docs-only” or large features. Push still requires an explicit override phrase after a go verdict.
@@ -85,4 +87,4 @@ Do **not** open a public issue for vulnerabilities in RepoLens itself. See [SECU
 
 ## Maintainer notes
 
-Agent design specs and implementation plans under `docs/superpowers/` (and `.superpowers/`) are **local-only** — gitignored and not part of the published open-source docs. Public design lives under `docs/design/` and the tracker in `docs/phases.md`.
+These stay on the maintainer machine and are gitignored: `docs/superpowers/` (agent plans and specs), `docs/plans/` (the earlier plan notes), `docs/learn/`, `docs/recipes/`, `docs/reviews/`, and `.superpowers/`. Public design lives under `docs/design/` and the tracker in `docs/phases.md`.

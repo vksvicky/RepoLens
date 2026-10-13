@@ -354,6 +354,24 @@ file/line evidence.
 Prefer these theme ids in `category` when a finding maps cleanly.
 
 
+## Clean code and logging (Slow Brain judgments)
+
+Fast Brain already flags, in Python and in JavaScript, Go, and Rust: eager log
+formatting, credential identifiers passed to a log or print (not the word sitting
+in a message), handlers that swallow an error or log it without a traceback,
+parameter lists of 7 or more, a numeric literal repeated in one function (0, 1,
+and -1 ignored), and a boolean parameter the function branches on. Do not repeat
+those lines. Slow Brain evaluates the judgments a pattern cannot make. Raise
+these only with an exact file and line:
+
+* **Logging boundary vs. pollution:** Logging on every line of a pure calculation
+  versus a log at a boundary (request, database call, or other external call).
+  Do **not** prescribe Aspect-Oriented Programming (AOP) or a logging subclass
+  (theme `arch.observability`).
+* **Law of Demeter violations:** A chain that walks three objects to get one
+  value (`a.b().c().d`) (theme `arch.kiss`).
+
+
 ## Complexity hotspots (Slow Brain — capped pack)
 
 When the prompt includes **Complexity hotspots for AI explanation**, treat those

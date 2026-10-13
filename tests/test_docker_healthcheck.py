@@ -24,3 +24,16 @@ def test_dockerfile_linux_hashes_match_plugin_catalog() -> None:
     assert "sha256sum -c" in text
     scanner_run = text.split("WORKDIR /opt/scanners", 1)[1].split("WORKDIR /src", 1)[0]
     assert "python" not in scanner_run.lower()
+
+
+def test_dockerfile_installs_hashed_cp312_semgrep_lock() -> None:
+    text = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    assert "--require-hashes" in text
+    assert ".[scanners]" not in text
+    locks = ROOT / "src" / "repolens" / "plugin_locks"
+    for plat in ("linux-amd64", "linux-arm64"):
+        name = f"semgrep-{plat}-cp312.txt"
+        assert name in text
+        digest = catalog()["semgrep"][plat].sha256
+        assert digest and f"--hash=sha256:{digest}" in (locks / name).read_text(encoding="utf-8")
+        assert "cp312" in catalog()["semgrep"][plat].url

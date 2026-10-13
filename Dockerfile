@@ -5,7 +5,8 @@
 # Multi-arch (CI): docker buildx build --platform linux/amd64,linux/arm64 -t …
 #
 # Pinned scanner versions (match src/repolens/plugins.py):
-#   gitleaks 8.24.0 · osv-scanner 1.9.2 · trivy 0.73.0 · semgrep (pip)
+#   gitleaks 8.24.0 · osv-scanner 1.9.2 · trivy 0.73.0
+#   semgrep 1.180.0 via the CPython 3.12 hash lock (deps included)
 #
 # No secrets are baked into this image.
 
@@ -62,8 +63,16 @@ RUN set -eux; \
 WORKDIR /src
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir ".[scanners]"
+# Semgrep comes from the hashed lock for this architecture, not the unhashed extra.
+RUN set -eux; \
+    pip install --no-cache-dir --upgrade pip; \
+    pip install --no-cache-dir .; \
+    case "$TARGETARCH" in \
+      amd64) lock=src/repolens/plugin_locks/semgrep-linux-amd64-cp312.txt ;; \
+      arm64) lock=src/repolens/plugin_locks/semgrep-linux-arm64-cp312.txt ;; \
+      *) echo "unsupported TARGETARCH=$TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    pip install --no-cache-dir --require-hashes -r "$lock"
 
 ARG PYTHON_VERSION=3.12
 FROM python:${PYTHON_VERSION}-slim-bookworm

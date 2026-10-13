@@ -44,7 +44,7 @@ dev = [
 ]
 # Meta extra: Semgrep via pip; also run `repolens plugins install` for gitleaks/osv binaries.
 scanners = [
-  "semgrep>=1.100,<2",
+  "semgrep==1.180.0",
 ]
 graph = [
   "tree-sitter>=0.24,<0.27",
@@ -86,6 +86,8 @@ repolens = [
   "rules/defaults/*.json",
   "packs/**/*.md",
   "architecture/schemas/*.json",
+  "plugin_locks/*.txt",
+  "plugin_locks/*.json",
   "py.typed",
 ]
 
@@ -94,6 +96,22 @@ testpaths = ["tests"]
 # "." so `from tests.…` works when cwd is not on sys.path (e.g. PYTHONSAFEPATH / CI).
 pythonpath = ["src", "."]
 
+[tool.coverage.run]
+branch = true
+source = ["repolens"]
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+precision = 1
+
+[tool.coverage.html]
+directory = "coverage/html"
+
+[tool.coverage.xml]
+output = "coverage/coverage.xml"
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
@@ -101,6 +119,9 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 ignore = ["B008"]  # Typer Option/Argument defaults are intentional
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/generate_learn_file_notes.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"

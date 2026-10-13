@@ -262,3 +262,49 @@ def simulate_blast_radius(root: Path, seed: str) -> BlastRadiusSimulation:
         test_density_note=density,
         note=note,
     )
+
+
+def blast_radius_coverage_seeds(
+    *,
+    full_audit: bool,
+    change_set: object | None,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Answer arch.blast_radius from the run's change-set, not the model."""
+    cid = "arch.blast_radius"
+    if change_set is not None:
+        base = getattr(change_set, "base", None) or "worktree"
+        count = getattr(change_set, "pathCount", 0)
+        note = str(getattr(change_set, "note", "") or "").strip()
+        fact = f"Git change-set base {base} packed {count} path(s)."
+        if note:
+            fact = f"{fact} {note}"
+        return {}, {cid: fact}
+    scope = "full audit" if full_audit else "review"
+    return {
+        cid: (
+            f"No git change-set on this {scope}. Scoped blast radius runs when "
+            "--git-diff or --changed limits the Slow Brain."
+        )
+    }, {}
+
+
+def merge_blast_radius_coverage_seeds(
+    seeded_na: dict[str, str] | None,
+    seeded_covered: dict[str, str] | None,
+    *,
+    full_audit: bool,
+    change_set: object | None,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Project config wins when it already answers arch.blast_radius."""
+    na = dict(seeded_na or {})
+    covered = dict(seeded_covered or {})
+    seed_na, seed_covered = blast_radius_coverage_seeds(
+        full_audit=full_audit, change_set=change_set
+    )
+    for key, value in seed_covered.items():
+        if key not in na and key not in covered:
+            covered[key] = value
+    for key, value in seed_na.items():
+        if key not in na and key not in covered:
+            na[key] = value
+    return na, covered

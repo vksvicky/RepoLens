@@ -54,6 +54,7 @@ def _run_deep_pass(
     model_name: str,
     provider: str,
     timeout: float,
+    file_work: str = "",
 ) -> tuple[FindingReport, str, bool, int, int, int]:
     from repolens.llm_structured import analyze_structured
 
@@ -83,6 +84,7 @@ def _run_deep_pass(
         f"{len(deep_pass.coverage_ids)} coverage id(s)"
     )
     gen = LlmGenerateProgress()
+    gen.file_work = file_work
     ollama_base = cfg.model.base_url if provider == "ollama" else None
     use_ollama = provider == "ollama"
 

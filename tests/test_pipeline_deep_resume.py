@@ -72,6 +72,87 @@ def test_coverage_closure_records_ids_the_band_passes_skipped(tmp_path: Path) ->
     )
 
 
+def _progress_buffer():
+    import io
+
+    from rich.console import Console
+
+    from repolens.progress import ReviewProgress
+
+    buf = io.StringIO()
+    prog = ReviewProgress(console=Console(file=buf, force_terminal=False, highlight=False))
+    return prog, buf
+
+
+def test_second_deep_run_shows_saved_file_checks(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("REPOLENS_LOCK_DIR", str(tmp_path / "locks"))
+    (tmp_path / "a.py").write_text("print(1)\n", encoding="utf-8")
+    cfg = RepoLensConfig(
+        model=ModelConfig(provider="ollama", model="mock", timeout_seconds=30),
+        adaptive=AdaptiveConfig(enabled=False),
+        deep=DeepConfig(enabled=True),
+    )
+
+    def fake_analyze(prompt, model_cfg, *, pass_id, **_):
+        return _pass_report(
+            title=f"{pass_id} finding",
+            file="a.py",
+            priority="P1" if pass_id == "p1" else "P2" if pass_id == "p2" else "P3",
+            coverage_na=[],
+        )
+
+    with patch("repolens.llm_structured.analyze_structured", side_effect=fake_analyze):
+        run_review(
+            path=tmp_path, mode="review", config=cfg, out_dir=tmp_path / "out",
+            scanners="off", deep=True,
+        )
+    prog, buf = _progress_buffer()
+    with patch("repolens.llm_structured.analyze_structured", side_effect=fake_analyze):
+        run_review(
+            path=tmp_path, mode="review", config=cfg, out_dir=tmp_path / "out",
+            scanners="off", deep=True, progress=prog,
+        )
+    text = buf.getvalue()
+    assert "1 of 3 file checks done (33%)" in text
+    assert "saved — skipping it" in text
+    assert "3 of 3 file checks done (100%)" in text
+
+
+def test_changed_files_say_the_saved_pass_runs_again(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("REPOLENS_LOCK_DIR", str(tmp_path / "locks"))
+    (tmp_path / "a.py").write_text("print(1)\n", encoding="utf-8")
+    cfg = RepoLensConfig(
+        model=ModelConfig(provider="ollama", model="mock", timeout_seconds=30),
+        adaptive=AdaptiveConfig(enabled=False),
+        deep=DeepConfig(enabled=True),
+    )
+
+    def fake_analyze(prompt, model_cfg, *, pass_id, **_):
+        return _pass_report(
+            title=f"{pass_id} finding",
+            file="a.py",
+            priority="P1" if pass_id == "p1" else "P2" if pass_id == "p2" else "P3",
+            coverage_na=[],
+        )
+
+    with patch("repolens.llm_structured.analyze_structured", side_effect=fake_analyze):
+        run_review(
+            path=tmp_path, mode="review", config=cfg, out_dir=tmp_path / "out",
+            scanners="off", deep=True,
+        )
+    (tmp_path / "a.py").write_text("print(2)\n", encoding="utf-8")
+    prog, buf = _progress_buffer()
+    with patch("repolens.llm_structured.analyze_structured", side_effect=fake_analyze):
+        run_review(
+            path=tmp_path, mode="review", config=cfg, out_dir=tmp_path / "out",
+            scanners="off", deep=True, progress=prog,
+        )
+    text = buf.getvalue()
+    assert "does not match these files" in text
+    assert "runs again" in text
+    assert "0 of 3 file checks done (0%)" in text
+
+
 def test_second_deep_run_skips_finished_passes(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("REPOLENS_LOCK_DIR", str(tmp_path / "locks"))
     (tmp_path / "a.py").write_text("print(1)\n", encoding="utf-8")

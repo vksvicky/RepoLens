@@ -34,7 +34,9 @@ Pinned native downloads (gitleaks, osv-scanner) currently cover:
 | Linux | amd64, arm64 |
 | Windows | **Not pinned yet** — put tools on `PATH` yourself, or run under [WSL](https://learn.microsoft.com/windows/wsl/) and use Linux steps |
 
-`repolens plugins install` verifies the Semgrep 1.100.0 and Checkov 3.3.9 wheel SHA-256 before pip runs. That check covers the named wheel only, not a hermetic lock of its dependencies; those still come from PyPI. The Semgrep wheel is CPython 3.9–3.11, so a 3.12 plugin install fails closed with “Semgrep plugin requires Python 3.9–3.11” and does not fetch a different build. The Docker image installs Semgrep from the `scanners` extra on Python 3.12 (`semgrep>=1.100,<2`), which is a separate pin from the plugin wheel.
+**In plain words:** installing Semgrep or Checkov through RepoLens uses a fixed list. That list names the tool and every extra piece it needs, and checks each file so a different copy cannot be swapped in. The list is for Python 3.12. Another Python stops before any download, and the message names the Python version. It is not a damaged-file error. The container image already includes that Semgrep list. Everyday reading of the same idea: [for-everyone.md](./for-everyone.md).
+
+For the person running the install: Semgrep **1.180.0** and Checkov **3.3.9**, via `pip install --require-hashes`. The Docker image (Python 3.12) installs the matching Linux Semgrep lock. The `scanners` extra is the same Semgrep version, and that extra does not do the file check.
 
 What the `[scanners]` **pip extra** contains (and that it is a RepoLens install option, not per-project config): [install-extras.md](./install-extras.md).  
 Cross-OS CLI walkthrough: [try-on-your-repo.md](./try-on-your-repo.md).

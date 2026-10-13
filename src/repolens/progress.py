@@ -13,6 +13,16 @@ from typing import TextIO
 from rich.console import Console
 
 
+def _elapsed_label(seconds: int) -> str:
+    if seconds < 60:
+        return f"{seconds}s"
+    minutes, sec = divmod(seconds, 60)
+    if minutes < 60:
+        return f"{minutes}m {sec}s"
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours}h {minutes}m"
+
+
 @dataclass
 class LlmGenerateProgress:
     """Thread-safe counters updated while an LLM stream is in flight."""
@@ -20,6 +30,8 @@ class LlmGenerateProgress:
     chars: int = 0
     chunks: int = 0
     phase: str = "connecting"  # connecting | generating | done
+    file_work: str = ""
+    started: float = field(default_factory=time.monotonic)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def note_delta(self, text: str) -> None:
@@ -37,8 +49,23 @@ class LlmGenerateProgress:
     def summary(self) -> str:
         with self._lock:
             if self.chars <= 0:
-                return "stream: waiting for first token (prompt still evaluating)"
-            return f"stream: {self.chars:,} chars · {self.chunks} chunk(s) received"
+                body = (
+                    "Waiting for the first token. The model is still reading the prompt. "
+                    "This pass stops if that first text does not arrive in time. "
+                    "Ctrl+C keeps any pass that already finished."
+                )
+            else:
+                elapsed = max(time.monotonic() - self.started, 0.001)
+                rate = self.chars / elapsed
+                body = (
+                    f"The model is writing. {self.chars:,} characters "
+                    f"in {self.chunks} chunks (about {rate:.0f} characters per second). "
+                    "This pass stops at the time limit, or after 5 minutes with no new text. "
+                    "Ctrl+C keeps any pass that already finished."
+                )
+            if self.file_work:
+                return f"{self.file_work} {body}"
+            return body
 
 
 @dataclass
@@ -111,8 +138,12 @@ class ReviewProgress:
                 elif hint:
                     extras.append(hint)
                 suffix = (" — " + " | ".join(extras)) if extras else ""
+                if not extras:
+                    suffix = (
+                        " — Waiting. Ctrl+C keeps any pass that already finished."
+                    )
                 self._print(
-                    f"[dim]… still waiting ({elapsed}s): {message}{suffix}[/dim]"
+                    f"[dim]… {_elapsed_label(elapsed)} — {message}{suffix}[/dim]"
                 )
 
         use_heartbeat = float(self.heartbeat_seconds) > 0

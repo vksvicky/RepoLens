@@ -17,6 +17,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 
 | Doc | Purpose |
 |-----|---------|
+| [for-everyone.md](./for-everyone.md) | Plain-language page for someone who will read a review, not run the tool |
 | [phases.md](./phases.md) | Implementation tracker (what’s done / next) |
 | [faq.md](./faq.md) | Languages, tools, modes, export, production honesty |
 | [rules.md](./rules.md) | What RepoLens checks, why, on/off, and suppressions (`.repolens-ignore`) |
@@ -51,7 +52,6 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [design/semgrep-codeql-comparison.md](./design/semgrep-codeql-comparison.md) | Formal Semgrep vs CodeQL study cell (#93): use both as evidence, no winner bake-off |
 | [design/trivy-registry-auth.md](./design/trivy-registry-auth.md) | Trivy registry env allowlist, redaction, image refs (#94) |
 | [design/graph-languages-scip.md](./design/graph-languages-scip.md) | tree-sitter extra `[graph]` + SCIP JSON ingest (#95); Python stays grimp |
-| [superpowers/specs/2026-10-06-parked-92-96-design.md](./superpowers/specs/2026-10-06-parked-92-96-design.md) | Implementation spec for parked #92–#96 |
 | [design/competitive-landscape-sonar-alternatives-2026.md](./design/competitive-landscape-sonar-alternatives-2026.md) | Sonar/Qodana/Macroscope/CodeRabbit/DeepSource + PMD/ESLint/Bearer/… — adopt / refuse matrix (2026) |
 | [design/sonargraph-architect-comparison.md](./design/sonargraph-architect-comparison.md) | Sonargraph-Architect vs RepoLens: CLI diagnostic stream first, then a thin VS Code / Zed / IntelliJ client |
 | [compare.md](./compare.md) | We audit, they edit — Plan vs Audit vocabulary vs coding-agent harnesses |

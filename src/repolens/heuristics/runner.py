@@ -9,18 +9,24 @@ from functools import partial
 from pathlib import Path
 
 from repolens.config import NearClonesConfig
+from repolens.heuristics.agent_context_hygiene import find_agent_context_hygiene
+from repolens.heuristics.boolean_flags import find_boolean_flags
 from repolens.heuristics.ci_gaps import find_ci_gaps
 from repolens.heuristics.deep_nesting import find_deep_nesting
 from repolens.heuristics.gitignore_secrets import find_gitignore_secret_gaps
 from repolens.heuristics.large_functions import find_large_functions
+from repolens.heuristics.logging_hygiene import find_logging_hygiene
+from repolens.heuristics.magic_numbers import find_magic_numbers
 from repolens.heuristics.mega_files import (
     DEFAULT_MEGA_AND_SKIP_EXCLUDES,
     find_mega_files,
     is_mega_file_excluded,
 )
 from repolens.heuristics.near_clones import find_near_clones
+from repolens.heuristics.parameter_lists import find_long_parameter_lists
 from repolens.heuristics.scripts_hygiene import find_script_credential_hygiene, find_todo_density
 from repolens.heuristics.siblings import find_sibling_pairs
+from repolens.heuristics.standards_gaps import find_standards_gaps
 from repolens.heuristics.transport_tls import find_transport_tls
 from repolens.inventory import FileEntry
 from repolens.schema import Issue
@@ -185,6 +191,20 @@ def run_heuristics(
         _map_entry_issues(reviewable, find_todo_density, workers=workers)
     )
     issues.extend(find_ci_gaps(root, entries))
+    issues.extend(find_standards_gaps(root, entries))
+    issues.extend(find_agent_context_hygiene(entries))
+    issues.extend(
+        _map_entry_issues(reviewable, find_logging_hygiene, workers=workers)
+    )
+    issues.extend(
+        _map_entry_issues(reviewable, find_long_parameter_lists, workers=workers)
+    )
+    issues.extend(
+        _map_entry_issues(reviewable, find_magic_numbers, workers=workers)
+    )
+    issues.extend(
+        _map_entry_issues(reviewable, find_boolean_flags, workers=workers)
+    )
     _absorb(issues, hot_paths, _pack_issues(root, entries, pack_ids))
     return HeuristicResult(
         issues=issues,

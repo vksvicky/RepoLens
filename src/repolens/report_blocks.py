@@ -44,11 +44,25 @@ def deterministic_gate_lines(report: FindingReport) -> list[str]:
     return [f"DETERMINISTIC GATE: {verdict}", "  " + " · ".join(parts)]
 
 
-def _band_label(report: FindingReport, name: str, attr: str) -> str:
+def _kept_pass(report: FindingReport, role: str) -> bool:
+    for gap in report.durabilityGaps:
+        text = gap.lower()
+        if "finished passes are kept:" not in text and "passes that finished" not in text:
+            continue
+        if role in text:
+            return True
+    return False
+
+
+def _band_label(report: FindingReport, name: str, attr: str, role: str) -> str:
     value = getattr(report, attr)
     if value is not None:
         return f"{name} {value}%"
+    if _kept_pass(report, role):
+        return f"{name} finished"
     if report.auditIncomplete:
+        if any("aborted by user" in gap.lower() for gap in report.durabilityGaps):
+            return f"{name} did not finish"
         return f"{name} UNVERIFIED"
     return f"{name} not run"
 
@@ -68,7 +82,7 @@ def _headline_value(report: FindingReport) -> str:
 
 def ai_audit_lines(report: FindingReport) -> list[str]:
     """Heading plus per-band detail; INCOMPLETE and UNVERIFIED when incomplete."""
-    labels = [_band_label(report, name, attr) for name, attr, _ in _BANDS]
+    labels = [_band_label(report, name, attr, role) for name, attr, role in _BANDS]
     return [f"AI DEEP AUDIT: {_headline_value(report)}", "  " + " · ".join(labels)]
 
 

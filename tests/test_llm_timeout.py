@@ -56,10 +56,10 @@ def test_env_timeout_override(tmp_path, monkeypatch) -> None:
     assert cfg.model.timeout_seconds == 1800.0
 
 
-def test_stream_keeps_going_when_tokens_arrive_past_the_prefill_budget(
+def test_stream_stops_when_writing_runs_past_the_time_limit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A long steady stream is not cut off at --timeout."""
+    """--timeout is the whole pass, including tokens that keep arriving."""
 
     class _FakeResponse:
         status_code = 200
@@ -87,18 +87,18 @@ def test_stream_keeps_going_when_tokens_arrive_past_the_prefill_budget(
         lambda: next(ticks, 200.0),
     )
 
-    text = _stream_openai_compatible(
-        client,
-        base="http://example.test/v1",
-        headers={},
-        payload={"model": "m", "messages": []},
-        model="m",
-        provider="ollama",
-        timeout=10.0,
-        silence_timeout=300.0,
-        on_delta=None,
-    )
-    assert text == "abcd"
+    with pytest.raises(LlmError, match="stopped after 10"):
+        _stream_openai_compatible(
+            client,
+            base="http://example.test/v1",
+            headers={},
+            payload={"model": "m", "messages": []},
+            model="m",
+            provider="ollama",
+            timeout=10.0,
+            silence_timeout=300.0,
+            on_delta=None,
+        )
 
 
 def test_stream_aborts_when_tokens_stop(

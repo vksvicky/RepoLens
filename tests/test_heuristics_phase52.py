@@ -34,6 +34,7 @@ def test_is_test_source_globs() -> None:
     assert is_test_source("src/foo.test.ts")
     assert is_test_source("src/foo.spec.ts")
     assert is_test_source("testutils/helper.py")
+    assert is_test_source("tools/test_export_version.py")
     assert not is_test_source("src/app.py")
 
 
@@ -82,7 +83,9 @@ def test_transport_skips_xmlns_and_flags_real_http(tmp_path: Path) -> None:
         "SCHEMA = 'http://json-schema.org/draft-07/schema#'\n"
         "MS = 'http://schemas.microsoft.com/developer/msbuild/2003'\n"
         "POM = 'http://maven.apache.org/POM/4.0.0'\n"
-        "LOCAL = 'http://localhost:8080/health'\n",
+        "LOCAL = 'http://localhost:8080/health'\n"
+        'NS2 = \'http://www.garmin.com/xml/connectiq\'\n'
+        'MANIFEST = """<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq">"""\n',
         encoding="utf-8",
     )
     (tmp_path / "bad.py").write_text(

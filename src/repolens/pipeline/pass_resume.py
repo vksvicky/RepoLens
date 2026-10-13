@@ -75,6 +75,7 @@ def raise_aborted(
         else FindingReport(confidence=0, summary=Summary(), issues=[])
     )
     saved = ", ".join(finished_labels) or "none"
+    report.auditIncomplete = True
     report.durabilityGaps.append(
         f"Aborted by user. Finished passes are kept: {saved}."
     )
@@ -147,6 +148,49 @@ def _return_cached_pass(
     return cached, "", False, 0
 
 
+def _announce_file_progress(
+    *,
+    root: Path,
+    deep_pass: DeepPass,
+    label: str,
+    cached: FindingReport | None,
+    skip_cache: bool,
+    files_done: int,
+    files_total: int,
+    prog: ReviewProgress,
+) -> str:
+    from repolens.pipeline.pass_progress import (
+        latest_completed_file_count,
+        pass_status_line,
+        saved_pass_rerun_line,
+    )
+
+    files = len(deep_pass.files)
+    total = files_total or files
+    if cached is not None:
+        prog.phase(
+            pass_status_line(
+                done=files_done + files,
+                total=total,
+                label=label,
+                files=files,
+                resumed=True,
+            )
+        )
+        return ""
+    if not skip_cache:
+        reason = saved_pass_rerun_line(
+            label, latest_completed_file_count(root, label), files
+        )
+        if reason:
+            prog.phase(reason)
+    line = pass_status_line(
+        done=files_done, total=total, label=label, files=files, resumed=False
+    )
+    prog.phase(line)
+    return line
+
+
 def _execute_live_pass(
     *,
     root: Path,
@@ -164,6 +208,7 @@ def _execute_live_pass(
     model_name: str,
     provider: str,
     timeout: float,
+    file_work: str = "",
 ) -> tuple[FindingReport, str, bool, int]:
     wait_before = queue_wait_seconds()
     started = time.perf_counter()
@@ -187,6 +232,7 @@ def _execute_live_pass(
             model_name=model_name,
             provider=provider,
             timeout=timeout,
+            file_work=file_work,
         )
     finally:
         reset_lock_context(token)
@@ -237,6 +283,8 @@ def run_or_resume_pass(
     timeout: float,
     prior_summary: str = "",
     skip_cache: bool = False,
+    files_done: int = 0,
+    files_total: int = 0,
 ) -> tuple[FindingReport, str, bool, int]:
     label = pass_label(deep_pass.name)
     key = _pass_cache_key(deep_pass, model_name, prior_summary)
@@ -252,6 +300,16 @@ def run_or_resume_pass(
         role_packs=bool(cfg.deep.role_packs),
     )
     cached = None if skip_cache else load_pass(root, key)
+    file_work = _announce_file_progress(
+        root=root,
+        deep_pass=deep_pass,
+        label=label,
+        cached=cached,
+        skip_cache=skip_cache,
+        files_done=files_done,
+        files_total=files_total,
+        prog=prog,
+    )
     if cached is not None:
         return _return_cached_pass(
             root=root,
@@ -276,4 +334,5 @@ def run_or_resume_pass(
         model_name=model_name,
         provider=provider,
         timeout=timeout,
+        file_work=file_work,
     )

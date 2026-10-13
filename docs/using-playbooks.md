@@ -40,7 +40,7 @@ Do not commit or push.
 
 **Export a report:**
 ```text
-Save the review as docs/reviews/gate_review_report_YYYY-MM-DD.md
+Save the review locally. Do not commit the export.
 including all findings and code examples.
 ```
 

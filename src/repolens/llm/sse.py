@@ -44,6 +44,12 @@ class StreamWatch:
                     "waiting for the first token"
                 )
             return
+        if now - self.started >= self.prefill_timeout:
+            raise LlmError(
+                f"{self.label} stopped after {self.prefill_timeout:g}s. "
+                "The model was still writing. Finished passes are kept. "
+                "Re-run when you can wait, or review a smaller change."
+            )
         if now - self.last_token >= self.silence_timeout:
             raise LlmError(
                 f"{self.label} stream went silent for {self.silence_timeout:g}s"

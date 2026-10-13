@@ -31,10 +31,9 @@ def test_catalog_has_mvp_tools() -> None:
             assert spec.url.startswith("https://files.pythonhosted.org/"), (tool, plat)
             assert spec.sha256 and len(spec.sha256) == 64, (tool, plat)
     assert cat["checkov"]["linux-amd64"].sha256 == cat["checkov"]["darwin-arm64"].sha256
-    assert (
-        cat["semgrep"]["linux-amd64"].sha256
-        == "13a55457577d59daee1b1068832102f1da96bbaef84ed238e64f24af96918ec2"
-    )
+    assert cat["semgrep"]["linux-amd64"].version == "1.180.0"
+    assert "cp312" in cat["semgrep"]["linux-amd64"].url
+    assert cat["checkov"]["linux-amd64"].version == "3.3.9"
 
 
 def test_download_rejects_checksum_mismatch(tmp_path: Path) -> None:
@@ -172,9 +171,12 @@ def test_pip_install_does_not_run_when_wheel_hash_mismatches(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    lock = tmp_path / "checkov-linux-amd64-cp312.txt"
+    lock.write_text("checkov==3.3.9 \\\n    --hash=sha256:" + ("ab" * 32) + "\n", encoding="utf-8")
     with (
         patch("repolens.plugins._platform_key", return_value="linux-amd64"),
-        patch("repolens.plugins._download", side_effect=RuntimeError("checksum mismatch")),
+        patch("repolens.plugins._interpreter_python", return_value=(3, 12)),
+        patch("repolens.plugins._plugin_lock_file", return_value=lock),
         patch("repolens.plugins.subprocess.run") as run,
     ):
         messages = install_plugins(["checkov"], yes=True)
@@ -182,21 +184,62 @@ def test_pip_install_does_not_run_when_wheel_hash_mismatches(
     run.assert_not_called()
 
 
-def test_semgrep_on_python_312_fails_before_download(tmp_path: Path, monkeypatch) -> None:
+def test_pip_install_uses_require_hashes(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    spec = catalog()["checkov"]["linux-amd64"]
+    lock = tmp_path / "lock.txt"
+    lock.write_text(
+        f"checkov=={spec.version} \\\n    --hash=sha256:{spec.sha256}\n",
+        encoding="utf-8",
+    )
     with (
         patch("repolens.plugins._platform_key", return_value="linux-amd64"),
         patch("repolens.plugins._interpreter_python", return_value=(3, 12)),
-        patch("repolens.plugins._download") as download,
+        patch("repolens.plugins._plugin_lock_file", return_value=lock),
+        patch("repolens.plugins._ensure_venv_python", return_value=tmp_path / "python"),
+        patch("repolens.plugins.subprocess.run") as run,
+    ):
+        messages = install_plugins(["checkov"], yes=True)
+    assert any("installed" in message for message in messages), messages
+    command = run.call_args.args[0]
+    assert "--require-hashes" in command
+    assert str(lock) in command
+
+
+def test_semgrep_without_lock_for_interpreter_fails_before_pip(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    with (
+        patch("repolens.plugins._platform_key", return_value="linux-amd64"),
+        patch("repolens.plugins._interpreter_python", return_value=(3, 11)),
         patch("repolens.plugins.subprocess.run") as run,
     ):
         messages = install_plugins(["semgrep"], yes=True)
     joined = "\n".join(messages)
-    assert "Semgrep plugin requires Python 3.9–3.11" in joined
-    assert "3.12" in joined
+    assert "hash lock" in joined
+    assert "3.11" in joined
     assert "checksum" not in joined.lower()
-    download.assert_not_called()
     run.assert_not_called()
+
+
+def test_pip_locks_pin_catalog_wheels() -> None:
+    root = Path(__file__).resolve().parents[1] / "src" / "repolens" / "plugin_locks"
+    for tool in ("semgrep", "checkov"):
+        for plat, spec in catalog()[tool].items():
+            text = (root / f"{tool}-{plat}-cp312.txt").read_text(encoding="utf-8")
+            assert "--only-binary=:all:" in text
+            assert f"--hash=sha256:{spec.sha256}" in text
+            assert f"{tool}=={spec.version}" in text
+            packages = [
+                line
+                for line in text.splitlines()
+                if "==" in line and not line.lstrip().startswith("#")
+            ]
+            hashes = [line for line in text.splitlines() if "--hash=sha256:" in line]
+            assert hashes
+            assert len(hashes) >= len(packages)
+            assert all(line.rstrip().endswith("\\") for line in packages)
 
 
 def test_cli_scanners_only_mocked(tmp_path: Path) -> None:

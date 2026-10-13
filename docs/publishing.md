@@ -141,4 +141,3 @@ Also exercise the Action on GitHub (workflow_dispatch on [repolens-example.yml](
 - [ci.md](./ci.md) — GitHub Action  
 - [scanners.md](./scanners.md) — plugins / Semgrep config  
 - [phases.md](./phases.md)  
-- [reviews/gate_review_report_2026-08-04.md](./reviews/gate_review_report_2026-08-04.md) — pre-publish security gate  

@@ -113,6 +113,21 @@ def test_sentinel_only_security_band_marks_others_not_run() -> None:
 # --- Inverse / error: incomplete audit -----------------------------------
 
 
+def test_aborted_run_names_the_pass_that_finished() -> None:
+    report = _report(
+        securityAuditConfidence=None,
+        reliabilityAuditConfidence=None,
+        architectureAuditConfidence=None,
+        auditIncomplete=True,
+        durabilityGaps=["Aborted by user. Finished passes are kept: P1 Security."],
+    )
+    lines = ai_audit_lines(report)
+    assert lines[0] == "AI DEEP AUDIT: INCOMPLETE"
+    assert "Security finished" in lines[1]
+    assert "Reliability did not finish" in lines[1]
+    assert "Architecture did not finish" in lines[1]
+
+
 def test_incomplete_audit_says_incomplete_and_unverified() -> None:
     report = _report(
         auditIncomplete=True,

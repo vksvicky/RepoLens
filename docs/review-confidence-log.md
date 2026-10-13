@@ -4,7 +4,7 @@ Durable record of dual-review gate confidence over time.
 
 | Date | Ref | Confidence | Counts (C/H/M/L) | Note | Chat / export |
 |------|-----|------------|------------------|------|---------------|
-| 2026-08-04 | 6c9cc10 | 78% | 0/0/5/4 | Retroactive Phase 3–4 gate (process miss) | [gate_review_report_2026-08-04.md](./reviews/gate_review_report_2026-08-04.md) |
+| 2026-08-04 | 6c9cc10 | 78% | 0/0/5/4 | Retroactive Phase 3–4 gate (process miss) | local export |
 | 2026-08-04 | 9704834 | 88% | 0/0/1/1 | Phase 3 scanners (chat-only; not exported) | chat |
 | 2026-08-04 | feat/guided-review-script WIP | 86% | 0/0/2/2 | Deep coverage + rules registry + guided (pre local merge) | chat |
 | 2026-08-04 | 15b2cd9 | 92% | 0/0/0/0 | Docs-only: Phase 5.1/6 designs + enterprise→7 (chat gate) | chat |
@@ -19,7 +19,7 @@ Durable record of dual-review gate confidence over time.
 
 ## How to use
 
-1. After a pre-commit / pre-push dual review, append a row **and** keep a report under `docs/reviews/` when shipping.  
+1. After a pre-commit / pre-push dual review, append a row. Keep the full export on the maintainer machine. Do not commit it.  
 2. Do not paste secrets, tokens, or private code into the Note column.
 | 2026-08-06 | WIP→commit | 91% | 0/0/0/1 | Phase 6.1 Trivy+Checkov plugins; evidence→LLM; 17 tests | chat |
 | 2026-08-06 | WIP→commit | 92% | 0/0/0/1 | Phase 6.2 SBOM/licenses/SCA dedupe + LLM guardrails; 38 related pytest | chat |
@@ -72,3 +72,5 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-10 | WIP→push | 91% | 0/0/0/2 | Selfdog hygiene: HEALTHCHECK, cycle-tree split, mega-file and 80-line spans; 69 related pytest | chat |
 | 2026-10-11 | industrial-0.1.3 | 91% | 0/0/1/1 | 0.1.3 provenance query strip, wheel SHA-256, image sha256sum; pip deps and Docker Semgrep extra stay unhashed; not tagged | chat |
 | 2026-10-11 | WIP→commit | 94% | 0/0/0/0 | Overlay scanners: extract Issue builders so fintech/healthtech clear deep-nesting; 5 overlay pytest | chat |
+| 2026-10-13 | WIP→commit | 84% | 0/0/0/1 | Post-0.1.3: hash-locked Semgrep/Checkov, learn notes, clean-code heuristics; scanners extra still unhashed; blog drafts left out | chat |
+| 2026-10-13 | WIP→commit | 90% | 0/0/0/1 | Internal notes leave the published tree; older commits on origin still contain plans, recipes, and one review | chat |
