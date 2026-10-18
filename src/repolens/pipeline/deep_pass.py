@@ -11,9 +11,9 @@ from repolens.deep import (
     coverage_closure_prompt,
 )
 from repolens.llm import default_model, resolve_llm_timeout
+from repolens.pipeline.deep_job import DeepJob
 from repolens.pipeline.prompt import _append_source_files
 from repolens.progress import LlmGenerateProgress, ReviewProgress
-from repolens.rules.registry import Rule
 from repolens.schema import FindingReport, Summary
 
 
@@ -40,22 +40,20 @@ def _pass_report(result, pass_name: str, prog: ReviewProgress) -> FindingReport:
     )
 
 
-def _run_deep_pass(
-    *,
-    idx: int,
-    n: int,
-    deep_pass,
-    rules: list[Rule],
-    pack_ids: list,
-    prompt_prefix: str,
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-    raw_dir: Path,
-    model_name: str,
-    provider: str,
-    timeout: float,
-    file_work: str = "",
-) -> tuple[FindingReport, str, bool, int, int, int]:
+def _run_deep_pass(job: DeepJob) -> tuple[FindingReport, str, bool, int, int, int]:
+    idx = job.idx
+    n = job.n
+    deep_pass = job.deep_pass
+    rules = job.rules
+    pack_ids = job.pack_ids
+    prompt_prefix = job.prompt_prefix
+    cfg = job.cfg
+    prog = job.prog
+    raw_dir = job.raw_dir
+    model_name = job.model_name
+    provider = job.provider
+    timeout = job.timeout
+    file_work = job.file_work
     from repolens.llm_structured import analyze_structured
 
     prog.phase(f"→ Deep pass {idx}/{n} ({deep_pass.name})…")

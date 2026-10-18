@@ -10,10 +10,12 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 import os
 import struct
 import time
 from collections.abc import Callable, Iterator
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
@@ -61,19 +63,29 @@ def _signing_key(secret: str, datestamp: str, region: str, service: str) -> byte
     return _sign(k_service, "aws4_request")
 
 
-def sigv4_headers(
-    *,
-    method: str,
-    url: str,
-    body: bytes,
-    region: str,
-    access_key: str,
-    secret_key: str,
-    session_token: str | None,
-    service: str = "bedrock",
-    amz_date: str | None = None,
-) -> dict[str, str]:
+@dataclass
+class Sigv4Headers:
+    method: str
+    url: str
+    body: bytes
+    region: str
+    access_key: str
+    secret_key: str
+    session_token: str | None
+    service: str = 'bedrock'
+    amz_date: str | None = None
+
+def sigv4_headers(job: Sigv4Headers) -> dict[str, str]:
     """Build SigV4 headers for a Bedrock Runtime request."""
+    method = job.method
+    url = job.url
+    body = job.body
+    region = job.region
+    access_key = job.access_key
+    secret_key = job.secret_key
+    session_token = job.session_token
+    service = job.service
+    amz_date = job.amz_date
     from urllib.parse import urlparse
 
     parsed = urlparse(url)
@@ -138,10 +150,7 @@ def sigv4_headers(
 def bedrock_converse_stream_url(*, region: str, model_id: str) -> str:
     # Model ids may contain `:` and `/` — encode path segment.
     encoded = quote(model_id, safe=".-_:")
-    return (
-        f"https://bedrock-runtime.{region}.amazonaws.com"
-        f"/model/{encoded}/converse-stream"
-    )
+    return f"https://bedrock-runtime.{region}.amazonaws.com/model/{encoded}/converse-stream"
 
 
 def bedrock_converse_payload(prompt: str) -> dict[str, Any]:
@@ -182,16 +191,20 @@ def encode_event_stream_message(payload: bytes, *, event_type: str = "chunk") ->
     return message_wo_crc + message_crc
 
 
+_EVENT_HEADERS_OFFSET = 12  # prelude 8 + prelude crc 4
+_ERROR_DETAIL_CHARS = 300
+
+
 def iter_event_stream_payloads(blob: bytes) -> Iterator[bytes]:
     """Yield message payloads from an AWS event-stream byte blob."""
     offset = 0
     n = len(blob)
-    while offset + 12 <= n:
+    while offset + _EVENT_HEADERS_OFFSET <= n:
         total_len, headers_len = struct.unpack_from(">II", blob, offset)
         if total_len < 16 or offset + total_len > n:
             break
         # Skip prelude (8) + prelude crc (4) + headers
-        payload_start = offset + 12 + headers_len
+        payload_start = offset + _EVENT_HEADERS_OFFSET + headers_len
         payload_end = offset + total_len - 4  # exclude message crc
         if payload_start > payload_end:
             break
@@ -213,6 +226,7 @@ def extract_text_from_bedrock_payload(payload: bytes) -> str | None:
     try:
         data = json.loads(payload.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     if not isinstance(data, dict):
         return None
@@ -263,7 +277,7 @@ def analyze_bedrock(
         url = f"{root}/model/{encoded}/converse-stream"
     body_obj = bedrock_converse_payload(prompt)
     body = json.dumps(body_obj, separators=(",", ":")).encode("utf-8")
-    headers = sigv4_headers(
+    headers = sigv4_headers(Sigv4Headers(
         method="POST",
         url=url,
         body=body,
@@ -272,7 +286,7 @@ def analyze_bedrock(
         secret_key=secret,
         session_token=session,
         service="bedrock",
-    )
+    ))
     timeout = resolve_llm_timeout(model_cfg)
     owns_client = client is None
     client = client or httpx.Client(timeout=timeout)
@@ -281,14 +295,11 @@ def analyze_bedrock(
     try:
         with client.stream("POST", url, headers=headers, content=body) as response:
             if response.status_code >= 400:
-                detail = (
-                    response.read().decode("utf-8", errors="replace") or ""
-                ).strip()
-                if len(detail) > 300:
-                    detail = detail[:300] + "…"
+                detail = (response.read().decode("utf-8", errors="replace") or "").strip()
+                if len(detail) > _ERROR_DETAIL_CHARS:
+                    detail = detail[:_ERROR_DETAIL_CHARS] + "…"
                 raise LlmError(
-                    f"Bedrock error {response.status_code}"
-                    + (f": {detail}" if detail else "")
+                    f"Bedrock error {response.status_code}" + (f": {detail}" if detail else "")
                 )
 
             def _byte_chunks() -> Iterator[bytes]:

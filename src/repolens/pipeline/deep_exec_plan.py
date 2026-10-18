@@ -6,10 +6,14 @@ from pathlib import Path
 
 from repolens.adaptive import sync_project_fingerprints
 from repolens.config import RepoLensConfig
+from repolens.deep_plan import PlanDeepPasses
 from repolens.heuristics import HeuristicResult, run_heuristics
+from repolens.heuristics.runner import RunHeuristics
 from repolens.inventory import FileEntry
+from repolens.pipeline.deep_job import DeepJob
 from repolens.progress import ReviewProgress
-from repolens.schema import FindingReport
+
+_DIFF_PREVIEW = 8
 
 
 def _sync_adaptive_cache(
@@ -44,15 +48,15 @@ def _sync_adaptive_cache(
         prog.phase("Cache: " + ", ".join(bits))
         if prog.verbose and (diff.added or diff.changed or removed or dropped):
             if diff.added:
-                prog.detail("added: " + ", ".join(diff.added[:8]))
+                prog.detail("added: " + ", ".join(diff.added[:_DIFF_PREVIEW]))
             if diff.changed:
-                prog.detail("changed: " + ", ".join(diff.changed[:8]))
+                prog.detail("changed: " + ", ".join(diff.changed[:_DIFF_PREVIEW]))
             if removed:
-                prog.detail("removed from tree: " + ", ".join(removed[:8]))
+                prog.detail("removed from tree: " + ", ".join(removed[:_DIFF_PREVIEW]))
             if dropped:
                 prog.detail(
                     "dropped from inventory pack (still on disk; over max_files): "
-                    + ", ".join(dropped[:8])
+                    + ", ".join(dropped[:_DIFF_PREVIEW])
                 )
         return store, diff
     except OSError as exc:
@@ -92,26 +96,21 @@ def _load_deep_heuristics(
         heur = heur_result
     else:
         prog.phase("→ Deep: heuristics…")
-        heur = run_heuristics(
-            root,
-            files,
-            mega_file_lines=cfg.deep.mega_file_lines,
-            mega_file_exclude_globs=cfg.deep.extra_skip_globs() or None,
-            pack_ids=pack_ids or None,
-            workers=cfg.fast_brain.parallel_workers,
-            near_clones_config=cfg.fast_brain.near_clones,
-        )
+        heur = run_heuristics(RunHeuristics(
+        root=root,
+        entries=files,
+        mega_file_lines=cfg.deep.mega_file_lines,
+        mega_file_exclude_globs=cfg.deep.extra_skip_globs() or None,
+        pack_ids=pack_ids or None,
+        workers=cfg.fast_brain.parallel_workers,
+        near_clones_config=cfg.fast_brain.near_clones,
+    ))
     if prog.verbose:
-        prog.detail(
-            f"heuristics: {len(heur.issues)} issue(s), "
-            f"{len(heur.hot_paths)} hot path(s)"
-        )
+        prog.detail(f"heuristics: {len(heur.issues)} issue(s), {len(heur.hot_paths)} hot path(s)")
     return heur
 
 
-def _announce_deep_runtime(
-    prog: ReviewProgress, passes: list, cfg: RepoLensConfig
-) -> None:
+def _announce_deep_runtime(prog: ReviewProgress, passes: list, cfg: RepoLensConfig) -> None:
     if prog.quiet or not passes:
         return
     from repolens.runtime_estimate import estimate_deep_runtime
@@ -146,18 +145,16 @@ def _journal_review_started(root: Path, cfg: RepoLensConfig) -> None:
     )
 
 
-def _prepare_deep_plan(
-    *,
-    root: Path,
-    mode: str,
-    full_audit: bool,
-    files: list[FileEntry],
-    llm_files: list[FileEntry],
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-    heur_result: HeuristicResult | None,
-    graph: object | None,
-) -> tuple:
+def _prepare_deep_plan(job: DeepJob) -> tuple:
+    root = job.root
+    mode = job.mode
+    full_audit = job.full_audit
+    files = job.files
+    llm_files = job.llm_files
+    cfg = job.cfg
+    prog = job.prog
+    heur_result = job.heur_result
+    graph = job.graph
     from repolens.deep import plan_deep_passes
     from repolens.rules.registry import Rule, load_enabled_rules
 
@@ -172,8 +169,8 @@ def _prepare_deep_plan(
     )
     rules: list[Rule] = load_enabled_rules(project_root=root)
     p3_gaps: list[str] = []
-    passes = plan_deep_passes(
-        mode,
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode=mode,
         full_audit=full_audit,
         entries=llm_files or files,
         hot_paths=heur.hot_paths,
@@ -182,33 +179,31 @@ def _prepare_deep_plan(
         rules=rules,
         max_passes=cfg.deep.max_passes,
         role_packs=bool(cfg.deep.role_packs),
-        graph=graph,  # type: ignore[arg-type]
+        graph=graph,
         durability_gaps_out=p3_gaps,
-    )
+    ))
     return heur, rules, passes, p3_gaps, pack_ids
 
 
-def _record_one_planned_pass(
-    *,
-    deep_pass,
-    part: FindingReport,
-    raw: str,
-    degraded: bool,
-    attempts: int,
-    parts: list[FindingReport],
-    raw_by_pass: dict[str, str],
-    degraded_by_pass: dict[str, bool],
-    all_coverage_ids: list[str],
-    finished_labels: list[str],
-    timed_out_labels: list[str],
-    heur_issues: list,
-    out_dir: Path | None,
-    fmt: str,
-    mode: str,
-    report_when: object | None,
-    cfg: RepoLensConfig,
-    prior_summary: str,
-) -> tuple[int, str]:
+def _record_one_planned_pass(job: DeepJob) -> tuple[int, str]:
+    deep_pass = job.deep_pass
+    part = job.part
+    raw = job.raw
+    degraded = job.degraded
+    attempts = job.attempts
+    parts = job.parts
+    raw_by_pass = job.raw_by_pass
+    degraded_by_pass = job.degraded_by_pass
+    all_coverage_ids = job.all_coverage_ids
+    finished_labels = job.finished_labels
+    timed_out_labels = job.timed_out_labels
+    heur_issues = job.heur_issues
+    out_dir = job.out_dir
+    fmt = job.fmt
+    mode = job.mode
+    report_when = job.report_when
+    cfg = job.cfg
+    prior_summary = job.prior_summary
     from repolens.deep import merge_reports
     from repolens.pipeline.pass_cache import pass_label
     from repolens.pipeline.pass_resume import snapshot_finished
@@ -245,43 +240,39 @@ def _prefix_with_prior(prompt_prefix: str, prior_summary: str, *, role_packs: bo
     return f"{prompt_prefix}\n\n{block}" if prompt_prefix else block
 
 
-def _run_and_record_planned_pass(
-    *,
-    root: Path,
-    idx: int,
-    n: int,
-    deep_pass,
-    rules: list,
-    pack_ids: list[str],
-    prompt_prefix: str,
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-    raw_dir: Path,
-    model_name: str,
-    provider: str,
-    timeout: float,
-    prior_summary: str,
-    skip_cache: bool,
-    parts: list,
-    raw_by_pass: dict,
-    degraded_by_pass: dict,
-    all_coverage_ids: list,
-    finished_labels: list,
-    timed_out_labels: list,
-    heur_issues: list,
-    out_dir: Path | None,
-    fmt: str,
-    mode: str,
-    report_when: object | None,
-    files_done: int = 0,
-    files_total: int = 0,
-) -> tuple[int, str]:
+def _run_and_record_planned_pass(job: DeepJob) -> tuple[int, str]:
+    root = job.root
+    idx = job.idx
+    n = job.n
+    deep_pass = job.deep_pass
+    rules = job.rules
+    pack_ids = job.pack_ids
+    prompt_prefix = job.prompt_prefix
+    cfg = job.cfg
+    prog = job.prog
+    raw_dir = job.raw_dir
+    model_name = job.model_name
+    provider = job.provider
+    timeout = job.timeout
+    prior_summary = job.prior_summary
+    skip_cache = job.skip_cache
+    parts = job.parts
+    raw_by_pass = job.raw_by_pass
+    degraded_by_pass = job.degraded_by_pass
+    all_coverage_ids = job.all_coverage_ids
+    finished_labels = job.finished_labels
+    timed_out_labels = job.timed_out_labels
+    heur_issues = job.heur_issues
+    out_dir = job.out_dir
+    fmt = job.fmt
+    mode = job.mode
+    report_when = job.report_when
+    files_done = job.files_done
+    files_total = job.files_total
     from repolens.pipeline.pass_resume import run_or_resume_pass
 
-    prefix = _prefix_with_prior(
-        prompt_prefix, prior_summary, role_packs=cfg.deep.role_packs
-    )
-    part, raw, degraded, attempts = run_or_resume_pass(
+    prefix = _prefix_with_prior(prompt_prefix, prior_summary, role_packs=cfg.deep.role_packs)
+    part, raw, degraded, attempts = run_or_resume_pass(DeepJob(
         root=root,
         idx=idx,
         n=n,
@@ -299,8 +290,8 @@ def _run_and_record_planned_pass(
         skip_cache=skip_cache,
         files_done=files_done,
         files_total=files_total,
-    )
-    return _record_one_planned_pass(
+    ))
+    return _record_one_planned_pass(DeepJob(
         deep_pass=deep_pass,
         part=part,
         raw=raw,
@@ -319,33 +310,31 @@ def _run_and_record_planned_pass(
         report_when=report_when,
         cfg=cfg,
         prior_summary=prior_summary,
-    )
+    ))
 
 
-def _drive_planned_passes(
-    *,
-    root: Path,
-    passes: list,
-    rules: list,
-    pack_ids: list[str],
-    prompt_prefix: str,
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-    raw_dir: Path,
-    skip_cache: bool,
-    heur_issues: list,
-    out_dir: Path | None,
-    fmt: str,
-    mode: str,
-    report_when: object | None,
-    parts: list,
-    raw_by_pass: dict,
-    degraded_by_pass: dict,
-    all_coverage_ids: list,
-    finished_labels: list,
-    timed_out_labels: list,
-    retry_passes: frozenset[str] = frozenset(),
-) -> int:
+def _drive_planned_passes(job: DeepJob) -> int:
+    root = job.root
+    passes = job.passes
+    rules = job.rules
+    pack_ids = job.pack_ids
+    prompt_prefix = job.prompt_prefix
+    cfg = job.cfg
+    prog = job.prog
+    raw_dir = job.raw_dir
+    skip_cache = job.skip_cache
+    heur_issues = job.heur_issues
+    out_dir = job.out_dir
+    fmt = job.fmt
+    mode = job.mode
+    report_when = job.report_when
+    parts = job.parts
+    raw_by_pass = job.raw_by_pass
+    degraded_by_pass = job.degraded_by_pass
+    all_coverage_ids = job.all_coverage_ids
+    finished_labels = job.finished_labels
+    timed_out_labels = job.timed_out_labels
+    retry_passes = job.retry_passes
     from repolens.llm import default_model, resolve_llm_timeout
 
     repair_attempts_total = 0
@@ -359,7 +348,7 @@ def _drive_planned_passes(
     if retry_passes and not skip_cache:
         prog.detail(f"Retrying pass(es): {', '.join(sorted(retry_passes))}")
     for idx, deep_pass in enumerate(passes, start=1):
-        added, prior_summary = _run_and_record_planned_pass(
+        added, prior_summary = _run_and_record_planned_pass(DeepJob(
             root=root,
             idx=idx,
             n=n,
@@ -388,16 +377,14 @@ def _drive_planned_passes(
             report_when=report_when,
             files_done=files_done,
             files_total=files_total,
-        )
+        ))
         repair_attempts_total += added
         if not degraded_by_pass.get(deep_pass.name):
             files_done += len(getattr(deep_pass, "files", []) or [])
     return repair_attempts_total
 
 
-def _note_resume_hint(root: Path, skip_cache: bool, prog: ReviewProgress) -> None:
-    if skip_cache:
-        return
+def _note_resume_hint(root: Path, prog: ReviewProgress) -> None:
     from repolens.pipeline.pass_progress import continue_line
 
     text = continue_line(root)

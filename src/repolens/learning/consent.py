@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
@@ -33,6 +34,7 @@ def has_consent(root: Path) -> bool:
             data = tomllib.load(fh)
         return bool(data.get("accepted"))
     except (OSError, tomllib.TOMLDecodeError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return False
 
 
@@ -59,14 +61,21 @@ def accept_local_learning(root: Path) -> Path:
     return path
 
 
-def ensure_consent(root: Path, *, accept: bool) -> None:
-    """Raise PermissionError if learning is used without consent."""
+def _require_existing_consent(root: Path) -> None:
     if has_consent(root):
-        return
-    if accept:
-        accept_local_learning(root)
         return
     raise PermissionError(
         "Local learning requires consent. Re-run with --accept-local-learning "
         "after reading the notice:\n\n" + CONSENT_NOTICE
     )
+
+
+def _record_consent(root: Path) -> None:
+    if has_consent(root):
+        return
+    accept_local_learning(root)
+
+
+def ensure_consent(root: Path, *, accept: bool) -> None:
+    """Raise PermissionError if learning is used without consent."""
+    _record_consent(root) if accept else _require_existing_consent(root)

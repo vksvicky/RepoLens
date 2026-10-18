@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from repolens.schema import Issue, QualityScorecard
 
@@ -24,16 +25,24 @@ def _count_categories(issues: Sequence[Issue]) -> tuple[int, int, int]:
     return mega, nesting, near
 
 
-def build_quality_scorecard(
-    *,
-    mega: int,
-    nesting: int,
-    near_clusters: int,
-    near_occurrences: int,
-    findings_emitted: int,
-    files_scanned: int,
-    notes: list[str] | None = None,
-) -> QualityScorecard:
+@dataclass
+class ScorecardArgs:
+    mega: int
+    nesting: int
+    near_clusters: int
+    near_occurrences: int
+    findings_emitted: int
+    files_scanned: int
+    notes: list[str] | None = None
+
+def build_quality_scorecard(job: ScorecardArgs) -> QualityScorecard:
+    mega = job.mega
+    nesting = job.nesting
+    near_clusters = job.near_clusters
+    near_occurrences = job.near_occurrences
+    findings_emitted = job.findings_emitted
+    files_scanned = job.files_scanned
+    notes = job.notes
     return QualityScorecard(
         megaFileCount=mega,
         deepNestingCount=nesting,
@@ -54,7 +63,7 @@ def build_quality_scorecard_from_issues(
     notes: list[str] | None = None,
 ) -> QualityScorecard:
     mega, nesting, near_findings = _count_categories(issues)
-    return build_quality_scorecard(
+    return build_quality_scorecard(ScorecardArgs(
         mega=mega,
         nesting=nesting,
         near_clusters=near_clone_clusters,
@@ -62,4 +71,4 @@ def build_quality_scorecard_from_issues(
         findings_emitted=near_findings,
         files_scanned=files_scanned,
         notes=notes,
-    )
+    ))

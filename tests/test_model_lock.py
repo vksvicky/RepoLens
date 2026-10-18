@@ -18,6 +18,7 @@ import pytest
 
 from repolens.config import ModelConfig
 from repolens.llm.model_lock import (
+    ModelLockOptions,
     OllamaModelLock,
     _pid_alive,
     bind_lock_context,
@@ -106,7 +107,7 @@ def test_wait_message_names_the_holding_review() -> None:
 
 def test_acquire_writes_metadata_and_a_second_attempt_sees_it(tmp_path: Path) -> None:
     notes: list[str] = []
-    first = OllamaModelLock(
+    first = OllamaModelLock(ModelLockOptions(
         repo="LogViewer",
         path="/Users/vivek/Development/LogViewer",
         pass_name="P2",
@@ -114,7 +115,7 @@ def test_acquire_writes_metadata_and_a_second_attempt_sees_it(tmp_path: Path) ->
         base_url="http://127.0.0.1:11434/v1",
         lock_dir=tmp_path,
         status=notes.append,
-    )
+    ))
     with first:
         raw = json.loads(first.lock_file.read_text(encoding="utf-8"))
         assert raw["repo"] == "LogViewer"
@@ -271,7 +272,7 @@ def test_queue_wait_is_the_time_before_the_lock_is_held(tmp_path: Path, monkeypa
     reset_queue_wait()
     ticks = iter([0.0, 0.0])
 
-    lock = OllamaModelLock(
+    lock = OllamaModelLock(ModelLockOptions(
         repo="repolens",
         path=".",
         pass_name="P1 Security",
@@ -282,7 +283,7 @@ def test_queue_wait_is_the_time_before_the_lock_is_held(tmp_path: Path, monkeypa
         poll_seconds=0.05,
         sleeper=lambda _seconds: None,
         clock=lambda: next(ticks),
-    )
+    ))
     with lock:
         assert lock.waited_seconds == 0.0
     assert queue_wait_seconds() == 0.0
@@ -299,7 +300,7 @@ def test_queue_wait_is_the_time_before_the_lock_is_held(tmp_path: Path, monkeypa
         return real_head(queue)
 
     monkeypatch.setattr(lock_mod, "head_ticket", head_once)
-    second = OllamaModelLock(
+    second = OllamaModelLock(ModelLockOptions(
         repo="repolens",
         path=".",
         pass_name="P1 Security",
@@ -310,7 +311,7 @@ def test_queue_wait_is_the_time_before_the_lock_is_held(tmp_path: Path, monkeypa
         poll_seconds=0.05,
         sleeper=lambda _seconds: None,
         clock=lambda: next(waited),
-    )
+    ))
     with second:
         assert second.waited_seconds == 9.0
     assert queue_wait_seconds() == 9.0
@@ -338,7 +339,7 @@ def _lock(
     status: Callable[[str], None] | None = None,
     poll_seconds: float = 2.0,
 ) -> OllamaModelLock:
-    return OllamaModelLock(
+    return OllamaModelLock(ModelLockOptions(
         repo="RepoLens",
         path=str(tmp_path),
         pass_name="P1",
@@ -347,7 +348,7 @@ def _lock(
         lock_dir=tmp_path,
         poll_seconds=poll_seconds,
         status=status,
-    )
+    ))
 
 
 def _wait_for_holder(tmp_path: Path) -> None:
@@ -364,15 +365,15 @@ def _hold_lock(tmp_path: Path, *, seconds: float) -> subprocess.Popen[str]:
         f"""
         import time
         from pathlib import Path
-        from repolens.llm.model_lock import OllamaModelLock
-        with OllamaModelLock(
+        from repolens.llm.model_lock import ModelLockOptions, OllamaModelLock
+        with OllamaModelLock(ModelLockOptions(
             repo="LogViewer",
             path="/tmp/LogViewer",
             pass_name="P2",
             model="qwen",
             base_url="http://127.0.0.1:11434/v1",
             lock_dir=Path({str(tmp_path)!r}),
-        ):
+        )):
             time.sleep({seconds})
         """
     )

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import shutil
 import subprocess
 from pathlib import Path
@@ -21,6 +22,7 @@ def git_dirty_tree(root: Path) -> bool | None:
             timeout=15,
         )
     except (OSError, subprocess.TimeoutExpired):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     if completed.returncode != 0:
         return None
@@ -52,6 +54,7 @@ def journal_tip_hash(root: Path) -> str | None:
     try:
         text = path.read_text(encoding="utf-8")
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     lines = [ln for ln in text.splitlines() if ln.strip()]
     if not lines:

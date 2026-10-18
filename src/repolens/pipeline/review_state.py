@@ -20,32 +20,32 @@ class ReviewRun:
 
     path: Path
     mode: str
-    review_mode: str
-    since: str | None
-    out_dir: Path | None
-    fmt: str
-    model_override: str | None
-    timeout_override: float | None
-    force_full: bool
-    force_changed: bool
-    git_diff: str | None
-    deep_passes: int | None
-    full_audit: bool
-    dry_run: bool
-    trust_project: bool
-    config: RepoLensConfig | None
-    scanners: str | None
-    require_scanners: bool
-    scanners_only: bool
-    progress: ReviewProgress | None
-    deep: bool | None
-    ci: bool
-    sarif: bool
-    verify_findings: bool | None
-    packs: list[str] | None
-    fallback: bool | None
-    import_sarif: list[Path] | None
-    require_sarif_import: bool
+    review_mode: str = "full"
+    since: str | None = None
+    out_dir: Path | None = None
+    fmt: str = "md"
+    model_override: str | None = None
+    timeout_override: float | None = None
+    force_full: bool = False
+    force_changed: bool = False
+    git_diff: str | None = None
+    deep_passes: int | None = None
+    full_audit: bool = False
+    dry_run: bool = False
+    trust_project: bool = False
+    config: RepoLensConfig | None = None
+    scanners: str | None = "auto"
+    require_scanners: bool = False
+    scanners_only: bool = False
+    progress: ReviewProgress | None = None
+    deep: bool | None = None
+    ci: bool = False
+    sarif: bool = False
+    verify_findings: bool | None = None
+    packs: list[str] | None = None
+    fallback: bool | None = None
+    import_sarif: list[Path] | None = None
+    require_sarif_import: bool = False
     model_lock: bool | None = None
     resume: bool = True
     retry_passes: list[str] | None = None

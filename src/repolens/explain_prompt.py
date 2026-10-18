@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -12,6 +14,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from repolens.config import RepoLensConfig
 from repolens.explain_render import (
+    RenderExplainMarkdown,
     _degraded_doc,
     _process_diagram_block,
     render_explain_markdown,
@@ -55,6 +58,7 @@ def _safe_issue_path(project_root: Path, issue_file: str) -> Path | None:
     try:
         candidate.relative_to(root)
     except ValueError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     return candidate
 
@@ -83,10 +87,9 @@ def _evidence_bundle(project_root: Path, issue: Issue) -> tuple[str, str]:
     outline = ""
     if path is not None and path.is_file():
         # Mega-file and other large findings: structure first.
-        want_outline = (
-            (issue.category or "").startswith("heuristic.mega_file")
-            or (issue.category or "").startswith("arch.readability")
-        )
+        want_outline = (issue.category or "").startswith("heuristic.mega_file") or (
+            issue.category or ""
+        ).startswith("arch.readability")
         outline = format_file_outline(
             path,
             min_lines_for_outline=1 if want_outline else 80,
@@ -230,40 +233,55 @@ def dedupe_solutions(solutions: list[ExplainSolution]) -> list[ExplainSolution]:
     return out
 
 
-def _call_explain_llm(
-    *,
-    issue: Issue,
-    outline: str,
-    excerpt: str,
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-    provider: str,
-    model_name: str,
-    timeout: float,
-) -> ExplainDoc:
+@dataclass
+class CallExplainLlm:
+    issue: Issue
+    outline: str
+    excerpt: str
+    cfg: RepoLensConfig
+    prog: ReviewProgress
+    provider: str
+    model_name: str
+    timeout: float
+
+def _call_explain_llm(job: CallExplainLlm) -> ExplainDoc:
+    issue = job.issue
+    outline = job.outline
+    excerpt = job.excerpt
+    cfg = job.cfg
+    prog = job.prog
+    provider = job.provider
+    model_name = job.model_name
+    timeout = job.timeout
     prompt = _explain_prompt(issue, outline=outline, excerpt=excerpt)
     try:
         gen = LlmGenerateProgress()
         ollama_base = cfg.model.base_url if provider == "ollama" else None
+
+        def _status_without_ollama(progress: LlmGenerateProgress) -> str:
+            return progress.summary()
+
+        def _status_with_ollama(progress: LlmGenerateProgress, base: str | None) -> str:
+            from repolens.provider_status import ollama_running_summary
+
+            bits = [progress.summary()]
+            live = ollama_running_summary(base)
+            if live:
+                bits.append(live)
+            return " | ".join(bits)
 
         def status_fn(
             progress: LlmGenerateProgress = gen,
             base: str | None = ollama_base,
             use_ollama: bool = provider == "ollama",
         ) -> str | None:
-            bits = [progress.summary()]
-            if use_ollama:
-                from repolens.provider_status import ollama_running_summary
+            return (
+                _status_with_ollama(progress, base)
+                if use_ollama
+                else _status_without_ollama(progress)
+            )
 
-                live = ollama_running_summary(base)
-                if live:
-                    bits.append(live)
-            return " | ".join(bits)
-
-        wait_label = (
-            f"Explain LLM — {model_name} via {provider} "
-            f"(timeout {timeout:g}s)"
-        )
+        wait_label = f"Explain LLM — {model_name} via {provider} (timeout {timeout:g}s)"
         with prog.waiting(
             wait_label,
             hint=f"prompt ≈ {len(prompt):,} chars",
@@ -276,17 +294,13 @@ def _call_explain_llm(
             before = len(doc.solutions)
             doc.solutions = dedupe_solutions(doc.solutions)
             if len(doc.solutions) < before:
-                prog.detail(
-                    f"dropped {before - len(doc.solutions)} duplicate solution(s)"
-                )
+                prog.detail(f"dropped {before - len(doc.solutions)} duplicate solution(s)")
             if _looks_generic_boilerplate(doc):
                 prog.detail(
                     "LLM answer looked like generic boilerplate — "
                     "falling back to outline-guided degraded explain"
                 )
-                return _degraded_doc(
-                    issue, error="generic_boilerplate", outline=outline
-                )
+                return _degraded_doc(issue, error="generic_boilerplate", outline=outline)
             return doc
         except (json.JSONDecodeError, ValidationError, ValueError, TypeError):
             return _degraded_doc(issue, error="parse", outline=outline)
@@ -294,26 +308,38 @@ def _call_explain_llm(
         return _degraded_doc(issue, error=str(exc), outline=outline)
 
 
-def _write_explain_markdown(
-    *,
-    issue: Issue,
-    doc: ExplainDoc,
-    uuid: str,
-    outline: str,
-    provider: str,
-    model_name: str,
-    duration: float,
-    report_out: Path,
-    diagram: bool,
-    no_diagram: bool,
-    render_image: str | None,
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-) -> Path:
+@dataclass
+class WriteExplainMarkdown:
+    issue: Issue
+    doc: ExplainDoc
+    uuid: str
+    outline: str
+    provider: str
+    model_name: str
+    duration: float
+    report_out: Path
+    diagram: bool
+    no_diagram: bool
+    render_image: str | None
+    cfg: RepoLensConfig
+    prog: ReviewProgress
+
+def _write_explain_markdown(job: WriteExplainMarkdown) -> Path:
+    issue = job.issue
+    doc = job.doc
+    uuid = job.uuid
+    outline = job.outline
+    provider = job.provider
+    model_name = job.model_name
+    duration = job.duration
+    report_out = job.report_out
+    diagram = job.diagram
+    no_diagram = job.no_diagram
+    render_image = job.render_image
+    cfg = job.cfg
+    prog = job.prog
     want_diagram = (
-        diagram
-        and not no_diagram
-        and (cfg.explain.diagram or "mermaid").lower() != "off"
+        diagram and not no_diagram and (cfg.explain.diagram or "mermaid").lower() != "off"
     )
     render_mode = (render_image or cfg.explain.render_image or "auto").lower()
     if want_diagram:
@@ -325,16 +351,16 @@ def _write_explain_markdown(
     path = report_out / f"explain_{short}_{stamp}.md"
     prog.phase(f"Explain: writing {path.name}…")
     path.write_text(
-        render_explain_markdown(
-            issue=issue,
-            doc=doc,
-            diagram_block=diagram_block,
-            uuid=uuid.strip(),
-            outline=outline,
-            provider=provider,
-            model=model_name,
-            duration_seconds=duration,
-        ),
+        render_explain_markdown(RenderExplainMarkdown(
+        issue=issue,
+        doc=doc,
+        diagram_block=diagram_block,
+        uuid=uuid.strip(),
+        outline=outline,
+        provider=provider,
+        model=model_name,
+        duration_seconds=duration,
+    )),
         encoding="utf-8",
     )
     prog.phase("Explain: done")

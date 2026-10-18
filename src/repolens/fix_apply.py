@@ -175,7 +175,14 @@ def syntax_check(path: Path, text: str) -> None:
         ) from exc
 
 
-def apply_fix(plan: FixPlan, *, check_syntax: bool = True) -> None:
-    if check_syntax:
-        syntax_check(plan.absolute_path, plan.new_text)
+def _write_checked_fix(plan: FixPlan) -> None:
+    syntax_check(plan.absolute_path, plan.new_text)
     plan.absolute_path.write_text(plan.new_text, encoding="utf-8")
+
+
+def _write_fix(plan: FixPlan) -> None:
+    plan.absolute_path.write_text(plan.new_text, encoding="utf-8")
+
+
+def apply_fix(plan: FixPlan, *, check_syntax: bool = True) -> None:
+    _write_checked_fix(plan) if check_syntax else _write_fix(plan)

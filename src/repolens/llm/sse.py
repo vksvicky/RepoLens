@@ -51,9 +51,7 @@ class StreamWatch:
                 "Re-run when you can wait, or review a smaller change."
             )
         if now - self.last_token >= self.silence_timeout:
-            raise LlmError(
-                f"{self.label} stream went silent for {self.silence_timeout:g}s"
-            )
+            raise LlmError(f"{self.label} stream went silent for {self.silence_timeout:g}s")
 
 
 def timeout_message(label: str, timeout: float) -> str:
@@ -63,12 +61,15 @@ def timeout_message(label: str, timeout: float) -> str:
     )
 
 
+_ERROR_DETAIL_CHARS = 300
+
+
 def raise_for_http_status(response: httpx.Response, label: str) -> None:
     if response.status_code < 400:
         return
     detail = (response.read().decode("utf-8", errors="replace") or "").strip()
-    if len(detail) > 300:
-        detail = detail[:300] + "…"
+    if len(detail) > _ERROR_DETAIL_CHARS:
+        detail = detail[:_ERROR_DETAIL_CHARS] + "…"
     suffix = f": {detail}" if detail else ""
     raise LlmError(f"{label} error {response.status_code}{suffix}")
 

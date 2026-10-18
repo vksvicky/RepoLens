@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from repolens.config import RepoLensConfig
 from repolens.coverage import (
     CoverageResult,
@@ -11,6 +9,7 @@ from repolens.coverage import (
     parse_coverage_notes,
 )
 from repolens.metrics import compute_audit_metrics
+from repolens.pipeline.deep_job import DeepJob
 from repolens.progress import ReviewProgress
 from repolens.schema import FindingReport, ScannerRun
 
@@ -111,25 +110,23 @@ def _phase_coverage_metrics(
     prog.phase("Metrics: " + " · ".join(metric_bits))
 
 
-def _run_coverage_closure_if_needed(
-    *,
-    report: FindingReport,
-    coverage: CoverageResult,
-    unique_ids: list[str],
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-    raw_dir: Path,
-    root: Path,
-    parts: list[FindingReport],
-    heur_issues: list,
-    finished_labels: list[str],
-    out_dir: Path | None,
-    fmt: str,
-    mode: str,
-    report_when: object | None,
-    full_audit: bool = False,
-    change_set: object | None = None,
-) -> tuple[FindingReport, CoverageResult]:
+def _run_coverage_closure_if_needed(job: DeepJob) -> tuple[FindingReport, CoverageResult]:
+    report = job.report
+    coverage = job.coverage
+    unique_ids = job.unique_ids
+    cfg = job.cfg
+    prog = job.prog
+    raw_dir = job.raw_dir
+    root = job.root
+    parts = job.parts
+    heur_issues = job.heur_issues
+    finished_labels = job.finished_labels
+    out_dir = job.out_dir
+    fmt = job.fmt
+    mode = job.mode
+    report_when = job.report_when
+    full_audit = job.full_audit
+    change_set = job.change_set
     from repolens.coverage import evaluate_coverage
     from repolens.llm.model_lock import bind_lock_context, reset_lock_context
     from repolens.pipeline.deep_pass import _apply_coverage_closure
@@ -179,18 +176,16 @@ def _run_coverage_closure_if_needed(
     return report, coverage
 
 
-def _stamp_coverage_and_themes(
-    *,
-    report: FindingReport,
-    coverage: CoverageResult,
-    pass_confidences: dict[str, int],
-    scanner_runs: list | None,
-    mode: str,
-    full_audit: bool,
-    prog: ReviewProgress,
-    unique_ids: list[str],
-    degraded_passes: set[str] | frozenset[str] | None = None,
-) -> FindingReport:
+def _stamp_coverage_and_themes(job: DeepJob) -> FindingReport:
+    report = job.report
+    coverage = job.coverage
+    pass_confidences = job.pass_confidences
+    scanner_runs = job.scanner_runs
+    mode = job.mode
+    full_audit = job.full_audit
+    prog = job.prog
+    unique_ids = job.unique_ids
+    degraded_passes = job.degraded_passes
     from repolens.coverage import explain_missed_id, reopen_hollow_bands
     from repolens.metrics import low_audit_explanations
     from repolens.schema import CoverageBlock

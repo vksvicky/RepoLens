@@ -10,6 +10,7 @@ import pytest
 from repolens.schema import Issue, Severity
 from repolens.suppressions import (
     IGNORE_FILENAME,
+    IgnoreAppend,
     append_ignore_entry,
     apply_suppressions,
     load_ignore_file,
@@ -152,12 +153,12 @@ def test_parse_disable_lines_slash_comments() -> None:
 
 
 def test_append_ignore_entry_roundtrip(tmp_path: Path) -> None:
-    path = append_ignore_entry(
-        tmp_path,
+    path = append_ignore_entry(IgnoreAppend(
+        root=tmp_path,
         stable_id="11111111-1111-4111-8111-111111111111",
         reason="false_positive",
         note="from feedback",
-    )
+    ))
     assert path.name == IGNORE_FILENAME
     entries = load_ignore_file(tmp_path)
     assert entries[0].stable_id == "11111111-1111-4111-8111-111111111111"

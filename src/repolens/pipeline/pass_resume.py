@@ -6,19 +6,18 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from repolens.config import RepoLensConfig
 from repolens.deep import DeepPass, merge_reports
 from repolens.llm.model_lock import (
     bind_lock_context,
     queue_wait_seconds,
     reset_lock_context,
 )
+from repolens.pipeline.deep_job import DeepJob
 from repolens.pipeline.deep_pass import _run_deep_pass
 from repolens.pipeline.journal import append_event
-from repolens.pipeline.pass_cache import load_pass, pass_key, pass_label, save_pass
+from repolens.pipeline.pass_cache import PassKey, load_pass, pass_key, pass_label, save_pass
 from repolens.pipeline.types import ReviewAborted
 from repolens.progress import ReviewProgress
-from repolens.rules.registry import Rule
 from repolens.schema import FindingReport, Issue, Summary
 
 
@@ -76,9 +75,7 @@ def raise_aborted(
     )
     saved = ", ".join(finished_labels) or "none"
     report.auditIncomplete = True
-    report.durabilityGaps.append(
-        f"Aborted by user. Finished passes are kept: {saved}."
-    )
+    report.durabilityGaps.append(f"Aborted by user. Finished passes are kept: {saved}.")
     if root is not None:
         append_event(
             root,
@@ -112,14 +109,14 @@ def _pass_cache_key(
     model_name: str,
     prior_summary: str,
 ) -> str:
-    return pass_key(
-        deep_pass.files,
-        model_name,
-        deep_pass.name,
+    return pass_key(PassKey(
+        files=deep_pass.files,
+        model=model_name,
+        pass_name=deep_pass.name,
         prior_summary=prior_summary or None,
         pack_mode=getattr(deep_pass, "pack_mode", "full") or "full",
         file_pack_modes=getattr(deep_pass, "file_pack_modes", None) or None,
-    )
+    ))
 
 
 def _return_cached_pass(
@@ -130,9 +127,7 @@ def _return_cached_pass(
     cached: FindingReport,
     prog: ReviewProgress,
 ) -> tuple[FindingReport, str, bool, int]:
-    prog.phase(
-        f"[Slow Brain] Resumed {label} from cache ({len(cached.issues)} findings)"
-    )
+    prog.phase(f"[Slow Brain] Resumed {label} from cache ({len(cached.issues)} findings)")
     append_event(
         root,
         "pass_completed",
@@ -148,17 +143,15 @@ def _return_cached_pass(
     return cached, "", False, 0
 
 
-def _announce_file_progress(
-    *,
-    root: Path,
-    deep_pass: DeepPass,
-    label: str,
-    cached: FindingReport | None,
-    skip_cache: bool,
-    files_done: int,
-    files_total: int,
-    prog: ReviewProgress,
-) -> str:
+def _announce_file_progress(job: DeepJob) -> str:
+    root = job.root
+    deep_pass = job.deep_pass
+    label = job.label
+    cached = job.cached
+    skip_cache = job.skip_cache
+    files_done = job.files_done
+    files_total = job.files_total
+    prog = job.prog
     from repolens.pipeline.pass_progress import (
         latest_completed_file_count,
         pass_status_line,
@@ -179,37 +172,34 @@ def _announce_file_progress(
         )
         return ""
     if not skip_cache:
-        reason = saved_pass_rerun_line(
-            label, latest_completed_file_count(root, label), files
-        )
+        reason = saved_pass_rerun_line(label, latest_completed_file_count(root, label), files)
         if reason:
             prog.phase(reason)
-    line = pass_status_line(
-        done=files_done, total=total, label=label, files=files, resumed=False
-    )
+    line = pass_status_line(done=files_done, total=total, label=label, files=files, resumed=False)
     prog.phase(line)
     return line
 
 
-def _execute_live_pass(
-    *,
-    root: Path,
-    idx: int,
-    n: int,
-    deep_pass: DeepPass,
-    label: str,
-    key: str,
-    rules: list[Rule],
-    pack_ids: list[str],
-    prompt_prefix: str,
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-    raw_dir: Path,
-    model_name: str,
-    provider: str,
-    timeout: float,
-    file_work: str = "",
-) -> tuple[FindingReport, str, bool, int]:
+_MS_PER_SECOND = 1000
+
+
+def _execute_live_pass(job: DeepJob) -> tuple[FindingReport, str, bool, int]:
+    root = job.root
+    idx = job.idx
+    n = job.n
+    deep_pass = job.deep_pass
+    label = job.label
+    key = job.key
+    rules = job.rules
+    pack_ids = job.pack_ids
+    prompt_prefix = job.prompt_prefix
+    cfg = job.cfg
+    prog = job.prog
+    raw_dir = job.raw_dir
+    model_name = job.model_name
+    provider = job.provider
+    timeout = job.timeout
+    file_work = job.file_work
     wait_before = queue_wait_seconds()
     started = time.perf_counter()
     token = bind_lock_context(
@@ -219,7 +209,7 @@ def _execute_live_pass(
         status=prog.phase,
     )
     try:
-        part, raw, degraded, attempts, chars_in, chars_out = _run_deep_pass(
+        part, raw, degraded, attempts, chars_in, chars_out = _run_deep_pass(DeepJob(
             idx=idx,
             n=n,
             deep_pass=deep_pass,
@@ -233,11 +223,11 @@ def _execute_live_pass(
             provider=provider,
             timeout=timeout,
             file_work=file_work,
-        )
+        ))
     finally:
         reset_lock_context(token)
-    pass_duration_ms = int((time.perf_counter() - started) * 1000)
-    queue_wait_ms = int(max(0.0, queue_wait_seconds() - wait_before) * 1000)
+    pass_duration_ms = int((time.perf_counter() - started) * _MS_PER_SECOND)
+    queue_wait_ms = int(max(0.0, queue_wait_seconds() - wait_before) * _MS_PER_SECOND)
     if not degraded:
         save_pass(root, key, part)
     append_event(
@@ -254,9 +244,7 @@ def _execute_live_pass(
         queue_wait_ms=queue_wait_ms,
         pack_mode=getattr(deep_pass, "pack_mode", "full"),
         files_count=len(deep_pass.files),
-        coverage_gap_count=sum(
-            1 for gap in part.durabilityGaps if gap.startswith("coverage:")
-        ),
+        coverage_gap_count=sum(1 for gap in part.durabilityGaps if gap.startswith("coverage:")),
     )
     if chars_in or chars_out:
         prog.detail(
@@ -266,26 +254,24 @@ def _execute_live_pass(
     return part, raw, degraded, attempts
 
 
-def run_or_resume_pass(
-    *,
-    root: Path,
-    idx: int,
-    n: int,
-    deep_pass: DeepPass,
-    rules: list[Rule],
-    pack_ids: list[str],
-    prompt_prefix: str,
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-    raw_dir: Path,
-    model_name: str,
-    provider: str,
-    timeout: float,
-    prior_summary: str = "",
-    skip_cache: bool = False,
-    files_done: int = 0,
-    files_total: int = 0,
-) -> tuple[FindingReport, str, bool, int]:
+def run_or_resume_pass(job: DeepJob) -> tuple[FindingReport, str, bool, int]:
+    root = job.root
+    idx = job.idx
+    n = job.n
+    deep_pass = job.deep_pass
+    rules = job.rules
+    pack_ids = job.pack_ids
+    prompt_prefix = job.prompt_prefix
+    cfg = job.cfg
+    prog = job.prog
+    raw_dir = job.raw_dir
+    model_name = job.model_name
+    provider = job.provider
+    timeout = job.timeout
+    prior_summary = job.prior_summary
+    skip_cache = job.skip_cache
+    files_done = job.files_done
+    files_total = job.files_total
     label = pass_label(deep_pass.name)
     key = _pass_cache_key(deep_pass, model_name, prior_summary)
     append_event(
@@ -300,7 +286,7 @@ def run_or_resume_pass(
         role_packs=bool(cfg.deep.role_packs),
     )
     cached = None if skip_cache else load_pass(root, key)
-    file_work = _announce_file_progress(
+    file_work = _announce_file_progress(DeepJob(
         root=root,
         deep_pass=deep_pass,
         label=label,
@@ -309,7 +295,7 @@ def run_or_resume_pass(
         files_done=files_done,
         files_total=files_total,
         prog=prog,
-    )
+    ))
     if cached is not None:
         return _return_cached_pass(
             root=root,
@@ -318,7 +304,7 @@ def run_or_resume_pass(
             cached=cached,
             prog=prog,
         )
-    return _execute_live_pass(
+    return _execute_live_pass(DeepJob(
         root=root,
         idx=idx,
         n=n,
@@ -335,4 +321,4 @@ def run_or_resume_pass(
         provider=provider,
         timeout=timeout,
         file_work=file_work,
-    )
+    ))

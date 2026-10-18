@@ -6,6 +6,7 @@ from pathlib import Path
 
 from repolens.blast_radius import expand_blast_radius, expand_blast_radius_paths
 from repolens.inventory import FileEntry
+from repolens.pipeline.deep_job import DeepJob
 
 
 def test_expand_blast_radius_disabled_returns_base(tmp_path: Path) -> None:
@@ -144,7 +145,7 @@ def test_deep_llm_forwards_change_set() -> None:
     state.change_set_block = block
     with patch("repolens.pipeline.deep_exec._analyze_deep_passes") as analyze:
         _invoke_deep_llm(state)
-    assert analyze.call_args.kwargs["change_set"] is block
+    assert analyze.call_args.args[0].change_set is block
 
 
 def test_coverage_closure_keeps_blast_radius_answer(tmp_path: Path) -> None:
@@ -163,7 +164,7 @@ def test_coverage_closure_keeps_blast_radius_answer(tmp_path: Path) -> None:
         patch("repolens.pipeline.deep_pass._apply_coverage_closure", return_value=report),
         patch("repolens.pipeline.pass_resume.snapshot_finished"),
     ):
-        _report, after = _run_coverage_closure_if_needed(
+        _report, after = _run_coverage_closure_if_needed(DeepJob(
             report=report,
             coverage=coverage,
             unique_ids=["arch.blast_radius", "sec.injection"],
@@ -180,6 +181,6 @@ def test_coverage_closure_keeps_blast_radius_answer(tmp_path: Path) -> None:
             report_when=None,
             full_audit=False,
             change_set=None,
-        )
+        ))
     assert "arch.blast_radius" not in after.missed
     assert "arch.blast_radius" in after.na

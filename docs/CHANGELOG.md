@@ -14,8 +14,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `./scripts/coverage.sh` runs the full pytest suite and writes a line-and-branch coverage report to the terminal, `coverage/html/index.html`, and `coverage/coverage.xml`.
 - Fast Brain clean-code checks, for Python and for JavaScript, Go, and Rust: eager log formatting, credential names passed into a log or print, handlers that drop the traceback, functions with 7 or more parameters, a repeated numeric literal, and a boolean parameter the function branches on. The architecture playbook keeps boundary logging and Demeter chains as reviewer judgments.
 
+### Changed
+
+- `run_review` takes a `ReviewRun`. Review, sentinel, and architecture pass one run request from the command through flag checks into that call.
+- Deep-pass helpers take a `DeepJob` instead of repeating the same root, config, and progress arguments.
+- Heuristic, explain, feedback, plan, and model-lock entry points take one argument object (`RunHeuristics`, `PlanDeepPasses`, `RunExplain`, `RecordFeedback`, `PassKey`, `ModelLockOptions`) instead of a long parameter list.
+
 ### Fixed
 
+- The unused issue fixture copied into `tests/test_deep.py` is gone, so Fast Brain no longer reports a near-clone against `tests/test_deep_merge.py`.
+- The Azure Sentinel pack builds tenant, subscription, and secret findings in shallow helpers, so the scanner is not deeply nested.
+- Handlers that catch an expected error and continue with a fallback now log that error at debug with the traceback.
+- Repeated numeric literals used as exit codes, preview caps, timeouts, and read sizes are named constants.
+- Fast Brain does not treat a parameter whose default is a function call, such as a Typer option, as a long parameter list or a boolean flag. A plain `bool` the function branches on still is.
 - A model pass now stops at the `--timeout` you set, even while text is still arriving. The progress line says the model is writing, how fast, and that Ctrl+C keeps finished passes.
 - An aborted review says which pass finished. It does not say the whole AI audit never ran.
 - The architecture note explains what zones Z0–Z5 mean, what may cross each boundary, and why. Remotes and scanners are current zones, not dashed future boxes. The student note uses the same names.

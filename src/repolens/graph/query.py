@@ -17,23 +17,11 @@ class CycleCheckResult:
 
 
 def direct_dependencies(result: GraphResult, module: str) -> list[str]:
-    return sorted(
-        {
-            e.imported
-            for e in result.gated_edges
-            if e.importer == module
-        }
-    )
+    return sorted({e.imported for e in result.gated_edges if e.importer == module})
 
 
 def direct_dependents(result: GraphResult, module: str) -> list[str]:
-    return sorted(
-        {
-            e.importer
-            for e in result.gated_edges
-            if e.imported == module
-        }
-    )
+    return sorted({e.importer for e in result.gated_edges if e.imported == module})
 
 
 def reachable_dependencies(result: GraphResult, module: str) -> list[str]:
@@ -44,9 +32,10 @@ def reachable_dependents(result: GraphResult, module: str) -> list[str]:
     return _bfs(result, start=module, forward=False)
 
 
-def would_create_cycle(
-    result: GraphResult, *, importer: str, imported: str
-) -> CycleCheckResult:
+_MIN_CYCLE_NODES = 2
+
+
+def would_create_cycle(result: GraphResult, *, importer: str, imported: str) -> CycleCheckResult:
     """True when adding importer→imported enlarges runtime cycle debt."""
     if importer == imported:
         return CycleCheckResult(
@@ -56,13 +45,11 @@ def would_create_cycle(
         )
     pairs = [(e.importer, e.imported) for e in result.gated_edges]
     before = {
-        frozenset(s)
-        for s in strongly_connected_components(pairs)
-        if len(s) >= 2
+        frozenset(s) for s in strongly_connected_components(pairs) if len(s) >= _MIN_CYCLE_NODES
     }
     after_pairs = pairs + [(importer, imported)]
     after_sccs = [
-        s for s in strongly_connected_components(after_pairs) if len(s) >= 2
+        s for s in strongly_connected_components(after_pairs) if len(s) >= _MIN_CYCLE_NODES
     ]
     after = {frozenset(s) for s in after_sccs}
     if after == before:
@@ -96,29 +83,29 @@ def would_create_cycle(
     )
 
 
-def check_dependency(
-    result: GraphResult, *, importer: str, imported: str
-) -> CycleCheckResult:
+def check_dependency(result: GraphResult, *, importer: str, imported: str) -> CycleCheckResult:
     """Alias used by MCP: reject when proposed edge creates/worsens a runtime cycle."""
     return would_create_cycle(result, importer=importer, imported=imported)
 
 
-def _shared_cycle(
-    sccs: list[tuple[str, ...]], a: str, b: str
-) -> tuple[str, ...]:
+def _shared_cycle(sccs: list[tuple[str, ...]], a: str, b: str) -> tuple[str, ...]:
     for scc in sccs:
         if a in scc and b in scc:
             return scc
     return ()
 
 
+def _remember_edge(adj: dict[str, set[str]], edge: ImportEdge, forward: bool) -> None:
+    src, dst = (
+        (edge.importer, edge.imported) if forward else (edge.imported, edge.importer)
+    )
+    adj[src].add(dst)
+
+
 def _bfs(result: GraphResult, *, start: str, forward: bool) -> list[str]:
     adj: dict[str, set[str]] = defaultdict(set)
     for edge in result.gated_edges:
-        if forward:
-            adj[edge.importer].add(edge.imported)
-        else:
-            adj[edge.imported].add(edge.importer)
+        _remember_edge(adj, edge, forward)
     seen: set[str] = set()
     q: deque[str] = deque([start])
     while q:
@@ -135,6 +122,5 @@ def edges_between(result: GraphResult, a: str, b: str) -> list[ImportEdge]:
     return [
         e
         for e in result.gated_edges
-        if (e.importer == a and e.imported == b)
-        or (e.importer == b and e.imported == a)
+        if (e.importer == a and e.imported == b) or (e.importer == b and e.imported == a)
     ]

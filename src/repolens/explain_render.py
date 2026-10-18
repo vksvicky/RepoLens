@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -371,17 +372,26 @@ def _render_proposed_refactor(doc: ExplainDoc) -> list[str]:
         meta.append("")
     return meta
 
-def render_explain_markdown(
-    *,
-    issue: Issue,
-    doc: ExplainDoc,
-    diagram_block: str,
-    uuid: str,
-    outline: str = "",
-    provider: str | None = None,
-    model: str | None = None,
-    duration_seconds: float | None = None,
-) -> str:
+@dataclass
+class RenderExplainMarkdown:
+    issue: Issue
+    doc: ExplainDoc
+    diagram_block: str
+    uuid: str
+    outline: str = ''
+    provider: str | None = None
+    model: str | None = None
+    duration_seconds: float | None = None
+
+def render_explain_markdown(job: RenderExplainMarkdown) -> str:
+    issue = job.issue
+    doc = job.doc
+    diagram_block = job.diagram_block
+    uuid = job.uuid
+    outline = job.outline
+    provider = job.provider
+    model = job.model
+    duration_seconds = job.duration_seconds
     meta = _render_meta_section(issue, uuid, provider, model, duration_seconds)
     meta.extend(["", "## Problem", "", doc.problem.strip() or issue.explanation, ""])
     if doc.impact.strip():
@@ -436,9 +446,14 @@ def _process_diagram_block(
     doc: ExplainDoc,
     report_out: Path,
 ) -> str:
-    if not want_diagram:
-        return "_Diagram skipped._"
+    return (
+        "_Diagram skipped._"
+        if not want_diagram
+        else _render_requested_diagram(render_mode, doc, report_out)
+    )
 
+
+def _render_requested_diagram(render_mode: str, doc: ExplainDoc, report_out: Path) -> str:
     mermaid_in = sanitize_explain_mermaid(
         doc.diagramMermaid or "flowchart LR\n  A --> B"
     )

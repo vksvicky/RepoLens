@@ -74,3 +74,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-11 | WIP→commit | 94% | 0/0/0/0 | Overlay scanners: extract Issue builders so fintech/healthtech clear deep-nesting; 5 overlay pytest | chat |
 | 2026-10-13 | WIP→commit | 84% | 0/0/0/1 | Post-0.1.3: hash-locked Semgrep/Checkov, learn notes, clean-code heuristics; scanners extra still unhashed; blog drafts left out | chat |
 | 2026-10-13 | WIP→commit | 90% | 0/0/0/1 | Internal notes leave the published tree; older commits on origin still contain plans, recipes, and one review | chat |
+| 2026-10-18 | WIP→push | 90% | 0/0/0/0 | Fast Brain signature objects and boolean splits; selfdog 2026-10-18 0/0/0/0; version stays 0.1.3 | chat |

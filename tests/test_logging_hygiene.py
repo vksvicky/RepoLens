@@ -139,6 +139,21 @@ def auth(user_password, access_token):
     assert lines == [7, 8]
 
 
+def test_getlogger_debug_with_exc_info_is_not_swallowed(tmp_path: Path) -> None:
+    code = """
+def handle():
+    try:
+        dangerous()
+    except OSError:
+        logging.getLogger(__name__).debug("fallback", exc_info=True)
+        return None
+"""
+    entry = _entry(tmp_path, "src/fallback.py", code)
+    issues = find_logging_hygiene([entry])
+    swallowed = [i for i in issues if i.category == "heuristic.swallowed_exception"]
+    assert swallowed == []
+
+
 def test_log_without_traceback_is_swallowed(tmp_path: Path) -> None:
     code = """
 def handle():

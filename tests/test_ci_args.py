@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from repolens.ci_args import build_review_argv, has_llm_api_key
+from repolens.ci_args import BuildReviewArgv, build_review_argv, has_llm_api_key
 
 
 def test_has_llm_api_key_detects_known_envs() -> None:
@@ -17,7 +17,12 @@ def test_has_llm_api_key_detects_known_envs() -> None:
 
 
 def test_build_dry_run() -> None:
-    argv = build_review_argv(mode="sentinel", path="/tmp/p", run="dry-run", fail_on="")
+    argv = build_review_argv(BuildReviewArgv(
+        mode="sentinel",
+        path="/tmp/p",
+        run="dry-run",
+        fail_on="",
+    ))
     assert argv[:2] == ["repolens", "sentinel"]
     assert "--path" in argv and "/tmp/p" in argv
     assert "--dry-run" in argv
@@ -25,19 +30,31 @@ def test_build_dry_run() -> None:
 
 
 def test_build_scanners_only() -> None:
-    argv = build_review_argv(run="scanners-only", fail_on="HIGH")
+    argv = build_review_argv(BuildReviewArgv(
+        run="scanners-only",
+        fail_on="HIGH",
+    ))
     assert "--scanners-only" in argv
     assert "--fail-on" in argv and "HIGH" in argv
 
 
 def test_build_auto_without_key_uses_scanners_only() -> None:
-    argv = build_review_argv(run="auto", has_key=False, fail_on="")
+    argv = build_review_argv(BuildReviewArgv(
+        run="auto",
+        has_key=False,
+        fail_on="",
+    ))
     assert "--scanners-only" in argv
     assert "--dry-run" not in argv
 
 
 def test_build_auto_with_key_runs_full_review() -> None:
-    argv = build_review_argv(run="auto", has_key=True, scanners="gitleaks", fail_on="CRITICAL")
+    argv = build_review_argv(BuildReviewArgv(
+        run="auto",
+        has_key=True,
+        scanners="gitleaks",
+        fail_on="CRITICAL",
+    ))
     assert "--scanners-only" not in argv
     assert "--dry-run" not in argv
     assert "--scanners" in argv and "gitleaks" in argv
@@ -46,26 +63,44 @@ def test_build_auto_with_key_runs_full_review() -> None:
 
 
 def test_build_ci_can_be_disabled() -> None:
-    argv = build_review_argv(run="scanners-only", fail_on="HIGH", ci=False)
+    argv = build_review_argv(BuildReviewArgv(
+        run="scanners-only",
+        fail_on="HIGH",
+        ci=False,
+    ))
     assert "--ci" not in argv
 
 
 def test_build_llm_without_key_raises() -> None:
     with pytest.raises(ValueError, match="API key"):
-        build_review_argv(run="llm", has_key=False)
+        build_review_argv(BuildReviewArgv(
+        run="llm",
+        has_key=False,
+    ))
 
 
 def test_build_llm_with_key() -> None:
-    argv = build_review_argv(run="llm", has_key=True, mode="architecture")
+    argv = build_review_argv(BuildReviewArgv(
+        run="llm",
+        has_key=True,
+        mode="architecture",
+    ))
     assert argv[1] == "architecture"
     assert "--scanners-only" not in argv
 
 
 def test_require_scanners_flag() -> None:
-    argv = build_review_argv(run="scanners-only", require_scanners=True, fail_on="")
+    argv = build_review_argv(BuildReviewArgv(
+        run="scanners-only",
+        require_scanners=True,
+        fail_on="",
+    ))
     assert "--require-scanners" in argv
 
 
 def test_unknown_run_raises() -> None:
     with pytest.raises(ValueError, match="run"):
-        build_review_argv(run="nope", has_key=True)
+        build_review_argv(BuildReviewArgv(
+        run="nope",
+        has_key=True,
+    ))

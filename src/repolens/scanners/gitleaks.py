@@ -61,11 +61,8 @@ def _detect(binary: Path, root: Path, *, history: bool) -> ScannerResult:
         "-r",
         "/dev/stdout",
     ]
-    if history:
-        # All branches. Omitting --no-git makes gitleaks walk git log.
-        command.append("--log-opts=--all")
-    else:
-        command.append("--no-git")
+    # History walks every branch. A working-tree scan passes --no-git.
+    command.append("--log-opts=--all" if history else "--no-git")
     completed = subprocess.run(
         command,
         check=False,
@@ -100,47 +97,53 @@ def _detect(binary: Path, root: Path, *, history: bool) -> ScannerResult:
     )
 
 
+def _history_issue(item: dict, file_path: str, line: int, rule: str, desc: str) -> Issue:
+    commit = str(item.get("Commit") or "").strip()
+    short = commit[:12]
+    where = f" Commit {short}." if short else ""
+    return Issue(
+        severity=Severity.HIGH,
+        priority="P1",
+        category=_HISTORY_CATEGORY,
+        file=file_path,
+        line=max(line, 1),
+        title=f"Git history secret: {rule}",
+        explanation=(
+            f"{desc} Present in git history (committed), separate from "
+            f".gitignore hygiene.{where}"
+        ),
+        impact=(
+            "A committed secret stays in clones and forks after the file is deleted. "
+            "Anyone with repo access can recover it."
+        ),
+        recommendedFix=(
+            "Rotate the credential. Deleting the file does not remove it from git "
+            "history. Load the replacement from a secret manager or environment."
+        ),
+        codeExample='value = os.environ["SECRET_NAME"]  # do not commit the value',
+        fixTiming="immediately",
+    )
+
+
 def _issue_from_item(item: dict, *, history: bool) -> Issue:
     file_path = str(item.get("File") or item.get("file") or "unknown")
     line = int(item.get("StartLine") or item.get("line") or 1)
     rule = str(item.get("RuleID") or item.get("Description") or "secret")
     desc = str(item.get("Description") or rule)
-    if history:
-        commit = str(item.get("Commit") or "").strip()
-        short = commit[:12]
-        where = f" Commit {short}." if short else ""
-        return Issue(
+    return (
+        _history_issue(item, file_path, line, rule, desc)
+        if history
+        else Issue(
             severity=Severity.HIGH,
             priority="P1",
-            category=_HISTORY_CATEGORY,
+            category="gitleaks",
             file=file_path,
             line=max(line, 1),
-            title=f"Git history secret: {rule}",
-            explanation=(
-                f"{desc} Present in git history (committed), separate from "
-                f".gitignore hygiene.{where}"
-            ),
-            impact=(
-                "A committed secret stays in clones and forks after the file is deleted. "
-                "Anyone with repo access can recover it."
-            ),
-            recommendedFix=(
-                "Rotate the credential. Deleting the file does not remove it from git "
-                "history. Load the replacement from a secret manager or environment."
-            ),
-            codeExample='value = os.environ["SECRET_NAME"]  # do not commit the value',
+            title=f"Secret detected: {rule}",
+            explanation=desc,
+            impact="Credential exposure can enable account takeover or data theft.",
+            recommendedFix="Remove the secret, rotate it, and load from a secret manager / env.",
+            codeExample='value = os.environ["SECRET_NAME"]  # do not hardcode',
             fixTiming="immediately",
         )
-    return Issue(
-        severity=Severity.HIGH,
-        priority="P1",
-        category="gitleaks",
-        file=file_path,
-        line=max(line, 1),
-        title=f"Secret detected: {rule}",
-        explanation=desc,
-        impact="Credential exposure can enable account takeover or data theft.",
-        recommendedFix="Remove the secret, rotate it, and load from a secret manager / env.",
-        codeExample='value = os.environ["SECRET_NAME"]  # do not hardcode',
-        fixTiming="immediately",
     )

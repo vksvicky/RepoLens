@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pytest
 
 from repolens.config import ModelConfig, RepoLensConfig, ScannersConfig
-from repolens.pipeline import run_review
+from repolens.pipeline import ReviewRun, run_review
 from repolens.sarif_import import (
     SarifImportError,
     SarifImportResult,
@@ -248,7 +248,7 @@ def test_run_review_require_sarif_import_propagates(tmp_path: Path) -> None:
         patch("repolens.pipeline.run_collect.run_scanners", return_value=([], [], [])),
         pytest.raises(SarifImportError, match="missing"),
     ):
-        run_review(
+        run_review(ReviewRun(
             path=tmp_path,
             mode="sentinel",
             config=cfg,
@@ -257,7 +257,7 @@ def test_run_review_require_sarif_import_propagates(tmp_path: Path) -> None:
             scanners="off",
             import_sarif=[tmp_path / "missing.sarif"],
             require_sarif_import=True,
-        )
+        ))
 
 
 def test_run_review_merges_import_sarif(tmp_path: Path) -> None:
@@ -272,7 +272,7 @@ def test_run_review_merges_import_sarif(tmp_path: Path) -> None:
         "repolens.pipeline.run_collect.run_scanners",
         return_value=([], [], []),
     ):
-        result = run_review(
+        result = run_review(ReviewRun(
             path=tmp_path,
             mode="sentinel",
             config=cfg,
@@ -280,7 +280,7 @@ def test_run_review_merges_import_sarif(tmp_path: Path) -> None:
             scanners_only=True,
             scanners="off",
             import_sarif=[sarif_path],
-        )
+        ))
     tools = [r.tool for r in result.report.scannerRuns]
     assert "sarif:ESLint" in tools
     assert any(i.title.startswith("ESLint:") for i in result.report.issues)
@@ -307,14 +307,14 @@ def test_fallback_scanner_refresh_keeps_import_sarif_once(tmp_path: Path) -> Non
             side_effect=fake_run_scanners,
         ) as run_scanners_mock,
     ):
-        result = run_review(
+        result = run_review(ReviewRun(
             path=tmp_path,
             mode="sentinel",
             config=cfg,
             out_dir=tmp_path / "r",
             scanners="off",
             import_sarif=[sarif_path],
-        )
+        ))
 
     assert run_scanners_mock.call_count >= 1
     eslint_issues = [i for i in result.report.issues if i.title.startswith("ESLint:")]

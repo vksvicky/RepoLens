@@ -40,9 +40,7 @@ def _render_quality_scorecard_section(report: FindingReport) -> list[str]:
     for note in q.notes:
         lines.append(f"_{note}._")
         lines.append("")
-    lines.append(
-        "_Deterministic DRY/KISS signals — not a SOLID/DRY/KISS certification._"
-    )
+    lines.append("_Deterministic DRY/KISS signals — not a SOLID/DRY/KISS certification._")
     lines.append("")
     return lines
 
@@ -76,8 +74,7 @@ def _render_complexity_section(report: FindingReport) -> list[str]:
         )
         for h in block.hotspots:
             lines.append(
-                f"| `{h.file}` | `{h.function}` | {h.line} | "
-                f"{h.cyclomatic} | {h.cognitive} |"
+                f"| `{h.file}` | `{h.function}` | {h.line} | {h.cyclomatic} | {h.cognitive} |"
             )
         lines.append("")
     for note in block.notes:
@@ -116,6 +113,9 @@ def _render_testing_inventory_section(report: FindingReport) -> list[str]:
     return lines
 
 
+_LICENSE_PREVIEW = 40
+
+
 def _render_supply_chain_section(report: FindingReport) -> list[str]:
     """Phase 6.2 SBOM / license inventory (scanner-owned)."""
     sc = report.supplyChain
@@ -126,8 +126,9 @@ def _render_supply_chain_section(report: FindingReport) -> list[str]:
         fmt = f" ({sc.sbomFormat})" if sc.sbomFormat else ""
         lines.append(f"- **SBOM**{fmt}: `{sc.sbomPath}`")
     if sc.licenses:
-        preview = ", ".join(sc.licenses[:40])
-        more = f" (+{len(sc.licenses) - 40} more)" if len(sc.licenses) > 40 else ""
+        preview = ", ".join(sc.licenses[:_LICENSE_PREVIEW])
+        extra = len(sc.licenses) - _LICENSE_PREVIEW
+        more = f" (+{extra} more)" if extra > 0 else ""
         lines.append(f"- **Licenses observed**: {preview}{more}")
     for note in sc.notes:
         lines.append(f"- {note}")
@@ -160,9 +161,7 @@ def _render_change_set_section(report: FindingReport) -> list[str]:
         for p in block.paths:
             lines.append(f"- `{p}`")
         if block.pathCount > len(block.paths):
-            lines.append(
-                f"- _…and {block.pathCount - len(block.paths)} more_"
-            )
+            lines.append(f"- _…and {block.pathCount - len(block.paths)} more_")
         lines.append("")
     return lines
 
@@ -263,14 +262,12 @@ def _render_verification_section(report: FindingReport) -> list[str]:
     grounded = [
         i
         for i in report.issues
-        if i.verificationStatus == "grounded"
-        and i.severity in {Severity.CRITICAL, Severity.HIGH}
+        if i.verificationStatus == "grounded" and i.severity in {Severity.CRITICAL, Severity.HIGH}
     ]
     suspect = [
         i
         for i in report.issues
-        if i.verificationStatus == "suspect"
-        and i.severity in {Severity.CRITICAL, Severity.HIGH}
+        if i.verificationStatus == "suspect" and i.severity in {Severity.CRITICAL, Severity.HIGH}
     ]
     if not grounded and not suspect:
         return []

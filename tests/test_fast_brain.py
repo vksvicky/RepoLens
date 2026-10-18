@@ -6,8 +6,9 @@ from pathlib import Path
 
 from repolens.config import CiConfig, FastBrainConfig
 from repolens.heuristics import run_heuristics
+from repolens.heuristics.runner import RunHeuristics
 from repolens.inventory import scan_inventory
-from repolens.pipeline import run_review
+from repolens.pipeline import ReviewRun, run_review
 from repolens.progress import ReviewProgress
 from repolens.schema import Issue, Severity
 from repolens.triage import triage_llm_plan
@@ -36,7 +37,11 @@ def test_heuristics_see_files_outside_llm_top_200(tmp_path: Path) -> None:
     assert "ExtractToolView.py" not in llm_rels
     assert "ReplaceToolView.py" not in llm_rels
 
-    heur = run_heuristics(tmp_path, fast.files, workers=4)
+    heur = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=fast.files,
+        workers=4,
+    ))
     assert any(
         i.category == "heuristic.sibling_duplication"
         and "ExtractToolView" in (i.file + i.title)
@@ -50,7 +55,7 @@ def test_scanners_only_runs_fast_brain_outside_llm_cap(tmp_path: Path) -> None:
     (tmp_path / "ExtractToolView.py").write_text("# a\n", encoding="utf-8")
     (tmp_path / "ReplaceToolView.py").write_text("# b\n", encoding="utf-8")
 
-    result = run_review(
+    result = run_review(ReviewRun(
         path=tmp_path,
         mode="sentinel",
         scanners="off",
@@ -58,7 +63,7 @@ def test_scanners_only_runs_fast_brain_outside_llm_cap(tmp_path: Path) -> None:
         out_dir=tmp_path / "reports",
         fmt="json",
         progress=ReviewProgress(quiet=True),
-    )
+    ))
     assert result.report.provenance is not None
     assert (result.report.provenance.fastBrainFiles or 0) >= 202
     assert result.report.provenance.llmPackFiles == 0

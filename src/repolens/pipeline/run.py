@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     pass
 
-from repolens.config import ModelConfig, RepoLensConfig, load_config
+from repolens.config import ModelConfig, load_config
 from repolens.pipeline.review_state import ReviewRun
 from repolens.pipeline.run_collect import _load_review_inventory
 from repolens.pipeline.run_support import (
@@ -115,45 +115,8 @@ def _invoke_llm_body(state: ReviewRun) -> None:
         _record_llm_success(state)
 
 
-def run_review(
-    *,
-    path: Path,
-    mode: str,
-    review_mode: str = "full",
-    since: str | None = None,
-    out_dir: Path | None = None,
-    fmt: str = "md",
-    model_override: str | None = None,
-    timeout_override: float | None = None,
-    force_full: bool = False,
-    force_changed: bool = False,
-    git_diff: str | None = None,
-    deep_passes: int | None = None,
-    full_audit: bool = False,
-    dry_run: bool = False,
-    trust_project: bool = False,
-    config: RepoLensConfig | None = None,
-    scanners: str | None = "auto",
-    require_scanners: bool = False,
-    scanners_only: bool = False,
-    progress: ReviewProgress | None = None,
-    deep: bool | None = None,
-    ci: bool = False,
-    sarif: bool = False,
-    verify_findings: bool | None = None,
-    packs: list[str] | None = None,
-    fallback: bool | None = None,
-    import_sarif: list[Path] | None = None,
-    require_sarif_import: bool = False,
-    model_lock: bool | None = None,
-    resume: bool = True,
-    role_packs: bool | None = None,
-    retry_passes: list[str] | None = None,
-    invoked_command: str | None = None,
-    expanded_argv: list[str] | None = None,
-) -> ReviewResult:
-    expanded_argv = list(expanded_argv or [])
-    state = ReviewRun(**locals())
+def run_review(state: ReviewRun) -> ReviewResult:
+    state.expanded_argv = list(state.expanded_argv or [])
     _bind_review_config(state)
     _load_review_inventory(state)
     try:

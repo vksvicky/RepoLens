@@ -131,17 +131,41 @@ def _unique_paths(paths: list[str]) -> list[str]:
     return ordered
 
 
-def run_heuristics(
-    root: Path,
-    entries: list[FileEntry],
+def _extend_style_issues(
+    issues: list[Issue],
+    reviewable: list[FileEntry],
     *,
-    mega_file_lines: int = 500,
-    mega_file_exclude_globs: Sequence[str] | None = None,
-    pack_ids: Sequence[str] | None = None,
-    workers: int = 1,
-    near_clones_config: NearClonesConfig | None = None,
-) -> HeuristicResult:
+    workers: int,
+) -> None:
+    finders = (
+        find_logging_hygiene,
+        find_long_parameter_lists,
+        find_magic_numbers,
+        find_boolean_flags,
+    )
+    for finder in finders:
+        issues.extend(_map_entry_issues(reviewable, finder, workers=workers))
+
+
+@dataclass
+class RunHeuristics:
+    root: Path
+    entries: list[FileEntry]
+    mega_file_lines: int = 500
+    mega_file_exclude_globs: Sequence[str] | None = None
+    pack_ids: Sequence[str] | None = None
+    workers: int = 1
+    near_clones_config: NearClonesConfig | None = None
+
+def run_heuristics(job: RunHeuristics) -> HeuristicResult:
     """Fast Brain heuristics — regex/line/stat only (no AST). See Phase 6.11."""
+    root = job.root
+    entries = job.entries
+    mega_file_lines = job.mega_file_lines
+    mega_file_exclude_globs = job.mega_file_exclude_globs
+    pack_ids = job.pack_ids
+    workers = job.workers
+    near_clones_config = job.near_clones_config
     root = root.resolve()
     issues: list[Issue] = []
     hot_paths: list[str] = []
@@ -149,19 +173,11 @@ def run_heuristics(
     excludes = (
         DEFAULT_MEGA_AND_SKIP_EXCLUDES
         if not mega_file_exclude_globs
-        else tuple(
-            dict.fromkeys((*DEFAULT_MEGA_AND_SKIP_EXCLUDES, *mega_file_exclude_globs))
-        )
+        else tuple(dict.fromkeys((*DEFAULT_MEGA_AND_SKIP_EXCLUDES, *mega_file_exclude_globs)))
     )
 
-    reviewable = [
-        entry
-        for entry in entries
-        if not is_mega_file_excluded(entry.relative, excludes)
-    ]
-    mega = partial(
-        _mega_issues, mega_file_lines=mega_file_lines, excludes=excludes
-    )
+    reviewable = [entry for entry in entries if not is_mega_file_excluded(entry.relative, excludes)]
+    mega = partial(_mega_issues, mega_file_lines=mega_file_lines, excludes=excludes)
     _absorb(issues, hot_paths, _map_entry_issues(entries, mega, workers=workers))
     _absorb(issues, hot_paths, find_sibling_pairs(reviewable))
     _absorb(
@@ -174,37 +190,18 @@ def run_heuristics(
         hot_paths,
         _map_entry_issues(reviewable, find_large_functions, workers=workers),
     )
-    issues.extend(
-        _map_entry_issues(reviewable, find_transport_tls, workers=workers)
-    )
+    issues.extend(_map_entry_issues(reviewable, find_transport_tls, workers=workers))
     clone_issues, clusters, occurrences, clone_notes = _near_clone_bundle(
         reviewable, near_clones_config
     )
     _absorb(issues, hot_paths, clone_issues)
     issues.extend(find_gitignore_secret_gaps(root, entries))
-    issues.extend(
-        _map_entry_issues(
-            reviewable, find_script_credential_hygiene, workers=workers
-        )
-    )
-    issues.extend(
-        _map_entry_issues(reviewable, find_todo_density, workers=workers)
-    )
+    issues.extend(_map_entry_issues(reviewable, find_script_credential_hygiene, workers=workers))
+    issues.extend(_map_entry_issues(reviewable, find_todo_density, workers=workers))
     issues.extend(find_ci_gaps(root, entries))
     issues.extend(find_standards_gaps(root, entries))
     issues.extend(find_agent_context_hygiene(entries))
-    issues.extend(
-        _map_entry_issues(reviewable, find_logging_hygiene, workers=workers)
-    )
-    issues.extend(
-        _map_entry_issues(reviewable, find_long_parameter_lists, workers=workers)
-    )
-    issues.extend(
-        _map_entry_issues(reviewable, find_magic_numbers, workers=workers)
-    )
-    issues.extend(
-        _map_entry_issues(reviewable, find_boolean_flags, workers=workers)
-    )
+    _extend_style_issues(issues, reviewable, workers=workers)
     _absorb(issues, hot_paths, _pack_issues(root, entries, pack_ids))
     return HeuristicResult(
         issues=issues,

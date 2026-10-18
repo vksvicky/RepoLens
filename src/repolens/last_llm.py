@@ -56,7 +56,7 @@ def load_last_llm_report(
     try:
         report = FindingReport.model_validate_json(raw)
     except Exception as exc:  # noqa: BLE001 — corrupt meta should not abort review
-        log.warning("Ignoring corrupt last_llm_report_json: %s", exc)
+        log.warning("Ignoring corrupt last_llm_report_json: %s", exc, exc_info=True)
         return None
     saved_at = store.get_meta(META_SAVED_AT) or "unknown"
     model = store.get_meta(META_MODEL) or ""
@@ -84,11 +84,11 @@ def bootstrap_from_out_dir(out_dir: Path | None) -> tuple[FindingReport, str, st
         try:
             report = FindingReport.model_validate_json(path.read_text(encoding="utf-8"))
         except Exception as exc:  # noqa: BLE001
-            log.warning("Bootstrap report unreadable %s: %s", path, exc)
+            log.warning(
+                "Bootstrap report unreadable %s: %s", path, exc, exc_info=True
+            )
         else:
-            saved_at = datetime.fromtimestamp(
-                path.stat().st_mtime, tz=UTC
-            ).isoformat()
+            saved_at = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC).isoformat()
             return report, saved_at, ""
 
     md = bootstrap_markdown_from_out_dir(out_dir)

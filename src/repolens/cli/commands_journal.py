@@ -8,6 +8,7 @@ from pathlib import Path
 import typer
 
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import JSON_INDENT
 from repolens.pipeline.journal import (
     build_postmortem,
     journal_path,
@@ -41,7 +42,7 @@ def journal_cmd(
             "completed_passes": data.get("completed_passes"),
             "verify": data.get("verify"),
         }
-        typer.echo(json.dumps(payload, indent=2, default=str))
+        typer.echo(json.dumps(payload, indent=JSON_INDENT, default=str))
         return
     if not events:
         console.print(f"No journal at {journal_path(root)}")

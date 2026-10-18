@@ -40,6 +40,27 @@ def save_plain(row, dry_run=False):
     assert "dry_run" in issues[0].title
 
 
+def test_call_default_bool_is_not_a_flag(tmp_path: Path) -> None:
+    code = """
+def option_json():
+    return False
+
+def export(as_json: bool = option_json()):
+    if as_json:
+        return "json"
+    return "text"
+
+def save(row, dry_run: bool = False):
+    if dry_run:
+        return
+    write(row)
+"""
+    entry = _entry(tmp_path, "src/export.py", code)
+    issues = find_boolean_flags([entry])
+    assert [issue.line for issue in issues] == [10]
+    assert "dry_run" in issues[0].title
+
+
 def test_annotation_forms_receiver_and_nested_defs(tmp_path: Path) -> None:
     code = """
 class Worker:

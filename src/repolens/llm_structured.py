@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -20,6 +21,7 @@ from repolens.llm import (
     parse_report_json,
     repair_prompt,
 )
+from repolens.llm.model_lock import ModelLockOptions
 from repolens.progress import ReviewProgress, null_progress
 from repolens.schema import FindingReport, Summary
 
@@ -62,7 +64,7 @@ def analyze_structured(
         )
     ctx = current_lock_context()
     base = model_cfg.base_url or default_base_url_for(model_cfg.provider)
-    lock = OllamaModelLock(
+    lock = OllamaModelLock(ModelLockOptions(
         repo=ctx.repo,
         path=ctx.path,
         pass_name=ctx.pass_name,
@@ -70,7 +72,7 @@ def analyze_structured(
         base_url=base or "",
         provider=model_cfg.provider,
         status=ctx.status,
-    )
+    ))
     with lock, hold_local_endpoint(lock.lock_file.name):
         return _analyze_structured_body(
             prompt,
@@ -104,9 +106,7 @@ def _analyze_structured_body(
     # Coerce / parse
     try:
         report = parse_report_json(raw_text)
-        layer: Literal["ok", "coerced"] = (
-            "coerced" if _looks_coerced(raw_text) else "ok"
-        )
+        layer: Literal["ok", "coerced"] = "coerced" if _looks_coerced(raw_text) else "ok"
         return StructuredLlmResult(
             report=report,
             raw_text=raw_text,
@@ -117,9 +117,7 @@ def _analyze_structured_body(
     except (LlmError, ValidationError, json.JSONDecodeError, TypeError, ValueError) as parse_exc:
         # Micro-repair (hard cap: exactly one attempt)
         prog.phase("LLM: first response invalid — retrying with repair prompt…")
-        repair_msg = repair_prompt(
-            raw_text, str(parse_exc), hints=code_example_hints(raw_text)
-        )
+        repair_msg = repair_prompt(raw_text, str(parse_exc), hints=code_example_hints(raw_text))
         try:
             repaired_raw = analyze_raw(repair_msg, model_cfg, on_delta=on_delta)
             try:
@@ -162,6 +160,7 @@ def _looks_coerced(raw_text: str) -> bool:
     try:
         payload = json.loads(raw_text.strip().removeprefix("```json").removeprefix("```").strip())
     except json.JSONDecodeError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return True
     if not isinstance(payload, dict):
         return True
@@ -202,7 +201,7 @@ def _degrade_result(
             save_path.write_text(raw_text, encoding="utf-8")
             prog.detail(f"Saved raw LLM output to {save_path}")
     except OSError:
-        pass
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
 
     salvaged_report = None
     if raw_text:
@@ -218,7 +217,7 @@ def _degrade_result(
                 salvaged_report = FindingReport.model_validate(payload)
                 salvaged_report.summary = salvaged_report.recount_summary()
         except Exception:
-            pass
+            logging.getLogger(__name__).debug("handled expected error", exc_info=True)
 
     if salvaged_report is None:
         salvaged_report = FindingReport(

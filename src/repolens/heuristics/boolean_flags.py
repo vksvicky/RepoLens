@@ -48,7 +48,10 @@ def _bool_parameters(func: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
     for arg in positional + list(args.kwonlyargs):
         if arg.arg in {"self", "cls"}:
             continue
-        if _annotation_is_bool(arg.annotation) or _is_bool_constant(default_for.get(arg.arg)):
+        default = default_for.get(arg.arg)
+        if isinstance(default, ast.Call):
+            continue
+        if _annotation_is_bool(arg.annotation) or _is_bool_constant(default):
             names.append(arg.arg)
     return names
 
