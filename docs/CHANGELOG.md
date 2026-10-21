@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Every report records Python process peak RSS. The figure is this process, not the Ollama model and not OS memory pressure.
 - Semgrep 1.180.0 and Checkov 3.3.9 plugin installs use hashed requirement locks (`pip --require-hashes`), so dependencies are pinned as well as the named wheel. Locks are CPython 3.12. The Docker image installs the matching linux Semgrep lock instead of the unhashed `scanners` extra.
 - [for-everyone.md](./for-everyone.md) explains the review, the score, and the fixed checker list for someone who will read a report and not run the tool.
 - A cancelled review continues from the saved passes. The progress line shows file checks done, still to go, and a percentage. A pass stopped mid-write starts again. A saved pass whose files no longer match says so and runs again.

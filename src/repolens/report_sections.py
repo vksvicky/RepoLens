@@ -227,6 +227,13 @@ def _provenance_identity_lines(prov) -> list[str]:
         lines.append(_md_inline_or_fence("Command", prov.command))
     if prov.expandedArgv:
         lines.append(_md_inline_or_fence("Expanded argv", shlex.join(prov.expandedArgv)))
+    if prov.pythonPeakRssBytes is not None:
+        from repolens.memory_sample import format_peak_rss
+
+        label = format_peak_rss(prov.pythonPeakRssBytes).split(": ", 1)[1]
+        lines.append(f"- **Python process peak RSS**: `{label}`")
+    if prov.pythonRssNote:
+        lines.append(f"- **Python RSS note**: {prov.pythonRssNote}")
     return lines
 
 

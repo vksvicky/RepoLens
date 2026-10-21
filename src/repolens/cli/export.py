@@ -149,6 +149,15 @@ def _add_reviewed_rows(table: Table, prov) -> None:
         table.add_row("RepoLens", prov.repoLensVersion)
 
 
+def _add_rss_row(table: Table, prov) -> None:
+    if prov is None or prov.pythonPeakRssBytes is None:
+        return
+    from repolens.memory_sample import format_peak_rss
+
+    value = format_peak_rss(prov.pythonPeakRssBytes).split(": ", 1)[1]
+    table.add_row("Python process peak RSS", value)
+
+
 def _add_dry_run_row(table: Table) -> None:
     table.add_row("Dry run", "yes")
 
@@ -168,6 +177,7 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     table.add_column("Value")
     _add_dry_run_row(table) if dry_run else None
     _add_reviewed_rows(table, prov)
+    _add_rss_row(table, prov)
     fb = prov.fastBrainFiles if prov is not None else None
     llm = prov.llmPackFiles if prov is not None else None
     if fb is not None:

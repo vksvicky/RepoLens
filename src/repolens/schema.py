@@ -210,6 +210,9 @@ class ProvenanceBlock(BaseModel):
     # Invocation recorded after preset resolution (optional on older reports).
     command: str | None = None
     expandedArgv: list[str] = Field(default_factory=list)
+    # Python process only. Not Ollama and not OS memory pressure.
+    pythonPeakRssBytes: int | None = Field(default=None, ge=0)
+    pythonRssNote: str | None = None
 
 
 class SuppressedIssue(BaseModel):

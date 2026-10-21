@@ -313,6 +313,7 @@ def _run_graph_phase(state) -> None:
 def _build_finished_provenance(state):
     from repolens import __version__
     from repolens.llm.model_lock import queue_wait_seconds
+    from repolens.memory_sample import PYTHON_RSS_NOTE, read_peak_rss_bytes
     from repolens.provenance_attest import (
         git_branch,
         git_dirty_tree,
@@ -347,6 +348,8 @@ def _build_finished_provenance(state):
         notes=list(state.triage_plan.notes) if state.triage_plan is not None else [],
         command=state.invoked_command,
         expandedArgv=list(state.expanded_argv or []),
+        pythonPeakRssBytes=read_peak_rss_bytes(),
+        pythonRssNote=PYTHON_RSS_NOTE,
     )
 
 
