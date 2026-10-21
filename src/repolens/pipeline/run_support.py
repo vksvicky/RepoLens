@@ -440,6 +440,33 @@ def _persist_finished_artifacts(state):
     )
 
 
+def _advise_local_32b(state) -> None:
+    from repolens.memory_sample import local_32b_notice, physical_ram_bytes
+
+    notice = local_32b_notice(
+        state.cfg.model.provider,
+        state.cfg.model.model,
+        physical_ram_bytes(),
+    )
+    if notice:
+        state.prog.phase(notice)
+
+
+def _enforce_memory_ceiling(state) -> None:
+    from repolens.memory_sample import bytes_for_ceiling, ceiling_decision
+    from repolens.pipeline.types import MemoryCeilingError
+
+    hint, stop = ceiling_decision(
+        state.cfg.model.memory_ceiling_mb,
+        bytes_for_ceiling(),
+        state.cfg.model.memory_abort,
+    )
+    if hint:
+        state.prog.phase(hint)
+    if stop:
+        raise MemoryCeilingError(hint or "memory ceiling")
+
+
 def _execute_review_body(state):
     from repolens.pipeline.run import _invoke_llm
     from repolens.pipeline.run_collect import (
@@ -467,6 +494,7 @@ def _execute_review_body(state):
 
     if state.dry_run:
         return _write_dry_run(state)
+    _advise_local_32b(state)
     _run_scanner_tools(state)
     _postprocess_scanner_issues(state)
     _collect_supply_chain(state)
@@ -485,6 +513,7 @@ def _execute_review_body(state):
                 _reuse_or_skip_llm(state)
             else:
                 _prepare_llm_prompt(state)
+                _enforce_memory_ceiling(state)
                 _invoke_llm(state)
                 if not state.aborted:
                     _merge_llm_report(state)

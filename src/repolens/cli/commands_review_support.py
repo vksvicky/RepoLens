@@ -18,7 +18,13 @@ from repolens.graph.baseline import load_baseline
 from repolens.graph.ratchet import evaluate_ratchet
 from repolens.graph.types import GraphStatus
 from repolens.llm import LlmError
-from repolens.pipeline import ReviewRun, ScannerRequirementError, fail_on_triggered, run_review
+from repolens.pipeline import (
+    MemoryCeilingError,
+    ReviewRun,
+    ScannerRequirementError,
+    fail_on_triggered,
+    run_review,
+)
 from repolens.quality_metrics import measure_quality_metrics
 from repolens.sarif_import import SarifImportError
 from repolens.sources import SourceError, resolve_source, select_source
@@ -92,6 +98,9 @@ def _map_run_mode_error(exc: BaseException) -> None:
         raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     if isinstance(exc, ValueError):
         console.print(f"[red]Config/usage error:[/red] {exc}")
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
+    if isinstance(exc, MemoryCeilingError):
+        console.print(f"[red]Memory ceiling:[/red] {exc}")
         raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     if isinstance(exc, ScannerRequirementError):
         console.print(f"[red]{exc}[/red]")

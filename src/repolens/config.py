@@ -32,6 +32,11 @@ class ModelConfig(BaseModel):
     lock_cli: bool | None = None
     # Automatic fallback (Cloud LLM -> Ollama -> SAST scanners & heuristics)
     fallback: bool = True
+    # Unset: no ceiling. Checked once after Fast Brain, before the model call.
+    memory_ceiling_mb: int | None = Field(default=None, ge=1)
+    # When true and the process is over the ceiling, stop with exit 2.
+    # A pass that already started is not killed.
+    memory_abort: bool = False
 
 
 class GeneralConfig(BaseModel):
