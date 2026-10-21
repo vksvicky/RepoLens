@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from repolens.inventory import list_files
+from repolens.inventory import list_files, read_prefix
 from repolens.learning.consent import ensure_consent
 from repolens.learning.store import (
     FtsHit,
@@ -35,7 +35,7 @@ class LearningIndex:
             count = 0
             for entry in files:
                 try:
-                    text = entry.path.read_text(encoding="utf-8", errors="replace")
+                    text = read_prefix(entry.path, 80_000)
                 except OSError:
                     continue
                 content = text[:80_000]

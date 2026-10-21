@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from repolens.adaptive import sync_project_fingerprints
@@ -76,8 +77,11 @@ def _maybe_sync_fts(store, root: Path, files: list[FileEntry], diff) -> None:
         if entry.relative not in touch:
             continue
         try:
-            text = entry.path.read_text(encoding="utf-8", errors="replace")[:80_000]
+            from repolens.inventory import read_prefix
+
+            text = read_prefix(entry.path, 80_000)[:80_000]
         except OSError:
+            logging.getLogger(__name__).debug("handled expected error", exc_info=True)
             continue
         store.upsert_chunk(entry.relative, text)
 

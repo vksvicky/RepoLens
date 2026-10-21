@@ -152,5 +152,5 @@ def test_triage_ignores_heuristics_when_disabled() -> None:
 def test_fast_brain_config_defaults() -> None:
     cfg = FastBrainConfig()
     assert cfg.max_files == 10_000
-    assert cfg.parallel_workers == 8
+    assert cfg.parallel_workers == 0
     assert cfg.triage_include_heuristics is True

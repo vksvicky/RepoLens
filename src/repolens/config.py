@@ -65,7 +65,7 @@ class FastBrainConfig(BaseModel):
 
     # 0 = no cap beyond ignores / per-file size.
     max_files: int = 10_000
-    parallel_workers: int = 8
+    parallel_workers: int = 0
     # When True, heuristic hits at severity_floor can wake --ci LLM triage.
     triage_include_heuristics: bool = True
     near_clones: NearClonesConfig = Field(default_factory=NearClonesConfig)

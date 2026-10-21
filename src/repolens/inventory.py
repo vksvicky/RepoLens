@@ -320,8 +320,14 @@ def classify_fingerprint_deletions(
     return removed, dropped
 
 
+def read_prefix(path: Path, max_chars: int) -> str:
+    """Read at most ``max_chars + 1`` characters so a slice can see truncation."""
+    with path.open(encoding="utf-8", errors="replace") as handle:
+        return handle.read(max_chars + 1)
+
+
 def read_excerpt(entry: FileEntry, *, max_chars: int = 12_000) -> str:
-    text = entry.path.read_text(encoding="utf-8", errors="replace")
+    text = read_prefix(entry.path, max_chars)
     if len(text) <= max_chars:
         return text
     return text[:max_chars] + "\n\n/* … truncated by RepoLens … */\n"

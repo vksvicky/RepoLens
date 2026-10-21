@@ -118,20 +118,25 @@ def _repeated_literals(source: str, suffix: str) -> list[tuple[int, str]]:
     return hits
 
 
+def magic_number_issues(entry: FileEntry, text: str) -> list[Issue]:
+    if is_test_source(entry.relative) or is_mega_file_excluded(entry.relative):
+        return []
+    suffix = entry.path.suffix.lower()
+    hits = _repeated_literals(text, suffix)
+    if not hits:
+        return []
+    return [_issue_for_file(entry.relative, hits)]
+
+
 def find_magic_numbers(files: list[FileEntry]) -> list[Issue]:
     issues: list[Issue] = []
     for entry in files:
         if not entry.path.is_file():
             continue
-        if is_test_source(entry.relative) or is_mega_file_excluded(entry.relative):
-            continue
-        suffix = entry.path.suffix.lower()
         try:
             source = entry.path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        hits = _repeated_literals(source, suffix)
-        if hits:
-            issues.append(_issue_for_file(entry.relative, hits))
+        issues.extend(magic_number_issues(entry, source))
     issues.sort(key=lambda item: (item.file, item.line, item.category, item.title))
     return issues

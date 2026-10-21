@@ -221,46 +221,43 @@ def _issues_from_other(relative: str, source: str, suffix: str, *, is_test: bool
     return built
 
 
+def logging_issues(entry: FileEntry, source: str) -> list[Issue]:
+    if is_mega_file_excluded(entry.relative):
+        return []
+    suffix = entry.path.suffix.lower()
+    is_test = is_test_source(entry.relative)
+    if suffix in OTHER_SUFFIXES:
+        return _issues_from_other(entry.relative, source, suffix, is_test=is_test)
+    if suffix not in _PYTHON:
+        return []
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    issues: list[Issue] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and _is_eager_log_call(node):
+            issues.append(_python_eager_issue(entry.relative, node.lineno))
+        if not is_test and isinstance(node, ast.Call):
+            is_call, kind = _is_log_or_print_call(node)
+            secret = _secret_in_call(node) if is_call else None
+            if secret:
+                issues.append(_secret_issue(entry.relative, node.lineno, kind, secret))
+        if not is_test and isinstance(node, ast.ExceptHandler):
+            if _handler_is_swallowed(node):
+                issues.append(_swallowed_issue(entry.relative, node.lineno))
+    return issues
+
+
 def find_logging_hygiene(files: list[FileEntry]) -> list[Issue]:
     issues: list[Issue] = []
-
     for entry in files:
         if not entry.path.is_file():
             continue
-        if is_mega_file_excluded(entry.relative):
-            continue
-        suffix = entry.path.suffix.lower()
-        is_test = is_test_source(entry.relative)
-        if suffix in OTHER_SUFFIXES:
-            try:
-                source = entry.path.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
-            issues.extend(_issues_from_other(entry.relative, source, suffix, is_test=is_test))
-            continue
-        if suffix not in _PYTHON:
-            continue
-
         try:
             source = entry.path.read_text(encoding="utf-8", errors="replace")
-            tree = ast.parse(source)
-        except (OSError, SyntaxError):
+        except OSError:
             continue
-
-        for node in ast.walk(tree):
-            # 1. Eager log formatting (runs on production and test files)
-            if isinstance(node, ast.Call) and _is_eager_log_call(node):
-                issues.append(_python_eager_issue(entry.relative, node.lineno))
-
-            if not is_test and isinstance(node, ast.Call):
-                is_call, kind = _is_log_or_print_call(node)
-                secret = _secret_in_call(node) if is_call else None
-                if secret:
-                    issues.append(_secret_issue(entry.relative, node.lineno, kind, secret))
-
-            if not is_test and isinstance(node, ast.ExceptHandler):
-                if _handler_is_swallowed(node):
-                    issues.append(_swallowed_issue(entry.relative, node.lineno))
-
+        issues.extend(logging_issues(entry, source))
     issues.sort(key=lambda i: (i.file, i.line, i.category, i.title))
     return issues

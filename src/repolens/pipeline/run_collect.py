@@ -266,9 +266,12 @@ def _collect_supply_chain(state: ReviewRun) -> None:
 
 
 def _run_fast_brain_phase(state: ReviewRun) -> None:
+    from repolens.heuristics.workers import resolve_fast_brain_workers
+
+    workers = resolve_fast_brain_workers(state.cfg.fast_brain.parallel_workers)
     state.prog.phase(
         f"Fast brain: heuristics on {len(state.fast_files)} file(s) "
-        f"(workers={state.cfg.fast_brain.parallel_workers})…"
+        f"(workers={workers})…"
     )
     _fb_t0 = time.monotonic()
     from repolens.heuristics import run_heuristics
@@ -279,7 +282,7 @@ def _run_fast_brain_phase(state: ReviewRun) -> None:
         mega_file_lines=state.cfg.deep.mega_file_lines,
         mega_file_exclude_globs=state.cfg.deep.extra_skip_globs() or None,
         pack_ids=state.pack_ids or None,
-        workers=state.cfg.fast_brain.parallel_workers,
+        workers=workers,
         near_clones_config=state.cfg.fast_brain.near_clones,
     ))
     state.fast_brain_seconds = round(time.monotonic() - _fb_t0, 1)

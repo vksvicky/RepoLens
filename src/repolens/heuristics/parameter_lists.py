@@ -71,39 +71,41 @@ def _parameter_issue(relative: str, lineno: int, name: str, count: int) -> Issue
     )
 
 
+def parameter_list_issues(entry: FileEntry, source: str) -> list[Issue]:
+    if is_test_source(entry.relative) or is_mega_file_excluded(entry.relative):
+        return []
+    suffix = entry.path.suffix.lower()
+    if suffix in OTHER_SUFFIXES:
+        return [
+            _parameter_issue(entry.relative, lineno, name, count)
+            for lineno, name, count in parameter_hits(source, suffix)
+        ]
+    if suffix not in _PYTHON:
+        return []
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    issues: list[Issue] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        param_count = _count_parameters(node)
+        if param_count <= MAX_PARAMETER_COUNT:
+            continue
+        issues.append(_parameter_issue(entry.relative, node.lineno, node.name, param_count))
+    return issues
+
+
 def find_long_parameter_lists(files: list[FileEntry]) -> list[Issue]:
     issues: list[Issue] = []
-
     for entry in files:
         if not entry.path.is_file():
             continue
-        if is_test_source(entry.relative) or is_mega_file_excluded(entry.relative):
-            continue
-        suffix = entry.path.suffix.lower()
-        if suffix in OTHER_SUFFIXES:
-            try:
-                source = entry.path.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
-            for lineno, name, count in parameter_hits(source, suffix):
-                issues.append(_parameter_issue(entry.relative, lineno, name, count))
-            continue
-        if suffix not in _PYTHON:
-            continue
-
         try:
             source = entry.path.read_text(encoding="utf-8", errors="replace")
-            tree = ast.parse(source)
-        except (OSError, SyntaxError):
+        except OSError:
             continue
-
-        for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            param_count = _count_parameters(node)
-            if param_count <= MAX_PARAMETER_COUNT:
-                continue
-            issues.append(_parameter_issue(entry.relative, node.lineno, node.name, param_count))
-
+        issues.extend(parameter_list_issues(entry, source))
     issues.sort(key=lambda i: (i.file, i.line, i.category, i.title))
     return issues
