@@ -7,7 +7,7 @@ signal and is never blended into the gate verdict.
 
 from __future__ import annotations
 
-from repolens.schema import FindingReport
+from repolens.schema import FindingReport, ScannerRun
 
 _BANDS = (
     ("Security", "securityAuditConfidence", "p1"),
@@ -22,6 +22,18 @@ def deterministic_gate_passes(report: FindingReport) -> bool:
     Scanner failed status alone does not flip FAIL.
     """
     return report.summary.critical + report.summary.high == 0
+
+
+def format_scanner_times(runs: list[ScannerRun]) -> str | None:
+    """One line of tools that ran. A skip or failure contributes no number."""
+    parts = [
+        f"{run.tool} {run.durationSeconds:.1f}s"
+        for run in runs
+        if run.durationSeconds is not None
+    ]
+    if not parts:
+        return None
+    return "Scanners: " + " · ".join(parts)
 
 
 def _scanner_ratio(report: FindingReport) -> str | None:

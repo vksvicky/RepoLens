@@ -467,6 +467,35 @@ def _enforce_memory_ceiling(state) -> None:
         raise MemoryCeilingError(hint or "memory ceiling")
 
 
+def _overlap_scanners_and_fast_brain(state, *, postprocess, supply, fast_brain) -> None:
+    """Run scanner postprocess and Fast Brain together.
+
+    Supply chain starts only after the scanner call returns, so a second Trivy
+    does not share the pool with the first. Both sides are joined before the
+    caller continues. An error on one side waits for the other, then surfaces
+    on this thread.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="repolens-fast-brain") as pool:
+        fast_future = pool.submit(fast_brain, state)
+        scanner_error: BaseException | None = None
+        try:
+            postprocess(state)
+            supply(state)
+        except BaseException as exc:
+            scanner_error = exc
+        fast_error: BaseException | None = None
+        try:
+            fast_future.result()
+        except BaseException as exc:
+            fast_error = exc
+    if scanner_error is not None:
+        raise scanner_error
+    if fast_error is not None:
+        raise fast_error
+
+
 def _execute_review_body(state):
     from repolens.pipeline.run import _invoke_llm
     from repolens.pipeline.run_collect import (
@@ -496,9 +525,12 @@ def _execute_review_body(state):
         return _write_dry_run(state)
     _advise_local_32b(state)
     _run_scanner_tools(state)
-    _postprocess_scanner_issues(state)
-    _collect_supply_chain(state)
-    _run_fast_brain_phase(state)
+    _overlap_scanners_and_fast_brain(
+        state,
+        postprocess=_postprocess_scanner_issues,
+        supply=_collect_supply_chain,
+        fast_brain=_run_fast_brain_phase,
+    )
     _apply_provider_fallback(state)
     if state.scanners_only:
         _report_scanners_only(state)

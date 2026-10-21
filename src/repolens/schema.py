@@ -91,6 +91,8 @@ class ScannerRun(BaseModel):
     status: Literal["ran", "skipped", "failed"]
     detail: str = ""
     findingCount: int = Field(ge=0, default=0)
+    # Present only when the tool ran. A skip or failure omits the number.
+    durationSeconds: float | None = Field(default=None, ge=0)
 
 
 class CoverageBlock(BaseModel):

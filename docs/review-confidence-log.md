@@ -78,3 +78,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-21 | WIP→commit | 92% | 0/0/0/0 | Report title names the reviewed project; one magic-number Low per file; local commit only | chat |
 | 2026-10-21 | 6a0efd5→push | 92% | 0/0/0/0 | Same report-identity commit pushed; optional provenance fields; git branch via list-form rev-parse | chat |
 | 2026-10-21 | issue-140→push | 92% | 0/0/0/1 | Opt-in RSS ceiling exits 2 only before the model; 32B notice does not name a cloud model or stop the run | chat |
+| 2026-10-21 | overlap→push | 91% | 0/0/0/1 | Scanners overlap Fast Brain; supply chain waits for the scanner future; duration only when a tool ran | chat |

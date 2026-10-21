@@ -216,6 +216,11 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     if report.scannerRuns:
         ran = sum(1 for r in report.scannerRuns if r.status == "ran")
         table.add_row("Scanners ran", f"{ran}/{len(report.scannerRuns)}")
+        from repolens.report_blocks import format_scanner_times
+
+        times = format_scanner_times(report.scannerRuns)
+        if times:
+            table.add_row("Scanner time", times.removeprefix("Scanners: "))
     banner = _reviewed_banner(prov)
     if banner:
         console.print(banner)

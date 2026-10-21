@@ -341,6 +341,12 @@ def _markdown_scanners(report: FindingReport) -> list[str]:
         detail = f" — {run.detail}" if run.detail else ""
         count = f" ({run.findingCount} finding(s))" if run.status == "ran" else ""
         lines.append(f"- **{run.tool}**: `{run.status}`{detail}{count}")
+    from repolens.report_blocks import format_scanner_times
+
+    times = format_scanner_times(report.scannerRuns)
+    if times:
+        lines.append("")
+        lines.append(times)
     lines.append("")
     return lines
 
