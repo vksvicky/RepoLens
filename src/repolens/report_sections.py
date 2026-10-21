@@ -204,6 +204,10 @@ def _provenance_identity_lines(prov) -> list[str]:
     lines: list[str] = []
     if prov.repoLensVersion:
         lines.append(f"- **RepoLens**: `{prov.repoLensVersion}`")
+    if prov.reviewedPath:
+        lines.append(f"- **Reviewed path**: `{prov.reviewedPath}`")
+    if prov.gitBranch:
+        lines.append(f"- **Git branch**: `{prov.gitBranch}`")
     if prov.gitSha:
         lines.append(f"- **Git SHA**: `{prov.gitSha}`")
     if prov.dirtyTree is not None:

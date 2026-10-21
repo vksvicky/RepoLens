@@ -16,12 +16,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- The report title, the first summary line, and the summary table name the reviewed project, its path, the git branch and revision, and whether that tree is dirty. A Fluida review no longer looks like a RepoLens self-check.
 - `run_review` takes a `ReviewRun`. Review, sentinel, and architecture pass one run request from the command through flag checks into that call.
 - Deep-pass helpers take a `DeepJob` instead of repeating the same root, config, and progress arguments.
 - Heuristic, explain, feedback, plan, and model-lock entry points take one argument object (`RunHeuristics`, `PlanDeepPasses`, `RunExplain`, `RecordFeedback`, `PassKey`, `ModelLockOptions`) instead of a long parameter list.
 
 ### Fixed
 
+- A file that repeats many unnamed numbers is one Low, not one Low per number. Colour and coordinate literals in drawing code were filling the report.
 - The unused issue fixture copied into `tests/test_deep.py` is gone, so Fast Brain no longer reports a near-clone against `tests/test_deep_merge.py`.
 - The Azure Sentinel pack builds tenant, subscription, and secret findings in shallow helpers, so the scanner is not deeply nested.
 - Handlers that catch an expected error and continue with a fallback now log that error at debug with the traceback.

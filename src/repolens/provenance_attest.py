@@ -11,6 +11,25 @@ from pathlib import Path
 from repolens.pipeline.pass_cache import PROMPT_TEMPLATE_VERSION
 
 
+def git_branch(root: Path) -> str | None:
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
+        return None
+    if completed.returncode != 0:
+        return None
+    name = (completed.stdout or "").strip()
+    return name or None
+
+
 def git_dirty_tree(root: Path) -> bool | None:
     try:
         completed = subprocess.run(

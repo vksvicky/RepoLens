@@ -109,7 +109,7 @@ def test_acquire_writes_metadata_and_a_second_attempt_sees_it(tmp_path: Path) ->
     notes: list[str] = []
     first = OllamaModelLock(ModelLockOptions(
         repo="LogViewer",
-        path="/Users/vivek/Development/LogViewer",
+        path="/repos/sample-app",
         pass_name="P2",
         model="qwen2.5-coder:32b",
         base_url="http://127.0.0.1:11434/v1",

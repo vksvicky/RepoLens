@@ -117,6 +117,38 @@ def _print_gate_and_ai_blocks(report: FindingReport) -> None:
         console.print(escape(detail))
 
 
+def _summary_title(prov) -> str:
+    if prov is None or not prov.reviewedPath:
+        return "RepoLens summary"
+    return Path(prov.reviewedPath).name
+
+
+def _reviewed_banner(prov) -> str | None:
+    if prov is None or not prov.reviewedPath:
+        return None
+    path = Path(prov.reviewedPath)
+    bits = [f"Reviewed: {path.name}", str(path)]
+    if prov.gitSha:
+        state = {True: "dirty", False: "clean"}.get(prov.dirtyTree, "unknown")
+        branch = f"{prov.gitBranch} " if prov.gitBranch else ""
+        bits.append(f"{branch}{prov.gitSha[:12]} ({state})")
+    return " · ".join(bits)
+
+
+def _add_reviewed_rows(table: Table, prov) -> None:
+    if prov is None or not prov.reviewedPath:
+        return
+    path = Path(prov.reviewedPath)
+    table.add_row("Project", path.name)
+    table.add_row("Path", str(path))
+    if prov.gitSha:
+        state = {True: "dirty", False: "clean"}.get(prov.dirtyTree, "unknown")
+        branch = f"{prov.gitBranch} " if prov.gitBranch else ""
+        table.add_row("Git", f"{branch}{prov.gitSha[:12]} ({state})")
+    if prov.repoLensVersion:
+        table.add_row("RepoLens", prov.repoLensVersion)
+
+
 def _add_dry_run_row(table: Table) -> None:
     table.add_row("Dry run", "yes")
 
@@ -130,11 +162,12 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
         format_two_lane_headline,
     )
 
-    table = Table(title="RepoLens summary")
+    prov = report.provenance
+    table = Table(title=_summary_title(prov))
     table.add_column("Metric")
     table.add_column("Value")
     _add_dry_run_row(table) if dry_run else None
-    prov = report.provenance
+    _add_reviewed_rows(table, prov)
     fb = prov.fastBrainFiles if prov is not None else None
     llm = prov.llmPackFiles if prov is not None else None
     if fb is not None:
@@ -173,6 +206,9 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     if report.scannerRuns:
         ran = sum(1 for r in report.scannerRuns if r.status == "ran")
         table.add_row("Scanners ran", f"{ran}/{len(report.scannerRuns)}")
+    banner = _reviewed_banner(prov)
+    if banner:
+        console.print(banner)
     headline = format_two_lane_headline(report)
     if headline:
         console.print(f"[bold]Two-Lane[/bold]: {headline}")

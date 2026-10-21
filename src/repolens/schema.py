@@ -185,7 +185,9 @@ class ProvenanceBlock(BaseModel):
     """Phase 6.3 report provenance for CI / audit trails."""
 
     repoLensVersion: str | None = None
+    reviewedPath: str | None = None
     gitSha: str | None = None
+    gitBranch: str | None = None
     model: str | None = None
     provider: str | None = None
     scannerTools: list[str] = Field(default_factory=list)

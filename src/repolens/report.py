@@ -157,6 +157,31 @@ def write_json_report(
     return path
 
 
+def _reviewed_project_name(report: FindingReport) -> str:
+    prov = report.provenance
+    if prov is None or not prov.reviewedPath:
+        return ""
+    return Path(prov.reviewedPath).name
+
+
+def _reviewed_target_lines(report: FindingReport) -> list[str]:
+    prov = report.provenance
+    if prov is None or not prov.reviewedPath:
+        return []
+    path = Path(prov.reviewedPath)
+    lines = [
+        f"**Project:** `{path.name}`",
+        f"**Path:** `{path}`",
+    ]
+    if prov.gitSha:
+        state = {True: "dirty", False: "clean"}.get(prov.dirtyTree, "unknown")
+        branch = f"{prov.gitBranch} " if prov.gitBranch else ""
+        lines.append(f"**Git:** `{branch}{prov.gitSha[:12]}` ({state})")
+    if prov.repoLensVersion:
+        lines.append(f"**RepoLens:** `{prov.repoLensVersion}`")
+    return lines
+
+
 def _markdown_heading(
     report: FindingReport,
     *,
@@ -166,12 +191,15 @@ def _markdown_heading(
     when: datetime | None,
 ) -> list[str]:
     heading_time = report_heading_time(when)
+    project = _reviewed_project_name(report)
+    title = f"{project} — {heading_time}" if project else heading_time
     lines = [
-        f"# Gate review report — {heading_time}",
+        f"# Gate review report — {title}",
         "",
         f"**Mode:** `{mode}`",
-        f"**Generated:** {heading_time}",
     ]
+    lines.extend(_reviewed_target_lines(report))
+    lines.append(f"**Generated:** {heading_time}")
     duration = format_duration(report.durationSeconds)
     if duration is not None:
         lines.append(f"**Duration:** {duration}")

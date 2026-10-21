@@ -314,6 +314,7 @@ def _build_finished_provenance(state):
     from repolens import __version__
     from repolens.llm.model_lock import queue_wait_seconds
     from repolens.provenance_attest import (
+        git_branch,
         git_dirty_tree,
         journal_tip_hash,
         prompt_template_hash,
@@ -324,7 +325,9 @@ def _build_finished_provenance(state):
     tools = [r.tool for r in state.report.scannerRuns]
     state.report.provenance = ProvenanceBlock(
         repoLensVersion=__version__,
+        reviewedPath=str(state.root),
         gitSha=_git_sha(state.root),
+        gitBranch=git_branch(state.root),
         model=state.cfg.model.model,
         provider=state.cfg.model.provider,
         scannerTools=tools,

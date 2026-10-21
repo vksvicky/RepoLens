@@ -289,6 +289,40 @@ def test_print_summary_includes_gate_adequacy_one_liner() -> None:
     assert "High" in out
 
 
+def test_print_summary_names_the_reviewed_project() -> None:
+    from io import StringIO
+
+    from rich.console import Console
+
+    from repolens.cli import export as export_mod
+    from repolens.schema import FindingReport, ProvenanceBlock, Summary
+
+    reviewed = Path("/repos/sample-app")
+    sha = "abc123def4567890abcdef1234567890abcdef12"
+    branch = "main"
+    report = FindingReport(
+        confidence=95,
+        summary=Summary(),
+        provenance=ProvenanceBlock(
+            reviewedPath=str(reviewed),
+            gitSha=sha,
+            gitBranch=branch,
+            dirtyTree=False,
+            repoLensVersion="0.1.3",
+        ),
+    )
+    buf = StringIO()
+    fake = Console(file=buf, force_terminal=False, width=120)
+    with patch.object(export_mod, "console", fake):
+        export_mod._print_summary(95, 105, report, dry_run=False)
+    out = buf.getvalue()
+    assert out.startswith(f"Reviewed: {reviewed.name} · {reviewed}")
+    assert reviewed.name in out
+    assert str(reviewed) in out
+    assert sha[:12] in out
+    assert "clean" in out
+
+
 def test_print_summary_counts_suppressed_rows() -> None:
     from io import StringIO
 
