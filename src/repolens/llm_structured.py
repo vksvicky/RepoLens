@@ -22,6 +22,7 @@ from repolens.llm import (
     repair_prompt,
 )
 from repolens.llm.model_lock import ModelLockOptions
+from repolens.llm.usage import LlmUsage, add_usage, call_usage
 from repolens.progress import ReviewProgress, null_progress
 from repolens.schema import FindingReport, Summary
 
@@ -34,6 +35,9 @@ class StructuredLlmResult:
     error: str | None
     # Hard-capped at 1 micro-repair attempt per call (#15).
     repair_attempts: int = 0
+    usage: LlmUsage | None = None
+    repair_prompt_tokens: int | None = None
+    repair_completion_tokens: int | None = None
 
 
 def analyze_structured(
@@ -102,6 +106,7 @@ def _analyze_structured_body(
         if not model_cfg.fallback:
             raise
         return _degrade_result("", str(exc), pass_id, prog, save_root, repair_attempts=0)
+    first_usage = call_usage(raw_text)
 
     # Coerce / parse
     try:
@@ -113,6 +118,9 @@ def _analyze_structured_body(
             layer=layer,
             error=None,
             repair_attempts=0,
+            usage=first_usage,
+            repair_prompt_tokens=0,
+            repair_completion_tokens=0,
         )
     except (LlmError, ValidationError, json.JSONDecodeError, TypeError, ValueError) as parse_exc:
         # Micro-repair (hard cap: exactly one attempt)
@@ -120,6 +128,7 @@ def _analyze_structured_body(
         repair_msg = repair_prompt(raw_text, str(parse_exc), hints=code_example_hints(raw_text))
         try:
             repaired_raw = analyze_raw(repair_msg, model_cfg, on_delta=on_delta)
+            repair_usage = call_usage(repaired_raw)
             try:
                 report = parse_report_json(repaired_raw)
                 return StructuredLlmResult(
@@ -128,6 +137,13 @@ def _analyze_structured_body(
                     layer="micro_repair",
                     error=None,
                     repair_attempts=1,
+                    usage=add_usage(first_usage, repair_usage),
+                    repair_prompt_tokens=(
+                        None if repair_usage is None else repair_usage.prompt_tokens
+                    ),
+                    repair_completion_tokens=(
+                        None if repair_usage is None else repair_usage.completion_tokens
+                    ),
                 )
             except (
                 LlmError,

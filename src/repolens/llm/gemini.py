@@ -26,6 +26,12 @@ from repolens.llm.sse import (
     require_stream_text,
     timeout_message,
 )
+from repolens.llm.usage import (
+    RawCompletion,
+    UsageBox,
+    json_data_line,
+    usage_from_gemini_payload,
+)
 
 GEMINI_API_ROOT = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_GEMINI_MODEL = "gemini-2.0-flash"
@@ -83,7 +89,7 @@ class GeminiSse:
     on_delta: Callable[[str], None] | None
     label: str = 'Gemini'
 
-def stream_gemini_sse(job: GeminiSse) -> str:
+def stream_gemini_sse(job: GeminiSse) -> RawCompletion:
     """Accumulate Gemini-family SSE text deltas (``alt=sse``). Shared by AI Studio + Vertex."""
     client = job.client
     url = job.url
@@ -93,7 +99,14 @@ def stream_gemini_sse(job: GeminiSse) -> str:
     on_delta = job.on_delta
     label = job.label
     parts: list[str] = []
+    usage = UsageBox()
     watch = StreamWatch(prefill_timeout=timeout, label=label)
+
+    def note_line(line: str) -> None:
+        data = json_data_line(line)
+        if data is not None:
+            usage.note(usage_from_gemini_payload(data))
+
     try:
         with client.stream(
             "POST",
@@ -109,10 +122,11 @@ def stream_gemini_sse(job: GeminiSse) -> str:
                 parts=parts,
                 watch=watch,
                 on_delta=on_delta,
+                note_line=note_line,
             )
     except httpx.TimeoutException as exc:
         raise LlmError(timeout_message(label, timeout)) from exc
-    return require_stream_text(parts, label)
+    return RawCompletion(require_stream_text(parts, label), usage.value)
 
 
 def analyze_gemini(
@@ -121,7 +135,7 @@ def analyze_gemini(
     *,
     client: httpx.Client | None = None,
     on_delta: Callable[[str], None] | None = None,
-) -> str:
+) -> RawCompletion:
     api_key = resolve_api_key(model_cfg) or resolve_api_key(
         ModelConfig(provider="gemini", api_key_env="GEMINI_API_KEY")
     )

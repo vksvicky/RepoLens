@@ -26,6 +26,7 @@ from repolens.config import ModelConfig
 from repolens.llm.errors import LlmError
 from repolens.llm.setup import SYSTEM_PROMPT, default_model, resolve_llm_timeout
 from repolens.llm.sse import timeout_message
+from repolens.llm.usage import RawCompletion, UsageBox, usage_from_bedrock_payload
 
 DEFAULT_BEDROCK_MODEL = "amazon.nova-lite-v1:0"
 DEFAULT_BEDROCK_REGION = "us-east-1"
@@ -239,7 +240,10 @@ def extract_text_from_bedrock_payload(payload: bytes) -> str | None:
     return None
 
 
-def iter_bedrock_text_deltas(byte_iter: Iterator[bytes]) -> Iterator[str]:
+def iter_bedrock_text_deltas(
+    byte_iter: Iterator[bytes],
+    usage: UsageBox | None = None,
+) -> Iterator[str]:
     """Decode Converse event-stream bytes into text deltas."""
     buffer = b""
     for chunk in byte_iter:
@@ -254,6 +258,8 @@ def iter_bedrock_text_deltas(byte_iter: Iterator[bytes]) -> Iterator[str]:
             message = buffer[:total_len]
             buffer = buffer[total_len:]
             for payload in iter_event_stream_payloads(message):
+                if usage is not None:
+                    usage.note(usage_from_bedrock_payload(payload))
                 text = extract_text_from_bedrock_payload(payload)
                 if text:
                     yield text
@@ -265,7 +271,7 @@ def analyze_bedrock(
     *,
     client: httpx.Client | None = None,
     on_delta: Callable[[str], None] | None = None,
-) -> str:
+) -> RawCompletion:
     access, secret, session = resolve_aws_credentials()
     region = resolve_bedrock_region()
     model = model_cfg.model or default_model("bedrock") or DEFAULT_BEDROCK_MODEL
@@ -291,6 +297,7 @@ def analyze_bedrock(
     owns_client = client is None
     client = client or httpx.Client(timeout=timeout)
     parts: list[str] = []
+    usage = UsageBox()
     deadline = time.monotonic() + max(0.0, float(timeout))
     try:
         with client.stream("POST", url, headers=headers, content=body) as response:
@@ -308,7 +315,7 @@ def analyze_bedrock(
                         raise LlmError(timeout_message("Bedrock", timeout))
                     yield piece
 
-            for text in iter_bedrock_text_deltas(_byte_chunks()):
+            for text in iter_bedrock_text_deltas(_byte_chunks(), usage):
                 parts.append(text)
                 if on_delta is not None:
                     on_delta(text)
@@ -320,4 +327,4 @@ def analyze_bedrock(
     content = "".join(parts)
     if not content.strip():
         raise LlmError("Bedrock stream completed with empty content")
-    return content
+    return RawCompletion(content, usage.value)

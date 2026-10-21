@@ -30,6 +30,13 @@ from repolens.llm.sse import (
     require_stream_text,
     timeout_message,
 )
+from repolens.llm.usage import (
+    RawCompletion,
+    UsageBox,
+    json_data_line,
+    usage_from_anthropic_event,
+    usage_from_openai_payload,
+)
 from repolens.schema import FindingReport
 
 
@@ -78,7 +85,7 @@ def analyze_raw(
     *,
     client: httpx.Client | None = None,
     on_delta: Callable[[str], None] | None = None,
-) -> str:
+) -> RawCompletion:
     if not model_cfg.provider:
         raise LlmError("No model provider configured. " + " ".join(provider_setup_hints()[:3]))
 
@@ -150,6 +157,7 @@ def _build_openai_request(
     }
     if use_stream:
         payload["stream"] = True
+        payload["stream_options"] = {"include_usage": True}
 
     return base, model, headers, payload, use_stream
 
@@ -157,7 +165,9 @@ def _build_openai_request(
 _ERROR_DETAIL_CHARS = 300
 
 
-def _handle_openai_response(response: httpx.Response, model_cfg: ModelConfig, model: str) -> str:
+def _handle_openai_response(
+    response: httpx.Response, model_cfg: ModelConfig, model: str
+) -> RawCompletion:
     if response.status_code >= 400:
         detail = (response.text or "").strip()
         if len(detail) > _ERROR_DETAIL_CHARS:
@@ -171,7 +181,10 @@ def _handle_openai_response(response: httpx.Response, model_cfg: ModelConfig, mo
             )
         )
     data = response.json()
-    return data["choices"][0]["message"]["content"]
+    return RawCompletion(
+        data["choices"][0]["message"]["content"],
+        usage_from_openai_payload(data),
+    )
 
 
 def _analyze_openai_compatible(
@@ -268,11 +281,15 @@ def _consume_openai_sse(
     *,
     watch: StreamWatch,
     on_delta: Callable[[str], None] | None,
+    usage: UsageBox,
 ) -> None:
     for line in response.iter_lines():
         watch.check()
         if not line:
             continue
+        data = json_data_line(line)
+        if data is not None:
+            usage.note(usage_from_openai_payload(data))
         piece = _parse_sse_chat_chunk(line)
         if piece is None:
             continue
@@ -294,7 +311,7 @@ class OpenAiStream:
     on_delta: Callable[[str], None] | None
     silence_timeout: float = DEFAULT_SILENCE_TIMEOUT
 
-def _stream_openai_compatible(job: OpenAiStream) -> str:
+def _stream_openai_compatible(job: OpenAiStream) -> RawCompletion:
     """Accumulate streamed chat.completion chunks; invoke ``on_delta`` per piece.
 
     ``timeout`` is the wait for the first token. After that, ``silence_timeout``
@@ -310,6 +327,7 @@ def _stream_openai_compatible(job: OpenAiStream) -> str:
     silence_timeout = job.silence_timeout
     on_delta = job.on_delta
     parts: list[str] = []
+    usage = UsageBox()
     watch = StreamWatch(
         prefill_timeout=timeout,
         silence_timeout=silence_timeout,
@@ -326,7 +344,9 @@ def _stream_openai_compatible(job: OpenAiStream) -> str:
             thread = _arm_stream_watch(response, watch, stop)
             try:
                 _raise_openai_http_status(response, provider=provider, model=model)
-                _consume_openai_sse(response, parts, watch=watch, on_delta=on_delta)
+                _consume_openai_sse(
+                    response, parts, watch=watch, on_delta=on_delta, usage=usage
+                )
             except LlmError:
                 raise
             except Exception:
@@ -340,7 +360,7 @@ def _stream_openai_compatible(job: OpenAiStream) -> str:
     content = "".join(parts)
     if not content.strip():
         raise LlmError("LLM stream completed with empty content")
-    return content
+    return RawCompletion(content, usage.value)
 
 
 def _parse_anthropic_sse_text_delta(line: str) -> str | None:
@@ -418,11 +438,18 @@ def _stream_anthropic(
     payload: dict[str, Any],
     timeout: float,
     on_delta: Callable[[str], None] | None,
-) -> str:
+) -> RawCompletion:
     """Accumulate Anthropic Messages SSE ``text_delta`` chunks."""
     label = "Anthropic"
     parts: list[str] = []
+    usage = UsageBox()
     watch = StreamWatch(prefill_timeout=timeout, label=label)
+
+    def note_line(line: str) -> None:
+        data = json_data_line(line)
+        if data is not None:
+            usage.note(usage_from_anthropic_event(data))
+
     try:
         with client.stream(
             "POST",
@@ -437,7 +464,8 @@ def _stream_anthropic(
                 parts=parts,
                 watch=watch,
                 on_delta=on_delta,
+                note_line=note_line,
             )
     except httpx.TimeoutException as exc:
         raise LlmError(timeout_message(label, timeout)) from exc
-    return require_stream_text(parts, label)
+    return RawCompletion(require_stream_text(parts, label), usage.value)

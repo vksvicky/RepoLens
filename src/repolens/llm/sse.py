@@ -93,11 +93,14 @@ def consume_sse_lines(
     parts: list[str],
     watch: StreamWatch,
     on_delta: Callable[[str], None] | None,
+    note_line: Callable[[str], None] | None = None,
 ) -> None:
     for line in response.iter_lines():
         watch.check()
         if not line:
             continue
+        if note_line is not None:
+            note_line(line)
         piece = parse_line(line)
         take_sse_piece(parts, piece, on_delta)
         if piece:

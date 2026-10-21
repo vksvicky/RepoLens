@@ -81,3 +81,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-21 | overlap→push | 91% | 0/0/0/1 | Scanners overlap Fast Brain; supply chain waits for the scanner future; duration only when a tool ran | chat |
 | 2026-10-21 | review-time→push | 91% | 0/0/0/1 | Per-pass first-token rows; plan uses the last same-model sample; coverage closure is not the plan sample | chat |
 | 2026-10-21 | memory-footprint→push | 91% | 0/0/0/1 | One read for per-file checks; bounded excerpt and FTS; workers 0 leaves one core free | chat |
+| 2026-10-21 | benchmark→push | 90% | 0/0/0/1 | Stream usage kept per provider; repair is added; a missing count stays empty. Not merged. | chat |

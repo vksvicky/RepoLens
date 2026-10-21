@@ -115,7 +115,17 @@ def _run_deep_pass(job: DeepJob):
     attempts = int(getattr(result, "repair_attempts", 0) or 0)
     chars_in = len(prompt)
     chars_out = len(result.raw_text or "")
-    return report, result.raw_text or "", degraded, attempts, chars_in, chars_out, clock
+    token_count = None if result.usage is None else result.usage.total_tokens
+    return (
+        report,
+        result.raw_text or "",
+        degraded,
+        attempts,
+        chars_in,
+        chars_out,
+        clock,
+        token_count,
+    )
 
 def _merge_closure(report: FindingReport, extra: FindingReport) -> FindingReport:
     from repolens.deep import is_unmeasured_model_claim
@@ -193,6 +203,7 @@ def _apply_coverage_closure(
         prompt_chars=len(prompt),
         raw_text=result.raw_text or "",
         clock=clock,
+        token_count=None if result.usage is None else result.usage.total_tokens,
     ))
     if result.report is None:
         prog.phase("Coverage closure returned no report; unanswered ids stay missed")

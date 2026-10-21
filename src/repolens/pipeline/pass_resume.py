@@ -212,7 +212,16 @@ def _execute_live_pass(job: DeepJob) -> tuple[FindingReport, str, bool, int]:
         status=prog.phase,
     )
     try:
-        part, raw, degraded, attempts, chars_in, chars_out, clock = _run_deep_pass(DeepJob(
+        (
+            part,
+            raw,
+            degraded,
+            attempts,
+            chars_in,
+            chars_out,
+            clock,
+            token_count,
+        ) = _run_deep_pass(DeepJob(
             idx=idx,
             n=n,
             deep_pass=deep_pass,
@@ -240,6 +249,7 @@ def _execute_live_pass(job: DeepJob) -> tuple[FindingReport, str, bool, int]:
         prompt_chars=chars_in,
         raw_text=raw,
         clock=clock,
+        token_count=token_count,
     )
     record_pass_timing(row)
     if not degraded:
