@@ -103,4 +103,5 @@ class ReviewRun:
     triage_bypassed: Any = None
     triage_plan: Any = None
     use_deep: Any = None
+    pass_timings: Any = None
     _llm_t0: Any = None

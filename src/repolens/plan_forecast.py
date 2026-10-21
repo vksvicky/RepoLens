@@ -79,7 +79,7 @@ def forecast_deep_plan(
         )
         for p in passes
     ]
-    minutes, estimate_line, provider = _forecast_runtime(cfg, forecasts)
+    minutes, estimate_line, provider = _forecast_runtime(root, cfg, forecasts)
     return PlanForecast(
         root=str(root),
         role_packs=bool(cfg.deep.role_packs),
@@ -141,8 +141,10 @@ def _plan_forecast_passes(
 
 
 def _forecast_runtime(
-    cfg: RepoLensConfig, forecasts: list[PassForecast]
+    root: Path, cfg: RepoLensConfig, forecasts: list[PassForecast]
 ) -> tuple[int, str, str]:
+    from repolens.pipeline.pass_timing import with_first_token_sample
+
     file_proxy = max((f.file_count for f in forecasts), default=0)
     provider = cfg.model.provider or "unknown"
     if cfg.deep.role_packs and forecasts:
@@ -164,6 +166,12 @@ def _forecast_runtime(
         estimate_line = estimate_deep_runtime(
             files=file_proxy, passes=len(forecasts), provider=provider
         )
+    estimate_line = with_first_token_sample(
+        root,
+        cfg.model.model or "",
+        estimate_line,
+        passes=len(forecasts),
+    )
     return minutes, estimate_line, provider
 
 

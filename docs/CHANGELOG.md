@@ -11,6 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Every report records Python process peak RSS. The figure is this process, not the Ollama model and not OS memory pressure.
 - `[model] memory_ceiling_mb` can hint, or stop with exit 2 when `memory_abort` is true, before the model starts. A local `32b` tag on a machine under 24 GiB prints a notice and continues.
 - Scanners and Fast Brain run together. Supply chain waits until the scanner call has returned. Each scanner that ran records `durationSeconds`, and the report prints one scanner-time line.
+- Each Slow Brain pass records queue wait, time to the first token, and generation time. A resumed pass leaves those fields empty. `repolens plan` adds the last first-token sample for this model on this tree, and says when there is no sample. `chars_per_pass` stays 100,000.
 - Semgrep 1.180.0 and Checkov 3.3.9 plugin installs use hashed requirement locks (`pip --require-hashes`), so dependencies are pinned as well as the named wheel. Locks are CPython 3.12. The Docker image installs the matching linux Semgrep lock instead of the unhashed `scanners` extra.
 - [for-everyone.md](./for-everyone.md) explains the review, the score, and the fixed checker list for someone who will read a report and not run the tool.
 - A cancelled review continues from the saved passes. The progress line shows file checks done, still to go, and a percentage. A pass stopped mid-write starts again. A saved pass whose files no longer match says so and runs again.

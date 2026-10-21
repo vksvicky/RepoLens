@@ -128,6 +128,9 @@ def _return_cached_pass(
     prog: ReviewProgress,
 ) -> tuple[FindingReport, str, bool, int]:
     prog.phase(f"[Slow Brain] Resumed {label} from cache ({len(cached.issues)} findings)")
+    from repolens.pipeline.pass_timing import record_pass_timing, resumed_pass_timing
+
+    record_pass_timing(resumed_pass_timing(deep_pass.name))
     append_event(
         root,
         "pass_completed",
@@ -209,7 +212,7 @@ def _execute_live_pass(job: DeepJob) -> tuple[FindingReport, str, bool, int]:
         status=prog.phase,
     )
     try:
-        part, raw, degraded, attempts, chars_in, chars_out = _run_deep_pass(DeepJob(
+        part, raw, degraded, attempts, chars_in, chars_out, clock = _run_deep_pass(DeepJob(
             idx=idx,
             n=n,
             deep_pass=deep_pass,
@@ -227,7 +230,18 @@ def _execute_live_pass(job: DeepJob) -> tuple[FindingReport, str, bool, int]:
     finally:
         reset_lock_context(token)
     pass_duration_ms = int((time.perf_counter() - started) * _MS_PER_SECOND)
-    queue_wait_ms = int(max(0.0, queue_wait_seconds() - wait_before) * _MS_PER_SECOND)
+    queue_wait = round(max(0.0, queue_wait_seconds() - wait_before), 1)
+    queue_wait_ms = int(queue_wait * _MS_PER_SECOND)
+    from repolens.pipeline.pass_timing import live_pass_timing, record_pass_timing
+
+    row = live_pass_timing(
+        deep_pass.name,
+        queue_wait_seconds=queue_wait,
+        prompt_chars=chars_in,
+        raw_text=raw,
+        clock=clock,
+    )
+    record_pass_timing(row)
     if not degraded:
         save_pass(root, key, part)
     append_event(
@@ -242,6 +256,9 @@ def _execute_live_pass(job: DeepJob) -> tuple[FindingReport, str, bool, int]:
         chars_out=chars_out,
         pass_duration_ms=pass_duration_ms,
         queue_wait_ms=queue_wait_ms,
+        model=model_name,
+        time_to_first_token_seconds=row.timeToFirstTokenSeconds,
+        generation_seconds=row.generationSeconds,
         pack_mode=getattr(deep_pass, "pack_mode", "full"),
         files_count=len(deep_pass.files),
         coverage_gap_count=sum(1 for gap in part.durabilityGaps if gap.startswith("coverage:")),

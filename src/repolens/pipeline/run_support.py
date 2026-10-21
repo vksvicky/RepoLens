@@ -114,7 +114,11 @@ def _invoke_deep_llm(state) -> None:
 
     if state.report_when is None:
         state.report_when = datetime.now(UTC)
-    state.report = _analyze_deep_passes(DeepJob(
+    from repolens.pipeline.pass_timing import close_pass_timings, open_pass_timings
+
+    token = open_pass_timings()
+    try:
+        state.report = _analyze_deep_passes(DeepJob(
         root=state.root,
         mode=state.mode,
         full_audit=state.full_audit,
@@ -133,7 +137,9 @@ def _invoke_deep_llm(state) -> None:
         retry_passes=normalize_retry_passes(state.retry_passes),
         graph=state.graph_result,
         change_set=state.change_set_block,
-    ))
+        ))
+    finally:
+        state.pass_timings = close_pass_timings(token)
 
 
 def _status_with_ollama(gen, ollama_base: str | None):
@@ -350,6 +356,7 @@ def _build_finished_provenance(state):
         expandedArgv=list(state.expanded_argv or []),
         pythonPeakRssBytes=read_peak_rss_bytes(),
         pythonRssNote=PYTHON_RSS_NOTE,
+        passTimings=list(state.pass_timings or []),
     )
 
 

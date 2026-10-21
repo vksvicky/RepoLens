@@ -183,6 +183,21 @@ class GraphBlock(BaseModel):
     packageCount: int = 0
 
 
+class PassTiming(BaseModel):
+    """One Slow Brain pass. A resumed pass leaves the generation fields empty."""
+
+    passName: str
+    outcome: Literal["live", "resumed", "reused"]
+    queueWaitSeconds: float | None = Field(default=None, ge=0)
+    timeToFirstTokenSeconds: float | None = Field(default=None, ge=0)
+    generationSeconds: float | None = Field(default=None, ge=0)
+    promptChars: int | None = Field(default=None, ge=0)
+    outputChars: int | None = Field(default=None, ge=0)
+    charsPerSecond: float | None = Field(default=None, ge=0)
+    # Set only when the transport reports a usage total. This is not a tokenizer.
+    tokenCount: int | None = Field(default=None, ge=0)
+
+
 class ProvenanceBlock(BaseModel):
     """Phase 6.3 report provenance for CI / audit trails."""
 
@@ -215,6 +230,7 @@ class ProvenanceBlock(BaseModel):
     # Python process only. Not Ollama and not OS memory pressure.
     pythonPeakRssBytes: int | None = Field(default=None, ge=0)
     pythonRssNote: str | None = None
+    passTimings: list[PassTiming] = Field(default_factory=list)
 
 
 class SuppressedIssue(BaseModel):

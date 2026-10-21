@@ -79,3 +79,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-21 | 6a0efd5→push | 92% | 0/0/0/0 | Same report-identity commit pushed; optional provenance fields; git branch via list-form rev-parse | chat |
 | 2026-10-21 | issue-140→push | 92% | 0/0/0/1 | Opt-in RSS ceiling exits 2 only before the model; 32B notice does not name a cloud model or stop the run | chat |
 | 2026-10-21 | overlap→push | 91% | 0/0/0/1 | Scanners overlap Fast Brain; supply chain waits for the scanner future; duration only when a tool ran | chat |
+| 2026-10-21 | review-time→push | 91% | 0/0/0/1 | Per-pass first-token rows; plan uses the last same-model sample; coverage closure is not the plan sample | chat |

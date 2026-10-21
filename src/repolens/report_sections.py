@@ -234,6 +234,10 @@ def _provenance_identity_lines(prov) -> list[str]:
         lines.append(f"- **Python process peak RSS**: `{label}`")
     if prov.pythonRssNote:
         lines.append(f"- **Python RSS note**: {prov.pythonRssNote}")
+    if prov.passTimings:
+        from repolens.pipeline.pass_timing import format_pass_timing
+
+        lines.extend(format_pass_timing(row) for row in prov.passTimings)
     return lines
 
 
