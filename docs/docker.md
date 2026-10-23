@@ -13,7 +13,7 @@ Image: `ghcr.io/vksvicky/repolens` (multi-arch `linux/amd64`, `linux/arm64` when
 | gitleaks | 8.24.0 |
 | osv-scanner | 1.9.2 |
 | trivy | 0.73.0 |
-| semgrep | 1.180.0, Python 3.12, fixed list of every piece it needs |
+| semgrep | 1.181.0, Python 3.12, fixed list of every piece it needs |
 
 No API keys or cloud credentials are baked into the image. The runtime stage defines a `HEALTHCHECK` that runs `repolens version`.
 

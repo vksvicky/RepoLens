@@ -36,7 +36,7 @@ Pinned native downloads (gitleaks, osv-scanner) currently cover:
 
 **In plain words:** installing Semgrep or Checkov through RepoLens uses a fixed list. That list names the tool and every extra piece it needs, and checks each file so a different copy cannot be swapped in. The list is for Python 3.12. Another Python stops before any download, and the message names the Python version. It is not a damaged-file error. The container image already includes that Semgrep list. Everyday reading of the same idea: [for-everyone.md](./for-everyone.md).
 
-For the person running the install: Semgrep **1.180.0** and Checkov **3.3.9**, via `pip install --require-hashes`. The Docker image (Python 3.12) installs the matching Linux Semgrep lock. The `scanners` extra is the same Semgrep version, and that extra does not do the file check.
+For the person running the install: Semgrep **1.181.0** and Checkov **3.3.9**, via `pip install --require-hashes`. The Docker image (Python 3.12) installs the matching Linux Semgrep lock. The `scanners` extra is the same Semgrep version, and that extra does not do the file check.
 
 What the `[scanners]` **pip extra** contains (and that it is a RepoLens install option, not per-project config): [install-extras.md](./install-extras.md).  
 Cross-OS CLI walkthrough: [try-on-your-repo.md](./try-on-your-repo.md).

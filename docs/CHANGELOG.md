@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- The Semgrep install pin is 1.181.0, including the hashed plugin locks and the `scanners` extra.
+
 ### Fixed
 
 - The docs linked from the PyPI page install `repolens-audit==0.1.4`. Local learning describes the store that ships. Notes that were never committed are no longer named as if they were in the repo.
