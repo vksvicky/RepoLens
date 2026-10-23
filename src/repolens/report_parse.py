@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import UTC
 from pathlib import Path
@@ -14,9 +15,7 @@ _COUNTS_RE = re.compile(
     re.IGNORECASE,
 )
 _CONF_RE = re.compile(r"\*\*Gate confidence:\*\*\s*(\d+)%")
-_ISSUE_HEAD_RE = re.compile(
-    r"^### \[(CRITICAL|HIGH|MEDIUM|LOW)\] (.+)$", re.MULTILINE
-)
+_ISSUE_HEAD_RE = re.compile(r"^### \[(CRITICAL|HIGH|MEDIUM|LOW)\] (.+)$", re.MULTILINE)
 _FIELD_RE = re.compile(
     r"^- \*\*(Priority|File|Line|Category|Explanation|Impact|"
     r"Recommended fix|Fix timing|OWASP|CWE|Code example):\*\*\s*(.*)$",
@@ -94,13 +93,12 @@ def _parsed_line(fields: dict[str, str]) -> int:
     try:
         line = int(fields.get("line", "1") or "1")
     except ValueError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return 1
     return line if line >= 1 else 1
 
 
-def _normalized_impact_and_code(
-    sev: Severity, impact: str, code: str
-) -> tuple[str, str]:
+def _normalized_impact_and_code(sev: Severity, impact: str, code: str) -> tuple[str, str]:
     if impact in {"_n/a_", "n/a"}:
         impact = ""
     if code.startswith("_MISSING"):
@@ -143,6 +141,7 @@ def _imported_issue(sev: Severity, title: str, section: str) -> Issue | None:
             cwe=fields.get("cwe") or None,
         )
     except Exception:  # noqa: BLE001 — skip malformed issue blocks
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
 
 

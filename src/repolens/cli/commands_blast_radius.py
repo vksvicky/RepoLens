@@ -11,14 +11,15 @@ from rich.table import Table
 
 from repolens.blast_radius import simulate_blast_radius
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT, JSON_INDENT
 from repolens.cli.pack_scope import option_path
+
+_CONSUMER_PREVIEW = 40
 
 
 @app.command("blast-radius")
 def blast_radius_cmd(
-    seed: str = typer.Argument(
-        ..., help="File path (pkg/core.py) or dotted module (pkg.core)"
-    ),
+    seed: str = typer.Argument(..., help="File path (pkg/core.py) or dotted module (pkg.core)"),
     path: str | None = option_path(),
     as_json: bool = typer.Option(False, "--json", help="Emit JSON"),
 ) -> None:
@@ -28,10 +29,10 @@ def blast_radius_cmd(
         sim = simulate_blast_radius(root, seed)
     except (OSError, ValueError, RuntimeError) as exc:
         console.print(f"[red]blast-radius failed:[/red] {exc}")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
 
     if as_json:
-        typer.echo(json.dumps(asdict(sim), indent=2))
+        typer.echo(json.dumps(asdict(sim), indent=JSON_INDENT))
         return
 
     table = Table(title="blast-radius")
@@ -46,10 +47,10 @@ def blast_radius_cmd(
     console.print(table)
     if sim.consumers:
         console.print("[bold]Consumers[/bold]")
-        for mod in sim.consumers[:40]:
+        for mod in sim.consumers[:_CONSUMER_PREVIEW]:
             console.print(f"  · {mod}")
-        if len(sim.consumers) > 40:
-            console.print(f"  … +{len(sim.consumers) - 40} more")
+        if len(sim.consumers) > _CONSUMER_PREVIEW:
+            console.print(f"  … +{len(sim.consumers) - _CONSUMER_PREVIEW} more")
     for row in sim.boundary_violations[:20]:
         console.print(f"[yellow]boundary[/yellow] {row}")
     if sim.note:

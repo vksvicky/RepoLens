@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import typer
 
 from repolens.cli.app import _coerce_local_path, app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT
 from repolens.explain import (
     ExplainDisabledError,
     IssueNotFoundError,
+    RunExplain,
     run_explain,
 )
 from repolens.pipeline import ReviewResult
@@ -31,7 +34,7 @@ def run_post_review_explains(
             if coerced is not None:
                 explain_root = coerced.resolve()
         except SourceError:
-            pass
+            logging.getLogger(__name__).debug("handled expected error", exc_info=True)
     explain_out = None
     if result.json_path is not None:
         explain_out = result.json_path.parent
@@ -43,12 +46,12 @@ def run_post_review_explains(
         if not uid:
             continue
         try:
-            artifact = run_explain(
-                uuid=uid,
-                project_root=explain_root,
-                out_dir=explain_out,
-                progress=prog,
-            )
+            artifact = run_explain(RunExplain(
+        uuid=uid,
+        project_root=explain_root,
+        out_dir=explain_out,
+        progress=prog,
+    ))
             console.print(f"[green]Explain report:[/green] {artifact}")
         except (ExplainDisabledError, IssueNotFoundError, FileNotFoundError) as exc:
             console.print(f"[yellow]Explain skipped ({uid}):[/yellow] {exc}")
@@ -58,17 +61,10 @@ def run_post_review_explains(
 def explain_cmd(
     uuid: str = typer.Argument(
         ...,
-        help=(
-            "Fingerprint or Occurrence UUID from a gate report "
-            "(prefer Fingerprint; both work)"
-        ),
+        help=("Fingerprint or Occurrence UUID from a gate report (prefer Fingerprint; both work)"),
     ),
-    path: str | None = typer.Option(
-        None, "--path", help="Project root (default: .)"
-    ),
-    out: Path | None = typer.Option(
-        None, "--out", help="Report directory containing gate JSON"
-    ),
+    path: str | None = typer.Option(None, "--path", help="Project root (default: .)"),
+    out: Path | None = typer.Option(None, "--out", help="Report directory containing gate JSON"),
     no_diagram: bool = typer.Option(
         False, "--no-diagram", help="Skip Mermaid / diagram section generation"
     ),
@@ -77,12 +73,8 @@ def explain_cmd(
         "--render-image",
         help="Force optional PNG/SVG render when a renderer is available",
     ),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Extra detail under phase lines"
-    ),
-    quiet: bool = typer.Option(
-        False, "--quiet", "-q", help="Silence progress (CI)"
-    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Extra detail under phase lines"),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Silence progress (CI)"),
     heartbeat: float = typer.Option(
         15.0,
         "--heartbeat",
@@ -94,7 +86,7 @@ def explain_cmd(
         local = _coerce_local_path(path) or Path(".")
     except SourceError as exc:
         console.print(f"[red]Source error:[/red] {exc}")
-        raise typer.Exit(code=2) from None
+        raise typer.Exit(code=EXIT_BAD_INPUT) from None
     root = local.resolve()
     prog = ReviewProgress(
         quiet=quiet,
@@ -102,21 +94,21 @@ def explain_cmd(
         heartbeat_seconds=heartbeat,
     )
     try:
-        artifact = run_explain(
-            uuid=uuid,
-            project_root=root,
-            out_dir=out,
-            no_diagram=no_diagram,
-            render_image="always" if render_image else None,
-            progress=prog,
-        )
+        artifact = run_explain(RunExplain(
+        uuid=uuid,
+        project_root=root,
+        out_dir=out,
+        no_diagram=no_diagram,
+        render_image="always" if render_image else None,
+        progress=prog,
+    ))
     except ExplainDisabledError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     except IssueNotFoundError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     except FileNotFoundError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     console.print(f"[green]Explain report:[/green] {artifact}")

@@ -165,9 +165,11 @@ def test_cli_preset_forwards_mapped_flags(tmp_path: Path) -> None:
             app, ["review", "--path", str(root), "--preset", "release"]
         )
     assert result.exit_code == 0, result.output
-    args = run_mode.call_args.args
-    assert RELEASE_TIMEOUT_S in args
-    assert True in args  # force_full / full_audit / deep
+    request = run_mode.call_args.args[0]
+    assert request.timeout == RELEASE_TIMEOUT_S
+    assert request.force_full is True
+    assert request.full_audit is True
+    assert request.deep is True
 
 
 def test_cli_explicit_timeout_beats_preset(tmp_path: Path) -> None:
@@ -177,7 +179,7 @@ def test_cli_explicit_timeout_beats_preset(tmp_path: Path) -> None:
             app,
             ["review", "--path", str(root), "--preset", "changed", "--timeout", "7"],
         )
-    args = run_mode.call_args.args
-    assert 7.0 in args
-    assert CHANGED_TIMEOUT_S not in args
-    assert "auto" in args
+    request = run_mode.call_args.args[0]
+    assert request.timeout == 7.0
+    assert request.timeout != CHANGED_TIMEOUT_S
+    assert request.scanners == "auto"

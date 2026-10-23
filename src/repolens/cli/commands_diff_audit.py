@@ -9,6 +9,7 @@ import typer
 from rich.table import Table
 
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT, JSON_INDENT
 from repolens.diff_audit import (
     diff_audit_as_dict,
     diff_audit_files,
@@ -16,6 +17,8 @@ from repolens.diff_audit import (
     render_diff_audit_html,
     render_diff_audit_md,
 )
+
+_DIFF_ROW_PREVIEW = 10
 
 
 @app.command("diff-audit")
@@ -39,11 +42,11 @@ def diff_audit_cmd(
         right_rep = load_report(right)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         console.print(f"[red]diff-audit failed:[/red] {exc}")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
 
     fmt_norm = fmt.strip().lower()
     if as_json or fmt_norm == "json":
-        typer.echo(json.dumps(diff_audit_as_dict(result), indent=2))
+        typer.echo(json.dumps(diff_audit_as_dict(result), indent=JSON_INDENT))
         return
 
     if fmt_norm in {"md", "markdown", "html"}:
@@ -70,17 +73,16 @@ def diff_audit_cmd(
     table.add_row("Unchanged", str(result.unchanged))
     table.add_row(
         "Confidence",
-        f"{result.left_confidence}% → {result.right_confidence}% "
-        f"(Δ {result.confidence_delta:+d})",
+        f"{result.left_confidence}% → {result.right_confidence}% (Δ {result.confidence_delta:+d})",
     )
     console.print(table)
     for note in result.notes:
         console.print(f"[yellow]{note}[/yellow]")
-    if result.new[:10]:
+    if result.new[:_DIFF_ROW_PREVIEW]:
         console.print("[bold]New[/bold]")
-        for row in result.new[:10]:
+        for row in result.new[:_DIFF_ROW_PREVIEW]:
             console.print(f"  + {row}")
-    if result.resolved[:10]:
+    if result.resolved[:_DIFF_ROW_PREVIEW]:
         console.print("[bold]Resolved[/bold]")
-        for row in result.resolved[:10]:
+        for row in result.resolved[:_DIFF_ROW_PREVIEW]:
             console.print(f"  - {row}")

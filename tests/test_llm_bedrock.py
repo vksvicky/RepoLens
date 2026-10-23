@@ -13,6 +13,7 @@ from repolens.cli import app
 from repolens.config import ModelConfig
 from repolens.llm import LlmError, analyze_raw
 from repolens.llm.bedrock import (
+    Sigv4Headers,
     encode_event_stream_message,
     extract_text_from_bedrock_payload,
     iter_bedrock_text_deltas,
@@ -67,7 +68,7 @@ def test_event_stream_roundtrip_text() -> None:
 
 
 def test_sigv4_headers_stable_shape() -> None:
-    headers = sigv4_headers(
+    headers = sigv4_headers(Sigv4Headers(
         method="POST",
         url="https://bedrock-runtime.us-east-1.amazonaws.com/model/m/converse-stream",
         body=b"{}",
@@ -76,7 +77,7 @@ def test_sigv4_headers_stable_shape() -> None:
         secret_key="secret",
         session_token=None,
         amz_date="20260101T000000Z",
-    )
+    ))
     assert headers["Authorization"].startswith("AWS4-HMAC-SHA256 Credential=AKIATEST/")
     assert "X-Amz-Date" in headers
     assert headers["Host"] == "bedrock-runtime.us-east-1.amazonaws.com"

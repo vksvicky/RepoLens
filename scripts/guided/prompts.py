@@ -251,12 +251,14 @@ def _choose_model(models: list[str]) -> str | None:
         print(f"Enter 0–{len(models)}." if models else "Enter 0.")
 
 
-def _prompt_model(llm_will_run: bool) -> str | None:
-    if not llm_will_run:
-        return None
+def _choose_installed_model() -> str | None:
     models = list_installed_models()
     _print_model_menu(models)
     return _choose_model(models)
+
+
+def _prompt_model(llm_will_run: bool) -> str | None:
+    return _choose_installed_model() if llm_will_run else None
 
 
 def _read_timeout(suggested: float) -> float | None:

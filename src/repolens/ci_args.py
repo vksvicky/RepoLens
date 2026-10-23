@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from dataclasses import dataclass
 
 KNOWN_KEY_ENVS = (
     "OPENAI_API_KEY",
@@ -21,21 +22,30 @@ def has_llm_api_key(environ: Mapping[str, str] | None = None) -> bool:
     return any(bool(env.get(name, "").strip()) for name in KNOWN_KEY_ENVS)
 
 
-def build_review_argv(
-    *,
-    mode: str = "review",
-    path: str = ".",
-    run: str = "auto",
-    fail_on: str = "HIGH",
-    scanners: str = "auto",
-    require_scanners: bool = False,
-    has_key: bool | None = None,
-    ci: bool = True,
-) -> list[str]:
+@dataclass
+class BuildReviewArgv:
+    mode: str = 'review'
+    path: str = '.'
+    run: str = 'auto'
+    fail_on: str = 'HIGH'
+    scanners: str = 'auto'
+    require_scanners: bool = False
+    has_key: bool | None = None
+    ci: bool = True
+
+def build_review_argv(job: BuildReviewArgv) -> list[str]:
     """Return argv starting with ``repolens`` for subprocess / shell use.
 
     Default ``ci=True`` matches the enterprise PR recipe (triage routing).
     """
+    mode = job.mode
+    path = job.path
+    run = job.run
+    fail_on = job.fail_on
+    scanners = job.scanners
+    require_scanners = job.require_scanners
+    has_key = job.has_key
+    ci = job.ci
     mode_norm = mode.strip().lower()
     run_norm = run.strip().lower()
     if mode_norm not in VALID_MODES:

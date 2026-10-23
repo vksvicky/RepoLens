@@ -16,6 +16,9 @@ DEFAULT_REVIEW_SKIP_GLOBS: tuple[str, ...] = (
 )
 
 
+_GLOB_AFFIX = 3  # len("**/") and len("/**")
+
+
 def matches_glob(relative: str, pattern: str) -> bool:
     """Match a repo-relative path against a glob (``**/dir/**`` included)."""
     rel = relative.replace("\\", "/")
@@ -23,7 +26,7 @@ def matches_glob(relative: str, pattern: str) -> bool:
     if path.match(pattern):
         return True
     if pattern.startswith("**/") and pattern.endswith("/**"):
-        dirname = pattern[3:-3]
+        dirname = pattern[_GLOB_AFFIX:-_GLOB_AFFIX]
         if dirname and dirname in path.parts:
             return True
     return False

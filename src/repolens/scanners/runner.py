@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -43,6 +44,12 @@ def _run_one(tool: str, root: Path) -> tuple[str, ScannerResult | None, str | No
     return tool, runner(root), None
 
 
+def _run_timed(tool: str, root: Path) -> tuple[str, ScannerResult | None, str | None, float]:
+    started = time.monotonic()
+    name, result, err = _run_one(tool, root)
+    return name, result, err, round(time.monotonic() - started, 1)
+
+
 def run_scanners(root: Path, tools: list[str]) -> tuple[list[ScannerRun], list[Issue], list[str]]:
     """Run scanners (in parallel when multiple) and stamp ``source=scanner``."""
     runs: list[ScannerRun] = []
@@ -51,27 +58,30 @@ def run_scanners(root: Path, tools: list[str]) -> tuple[list[ScannerRun], list[I
     if not tools:
         return runs, issues, gaps
 
-    results_by_tool: dict[str, tuple[ScannerResult | None, str | None]] = {}
+    results_by_tool: dict[str, tuple[ScannerResult | None, str | None, float]] = {}
     if len(tools) == 1:
-        tool, result, err = _run_one(tools[0], root)
-        results_by_tool[tool] = (result, err)
+        tool, result, err, elapsed = _run_timed(tools[0], root)
+        results_by_tool[tool] = (result, err, elapsed)
     else:
         workers = min(len(tools), 5)
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            futures = {pool.submit(_run_one, tool, root): tool for tool in tools}
+            futures = {pool.submit(_run_timed, tool, root): tool for tool in tools}
             for fut in as_completed(futures):
-                tool, result, err = fut.result()
-                results_by_tool[tool] = (result, err)
+                tool, result, err, elapsed = fut.result()
+                results_by_tool[tool] = (result, err, elapsed)
 
     for tool in tools:
-        result, err = results_by_tool.get(tool, (None, "unknown tool"))
+        result, err, elapsed = results_by_tool.get(tool, (None, "unknown tool", 0.0))
         if result is None:
             runs.append(
                 ScannerRun(tool=tool, status="skipped", detail=err or "unknown tool")
             )
             gaps.append(f"scanner:{tool} missing — {MANUAL_HINTS.get(tool, 'install manually')}")
             continue
-        runs.append(result.run)
+        run = result.run
+        if run.status == "ran":
+            run = run.model_copy(update={"durationSeconds": elapsed})
+        runs.append(run)
         issues.extend(result.issues)
         if result.run.status == "skipped":
             gaps.append(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from repolens.config import GraphConfig
@@ -30,15 +31,14 @@ _SUFFIX_LANG = {
     ".cs": "c_sharp",
 }
 
-_MISSING = (
-    "graph.tree_sitter: extra not installed (pip install 'repolens-audit[graph]')"
-)
+_MISSING = "graph.tree_sitter: extra not installed (pip install 'repolens-audit[graph]')"
 
 
 def _language_pack() -> object | None:
     try:
         import tree_sitter_language_pack as pack  # type: ignore[import-untyped]
     except ImportError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     return pack
 

@@ -14,7 +14,7 @@ import httpx
 
 from repolens.config import ModelConfig
 from repolens.llm.errors import LlmError
-from repolens.llm.gemini import gemini_generate_payload, stream_gemini_sse
+from repolens.llm.gemini import GeminiSse, gemini_generate_payload, stream_gemini_sse
 from repolens.llm.setup import default_model, resolve_llm_timeout
 
 DEFAULT_VERTEX_MODEL = "gemini-2.0-flash"
@@ -129,15 +129,15 @@ def analyze_vertex(
     owns_client = client is None
     client = client or httpx.Client(timeout=timeout)
     try:
-        return stream_gemini_sse(
-            client,
-            url=url,
-            headers=headers,
-            payload=payload,
-            timeout=timeout,
-            on_delta=on_delta,
-            label="Vertex AI",
-        )
+        return stream_gemini_sse(GeminiSse(
+        client=client,
+        url=url,
+        headers=headers,
+        payload=payload,
+        timeout=timeout,
+        on_delta=on_delta,
+        label="Vertex AI",
+    ))
     finally:
         if owns_client:
             client.close()

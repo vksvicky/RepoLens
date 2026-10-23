@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -40,6 +41,9 @@ def _strip_uri_base_prefix(raw: str) -> str:
     return text
 
 
+_DRIVE_COLON_INDEX = 2
+
+
 def _norm_uri_to_rel(uri: str, *, root: Path) -> str | None:
     raw = _strip_uri_base_prefix((uri or "").strip())
     if not raw:
@@ -48,7 +52,7 @@ def _norm_uri_to_rel(uri: str, *, root: Path) -> str | None:
         parsed = urlparse(raw)
         raw = unquote(parsed.path)
         # Windows file:///C:/... → path may start with /C:/
-        if raw.startswith("/") and len(raw) > 2 and raw[2] == ":":
+        if raw.startswith("/") and len(raw) > _DRIVE_COLON_INDEX and raw[_DRIVE_COLON_INDEX] == ":":
             raw = raw[1:]
     path = Path(raw)
     root_res = root.resolve()
@@ -56,6 +60,7 @@ def _norm_uri_to_rel(uri: str, *, root: Path) -> str | None:
         try:
             rel = path.resolve().relative_to(root_res)
         except ValueError:
+            logging.getLogger(__name__).debug("handled expected error", exc_info=True)
             return None
     else:
         rel = PurePosixPath(raw.replace("\\", "/"))
@@ -65,6 +70,7 @@ def _norm_uri_to_rel(uri: str, *, root: Path) -> str | None:
         try:
             candidate.relative_to(root_res)
         except ValueError:
+            logging.getLogger(__name__).debug("handled expected error", exc_info=True)
             return None
         rel = candidate.relative_to(root_res)
     out = rel.as_posix().lstrip("./")
@@ -111,10 +117,7 @@ def _first_location(result: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def _high_impact(tool_name: str, rule_id: str, message: str, snippet: str) -> tuple[str, str]:
-    impact = (
-        f"Imported {tool_name} finding ({rule_id}); "
-        "confirm exploitability in this codebase."
-    )
+    impact = f"Imported {tool_name} finding ({rule_id}); confirm exploitability in this codebase."
     code = f"# Address {tool_name} / {rule_id}\n# {message[:200]}\n"
     if snippet:
         code += f"# snippet: {snippet[:120]}\n"
@@ -164,7 +167,7 @@ def _issue_from_sarif_result(
 def _issues_from_run(
     run: dict[str, Any], *, root: Path, path_name: str
 ) -> tuple[str, list[Issue], int]:
-    driver = ((run.get("tool") or {}).get("driver") or {})
+    driver = (run.get("tool") or {}).get("driver") or {}
     tool_name = str(driver.get("name") or "sarif")
     issues: list[Issue] = []
     skipped = 0
@@ -182,47 +185,33 @@ def _issues_from_run(
     return tool_name, issues, skipped
 
 
-def load_sarif_issues(
-    path: Path, *, root: Path, require: bool = False
-) -> list[SarifImportResult]:
+def _required_sarif_error(path: Path, exc: Exception) -> list[SarifImportResult]:
+    raise SarifImportError(f"SARIF import required but unreadable: {path}: {exc}") from exc
+
+
+def load_sarif_issues(path: Path, *, root: Path, require: bool = False) -> list[SarifImportResult]:
     if require and not path.is_file():
         raise SarifImportError(f"SARIF import required but missing: {path}")
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        if require:
-            raise SarifImportError(
-                f"SARIF import required but unreadable: {path}: {exc}"
-            ) from exc
-        return [
-            SarifImportResult(
-                tool_name="sarif", issues=[], skipped=0, detail=str(exc)[:300]
-            )
-        ]
+        return (
+            _required_sarif_error(path, exc)
+            if require
+            else [SarifImportResult(tool_name="sarif", issues=[], skipped=0, detail=str(exc)[:300])]
+        )
 
     runs = data.get("runs") if isinstance(data, dict) else None
     if not isinstance(runs, list) or not runs:
-        return [
-            SarifImportResult(
-                tool_name="sarif", issues=[], skipped=0, detail="no runs"
-            )
-        ]
+        return [SarifImportResult(tool_name="sarif", issues=[], skipped=0, detail="no runs")]
 
     out: list[SarifImportResult] = []
     for run in runs:
         if not isinstance(run, dict):
             continue
-        tool_name, issues, skipped = _issues_from_run(
-            run, root=root, path_name=path.name
-        )
-        out.append(
-            SarifImportResult(
-                tool_name=tool_name, issues=issues, skipped=skipped
-            )
-        )
-    return out or [
-        SarifImportResult(tool_name="sarif", issues=[], skipped=0, detail="no runs")
-    ]
+        tool_name, issues, skipped = _issues_from_run(run, root=root, path_name=path.name)
+        out.append(SarifImportResult(tool_name=tool_name, issues=issues, skipped=skipped))
+    return out or [SarifImportResult(tool_name="sarif", issues=[], skipped=0, detail="no runs")]
 
 
 def load_many_sarif(

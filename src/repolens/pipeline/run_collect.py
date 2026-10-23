@@ -6,6 +6,7 @@ import time
 from datetime import UTC
 
 from repolens.config import resolve_report_dir
+from repolens.heuristics.runner import RunHeuristics
 from repolens.pipeline.deep_exec import (
     _sync_adaptive_cache,
 )
@@ -81,6 +82,9 @@ def _announce_inventory(state: ReviewRun, fast_inv) -> None:
         state.inventory_notes.append(note)
 
 
+_INVENTORY_PREVIEW = 8
+
+
 def _load_review_inventory(state: ReviewRun) -> None:
     _apply_scope_flags(state)
     state.prog.phase("Inventory: scanning files…")
@@ -102,8 +106,9 @@ def _load_review_inventory(state: ReviewRun) -> None:
     _assign_inventory_files(state, fast_inv)
     _announce_inventory(state, fast_inv)
     if state.prog.verbose and state.fast_files:
-        sample = ", ".join(f.relative for f in state.fast_files[:8])
-        more = f" (+{len(state.fast_files) - 8} more)" if len(state.fast_files) > 8 else ""
+        sample = ", ".join(f.relative for f in state.fast_files[:_INVENTORY_PREVIEW])
+        extra = len(state.fast_files) - _INVENTORY_PREVIEW
+        more = f" (+{extra} more)" if extra > 0 else ""
         state.prog.detail(f"sample: {sample}{more}")
 
     # Fingerprints track Fast Brain set (not LLM slice alone).
@@ -219,8 +224,7 @@ def _postprocess_scanner_issues(state: ReviewRun) -> None:
             hinted = sum(1 for i in state.scanner_issues if i.usageHint)
             if hinted:
                 state.prog.detail(
-                    f"SCA usage hints: {hinted} package finding(s) "
-                    "(not reachability)"
+                    f"SCA usage hints: {hinted} package finding(s) (not reachability)"
                 )
         state.prog.phase(
             f"Scanners: finished ({len(state.scanner_issues)} finding(s), "
@@ -262,22 +266,25 @@ def _collect_supply_chain(state: ReviewRun) -> None:
 
 
 def _run_fast_brain_phase(state: ReviewRun) -> None:
+    from repolens.heuristics.workers import resolve_fast_brain_workers
+
+    workers = resolve_fast_brain_workers(state.cfg.fast_brain.parallel_workers)
     state.prog.phase(
         f"Fast brain: heuristics on {len(state.fast_files)} file(s) "
-        f"(workers={state.cfg.fast_brain.parallel_workers})…"
+        f"(workers={workers})…"
     )
     _fb_t0 = time.monotonic()
     from repolens.heuristics import run_heuristics
 
-    state.heur_result = run_heuristics(
-        state.root,
-        state.fast_files,
+    state.heur_result = run_heuristics(RunHeuristics(
+        root=state.root,
+        entries=state.fast_files,
         mega_file_lines=state.cfg.deep.mega_file_lines,
         mega_file_exclude_globs=state.cfg.deep.extra_skip_globs() or None,
         pack_ids=state.pack_ids or None,
-        workers=state.cfg.fast_brain.parallel_workers,
+        workers=workers,
         near_clones_config=state.cfg.fast_brain.near_clones,
-    )
+    ))
     state.fast_brain_seconds = round(time.monotonic() - _fb_t0, 1)
     state.heur_issues = list(state.heur_result.issues)
     state.prog.detail(

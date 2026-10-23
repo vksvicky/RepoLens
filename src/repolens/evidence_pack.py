@@ -164,9 +164,7 @@ def build_evidence_pack(
         else:
             notes.append("SBOM skipped: no CycloneDX artifact available.")
 
-        pdf_path: Path | None = None
-        if try_pdf:
-            pdf_path = _try_pandoc_pdf(inputs.markdown, work)
+        pdf_path = _try_pandoc_pdf(inputs.markdown, work) if try_pdf else None
         if pdf_path is not None:
             members["audit.pdf"] = pdf_path
         else:

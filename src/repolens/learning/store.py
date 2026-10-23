@@ -39,6 +39,18 @@ def legacy_index_path(root: Path) -> Path:
     return root.resolve() / ".repolens" / LEGACY_INDEX_NAME
 
 
+@dataclass
+class RecordRun:
+    started_at: float
+    finished_at: float
+    mode: str
+    provider: str | None
+    model: str | None
+    files_in_prompt: int
+    llm_seconds: float | None
+    timeout_used: float | None
+    outcome: str
+
 class ProjectStore:
     """Always-on fingerprints/metrics; FTS chunks filled only when learning consents."""
 
@@ -220,19 +232,16 @@ class ProjectStore:
             )
         self.conn.commit()
 
-    def record_run(
-        self,
-        *,
-        started_at: float,
-        finished_at: float,
-        mode: str,
-        provider: str | None,
-        model: str | None,
-        files_in_prompt: int,
-        llm_seconds: float | None,
-        timeout_used: float | None,
-        outcome: str,
-    ) -> None:
+    def record_run(self, job: RecordRun) -> None:
+        started_at = job.started_at
+        finished_at = job.finished_at
+        mode = job.mode
+        provider = job.provider
+        model = job.model
+        files_in_prompt = job.files_in_prompt
+        llm_seconds = job.llm_seconds
+        timeout_used = job.timeout_used
+        outcome = job.outcome
         self.conn.execute(
             "INSERT INTO runs(started_at, finished_at, mode, provider, model, "
             "files_in_prompt, llm_seconds, timeout_used, outcome) "

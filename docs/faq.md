@@ -9,7 +9,7 @@ If you will read the report and not run the tool, start with [for-everyone.md](.
 | **What does the score mean?** | How complete this review was. A high score means the checklist was answered. It does not mean the project is safe. See [for-everyone.md](./for-everyone.md). |
 | **What if one change affects other files?** | The report records it. A review of what changed says how many files were included. A review of the whole project says there was no limited change-set. |
 | **Are the extra checkers a known version?** | Yes, when installed with `repolens plugins install` or the container: Semgrep 1.180.0 and Checkov 3.3.9, including the pieces they need. That install expects Python 3.12. |
-| **How do I install?** | `pip install "repolens-audit[scanners]==0.1.3"` then run `repolens …`. Dist name on PyPI is **`repolens-audit`**; CLI stays `repolens`. See [install-extras.md](./install-extras.md). |
+| **How do I install?** | `pip install "repolens-audit[scanners]==0.1.4"` then run `repolens …`. Dist name on PyPI is **`repolens-audit`**; CLI stays `repolens`. See [install-extras.md](./install-extras.md). |
 | **Which command do I run?** | `repolens which pr` (fast, no model), `repolens which changed`, or `repolens which audit` (full due diligence). `--explain` says why. Unknown names exit 2. See [which-command.md](./which-command.md). |
 | **Do I need an AI key?** | For cloud AI (ChatGPT-style providers), **yes—you use your own key**. You can also run AI **on your own computer** (no cloud key). Scanners-only (`--scanners-only`) needs no AI key. |
 | **Is it self-sufficient?** | The download is the **review process and templates**, not a free built-in AI brain. For a full written review you add **your cloud key** or a **local AI**. For maximum privacy, use local AI. |
@@ -634,7 +634,7 @@ Hugging Face repos (models/datasets/Spaces) are reviewed as **git content** (cod
 **Can we build them in?**  
 Use `repolens plugins install …` (consent download) or `pip install "repolens-audit[scanners]"` for Semgrep via pip — large native scanners stay out of the slim default wheel. Missing scanners never break the LLM review path unless you pass `--require-scanners`.
 
-Guide: [scanners.md](./scanners.md) · Design: ai-keys-scanners-and-local-learning.md · Private registries: trivy-registry-auth.md.
+Guide: [scanners.md](./scanners.md). Private registries use `TRIVY_USERNAME` / `TRIVY_PASSWORD` or `TRIVY_REGISTRY_TOKEN` in the environment, never in TOML.
 
 ### Why not just `semgrep && trivy && gitleaks`?
 
@@ -829,8 +829,6 @@ Each report also records **Duration** (wall clock for the whole command).
 | Dashboard / DefectDojo? | Ingest `FindingReport` JSON and/or anchored SARIF; RepoLens does **not** host a SaaS UI. |
 | Push protection vs RepoLens? | Forge **secret push protection** blocks pre-receive secrets; RepoLens audits **landed / PR** code in CI. Use both. |
 | Cloud LLM in CI forbidden? | `--scanners-only`, or Ollama on a private runner. |
-
-Design: phase-7-enterprise-ci-and-report-delivery.md.
 
 ---
 

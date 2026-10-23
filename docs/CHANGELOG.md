@@ -6,16 +6,45 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The docs linked from the PyPI page install `repolens-audit==0.1.4`. Local learning describes the store that ships. Notes that were never committed are no longer named as if they were in the repo.
+
+## [0.1.4] — 2026-10-23
+
+Published as `repolens-audit==0.1.4` when the `v0.1.4` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tag `v0.1.3`.
+
 ### Added
 
+- Every report records Python process peak RSS. The figure is this process, not the Ollama model and not OS memory pressure.
+- `[model] memory_ceiling_mb` can hint, or stop with exit 2 when `memory_abort` is true, before the model starts. A local `32b` tag on a machine under 24 GiB prints a notice and continues.
+- Scanners and Fast Brain run together. Supply chain waits until the scanner call has returned. Each scanner that ran records `durationSeconds`, and the report prints one scanner-time line.
+- Each Slow Brain pass records queue wait, time to the first token, and generation time. A resumed pass leaves those fields empty. `repolens plan` adds the last first-token sample for this model on this tree, and says when there is no sample. `chars_per_pass` stays 100,000.
+- Fast Brain reads each reviewable file once for the per-file checks. Excerpt and search-index reads stop after the character cap. Unset `[fast_brain] parallel_workers` leaves one CPU core free and never uses more than eight.
 - Semgrep 1.180.0 and Checkov 3.3.9 plugin installs use hashed requirement locks (`pip --require-hashes`), so dependencies are pinned as well as the named wheel. Locks are CPython 3.12. The Docker image installs the matching linux Semgrep lock instead of the unhashed `scanners` extra.
 - [for-everyone.md](./for-everyone.md) explains the review, the score, and the fixed checker list for someone who will read a report and not run the tool.
 - A cancelled review continues from the saved passes. The progress line shows file checks done, still to go, and a percentage. A pass stopped mid-write starts again. A saved pass whose files no longer match says so and runs again.
 - `./scripts/coverage.sh` runs the full pytest suite and writes a line-and-branch coverage report to the terminal, `coverage/html/index.html`, and `coverage/coverage.xml`.
 - Fast Brain clean-code checks, for Python and for JavaScript, Go, and Rust: eager log formatting, credential names passed into a log or print, handlers that drop the traceback, functions with 7 or more parameters, a repeated numeric literal, and a boolean parameter the function branches on. The architecture playbook keeps boundary logging and Demeter chains as reviewer judgments.
 
+### Changed
+
+- The status line on the PyPI page links the sample report and the docs to GitHub, so those links open the files instead of a missing path on pypi.org.
+- The report title, the first summary line, and the summary table name the reviewed project, its path, the git branch and revision, and whether that tree is dirty. A Fluida review no longer looks like a RepoLens self-check.
+- `run_review` takes a `ReviewRun`. Review, sentinel, and architecture pass one run request from the command through flag checks into that call.
+- Deep-pass helpers take a `DeepJob` instead of repeating the same root, config, and progress arguments.
+- Heuristic, explain, feedback, plan, and model-lock entry points take one argument object (`RunHeuristics`, `PlanDeepPasses`, `RunExplain`, `RecordFeedback`, `PassKey`, `ModelLockOptions`) instead of a long parameter list.
+
 ### Fixed
 
+- The PyPI page links the sample report and the docs to GitHub. `report.py` and `run_support.py` are back under the 500-line bar. A VmRSS value that is not a number is logged and skipped. The learn-note drift check uses a temporary tree, so it still names stale, missing, and extra notes when the local notes folder is absent.
+- A saved deep pass does not read source excerpts or outlines again. A pass whose files changed still does.
+- A file that repeats many unnamed numbers is one Low, not one Low per number. Colour and coordinate literals in drawing code were filling the report.
+- The unused issue fixture copied into `tests/test_deep.py` is gone, so Fast Brain no longer reports a near-clone against `tests/test_deep_merge.py`.
+- The Azure Sentinel pack builds tenant, subscription, and secret findings in shallow helpers, so the scanner is not deeply nested.
+- Handlers that catch an expected error and continue with a fallback now log that error at debug with the traceback.
+- Repeated numeric literals used as exit codes, preview caps, timeouts, and read sizes are named constants.
+- Fast Brain does not treat a parameter whose default is a function call, such as a Typer option, as a long parameter list or a boolean flag. A plain `bool` the function branches on still is.
 - A model pass now stops at the `--timeout` you set, even while text is still arriving. The progress line says the model is writing, how fast, and that Ctrl+C keeps finished passes.
 - An aborted review says which pass finished. It does not say the whole AI audit never ran.
 - The architecture note explains what zones Z0–Z5 mean, what may cross each boundary, and why. Remotes and scanners are current zones, not dashed future boxes. The student note uses the same names.

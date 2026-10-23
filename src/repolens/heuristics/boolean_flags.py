@@ -48,7 +48,10 @@ def _bool_parameters(func: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
     for arg in positional + list(args.kwonlyargs):
         if arg.arg in {"self", "cls"}:
             continue
-        if _annotation_is_bool(arg.annotation) or _is_bool_constant(default_for.get(arg.arg)):
+        default = default_for.get(arg.arg)
+        if isinstance(default, ast.Call):
+            continue
+        if _annotation_is_bool(arg.annotation) or _is_bool_constant(default):
             names.append(arg.arg)
     return names
 
@@ -101,33 +104,39 @@ def _issue(relative: str, lineno: int, name: str) -> Issue:
     )
 
 
+def boolean_flag_issues(entry: FileEntry, text: str) -> list[Issue]:
+    if is_test_source(entry.relative) or is_mega_file_excluded(entry.relative):
+        return []
+    suffix = entry.path.suffix.lower()
+    issues: list[Issue] = []
+    if suffix in OTHER_SUFFIXES:
+        for lineno, name in boolean_hits(text, suffix):
+            issues.append(_issue(entry.relative, lineno, name))
+        return issues
+    if suffix not in _PYTHON:
+        return []
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for name in _bool_parameters(node):
+            if _branches_on(node, name):
+                issues.append(_issue(entry.relative, node.lineno, name))
+    return issues
+
+
 def find_boolean_flags(files: list[FileEntry]) -> list[Issue]:
     issues: list[Issue] = []
     for entry in files:
         if not entry.path.is_file():
             continue
-        if is_test_source(entry.relative) or is_mega_file_excluded(entry.relative):
-            continue
-        suffix = entry.path.suffix.lower()
         try:
             source = entry.path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        if suffix in OTHER_SUFFIXES:
-            for lineno, name in boolean_hits(source, suffix):
-                issues.append(_issue(entry.relative, lineno, name))
-            continue
-        if suffix not in _PYTHON:
-            continue
-        try:
-            tree = ast.parse(source)
-        except SyntaxError:
-            continue
-        for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            for name in _bool_parameters(node):
-                if _branches_on(node, name):
-                    issues.append(_issue(entry.relative, node.lineno, name))
+        issues.extend(boolean_flag_issues(entry, source))
     issues.sort(key=lambda item: (item.file, item.line, item.category, item.title))
     return issues

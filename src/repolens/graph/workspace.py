@@ -8,6 +8,7 @@ even when languages differ. It does not replace language-specific analysis.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -134,6 +135,7 @@ def _detect_pnpm(root: Path) -> WorkspaceManifest | None:
     try:
         text = manifest.read_text(encoding="utf-8")
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     in_packages = False
     for line in text.splitlines():
@@ -162,6 +164,7 @@ def _detect_npm(root: Path) -> WorkspaceManifest | None:
     try:
         data = json.loads(pkg.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     workspaces = data.get("workspaces")
     patterns: list[str] = []
@@ -209,6 +212,7 @@ def _detect_cargo(root: Path) -> WorkspaceManifest | None:
     try:
         text = cargo.read_text(encoding="utf-8")
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     if "[workspace]" not in text:
         return None
@@ -255,6 +259,7 @@ def _detect_go_work(root: Path) -> WorkspaceManifest | None:
     try:
         text = work.read_text(encoding="utf-8")
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     members: list[WorkspaceMember] = []
     in_use = False
@@ -282,7 +287,5 @@ def _detect_go_work(root: Path) -> WorkspaceManifest | None:
                 member_path = root / token
                 if member_path.is_dir():
                     rel = str(member_path.relative_to(root)).replace("\\", "/")
-                    members.append(
-                        WorkspaceMember(name=rel.replace("/", "."), path=rel)
-                    )
+                    members.append(WorkspaceMember(name=rel.replace("/", "."), path=rel))
     return WorkspaceManifest(kind="go", root=root, members=members)

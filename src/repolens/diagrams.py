@@ -43,9 +43,7 @@ def extract_mermaid(raw: str) -> str:
 
 def _has_bare_dotted_edge_nodes(text: str) -> bool:
     """True when an edge uses bare ``file.py`` tokens (Mermaid syntax error)."""
-    edge_re = re.compile(
-        r"^\s*(\S+)\s*(?:-->|---|==>|-\.->)\s*(\S+)\s*$"
-    )
+    edge_re = re.compile(r"^\s*(\S+)\s*(?:-->|---|==>|-\.->)\s*(\S+)\s*$")
     for line in text.splitlines():
         m = edge_re.match(line)
         if not m:
@@ -95,9 +93,7 @@ def normalize_mermaid_node_ids(body: str) -> str:
 
     # Allow spaces inside id(label with spaces) on either side of the arrow.
     # Prefer longer operators first so ``---`` is not split as ``--`` + ``-``.
-    edge_re = re.compile(
-        r"^\s*(.+?)\s*(-->|---|==>|-\.->|→>|→)\s*(.+?)\s*$"
-    )
+    edge_re = re.compile(r"^\s*(.+?)\s*(-->|---|==>|-\.->|→>|→)\s*(.+?)\s*$")
     out: list[str] = []
     for line in text.splitlines():
         stripped = line.strip()
@@ -150,11 +146,7 @@ def repair_mermaid(body: str) -> str:
     if not text:
         return ""
     # Drop trailing incomplete edge lines
-    lines = [
-        ln
-        for ln in text.splitlines()
-        if not re.search(r"(-->|--|==>|-\.->)\s*$", ln.strip())
-    ]
+    lines = [ln for ln in text.splitlines() if not re.search(r"(-->|--|==>|-\.->)\s*$", ln.strip())]
     text = "\n".join(lines).strip()
     if text and not any(
         text.splitlines()[0].strip().split(None, 1)[0].lower().startswith(h.lower())
@@ -164,11 +156,14 @@ def repair_mermaid(body: str) -> str:
     return normalize_mermaid_node_ids(text)
 
 
+_SNIPPET_CHARS = 400
+
+
 def textual_fallback(body: str, *, reason: str) -> str:
     """ASCII/structured fallback when Mermaid cannot be validated."""
     snippet = (body or "").strip()
-    if len(snippet) > 400:
-        snippet = snippet[:400] + "…"
+    if len(snippet) > _SNIPPET_CHARS:
+        snippet = snippet[:_SNIPPET_CHARS] + "…"
     return (
         "Textual diagram (Mermaid unavailable):\n"
         f"- Reason: {reason}\n"

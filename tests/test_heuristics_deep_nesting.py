@@ -6,6 +6,7 @@ from pathlib import Path
 
 from repolens.heuristics import run_heuristics
 from repolens.heuristics.deep_nesting import find_deep_nesting
+from repolens.heuristics.runner import RunHeuristics
 from repolens.inventory import FileEntry
 from repolens.schema import Severity
 from repolens.themes import theme_id_for_category
@@ -72,7 +73,10 @@ def test_deep_nesting_wired_into_runner_and_theme(tmp_path: Path) -> None:
     nested.write_text(body, encoding="utf-8")
     entries = [_entry(tmp_path, "deep.swift")]
 
-    result = run_heuristics(tmp_path, entries)
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=entries,
+    ))
 
     hits = [i for i in result.issues if i.category == "heuristic.deep_nesting"]
     assert hits, f"expected deep_nesting via runner, got: {[i.category for i in result.issues]}"

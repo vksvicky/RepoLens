@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -30,7 +31,7 @@ def _rel_path(file_path: str, *, root: Path | None) -> str:
         try:
             return str(Path(raw).resolve().relative_to(root.resolve()))
         except (ValueError, OSError):
-            pass
+            logging.getLogger(__name__).debug("handled expected error", exc_info=True)
     if raw.startswith("/"):
         return raw.lstrip("/")
     return raw
@@ -88,8 +89,7 @@ def parse_checkov_report(
                 ),
                 codeExample=(
                     f"# Fix Checkov finding {check_id}\n"
-                    f"# File: {file_path}"
-                    + (f"\n# Guideline: {guideline}" if guideline else "")
+                    f"# File: {file_path}" + (f"\n# Guideline: {guideline}" if guideline else "")
                 ),
                 fixTiming="before launch",
             )

@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import json
+import logging
 import threading
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
 from repolens.config import ModelConfig, resolve_api_key
 from repolens.llm.errors import LlmError, _provider_error_hint, _timeout_error
+from repolens.llm.model_lock import ModelLockOptions
 from repolens.llm.parse import parse_report_json
 from repolens.llm.setup import (
     SYSTEM_PROMPT,
@@ -54,7 +57,7 @@ def _with_ollama_lock(model_cfg: ModelConfig, call: Callable[[], str]) -> str:
         return call()
     ctx = current_lock_context()
     base = model_cfg.base_url or default_base_url(model_cfg.provider)
-    lock = OllamaModelLock(
+    lock = OllamaModelLock(ModelLockOptions(
         repo=ctx.repo,
         path=ctx.path,
         pass_name=ctx.pass_name,
@@ -62,7 +65,7 @@ def _with_ollama_lock(model_cfg: ModelConfig, call: Callable[[], str]) -> str:
         base_url=base,
         provider=model_cfg.provider,
         status=ctx.status,
-    )
+    ))
     if lock.lock_file.name in _held_endpoints.get():
         return call()
     with lock, hold_local_endpoint(lock.lock_file.name):
@@ -77,40 +80,27 @@ def analyze_raw(
     on_delta: Callable[[str], None] | None = None,
 ) -> str:
     if not model_cfg.provider:
-        raise LlmError(
-            "No model provider configured. "
-            + " ".join(provider_setup_hints()[:3])
-        )
+        raise LlmError("No model provider configured. " + " ".join(provider_setup_hints()[:3]))
 
     # Native / non–OpenAI-compatible transports first; aliases stay on OpenAI path.
     if model_cfg.provider == "anthropic":
-        return _analyze_anthropic(
-            prompt, model_cfg, client=client, on_delta=on_delta
-        )
+        return _analyze_anthropic(prompt, model_cfg, client=client, on_delta=on_delta)
     if model_cfg.provider == "gemini":
         from repolens.llm.gemini import analyze_gemini
 
-        return analyze_gemini(
-            prompt, model_cfg, client=client, on_delta=on_delta
-        )
+        return analyze_gemini(prompt, model_cfg, client=client, on_delta=on_delta)
     if model_cfg.provider == "vertex":
         from repolens.llm.vertex import analyze_vertex
 
-        return analyze_vertex(
-            prompt, model_cfg, client=client, on_delta=on_delta
-        )
+        return analyze_vertex(prompt, model_cfg, client=client, on_delta=on_delta)
     if model_cfg.provider == "bedrock":
         from repolens.llm.bedrock import analyze_bedrock
 
-        return analyze_bedrock(
-            prompt, model_cfg, client=client, on_delta=on_delta
-        )
+        return analyze_bedrock(prompt, model_cfg, client=client, on_delta=on_delta)
 
     return _with_ollama_lock(
         model_cfg,
-        lambda: _analyze_openai_compatible(
-            prompt, model_cfg, client=client, on_delta=on_delta
-        ),
+        lambda: _analyze_openai_compatible(prompt, model_cfg, client=client, on_delta=on_delta),
     )
 
 
@@ -125,6 +115,7 @@ def _parse_sse_chat_chunk(line: str) -> str | None:
     try:
         data = json.loads(payload)
     except json.JSONDecodeError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     choices = data.get("choices") or []
     if not choices:
@@ -162,13 +153,15 @@ def _build_openai_request(
 
     return base, model, headers, payload, use_stream
 
-def _handle_openai_response(
-    response: httpx.Response, model_cfg: ModelConfig, model: str
-) -> str:
+
+_ERROR_DETAIL_CHARS = 300
+
+
+def _handle_openai_response(response: httpx.Response, model_cfg: ModelConfig, model: str) -> str:
     if response.status_code >= 400:
         detail = (response.text or "").strip()
-        if len(detail) > 300:
-            detail = detail[:300] + "…"
+        if len(detail) > _ERROR_DETAIL_CHARS:
+            detail = detail[:_ERROR_DETAIL_CHARS] + "…"
         raise LlmError(
             _provider_error_hint(
                 status_code=response.status_code,
@@ -179,6 +172,7 @@ def _handle_openai_response(
         )
     data = response.json()
     return data["choices"][0]["message"]["content"]
+
 
 def _analyze_openai_compatible(
     prompt: str,
@@ -203,17 +197,17 @@ def _analyze_openai_compatible(
     client = client or httpx.Client(timeout=timeout)
     try:
         if use_stream:
-            return _stream_openai_compatible(
-                client,
-                base=base,
-                headers=headers,
-                payload=payload,
-                model=model,
-                provider=model_cfg.provider,
-                timeout=timeout,
-                silence_timeout=model_cfg.silence_timeout_seconds,
-                on_delta=on_delta,
-            )
+            return _stream_openai_compatible(OpenAiStream(
+        client=client,
+        base=base,
+        headers=headers,
+        payload=payload,
+        model=model,
+        provider=model_cfg.provider,
+        timeout=timeout,
+        silence_timeout=model_cfg.silence_timeout_seconds,
+        on_delta=on_delta,
+    ))
         response = client.post(f"{base}/chat/completions", headers=headers, json=payload)
         return _handle_openai_response(response, model_cfg, model)
     except httpx.TimeoutException as exc:
@@ -234,8 +228,8 @@ def _raise_openai_http_status(
     if response.status_code < 400:
         return
     detail = (response.read().decode("utf-8", errors="replace") or "").strip()
-    if len(detail) > 300:
-        detail = detail[:300] + "…"
+    if len(detail) > _ERROR_DETAIL_CHARS:
+        detail = detail[:_ERROR_DETAIL_CHARS] + "…"
     raise LlmError(
         _provider_error_hint(
             status_code=response.status_code,
@@ -288,23 +282,33 @@ def _consume_openai_sse(
         watch.note_token()
 
 
-def _stream_openai_compatible(
-    client: httpx.Client,
-    *,
-    base: str,
-    headers: dict[str, str],
-    payload: dict[str, Any],
-    model: str,
-    provider: str | None,
-    timeout: float,
-    silence_timeout: float = DEFAULT_SILENCE_TIMEOUT,
-    on_delta: Callable[[str], None] | None,
-) -> str:
+@dataclass
+class OpenAiStream:
+    client: httpx.Client
+    base: str
+    headers: dict[str, str]
+    payload: dict[str, Any]
+    model: str
+    provider: str | None
+    timeout: float
+    on_delta: Callable[[str], None] | None
+    silence_timeout: float = DEFAULT_SILENCE_TIMEOUT
+
+def _stream_openai_compatible(job: OpenAiStream) -> str:
     """Accumulate streamed chat.completion chunks; invoke ``on_delta`` per piece.
 
     ``timeout`` is the wait for the first token. After that, ``silence_timeout``
     of dead air aborts the stream. Tokens that keep arriving are left to finish.
     """
+    client = job.client
+    base = job.base
+    headers = job.headers
+    payload = job.payload
+    model = job.model
+    provider = job.provider
+    timeout = job.timeout
+    silence_timeout = job.silence_timeout
+    on_delta = job.on_delta
     parts: list[str] = []
     watch = StreamWatch(
         prefill_timeout=timeout,
@@ -350,6 +354,7 @@ def _parse_anthropic_sse_text_delta(line: str) -> str | None:
     try:
         data = json.loads(payload)
     except json.JSONDecodeError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     if data.get("type") != "content_block_delta":
         return None
@@ -436,5 +441,3 @@ def _stream_anthropic(
     except httpx.TimeoutException as exc:
         raise LlmError(timeout_message(label, timeout)) from exc
     return require_stream_text(parts, label)
-
-

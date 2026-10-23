@@ -2,11 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from repolens.config import RepoLensConfig
-from repolens.heuristics import HeuristicResult
-from repolens.inventory import FileEntry
 from repolens.pipeline.deep_exec_support import (  # noqa: F401 — re-export for callers
     _announce_deep_runtime,
     _apply_coverage_metrics,
@@ -29,6 +24,7 @@ from repolens.pipeline.deep_exec_support import (  # noqa: F401 — re-export fo
     build_pass_confidences_with_floors,
     is_vacuous_llm_report,
 )
+from repolens.pipeline.deep_job import DeepJob
 from repolens.pipeline.deep_pass import (
     _ollama_wait_bits as _ollama_wait_bits,
 )
@@ -36,34 +32,30 @@ from repolens.pipeline.deep_pass import (
     _pass_report as _pass_report,
 )
 from repolens.pipeline.pass_resume import raise_aborted
-from repolens.progress import ReviewProgress
-from repolens.rules.registry import Rule
 from repolens.schema import FindingReport
 
 
-def _analyze_deep_passes(
-    *,
-    root: Path,
-    mode: str,
-    full_audit: bool,
-    files: list[FileEntry],
-    llm_files: list[FileEntry],
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-    prompt_prefix: str = "",
-    scanner_runs: list | None = None,
-    scanner_issues: list | None = None,
-    heur_result: HeuristicResult | None = None,
-    out_dir: Path | None = None,
-    fmt: str = "md",
-    report_when: object | None = None,
-    skip_cache: bool = False,
-    graph: object | None = None,
-    retry_passes: frozenset[str] = frozenset(),
-    change_set: object | None = None,
-) -> FindingReport:
+def _analyze_deep_passes(job: DeepJob) -> FindingReport:
+    root = job.root
+    mode = job.mode
+    full_audit = job.full_audit
+    files = job.files
+    llm_files = job.llm_files
+    cfg = job.cfg
+    prog = job.prog
+    prompt_prefix = job.prompt_prefix
+    scanner_runs = job.scanner_runs
+    scanner_issues = job.scanner_issues
+    heur_result = job.heur_result
+    out_dir = job.out_dir
+    fmt = job.fmt
+    report_when = job.report_when
+    skip_cache = job.skip_cache
+    graph = job.graph
+    retry_passes = job.retry_passes
+    change_set = job.change_set
     _journal_review_started(root, cfg)
-    heur, rules, passes, p3_gaps, pack_ids = _prepare_deep_plan(
+    heur, rules, passes, p3_gaps, pack_ids = _prepare_deep_plan(DeepJob(
         root=root,
         mode=mode,
         full_audit=full_audit,
@@ -73,9 +65,9 @@ def _analyze_deep_passes(
         prog=prog,
         heur_result=heur_result,
         graph=graph,
-    )
+    ))
     _announce_deep_runtime(prog, passes, cfg)
-    planned = _run_planned_passes(
+    planned = _run_planned_passes(DeepJob(
         root=root,
         passes=passes,
         rules=rules,
@@ -91,9 +83,9 @@ def _analyze_deep_passes(
         mode=mode,
         report_when=report_when,
         raw_dir=root / ".repolens",
-    )
+    ))
     parts, raw_by_pass, degraded_by_pass, repairs, ids, finished, timed_out = planned
-    return _finish_deep_after_passes(
+    return _finish_deep_after_passes(DeepJob(
         root=root,
         mode=mode,
         full_audit=full_audit,
@@ -118,27 +110,10 @@ def _analyze_deep_passes(
         fmt=fmt,
         report_when=report_when,
         change_set=change_set,
-    )
+    ))
 
 
-def _run_planned_passes(
-    *,
-    root: Path,
-    passes: list,
-    rules: list[Rule],
-    pack_ids: list[str],
-    prompt_prefix: str,
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-    raw_dir: Path,
-    skip_cache: bool,
-    heur_issues: list,
-    out_dir: Path | None,
-    fmt: str,
-    mode: str,
-    report_when: object | None,
-    retry_passes: frozenset[str] = frozenset(),
-) -> tuple[
+def _run_planned_passes(job: DeepJob) -> tuple[
     list[FindingReport],
     dict[str, str],
     dict[str, bool],
@@ -147,7 +122,23 @@ def _run_planned_passes(
     list[str],
     list[str],
 ]:
-    _note_resume_hint(root, skip_cache, prog)
+    root = job.root
+    passes = job.passes
+    rules = job.rules
+    pack_ids = job.pack_ids
+    prompt_prefix = job.prompt_prefix
+    cfg = job.cfg
+    prog = job.prog
+    raw_dir = job.raw_dir
+    skip_cache = job.skip_cache
+    heur_issues = job.heur_issues
+    out_dir = job.out_dir
+    fmt = job.fmt
+    mode = job.mode
+    report_when = job.report_when
+    retry_passes = job.retry_passes
+    if not skip_cache:
+        _note_resume_hint(root, prog)
     parts: list[FindingReport] = []
     raw_by_pass: dict[str, str] = {}
     degraded_by_pass: dict[str, bool] = {}
@@ -155,7 +146,7 @@ def _run_planned_passes(
     finished_labels: list[str] = []
     timed_out_labels: list[str] = []
     try:
-        repairs = _drive_planned_passes(
+        repairs = _drive_planned_passes(DeepJob(
             root=root,
             passes=passes,
             rules=rules,
@@ -177,7 +168,7 @@ def _run_planned_passes(
             finished_labels=finished_labels,
             timed_out_labels=timed_out_labels,
             retry_passes=retry_passes,
-        )
+        ))
     except KeyboardInterrupt:
         raise_aborted(parts, heur_issues, finished_labels, root=root)
     return (

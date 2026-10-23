@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -10,6 +11,7 @@ from pathlib import Path
 from repolens.config import NearClonesConfig
 from repolens.heuristics.mega_files import is_mega_file_excluded
 from repolens.heuristics.near_clones_skip import (
+    SkipWindow,
     py_import_region_mask,
     should_skip_window,
 )
@@ -251,27 +253,24 @@ def _index_entry_windows(
     try:
         text = entry.path.read_text(encoding="utf-8", errors="replace")
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return
     raw_lines = text.splitlines()
     norm, phys = normalize_lines(text)
-    import_mask = (
-        py_import_region_mask(raw_lines) if suffix in {".py", ".pyi"} else None
-    )
+    import_mask = py_import_region_mask(raw_lines) if suffix in {".py", ".pyi"} else None
     for hit in iter_windows(norm, phys, window=cfg.window_lines, stride=cfg.stride):
         chunk = tuple(norm[hit.norm_start : hit.norm_end])
-        if should_skip_window(
-            norm_chunk=chunk,
-            phys_start=hit.phys_start,
-            phys_end=hit.phys_end,
-            raw_lines=raw_lines,
-            suffix=suffix,
-            header_n=cfg.header_comment_lines,
-            import_mask=import_mask,
-        ):
+        if should_skip_window(SkipWindow(
+        norm_chunk=chunk,
+        phys_start=hit.phys_start,
+        phys_end=hit.phys_end,
+        raw_lines=raw_lines,
+        suffix=suffix,
+        header_n=cfg.header_comment_lines,
+        import_mask=import_mask,
+    )):
             continue
-        by_hash.setdefault(hit.hash, []).append(
-            _LocatedHit(entry.relative, hit, chunk)
-        )
+        by_hash.setdefault(hit.hash, []).append(_LocatedHit(entry.relative, hit, chunk))
 
 
 def _ordered_pair(loc_a: _LocatedHit, loc_b: _LocatedHit) -> PairHit:
@@ -337,9 +336,7 @@ def find_near_clones(
     for entry in entries:
         _index_entry_windows(entry, cfg=cfg, excludes=excludes, by_hash=by_hash)
 
-    all_blocks = _coalesced_blocks(
-        _pair_hits(by_hash, min_occurrences=cfg.min_occurrences)
-    )
+    all_blocks = _coalesced_blocks(_pair_hits(by_hash, min_occurrences=cfg.min_occurrences))
     all_blocks.sort(key=_block_sort_key)
 
     capped_clusters = all_blocks[: cfg.max_clusters]

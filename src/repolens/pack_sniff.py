@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 
@@ -97,10 +98,12 @@ def read_sniff_text(path: Path) -> str:
     try:
         raw = path.open("rb").read(SNIFF_BYTES)
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return ""
     try:
         return raw.decode("utf-8", errors="ignore")
     except UnicodeError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return ""
 
 
@@ -115,17 +118,9 @@ def content_score(band: str, text: str) -> int:
 
 def path_score(band: str, relative: str) -> int:
     lowered = relative.lower().replace("\\", "/")
-    hints = (
-        _P1_PATH_HINTS
-        if band == "p1"
-        else _P2_PATH_HINTS
-        if band == "p2"
-        else ()
-    )
+    hints = _P1_PATH_HINTS if band == "p1" else _P2_PATH_HINTS if band == "p2" else ()
     return sum(1 for hint in hints if hint in lowered)
 
 
 def sniff_score(band: str, entry: FileEntry) -> int:
-    return path_score(band, entry.relative) + content_score(
-        band, read_sniff_text(entry.path)
-    )
+    return path_score(band, entry.relative) + content_score(band, read_sniff_text(entry.path))

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
+
 
 def embeddings_available() -> bool:
     try:
         import sentence_transformers  # noqa: F401
     except ImportError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return False
     return True
 

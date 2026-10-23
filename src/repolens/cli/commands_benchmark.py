@@ -10,6 +10,7 @@ from rich.table import Table
 
 from repolens.benchmark import score_actionability_file
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT, JSON_INDENT
 
 
 @app.command("score-report")
@@ -31,10 +32,10 @@ def score_report_cmd(
         scores = score_actionability_file(report)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         console.print(f"[red]Could not score report:[/red] {exc}")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
 
     if as_json:
-        typer.echo(json.dumps(scores.as_dict(), indent=2))
+        typer.echo(json.dumps(scores.as_dict(), indent=JSON_INDENT))
         return
 
     table = Table(title="Supporting actionability (not remediation study)")
@@ -66,6 +67,4 @@ def score_report_cmd(
         f"{scores.location_verified}/{scores.location_unverified}",
     )
     console.print(table)
-    console.print(
-        "[dim]Headline remediation rate / MTTR require a human study protocol.[/dim]"
-    )
+    console.print("[dim]Headline remediation rate / MTTR require a human study protocol.[/dim]")
