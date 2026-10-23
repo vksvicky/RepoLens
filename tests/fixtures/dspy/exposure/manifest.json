@@ -1,0 +1,48 @@
+{
+  "ids": [
+    "sec.repo_hygiene_secrets",
+    "arch.structure_size",
+    "arch.readability_complexity",
+    "arch.duplication",
+    "arch.dead_code",
+    "arch.consistency_style",
+    "sec.injection",
+    "sec.xss_csrf",
+    "sec.authn_authz",
+    "sec.data_exposure",
+    "sec.deps_supply_chain",
+    "sec.transport_tls",
+    "sec.crypto_deser",
+    "sec.input_validation",
+    "rel.edge_cases",
+    "rel.concurrency",
+    "rel.error_recovery",
+    "rel.performance"
+  ],
+  "na": {
+    "sec.repo_hygiene_secrets": "No token in this fixture.",
+    "arch.structure_size": "This fixture does not demonstrate it.",
+    "arch.readability_complexity": "This fixture does not demonstrate it.",
+    "arch.duplication": "This fixture does not demonstrate it.",
+    "arch.dead_code": "This fixture does not demonstrate it.",
+    "arch.consistency_style": "No swallowed error.",
+    "sec.injection": "This fixture does not demonstrate it.",
+    "sec.xss_csrf": "This fixture does not demonstrate it.",
+    "sec.authn_authz": "This fixture does not demonstrate it.",
+    "sec.deps_supply_chain": "This fixture does not demonstrate it.",
+    "sec.transport_tls": "This fixture does not demonstrate it.",
+    "sec.crypto_deser": "This fixture does not demonstrate it.",
+    "sec.input_validation": "This fixture does not demonstrate it.",
+    "rel.edge_cases": "This fixture does not demonstrate it.",
+    "rel.concurrency": "This fixture does not demonstrate it.",
+    "rel.error_recovery": "This fixture does not demonstrate it.",
+    "rel.performance": "This fixture does not demonstrate it."
+  },
+  "expected": [
+    {
+      "file": "app.py",
+      "line": 2,
+      "category": "sec.data_exposure"
+    }
+  ]
+}

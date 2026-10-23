@@ -222,6 +222,8 @@ class ProvenanceBlock(BaseModel):
     dirtyTree: bool | None = None
     scannerDigests: dict[str, str] = Field(default_factory=dict)
     promptTemplateHash: str | None = None
+    # Pass name → instruction digest, or "rejected" when that file failed validation.
+    dspyInstructionHash: dict[str, str] = Field(default_factory=dict)
     journalTipHash: str | None = None
     notes: list[str] = Field(default_factory=list)
     # Invocation recorded after preset resolution (optional on older reports).

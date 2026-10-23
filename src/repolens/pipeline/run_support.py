@@ -293,6 +293,7 @@ def _run_graph_phase(state) -> None:
 
 def _build_finished_provenance(state):
     from repolens import __version__
+    from repolens.dspy_program import instruction_hashes
     from repolens.llm.model_lock import queue_wait_seconds
     from repolens.memory_sample import PYTHON_RSS_NOTE, read_peak_rss_bytes
     from repolens.provenance_attest import (
@@ -325,6 +326,7 @@ def _build_finished_provenance(state):
         dirtyTree=git_dirty_tree(state.root),
         scannerDigests=scanner_binary_digests(tools),
         promptTemplateHash=prompt_template_hash(),
+        dspyInstructionHash=instruction_hashes(state.cfg.deep.dspy_program, state.root),
         journalTipHash=journal_tip_hash(state.root),
         notes=list(state.triage_plan.notes) if state.triage_plan is not None else [],
         command=state.invoked_command,

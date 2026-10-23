@@ -173,6 +173,8 @@ class DeepConfig(BaseModel):
     blast_radius: bool = True
     # Apply skip globs from ``repolens learn adapt`` only when that file exists.
     learned_prefs: bool = False
+    # One instruction JSON file, or a directory of p1.json / p2.json / p3.json / coverage.json.
+    dspy_program: str = ""
 
     def extra_skip_globs(self) -> list[str]:
         """Project globs added on top of the package skip defaults."""
@@ -295,13 +297,27 @@ def merge_dicts(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]
 
 def sanitize_project_config(project: dict[str, Any], *, trust_project: bool) -> dict[str, Any]:
     """Strip credential/network model fields from untrusted project config."""
-    if trust_project or "model" not in project:
-        return project
-    model = project.get("model")
+    return project if trust_project else _sanitize_untrusted(project)
+
+
+def _sanitize_untrusted(project: dict[str, Any]) -> dict[str, Any]:
+    cleaned = _drop_untrusted_dspy_program(project)
+    if "model" not in cleaned:
+        return cleaned
+    model = cleaned.get("model")
     if not isinstance(model, dict):
+        return cleaned
+    model_clean = {k: v for k, v in model.items() if k not in PROJECT_MODEL_DENY}
+    return {**cleaned, "model": model_clean}
+
+
+def _drop_untrusted_dspy_program(project: dict[str, Any]) -> dict[str, Any]:
+    """A reviewed tree must not choose the instruction file sent to the model."""
+    deep = project.get("deep")
+    if not isinstance(deep, dict) or "dspy_program" not in deep:
         return project
-    cleaned = {k: v for k, v in model.items() if k not in PROJECT_MODEL_DENY}
-    return {**project, "model": cleaned}
+    kept = {key: value for key, value in deep.items() if key != "dspy_program"}
+    return {**project, "deep": kept}
 
 
 def env_overrides() -> dict[str, Any]:

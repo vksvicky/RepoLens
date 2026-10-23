@@ -44,8 +44,6 @@ def _run_deep_pass(job: DeepJob):
     idx = job.idx
     n = job.n
     deep_pass = job.deep_pass
-    rules = job.rules
-    pack_ids = job.pack_ids
     prompt_prefix = job.prompt_prefix
     cfg = job.cfg
     prog = job.prog
@@ -57,9 +55,7 @@ def _run_deep_pass(job: DeepJob):
     from repolens.llm_structured import analyze_structured
 
     prog.phase(f"→ Deep pass {idx}/{n} ({deep_pass.name})…")
-    prompt = build_deep_prompt(
-        deep_pass, rules, deep_pass.coverage_ids, pack_ids=pack_ids
-    )
+    prompt = _prompt_for_pass(job)
     pack_mode = getattr(deep_pass, "pack_mode", "full") or "full"
     prompt = _append_source_files(
         prompt,
@@ -117,6 +113,22 @@ def _run_deep_pass(job: DeepJob):
     chars_out = len(result.raw_text or "")
     return report, result.raw_text or "", degraded, attempts, chars_in, chars_out, clock
 
+
+def _prompt_for_pass(job: DeepJob) -> str:
+    """Build the band prompt, substituting a compiled instruction when one loaded."""
+    from repolens.dspy_program import program_for_pass
+
+    deep_pass = job.deep_pass
+    loaded = program_for_pass(job.cfg.deep.dspy_program, Path(job.root), deep_pass.name)
+    return build_deep_prompt(
+        deep_pass,
+        job.rules,
+        deep_pass.coverage_ids,
+        pack_ids=job.pack_ids,
+        instruction_tail=loaded.tail,
+        format_hint=loaded.hint,
+    )
+
 def _merge_closure(report: FindingReport, extra: FindingReport) -> FindingReport:
     from repolens.deep import is_unmeasured_model_claim
 
@@ -135,10 +147,12 @@ def _apply_coverage_closure(
     cfg: RepoLensConfig,
     prog: ReviewProgress,
     raw_dir: Path,
+    root: Path | None = None,
 ) -> FindingReport:
     """One short pass for checklist ids the band passes left unanswered."""
     if not missed:
         return report
+    from repolens.dspy_program import program_for_pass
     from repolens.llm.model_lock import queue_wait_seconds
     from repolens.llm_structured import analyze_structured
     from repolens.pipeline.pass_cache import closure_key, load_pass, save_pass
@@ -150,7 +164,10 @@ def _apply_coverage_closure(
     )
 
     model_name = cfg.model.model or default_model(cfg.model.provider)
-    cached = load_pass(raw_dir.parent, closure_key(missed, model_name))
+    project = root or raw_dir.parent
+    loaded = program_for_pass(cfg.deep.dspy_program, project, "coverage")
+    cache_key = closure_key(missed, model_name, instruction_hash=loaded.cache_hash)
+    cached = load_pass(raw_dir.parent, cache_key)
     if cached is not None:
         record_pass_timing(resumed_pass_timing("coverage"))
         prog.phase(
@@ -164,7 +181,11 @@ def _apply_coverage_closure(
     timeout = resolve_llm_timeout(cfg.model)
     gen = LlmGenerateProgress()
     clock = StreamClock()
-    prompt = coverage_closure_prompt(missed)
+    prompt = coverage_closure_prompt(
+        missed,
+        instruction_tail=loaded.tail,
+        format_hint=loaded.hint,
+    )
     wait_before = queue_wait_seconds()
 
     def on_delta(text: str) -> None:
@@ -198,5 +219,5 @@ def _apply_coverage_closure(
         prog.phase("Coverage closure returned no report; unanswered ids stay missed")
         return report
     if result.layer != "degraded":
-        save_pass(raw_dir.parent, closure_key(missed, model_name), result.report)
+        save_pass(raw_dir.parent, cache_key, result.report)
     return _merge_closure(report, result.report)

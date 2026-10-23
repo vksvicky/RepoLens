@@ -148,6 +148,7 @@ def _run_coverage_closure_if_needed(job: DeepJob) -> tuple[FindingReport, Covera
             cfg=cfg,
             prog=prog,
             raw_dir=raw_dir,
+            root=root,
         )
     except KeyboardInterrupt:
         raise_aborted(parts, heur_issues, finished_labels, root=root)

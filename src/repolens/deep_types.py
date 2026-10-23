@@ -61,7 +61,12 @@ def coverage_checklist_tail(coverage_ids: Iterable[str]) -> str:
     return "\n".join(lines)
 
 
-def coverage_closure_prompt(missed_ids: Iterable[str]) -> str:
+def coverage_closure_prompt(
+    missed_ids: Iterable[str],
+    *,
+    instruction_tail: str | None = None,
+    format_hint: str | None = None,
+) -> str:
     """Ask only for checklist ids the earlier passes left unanswered."""
     ids = [cid for cid in missed_ids if cid]
     lines = [
@@ -71,9 +76,15 @@ def coverage_closure_prompt(missed_ids: Iterable[str]) -> str:
         _COVERAGE_LINE_SHAPE,
         "Do not copy a fact from another repository.",
         "A reason that says 'not reviewed' is rejected and the id stays missed.",
-        "Return FindingReport JSON only.",
-        "",
     ]
+    if instruction_tail is None and format_hint is None:
+        lines.append("Return FindingReport JSON only.")
+    else:
+        if instruction_tail:
+            lines.append(instruction_tail)
+        if format_hint:
+            lines.append(format_hint)
+    lines.append("")
     lines.extend(f"- {cid}" for cid in ids)
     lines.append("")
     lines.append(BRITISH_ENGLISH_INSTRUCTION)

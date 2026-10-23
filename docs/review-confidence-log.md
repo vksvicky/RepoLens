@@ -84,3 +84,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-23 | v0.1.4 | 94% | 0/0/0/0 | Release from main: version bump, changelog move, README links are GitHub blobs; benchmark branch left out | chat |
 | 2026-10-23 | docs→push | 95% | 0/0/0/0 | Linked docs install 0.1.4; local learning matches the store; missing design filenames removed | chat |
 | 2026-10-23 | phases-sync | 96% | 0/0/0/0 | Issue #12: phases.md names 0.1.4, closed trackers, and the open benchmark and DSPy tracks | chat |
+| 2026-10-23 | dspy-local | 93% | 0/0/0/1 | Instruction file loads on review; untrusted project toml cannot set it; live compile stays manual. Local main only | chat |

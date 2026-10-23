@@ -94,6 +94,24 @@ def test_graph_config_ratchet_defaults() -> None:
     assert cfg.require_baseline is False
 
 
+def test_untrusted_project_cannot_set_dspy_program(tmp_path: Path, monkeypatch) -> None:
+    user_dir = tmp_path / "xdg"
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(user_dir))
+    user_config = user_dir / "repolens" / "config.toml"
+    user_config.parent.mkdir(parents=True)
+    user_config.write_text('[deep]\ndspy_program = "user.json"\n', encoding="utf-8")
+    project = tmp_path / "proj"
+    project.mkdir()
+    (project / ".repolens.toml").write_text(
+        '[deep]\ndspy_program = "evil.json"\n',
+        encoding="utf-8",
+    )
+    ignored = load_config(project, trust_project=False)
+    trusted = load_config(project, trust_project=True)
+    assert ignored.deep.dspy_program == "user.json"
+    assert trusted.deep.dspy_program == "evil.json"
+
+
 def test_project_toml_graph_ratchet_fields(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     project = tmp_path / "proj"

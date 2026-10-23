@@ -49,7 +49,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **0.1.3 provenance and locks** | [#121](https://github.com/vksvicky/RepoLens/issues/121)–[#127](https://github.com/vksvicky/RepoLens/issues/127) | **Done** — URL sanitation, fenced commands, hashed Semgrep and Checkov wheels |
 | **0.1.4 memory and review time** | [#137](https://github.com/vksvicky/RepoLens/issues/137)–[#145](https://github.com/vksvicky/RepoLens/issues/145) · trackers [#151](https://github.com/vksvicky/RepoLens/issues/151), [#152](https://github.com/vksvicky/RepoLens/issues/152) · release [#154](https://github.com/vksvicky/RepoLens/issues/154) | **Done** — peak RSS, one Fast Brain read, scanner overlap, per-pass timing; published `v0.1.4` |
 | **Local versus BYOK benchmark** | [#146](https://github.com/vksvicky/RepoLens/issues/146)–[#150](https://github.com/vksvicky/RepoLens/issues/150), [#155](https://github.com/vksvicky/RepoLens/issues/155) · tracker [#153](https://github.com/vksvicky/RepoLens/issues/153) | **In progress** — branch `benchmark`; not on `main` |
-| **DSPy instruction tail** | [#133](https://github.com/vksvicky/RepoLens/issues/133)–[#135](https://github.com/vksvicky/RepoLens/issues/135) · tracker [#136](https://github.com/vksvicky/RepoLens/issues/136) | **Not started** |
+| **DSPy instruction tail** | [#133](https://github.com/vksvicky/RepoLens/issues/133)–[#135](https://github.com/vksvicky/RepoLens/issues/135) · tracker [#136](https://github.com/vksvicky/RepoLens/issues/136) | **In progress** — a review can load an instruction file; a live compile stays manual |
 ---
 
 ## Legend

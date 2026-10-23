@@ -53,7 +53,13 @@ def _tool_version(version: str | None) -> str:
     return __version__ if version is None else version
 
 
-def closure_key(missed: list[str], model: str, *, version: str | None = None) -> str:
+def closure_key(
+    missed: list[str],
+    model: str,
+    *,
+    version: str | None = None,
+    instruction_hash: str | None = None,
+) -> str:
     """Key for the checklist follow-up. It sees missed ids, not source."""
     digest = hashlib.sha256()
     digest.update(PROMPT_TEMPLATE_VERSION.encode())
@@ -65,6 +71,7 @@ def closure_key(missed: list[str], model: str, *, version: str | None = None) ->
     for cid in sorted(missed):
         digest.update(b"\0")
         digest.update(cid.encode())
+    _mix_instruction_hash(digest, instruction_hash)
     return digest.hexdigest()
 
 
@@ -77,6 +84,7 @@ class PassKey:
     prior_summary: str | None = None
     pack_mode: str = 'full'
     file_pack_modes: dict[str, str] | None = None
+    instruction_hash: str | None = None
 
 def pass_key(job: PassKey) -> str:
     files = job.files
@@ -86,6 +94,7 @@ def pass_key(job: PassKey) -> str:
     prior_summary = job.prior_summary
     pack_mode = job.pack_mode
     file_pack_modes = job.file_pack_modes
+    instruction_hash = job.instruction_hash
     digest = hashlib.sha256()
     digest.update(PROMPT_TEMPLATE_VERSION.encode())
     digest.update(b"\0")
@@ -110,7 +119,16 @@ def pass_key(job: PassKey) -> str:
     if prior_summary:
         digest.update(b"\0prior\0")
         digest.update(hashlib.sha256(prior_summary.encode()).digest())
+    _mix_instruction_hash(digest, instruction_hash)
     return digest.hexdigest()
+
+
+def _mix_instruction_hash(digest: hashlib._Hash, instruction_hash: str | None) -> None:
+    """A missing program leaves the digest bytes unchanged."""
+    if not instruction_hash:
+        return
+    digest.update(b"\0dspy\0")
+    digest.update(instruction_hash.encode())
 
 
 def _cache_file(root: Path, key: str) -> Path:

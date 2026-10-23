@@ -221,6 +221,8 @@ def _provenance_identity_lines(prov) -> list[str]:
         lines.append(f"- **Scanner digests**: `{digest}`")
     if prov.promptTemplateHash:
         lines.append(f"- **Prompt template**: `{prov.promptTemplateHash}`")
+    for pass_name, digest in sorted(prov.dspyInstructionHash.items()):
+        lines.append(f"- **DSPy instruction {pass_name}**: `{digest}`")
     if prov.journalTipHash:
         lines.append(f"- **Journal tip**: `{prov.journalTipHash}`")
     if prov.command:

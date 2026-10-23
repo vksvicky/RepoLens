@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `[deep] dspy_program` can point at a compiled instruction file, or a directory of `p1.json`, `p2.json`, `p3.json`, and `coverage.json`. A loaded file replaces the stock format sentence for that pass and changes the pass-cache key. The review does not import DSPy. A file that fails validation stays on the stock sentence and is recorded as `rejected`. A project `.repolens.toml` cannot set this path unless `--trust-project` is on.
+
 ### Changed
 
 - The Semgrep install pin is 1.181.0, including the hashed plugin locks and the `scanners` extra.

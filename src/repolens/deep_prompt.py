@@ -15,12 +15,19 @@ _COVERAGE_CONTRACT = (
 )
 
 
+STOCK_FORMAT_SENTENCE = (
+    "Analyse using the rules and coverage contract. Return FindingReport JSON only."
+)
+
+
 def build_deep_prompt(
     deep_pass: DeepPass,
     rules: list[Rule],
     coverage_ids: Iterable[str],
     *,
     pack_ids: list[str] | None = None,
+    instruction_tail: str | None = None,
+    format_hint: str | None = None,
 ) -> str:
     """Concatenate enabled rule bodies for the pass plus the coverage contract."""
     from repolens.packs.registry import pack_playbook_sections
@@ -53,7 +60,17 @@ def build_deep_prompt(
         sections.append("(none)")
     sections.append("")
     sections.append(BRITISH_ENGLISH_INSTRUCTION)
-    sections.append(
-        "Analyse using the rules and coverage contract. Return FindingReport JSON only."
-    )
+    sections.extend(_format_slot(instruction_tail, format_hint, STOCK_FORMAT_SENTENCE))
     return "\n".join(sections)
+
+
+def _format_slot(instruction_tail: str | None, format_hint: str | None, stock: str) -> list[str]:
+    """Both omitted keeps the stock sentence. A loaded program replaces that sentence."""
+    if instruction_tail is None and format_hint is None:
+        return [stock]
+    lines: list[str] = []
+    if instruction_tail:
+        lines.append(instruction_tail)
+    if format_hint:
+        lines.append(format_hint)
+    return lines

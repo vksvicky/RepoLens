@@ -108,6 +108,7 @@ def _pass_cache_key(
     deep_pass: DeepPass,
     model_name: str,
     prior_summary: str,
+    instruction_hash: str | None = None,
 ) -> str:
     return pass_key(PassKey(
         files=deep_pass.files,
@@ -116,6 +117,7 @@ def _pass_cache_key(
         prior_summary=prior_summary or None,
         pack_mode=getattr(deep_pass, "pack_mode", "full") or "full",
         file_pack_modes=getattr(deep_pass, "file_pack_modes", None) or None,
+        instruction_hash=instruction_hash,
     ))
 
 
@@ -264,8 +266,11 @@ def run_or_resume_pass(job: DeepJob) -> tuple[FindingReport, str, bool, int]:
     skip_cache = job.skip_cache
     files_done = job.files_done
     files_total = job.files_total
+    from repolens.dspy_program import program_for_pass
+
     label = pass_label(deep_pass.name)
-    key = _pass_cache_key(deep_pass, model_name, prior_summary)
+    loaded = program_for_pass(cfg.deep.dspy_program, root, deep_pass.name)
+    key = _pass_cache_key(deep_pass, model_name, prior_summary, loaded.cache_hash)
     append_event(
         root,
         "pass_started",
