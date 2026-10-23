@@ -31,7 +31,7 @@ def test_catalog_has_mvp_tools() -> None:
             assert spec.url.startswith("https://files.pythonhosted.org/"), (tool, plat)
             assert spec.sha256 and len(spec.sha256) == 64, (tool, plat)
     assert cat["checkov"]["linux-amd64"].sha256 == cat["checkov"]["darwin-arm64"].sha256
-    assert cat["semgrep"]["linux-amd64"].version == "1.180.0"
+    assert cat["semgrep"]["linux-amd64"].version == "1.181.0"
     assert "cp312" in cat["semgrep"]["linux-amd64"].url
     assert cat["checkov"]["linux-amd64"].version == "3.3.9"
 
