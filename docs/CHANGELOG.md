@@ -9,6 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - `[deep] dspy_program` can point at a compiled instruction file, or a directory of `p1.json`, `p2.json`, `p3.json`, and `coverage.json`. A loaded file replaces the stock format sentence for that pass and changes the pass-cache key. The review does not import DSPy. A file that fails validation stays on the stock sentence and is recorded as `rejected`. A project `.repolens.toml` cannot set this path unless `--trust-project` is on.
+- `scripts/dspy_compile.py` can compile that file. A live run prints the configured provider and model, then calls DSPy `COPRO` (instruction only, no demos) on the synthetic fixtures under `tests/fixtures/dspy/`. Install `dspy` by hand for that run. It is not a package dependency, and CI does not call a model.
 
 ### Changed
 
