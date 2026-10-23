@@ -43,7 +43,7 @@ Optional Semgrep via pip: `pip install -e ".[dev,scanners]"`. What extras mean: 
 
 | Command | Expect | Example |
 |---------|--------|---------|
-| `repolens version` | Version string (e.g. `0.1.0a1`) | `repolens version` |
+| `repolens version` | Version string (e.g. `0.1.4`) | `repolens version` |
 | `repolens --help` | Command list including `review`, `sentinel`, `plugins`, `packs`, … | `repolens --help` |
 
 ### Configure once (only if you want LLM narrative)

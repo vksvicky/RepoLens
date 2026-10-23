@@ -40,6 +40,42 @@ def _count_deep_lines(text: str, *, min_depth: int) -> tuple[int, int]:
     return count, first
 
 
+def deep_nesting_issues(
+    entry: FileEntry,
+    text: str,
+    *,
+    min_depth: int = 6,
+    min_lines: int = 12,
+) -> list[Issue]:
+    suffix = Path(entry.relative).suffix.lower()
+    if suffix not in CODE_SUFFIXES:
+        return []
+    deep_count, first_line = _count_deep_lines(text, min_depth=min_depth)
+    if deep_count < min_lines:
+        return []
+    return [
+        Issue(
+            severity=Severity.MEDIUM,
+            priority="P2",
+            category="heuristic.deep_nesting",
+            file=entry.relative,
+            line=first_line or 1,
+            title=f"Deep nesting: {entry.relative} has {deep_count} deeply indented lines",
+            explanation=(
+                f"Found {deep_count} non-empty lines indented to depth ≥ {min_depth} "
+                f"(threshold {min_lines} lines). Deep nesting often signals "
+                "hard-to-follow control flow or overly nested conditionals."
+            ),
+            recommendedFix=(
+                "Flatten control flow (early returns / guard clauses), extract "
+                "helpers, or reduce nesting with clearer structure."
+            ),
+            fixTiming="before launch",
+            source="heuristic",
+        )
+    ]
+
+
 def find_deep_nesting(
     files: list[FileEntry],
     *,
@@ -51,35 +87,11 @@ def find_deep_nesting(
     for entry in files:
         if not entry.path.is_file():
             continue
-        suffix = Path(entry.relative).suffix.lower()
-        if suffix not in CODE_SUFFIXES:
-            continue
         try:
             text = entry.path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        deep_count, first_line = _count_deep_lines(text, min_depth=min_depth)
-        if deep_count < min_lines:
-            continue
-        issues.append(
-            Issue(
-                severity=Severity.MEDIUM,
-                priority="P2",
-                category="heuristic.deep_nesting",
-                file=entry.relative,
-                line=first_line or 1,
-                title=f"Deep nesting: {entry.relative} has {deep_count} deeply indented lines",
-                explanation=(
-                    f"Found {deep_count} non-empty lines indented to depth ≥ {min_depth} "
-                    f"(threshold {min_lines} lines). Deep nesting often signals "
-                    "hard-to-follow control flow or overly nested conditionals."
-                ),
-                recommendedFix=(
-                    "Flatten control flow (early returns / guard clauses), extract "
-                    "helpers, or reduce nesting with clearer structure."
-                ),
-                fixTiming="before launch",
-                source="heuristic",
-            )
+        issues.extend(
+            deep_nesting_issues(entry, text, min_depth=min_depth, min_lines=min_lines)
         )
     return issues

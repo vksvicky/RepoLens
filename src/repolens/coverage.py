@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -115,7 +116,7 @@ def _defaults_coverage_path() -> Path:
         if candidate.is_file():
             return Path(str(candidate))
     except (TypeError, FileNotFoundError, ModuleNotFoundError):
-        pass
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
 
     here = Path(__file__).resolve().parent / "rules" / "defaults" / "coverage.json"
     if here.is_file():
@@ -199,9 +200,7 @@ def parse_coverage_notes(gaps: Iterable[str]) -> dict[str, str]:
         cid = match.group("id")
         reason = match.group("reason").strip()
         previous = notes.get(cid)
-        if previous is None or (
-            is_lazy_na_reason(previous) and not is_lazy_na_reason(reason)
-        ):
+        if previous is None or (is_lazy_na_reason(previous) and not is_lazy_na_reason(reason)):
             notes[cid] = reason
         elif is_lazy_na_reason(previous) and is_lazy_na_reason(reason):
             notes[cid] = reason
@@ -215,8 +214,7 @@ _BAND_PASS = {
 }
 
 _FIX_POINTER = (
-    "Findings under P1, P2, and P3 are the changes that make the product "
-    "more secure and stable."
+    "Findings under P1, P2, and P3 are the changes that make the product more secure and stable."
 )
 
 
@@ -263,10 +261,7 @@ def hollow_pass_note(gaps: Iterable[str], prefix: str) -> str | None:
         elif "pass_degraded" in text:
             kind = "degraded"
     if kind == "empty":
-        return (
-            f"{name} ({band}) returned no analysis evidence. "
-            "The 75% floor was not applied"
-        )
+        return f"{name} ({band}) returned no analysis evidence. The 75% floor was not applied"
     if kind == "degraded":
         return f"{name} ({band}) did not finish. The 75% floor was not applied"
     return None
@@ -328,10 +323,7 @@ def explain_missed_id(cid: str, gaps: Iterable[str]) -> str:
             f"{_FIX_POINTER}"
         )
     related = [gap.strip() for gap in gaps if cid in gap]
-    if any(
-        "lazy n/a rejected" in gap.lower() or "not reviewed" in gap.lower()
-        for gap in related
-    ):
+    if any("lazy n/a rejected" in gap.lower() or "not reviewed" in gap.lower() for gap in related):
         return (
             f"{label}. The review marked this as not looked at. "
             "Re-run so it is closed with a finding or a fact from this repository. "
@@ -349,14 +341,8 @@ def explain_answered(cid: str, issues: Iterable[Issue]) -> str:
     label = _question_label(cid)
     issue = _finding_for(cid, issues)
     if issue is None:
-        return (
-            f"{label}. A finding in this report covers this question. "
-            "Apply its recommended fix."
-        )
-    return (
-        f"{label}. See “{issue.title}” under {issue.priority} "
-        "and apply its recommended fix."
-    )
+        return f"{label}. A finding in this report covers this question. Apply its recommended fix."
+    return f"{label}. See “{issue.title}” under {issue.priority} and apply its recommended fix."
 
 
 def _finding_for(cov_id: str, issues: Iterable[Issue]) -> Issue | None:
@@ -406,18 +392,12 @@ def evaluate_coverage(
         seen.add(cov_id)
         wanted.append(cov_id)
 
-    seed_na = {
-        canonicalize_coverage_id(k): v for k, v in (seeded_na or {}).items()
-    }
-    seed_cov = {
-        canonicalize_coverage_id(k): v for k, v in (seeded_covered or {}).items()
-    }
+    seed_na = {canonicalize_coverage_id(k): v for k, v in (seeded_na or {}).items()}
+    seed_cov = {canonicalize_coverage_id(k): v for k, v in (seeded_covered or {}).items()}
     na_raw = parse_coverage_notes(gaps)
     na = {
         **seed_na,
-        **{
-            canonicalize_coverage_id(cid): reason for cid, reason in na_raw.items()
-        },
+        **{canonicalize_coverage_id(cid): reason for cid, reason in na_raw.items()},
     }
     issue_list = list(issues)
     covered: list[str] = []

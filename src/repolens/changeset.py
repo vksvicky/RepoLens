@@ -52,22 +52,24 @@ def list_git_changed_paths(
         if completed.returncode == 0:
             _add_from_stdout(completed.stdout)
 
-    if include_dirty:
-        for argv in (
-            ["git", "diff", "--name-only", "--cached"],
-            ["git", "diff", "--name-only"],
-        ):
-            completed = subprocess.run(
-                argv,
-                cwd=root,
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-            if completed.returncode == 0:
-                _add_from_stdout(completed.stdout)
-
+    _add_dirty_paths(root, _add_from_stdout) if include_dirty else None
     return collected
+
+
+def _add_dirty_paths(root: Path, add_from_stdout) -> None:
+    for argv in (
+        ["git", "diff", "--name-only", "--cached"],
+        ["git", "diff", "--name-only"],
+    ):
+        completed = subprocess.run(
+            argv,
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if completed.returncode == 0:
+            add_from_stdout(completed.stdout)
 
 
 def filter_entries_to_changeset(

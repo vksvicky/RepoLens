@@ -31,11 +31,4 @@ def test_run_review_phases_take_explicit_state() -> None:
     )
     assert not any(isinstance(node, ast.Nonlocal) for node in ast.walk(review))
     assert not any(isinstance(node, ast.FunctionDef) for node in review.body)
-    built = [
-        node
-        for node in ast.walk(review)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "ReviewRun"
-    ]
-    assert built
+    assert [arg.arg for arg in review.args.args] == ["state"]

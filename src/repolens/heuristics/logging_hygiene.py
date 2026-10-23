@@ -98,24 +98,33 @@ def _preserves_traceback(call: ast.Call) -> bool:
     return False
 
 
+def _log_call_flags(node: ast.AST) -> tuple[bool, bool]:
+    """Return whether this node keeps a traceback, and whether it is a plain log."""
+    if not isinstance(node, ast.Call):
+        return False, False
+    is_log, kind = _is_log_or_print_call(node)
+    if not is_log or kind == "print":
+        return False, False
+    if _preserves_traceback(node):
+        return True, False
+    return False, True
+
+
 def _handler_is_swallowed(handler: ast.ExceptHandler) -> bool:
     """Silent handlers, and logs that drop the traceback."""
     has_raise = False
     has_traceback = False
     has_plain_log = False
+    nested = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
     for stmt in handler.body:
-        if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        if isinstance(stmt, nested):
             continue
         for node in ast.walk(stmt):
             if isinstance(node, ast.Raise):
                 has_raise = True
-            if isinstance(node, ast.Call):
-                is_log, kind = _is_log_or_print_call(node)
-                if is_log and kind != "print":
-                    if _preserves_traceback(node):
-                        has_traceback = True
-                    else:
-                        has_plain_log = True
+            keeps, plain = _log_call_flags(node)
+            has_traceback = has_traceback or keeps
+            has_plain_log = has_plain_log or plain
     if has_raise or has_traceback:
         return False
     if _is_empty_or_pass_body(handler.body):
@@ -153,10 +162,49 @@ def _swallowed_issue(relative: str, lineno: int) -> Issue:
             f"{relative}:{lineno} catches an exception and neither re-raises it nor "
             "logs it with logger.exception or exc_info=True."
         ),
-        recommendedFix=(
-            "Call logger.exception(...) or log with exc_info=True, or re-raise."
-        ),
+        recommendedFix=("Call logger.exception(...) or log with exc_info=True, or re-raise."),
         fixTiming="before launch",
+        source="heuristic",
+    )
+
+
+def _eager_issue(relative: str, lineno: int) -> Issue:
+    return Issue(
+        severity=Severity.LOW,
+        priority="P3",
+        category="heuristic.logging_eager",
+        file=relative,
+        line=lineno,
+        title="Eager string formatting in log call",
+        explanation=(
+            f"{relative}:{lineno} builds the log message before the call. "
+            "Pass a format string and arguments so a disabled level does no work."
+        ),
+        recommendedFix="Use the logger's format string and arguments.",
+        fixTiming="if time permits",
+        source="heuristic",
+    )
+
+
+def _python_eager_issue(relative: str, lineno: int) -> Issue:
+    return Issue(
+        severity=Severity.LOW,
+        priority="P3",
+        category="heuristic.logging_eager",
+        file=relative,
+        line=max(lineno, 1),
+        title="Eager string formatting in log call",
+        explanation=(
+            f"{relative}:{lineno} passes an f-string or concat "
+            "to a logger call. Prefer parameterized logging (e.g. "
+            "logger.info('user %s', user_id)) to avoid formatting overhead "
+            "when the log level is disabled."
+        ),
+        recommendedFix=(
+            "Pass static format strings and positional arguments "
+            "(e.g. logger.info('user %s', user_id)) instead of f-strings."
+        ),
+        fixTiming="if time permits",
         source="heuristic",
     )
 
@@ -165,23 +213,7 @@ def _issues_from_other(relative: str, source: str, suffix: str, *, is_test: bool
     built: list[Issue] = []
     for category, lineno, detail in logging_hits(source, suffix, is_test=is_test):
         if category == "heuristic.logging_eager":
-            built.append(
-                Issue(
-                    severity=Severity.LOW,
-                    priority="P3",
-                    category=category,
-                    file=relative,
-                    line=lineno,
-                    title="Eager string formatting in log call",
-                    explanation=(
-                        f"{relative}:{lineno} builds the log message before the call. "
-                        "Pass a format string and arguments so a disabled level does no work."
-                    ),
-                    recommendedFix="Use the logger's format string and arguments.",
-                    fixTiming="if time permits",
-                    source="heuristic",
-                )
-            )
+            built.append(_eager_issue(relative, lineno))
         elif category == "heuristic.logging_secret":
             built.append(_secret_issue(relative, lineno, "log", detail))
         else:
@@ -189,67 +221,43 @@ def _issues_from_other(relative: str, source: str, suffix: str, *, is_test: bool
     return built
 
 
+def logging_issues(entry: FileEntry, source: str) -> list[Issue]:
+    if is_mega_file_excluded(entry.relative):
+        return []
+    suffix = entry.path.suffix.lower()
+    is_test = is_test_source(entry.relative)
+    if suffix in OTHER_SUFFIXES:
+        return _issues_from_other(entry.relative, source, suffix, is_test=is_test)
+    if suffix not in _PYTHON:
+        return []
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    issues: list[Issue] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and _is_eager_log_call(node):
+            issues.append(_python_eager_issue(entry.relative, node.lineno))
+        if not is_test and isinstance(node, ast.Call):
+            is_call, kind = _is_log_or_print_call(node)
+            secret = _secret_in_call(node) if is_call else None
+            if secret:
+                issues.append(_secret_issue(entry.relative, node.lineno, kind, secret))
+        if not is_test and isinstance(node, ast.ExceptHandler):
+            if _handler_is_swallowed(node):
+                issues.append(_swallowed_issue(entry.relative, node.lineno))
+    return issues
+
+
 def find_logging_hygiene(files: list[FileEntry]) -> list[Issue]:
     issues: list[Issue] = []
-
     for entry in files:
         if not entry.path.is_file():
             continue
-        if is_mega_file_excluded(entry.relative):
-            continue
-        suffix = entry.path.suffix.lower()
-        is_test = is_test_source(entry.relative)
-        if suffix in OTHER_SUFFIXES:
-            try:
-                source = entry.path.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
-            issues.extend(_issues_from_other(entry.relative, source, suffix, is_test=is_test))
-            continue
-        if suffix not in _PYTHON:
-            continue
-
         try:
             source = entry.path.read_text(encoding="utf-8", errors="replace")
-            tree = ast.parse(source)
-        except (OSError, SyntaxError):
+        except OSError:
             continue
-
-        for node in ast.walk(tree):
-            # 1. Eager log formatting (runs on production and test files)
-            if isinstance(node, ast.Call) and _is_eager_log_call(node):
-                issues.append(
-                    Issue(
-                        severity=Severity.LOW,
-                        priority="P3",
-                        category="heuristic.logging_eager",
-                        file=entry.relative,
-                        line=max(node.lineno, 1),
-                        title="Eager string formatting in log call",
-                        explanation=(
-                            f"{entry.relative}:{node.lineno} passes an f-string or concat "
-                            "to a logger call. Prefer parameterized logging (e.g. "
-                            "logger.info('user %s', user_id)) to avoid formatting overhead "
-                            "when the log level is disabled."
-                        ),
-                        recommendedFix=(
-                            "Pass static format strings and positional arguments "
-                            "(e.g. logger.info('user %s', user_id)) instead of f-strings."
-                        ),
-                        fixTiming="if time permits",
-                        source="heuristic",
-                    )
-                )
-
-            if not is_test and isinstance(node, ast.Call):
-                is_call, kind = _is_log_or_print_call(node)
-                secret = _secret_in_call(node) if is_call else None
-                if secret:
-                    issues.append(_secret_issue(entry.relative, node.lineno, kind, secret))
-
-            if not is_test and isinstance(node, ast.ExceptHandler):
-                if _handler_is_swallowed(node):
-                    issues.append(_swallowed_issue(entry.relative, node.lineno))
-
+        issues.extend(logging_issues(entry, source))
     issues.sort(key=lambda i: (i.file, i.line, i.category, i.title))
     return issues

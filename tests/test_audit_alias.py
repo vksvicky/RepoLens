@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from inspect import signature
 from pathlib import Path
 from unittest.mock import patch
 
@@ -10,7 +9,6 @@ import typer.main
 from typer.testing import CliRunner
 
 from repolens.cli import app
-from repolens.cli.commands_review import _run_mode
 from repolens.cli.presets import RELEASE_TIMEOUT_S
 
 runner = CliRunner()
@@ -25,7 +23,7 @@ def _tiny_repo(tmp_path: Path) -> Path:
 
 def _bound_run_mode(run_mode_mock: object) -> dict:
     call = run_mode_mock.call_args  # type: ignore[attr-defined]
-    return dict(signature(_run_mode).bind(*call.args, **call.kwargs).arguments)
+    return vars(call.args[0])
 
 
 def test_help_lists_audit_command() -> None:

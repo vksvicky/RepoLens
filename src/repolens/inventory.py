@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -114,6 +115,7 @@ def _is_under_root(path: Path, root: Path) -> bool:
         path.resolve().relative_to(root.resolve())
         return True
     except ValueError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return False
 
 
@@ -144,8 +146,7 @@ def _band_for(relative: str) -> int:
     if any(hint in lower or hint in name for hint in P1_NAME_HINTS):
         return 1
     if any(
-        part in lower
-        for part in ("controller", "service", "model", "route", "api/", "handlers")
+        part in lower for part in ("controller", "service", "model", "route", "api/", "handlers")
     ):
         return 2
     return 3
@@ -171,9 +172,7 @@ def scan_inventory(
     )
 
     if mode == "diff":
-        matched = _collect_diff_entries(
-            root, since=since, max_bytes=max_bytes, skip_globs=globs
-        )
+        matched = _collect_diff_entries(root, since=since, max_bytes=max_bytes, skip_globs=globs)
     else:
         matched = _collect_full_entries(root, max_bytes=max_bytes, skip_globs=globs)
 
@@ -233,9 +232,7 @@ def _collect_full_entries(
         rel = path.relative_to(root).as_posix()
         if is_skipped_path(rel, skip_globs):
             continue
-        entries.append(
-            FileEntry(path=path, relative=rel, size=size, priority_band=_band_for(rel))
-        )
+        entries.append(FileEntry(path=path, relative=rel, size=size, priority_band=_band_for(rel)))
     return entries
 
 
@@ -323,8 +320,17 @@ def classify_fingerprint_deletions(
     return removed, dropped
 
 
+FTS_CHUNK_CHARS = 80_000
+
+
+def read_prefix(path: Path, max_chars: int) -> str:
+    """Read at most ``max_chars + 1`` characters so a slice can see truncation."""
+    with path.open(encoding="utf-8", errors="replace") as handle:
+        return handle.read(max_chars + 1)
+
+
 def read_excerpt(entry: FileEntry, *, max_chars: int = 12_000) -> str:
-    text = entry.path.read_text(encoding="utf-8", errors="replace")
+    text = read_prefix(entry.path, max_chars)
     if len(text) <= max_chars:
         return text
     return text[:max_chars] + "\n\n/* … truncated by RepoLens … */\n"

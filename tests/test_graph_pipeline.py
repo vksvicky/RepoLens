@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from repolens.pipeline import run_review
+from repolens.pipeline import ReviewRun, run_review
 from repolens.progress import ReviewProgress
 from repolens.report import render_markdown
 from repolens.schema import FindingReport, GraphBlock, Summary
@@ -14,7 +14,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 def test_scanners_only_includes_graph_findings(tmp_path: Path) -> None:
     root = FIXTURES / "graph_cycle_pkg"
-    result = run_review(
+    result = run_review(ReviewRun(
         path=root,
         mode="sentinel",
         scanners="off",
@@ -22,7 +22,7 @@ def test_scanners_only_includes_graph_findings(tmp_path: Path) -> None:
         out_dir=tmp_path / "reports",
         fmt="json",
         progress=ReviewProgress(quiet=True),
-    )
+    ))
     assert result.report.graph is not None
     assert result.report.graph.cycleCount >= 1
     assert any(i.source == "graph" for i in result.report.issues)

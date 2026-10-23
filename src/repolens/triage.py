@@ -79,10 +79,9 @@ def stamp_issue_sources(
             out.append(issue.model_copy(update={"source": "scanner"}))
         elif cat.startswith("heuristic.") or cat.startswith("pack."):
             out.append(issue.model_copy(update={"source": "heuristic"}))
-        elif default_llm:
-            out.append(issue.model_copy(update={"source": "llm"}))
         else:
-            out.append(issue)
+            stamped = issue.model_copy(update={"source": "llm"}) if default_llm else issue
+            out.append(stamped)
     return out
 
 
@@ -251,6 +250,10 @@ def select_pack_entries(files: list, pack_files: list[str]) -> list:
     ]
 
 
+def _outside_scanner_gate(issue: Issue) -> bool:
+    return infer_issue_source(issue) not in {"scanner", "graph"}
+
+
 def fail_on_triggered(
     report: FindingReport,
     fail_on: str | None,
@@ -272,10 +275,8 @@ def fail_on_triggered(
         )
     threshold = order[key]
     for issue in report.issues:
-        if scanner_only:
-            src = infer_issue_source(issue)
-            if src not in {"scanner", "graph"}:
-                continue
+        if _outside_scanner_gate(issue) if scanner_only else False:
+            continue
         if order[issue.severity.value] >= threshold:
             return True
     return False

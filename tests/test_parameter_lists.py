@@ -37,6 +37,24 @@ def long_fn(a, b, c, d, e, f, g):
     assert "7 or more" in issue.explanation
 
 
+def test_call_defaults_are_not_counted(tmp_path: Path) -> None:
+    code = """
+def option_path():
+    return None
+
+def review(a=option_path(), b=option_path(), c=option_path(), d=option_path(),
+           e=option_path(), f=option_path(), g=option_path()):
+    return a
+
+def still_long(a, b, c, d, e, f, g):
+    return a
+"""
+    entry = _entry(tmp_path, "src/cli_opts.py", code)
+    issues = find_long_parameter_lists([entry])
+    assert len(issues) == 1
+    assert "still_long" in issues[0].title
+
+
 def test_method_drops_self_and_cls(tmp_path: Path) -> None:
     code = """
 class Worker:

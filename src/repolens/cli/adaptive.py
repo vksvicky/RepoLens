@@ -8,6 +8,7 @@ import typer
 from rich.table import Table
 
 from repolens.cli.app import adaptive_app, console, learn_app
+from repolens.cli.exit_codes import EXIT_BAD_INPUT
 
 
 @learn_app.command("build")
@@ -32,12 +33,12 @@ def learn_build(
             console.print(
                 "[yellow]Re-run with[/yellow] [cyan]--accept-local-learning[/cyan] to consent."
             )
-            raise typer.Exit(code=2)
+            raise typer.Exit(code=EXIT_BAD_INPUT)
     try:
         count = LearningIndex(root).build(accept=accept)
     except PermissionError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     from repolens.learning.store import store_db_path
 
     console.print(f"[green]Indexed[/green] {count} file(s) → {store_db_path(root)}")

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from dataclasses import dataclass, replace
 from importlib import resources
@@ -26,7 +27,7 @@ def _defaults_dir() -> Path:
         if root.is_dir() and (root / "manifest.json").is_file():
             return Path(str(root))
     except (TypeError, FileNotFoundError, ModuleNotFoundError):
-        pass
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
 
     here = Path(__file__).resolve().parent / "defaults"
     if (here / "manifest.json").is_file():
@@ -208,16 +209,19 @@ def _build_rules(*, project_root: Path | None = None) -> dict[str, Rule]:
     return built
 
 
+def _sorted_rules(project_root: Path | None) -> list[Rule]:
+    rules = list(_build_rules(project_root=project_root).values())
+    rules.sort(key=lambda r: (r.band, r.id))
+    return rules
+
+
 def list_rules(
     *,
     include_disabled: bool = False,
     project_root: Path | None = None,
 ) -> list[Rule]:
-    rules = list(_build_rules(project_root=project_root).values())
-    rules.sort(key=lambda r: (r.band, r.id))
-    if include_disabled:
-        return rules
-    return [r for r in rules if r.enabled]
+    rules = _sorted_rules(project_root)
+    return rules if include_disabled else [rule for rule in rules if rule.enabled]
 
 
 def get_rule(rule_id: str, *, project_root: Path | None = None) -> Rule:

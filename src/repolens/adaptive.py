@@ -11,6 +11,8 @@ from repolens.inventory import FileEntry
 from repolens.learning.store import FingerprintDiff, ProjectStore
 from repolens.llm import DEFAULT_LLM_TIMEOUT, DEFAULT_OLLAMA_TIMEOUT
 
+_HASH_CHUNK = 1024 * 1024  # 1 MiB
+
 
 def file_sha256(path: Path) -> str:
     """Return the SHA-256 hex digest of ``path``.
@@ -20,7 +22,7 @@ def file_sha256(path: Path) -> str:
     """
     h = hashlib.sha256()
     with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+        for chunk in iter(lambda: fh.read(_HASH_CHUNK), b""):
             h.update(chunk)
     return h.hexdigest()
 
@@ -170,8 +172,4 @@ def select_pack_paths(
     if mode_norm == "changed":
         return [e for e in entries if e.relative in interesting]
     # auto: changed/added + all P1-band
-    return [
-        e
-        for e in entries
-        if e.relative in interesting or e.priority_band <= 1
-    ]
+    return [e for e in entries if e.relative in interesting or e.priority_band <= 1]

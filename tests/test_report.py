@@ -165,6 +165,31 @@ def test_write_markdown_report_includes_sections(tmp_path: Path) -> None:
     assert text.index("## About") < text.index("## Disclaimer")
 
 
+def test_markdown_heading_names_the_reviewed_project(tmp_path: Path) -> None:
+    reviewed = Path("/repos/sample-app")
+    sha = "abc123def4567890abcdef1234567890abcdef12"
+    branch = "main"
+    version = "0.1.3"
+    report = FindingReport(
+        confidence=95,
+        summary=Summary(),
+        provenance=ProvenanceBlock(
+            repoLensVersion=version,
+            reviewedPath=str(reviewed),
+            gitSha=sha,
+            gitBranch=branch,
+            dirtyTree=True,
+        ),
+    )
+    text = write_markdown_report(report, tmp_path, mode="review").read_text(encoding="utf-8")
+    head = text.split("## Gate verdict", 1)[0]
+    assert head.startswith(f"# Gate review report — {reviewed.name} — ")
+    assert f"**Project:** `{reviewed.name}`" in head
+    assert f"**Path:** `{reviewed}`" in head
+    assert f"**Git:** `{branch} {sha[:12]}` (dirty)" in head
+    assert f"**RepoLens:** `{version}`" in head
+
+
 def test_render_markdown_includes_gate_adequacy_note() -> None:
     report = FindingReport(
         confidence=75,

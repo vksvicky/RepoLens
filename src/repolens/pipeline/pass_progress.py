@@ -12,16 +12,16 @@ def _files(count: int) -> str:
     return "1 file" if n == 1 else f"{n} files"
 
 
+_FULL_PERCENT = 100
+
+
 def file_work_line(done: int, total: int) -> str:
     """``16 of 48 file checks done (33%). 32 files still to go.``"""
     done_n = max(0, int(done))
     total_n = max(0, int(total))
     pending = max(0, total_n - done_n)
-    pct = 0 if total_n == 0 else min(100, (100 * done_n) // total_n)
-    return (
-        f"{done_n} of {total_n} file checks done ({pct}%). "
-        f"{_files(pending)} still to go."
-    )
+    pct = 0 if total_n == 0 else min(_FULL_PERCENT, (_FULL_PERCENT * done_n) // total_n)
+    return f"{done_n} of {total_n} file checks done ({pct}%). {_files(pending)} still to go."
 
 
 def pass_status_line(
@@ -80,15 +80,10 @@ def continue_line(root: Path) -> str | None:
     if interrupted is None:
         return None
     interrupt_at = prior.index(interrupted)
-    prior_starts = [
-        i for i, row in enumerate(prior) if row.get("event") == "review_started"
-    ]
+    prior_starts = [i for i, row in enumerate(prior) if row.get("event") == "review_started"]
     # A review that already started after the cancel does not need the banner again.
     if prior_starts and prior_starts[-1] > interrupt_at:
         return None
     saved = interrupted.get("finished") or []
     names = ", ".join(str(item) for item in saved) or "none"
-    return (
-        f"Continuing. Saved: {names}. "
-        "A pass that was cancelled mid-write starts again."
-    )
+    return f"Continuing. Saved: {names}. A pass that was cancelled mid-write starts again."

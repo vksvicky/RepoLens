@@ -58,17 +58,25 @@ def _has_code_example(issue: Issue) -> bool:
     return bool((issue.codeExample or "").strip())
 
 
+def _count_high(tally: _ActionabilityTally, has_example: bool) -> None:
+    tally.critical_high += 1
+    tally.critical_high_with_code_example += 1 if has_example else 0
+
+
+def _count_other(tally: _ActionabilityTally, has_example: bool) -> None:
+    tally.medium_low += 1
+    tally.medium_low_with_code_example += 1 if has_example else 0
+
+
 def _count_severity_examples(
     issue: Issue, has_example: bool, tally: _ActionabilityTally
 ) -> None:
-    if issue.severity in {Severity.CRITICAL, Severity.HIGH}:
-        tally.critical_high += 1
-        if has_example:
-            tally.critical_high_with_code_example += 1
-        return
-    tally.medium_low += 1
-    if has_example:
-        tally.medium_low_with_code_example += 1
+    counter = (
+        _count_high
+        if issue.severity in {Severity.CRITICAL, Severity.HIGH}
+        else _count_other
+    )
+    counter(tally, has_example)
 
 
 def _count_source(issue: Issue, tally: _ActionabilityTally) -> None:

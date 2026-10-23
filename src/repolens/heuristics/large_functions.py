@@ -31,42 +31,46 @@ def _python_large_functions(text: str) -> list[tuple[str, int, int]]:
     return found
 
 
+def large_function_issues(entry: FileEntry, text: str) -> list[Issue]:
+    if is_test_source(entry.relative) or is_mega_file_excluded(entry.relative):
+        return []
+    suffix = entry.path.suffix.lower()
+    if suffix in _TREE_SITTER_SUFFIXES or suffix not in _PYTHON:
+        return []
+    issues: list[Issue] = []
+    for name, line, span in _python_large_functions(text):
+        issues.append(
+            Issue(
+                severity=Severity.MEDIUM,
+                priority="P3",
+                category="heuristic.large_function",
+                file=entry.relative,
+                line=max(line, 1),
+                title=f"Large function {name!r}: {span} lines",
+                explanation=(
+                    f"{entry.relative}:{line} function {name!r} spans {span} lines "
+                    f"(threshold {MIN_FUNCTION_LINES}). Long functions are harder to "
+                    "read and test; this is a span check, not cyclomatic complexity."
+                ),
+                recommendedFix=(
+                    "Extract helpers, split responsibilities, or shorten the function "
+                    "so each unit stays under the line-span threshold."
+                ),
+                fixTiming="if time permits",
+                source="heuristic",
+            )
+        )
+    return issues
+
+
 def find_large_functions(files: list[FileEntry]) -> list[Issue]:
     issues: list[Issue] = []
     for entry in files:
         if not entry.path.is_file():
             continue
-        if is_test_source(entry.relative) or is_mega_file_excluded(entry.relative):
-            continue
-        suffix = entry.path.suffix.lower()
-        if suffix in _TREE_SITTER_SUFFIXES:
-            continue
-        if suffix not in _PYTHON:
-            continue
         try:
             text = entry.path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        for name, line, span in _python_large_functions(text):
-            issues.append(
-                Issue(
-                    severity=Severity.MEDIUM,
-                    priority="P3",
-                    category="heuristic.large_function",
-                    file=entry.relative,
-                    line=max(line, 1),
-                    title=f"Large function {name!r}: {span} lines",
-                    explanation=(
-                        f"{entry.relative}:{line} function {name!r} spans {span} lines "
-                        f"(threshold {MIN_FUNCTION_LINES}). Long functions are harder to "
-                        "read and test; this is a span check, not cyclomatic complexity."
-                    ),
-                    recommendedFix=(
-                        "Extract helpers, split responsibilities, or shorten the function "
-                        "so each unit stays under the line-span threshold."
-                    ),
-                    fixTiming="if time permits",
-                    source="heuristic",
-                )
-            )
+        issues.extend(large_function_issues(entry, text))
     return issues

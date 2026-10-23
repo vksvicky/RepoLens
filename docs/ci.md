@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: vksvicky/RepoLens@v0.1.3   # or @main while iterating
+      - uses: vksvicky/RepoLens@v0.1.4   # or @main while iterating
         with:
           path: .
           run: dry-run
@@ -143,7 +143,7 @@ Design: phase-6.x §6.3 · blog: enterprise-scale-llm-review-ci
 | `pr-summary` | `true` | Job summary + `::error`/`::warning` annotations |
 | `reports-dir` | `reports` | Output directory under `path` |
 | `install-from` | `local` | `local` (action checkout) \| `pypi` \| `git` |
-| `version` | `0.1.0a1` | Used when `install-from=pypi` |
+| `version` | `0.1.4` | Used when `install-from=pypi` |
 | `install-plugins` | `true` | `repolens plugins install all --yes` |
 
 Reference workflow in this repo: [`.github/workflows/repolens-example.yml`](../.github/workflows/repolens-example.yml) · Action: [`action.yml`](../action.yml)
@@ -158,20 +158,20 @@ pipelines:
     - step:
         name: RepoLens
         script:
-          - pip install "repolens-audit[scanners]==0.1.0a1"
+          - pip install "repolens-audit[scanners]==0.1.4"
           # Fallback (unreleased tip): pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
           - repolens plugins install all --yes
           - |
             python - <<'PY'
             import os, subprocess
-            from repolens.ci_args import build_review_argv
-            argv = build_review_argv(
+            from repolens.ci_args import BuildReviewArgv, build_review_argv
+            argv = build_review_argv(BuildReviewArgv(
                 mode="review",
                 path=".",
                 run=os.environ.get("REPOLENS_RUN", "auto"),
                 fail_on=os.environ.get("REPOLENS_FAIL_ON", "HIGH"),
                 require_scanners=True,
-            )
+            ))
             raise SystemExit(subprocess.call(argv))
             PY
         artifacts:
@@ -335,8 +335,6 @@ Or wipe `.repolens/` at the start of each job.
 
 Long-lived / shared agents: treat `.repolens/` as workspace-local; clean between unrelated jobs.
 
-Design: phase-7-enterprise-ci-and-report-delivery.md.
-
 ## Corporate CI (Phase 7)
 
 GitHub Action and Bitbucket (above) remain first-class. Phase 7 adds **Jenkins**, **CircleCI**, and **GitLab CI** recipes plus delivery patterns. RepoLens does **not** ship a hosted dashboard — archive `reports/**` and plug into your tools.
@@ -345,7 +343,7 @@ Shared CLI shape for PR / merge gates (prefer scanners; optional LLM when a key 
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install "repolens-audit[scanners]==0.1.0a1"
+pip install "repolens-audit[scanners]==0.1.4"
 # Fallback (unreleased tip): pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
 repolens plugins install all --yes
 repolens review --path . --out ./reports --format both --sarif \
@@ -383,7 +381,7 @@ pipeline {
           python3 -m venv .venv
           . .venv/bin/activate
           pip install -U pip
-          pip install "repolens-audit[scanners]==0.1.0a1"
+          pip install "repolens-audit[scanners]==0.1.4"
           # Fallback (unreleased tip): pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
           repolens plugins install all --yes
           # Prefer scanners-only when no cloud key / policy forbids LLM egress:
@@ -426,7 +424,7 @@ jobs:
           name: Install RepoLens
           command: |
             pip install -U pip
-            pip install "repolens-audit[scanners]==0.1.0a1"
+            pip install "repolens-audit[scanners]==0.1.4"
             # Fallback (unreleased tip): pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
             repolens plugins install all --yes
       - run:
@@ -454,7 +452,7 @@ repolens:
     PIP_DISABLE_PIP_VERSION_CHECK: "1"
   before_script:
     - pip install -U pip
-    - pip install "repolens-audit[scanners]==0.1.0a1"
+    - pip install "repolens-audit[scanners]==0.1.4"
     # Fallback (unreleased tip): pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
     - repolens plugins install all --yes
   script:
@@ -483,7 +481,7 @@ steps:
     inputs:
       versionSpec: "3.12"
   - script: |
-      pip install "repolens-audit[scanners]==0.1.0a1"
+      pip install "repolens-audit[scanners]==0.1.4"
       # Fallback (unreleased tip): pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
       repolens plugins install all --yes
       repolens review --path . --out ./reports --format both --sarif \
@@ -574,13 +572,10 @@ Use `--format json|both` and ingest `FindingReport` JSON (and/or anchored SARIF)
 
 Use both: forge push protection stops secret leaks at the gate; RepoLens reviews what already reached the branch or merge request. RepoLens is **not** a pre-receive server.
 
-Checklist: phase-7-execution-checklist.md · design: phase-7-enterprise-ci-and-report-delivery.md.
-
 ## Related
 
 - [scanners.md](./scanners.md)  
 - [setup-ai-and-scanners.md](./setup-ai-and-scanners.md)  
 - [publishing.md](./publishing.md) — PyPI releases for `install-from: pypi`  
 - [faq.md](./faq.md) — *Corporate CI/CD & delivery*  
-- phase-7-enterprise-ci-and-report-delivery.md — enterprise delivery design  
 

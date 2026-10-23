@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from repolens.rules.registry import get_rule
@@ -16,7 +17,7 @@ def playbooks_dir() -> Path:
         if root.is_dir():
             return Path(str(root))
     except (TypeError, FileNotFoundError, ModuleNotFoundError):
-        pass
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
     here = Path(__file__).resolve().parent / "rules" / "defaults"
     if here.is_dir():
         return here
@@ -37,6 +38,21 @@ def load_playbook(name: str) -> str:
         raise FileNotFoundError(f"Playbook not found for name={name!r}") from exc
 
 
+def _architecture_playbook(body: str) -> tuple[str, str]:
+    return ("P3 architecture", body)
+
+
+def _scoped_architecture() -> tuple[str, str]:
+    return (
+        "P3 architecture (scoped)",
+        (
+            "Perform a scoped architecture/quality review of the change blast radius. "
+            "Defer full production-readiness scores unless clearly warranted. "
+            "Return FindingReport JSON."
+        ),
+    )
+
+
 def playbooks_for_mode(mode: str, *, full_audit: bool = False) -> list[tuple[str, str]]:
     """Return ordered (label, content) playbooks for a CLI mode."""
     if mode == "sentinel":
@@ -53,18 +69,8 @@ def playbooks_for_mode(mode: str, *, full_audit: bool = False) -> list[tuple[str
             ("P1 security", security.body),
             ("P2 reliability", reliability.body),
         ]
-        if full_audit:
-            items.append(("P3 architecture", architecture.body))
-        else:
-            items.append(
-                (
-                    "P3 architecture (scoped)",
-                    (
-                        "Perform a scoped architecture/quality review of the change blast radius. "
-                        "Defer full production-readiness scores unless clearly warranted. "
-                        "Return FindingReport JSON."
-                    ),
-                )
-            )
+        items.append(
+            _architecture_playbook(architecture.body) if full_audit else _scoped_architecture()
+        )
         return items
     raise ValueError(f"Unknown mode: {mode}")

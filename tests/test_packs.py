@@ -70,7 +70,7 @@ def test_sentinel_mode_unchanged_without_packs() -> None:
 
 
 def test_pack_heuristics_via_scanners_only(tmp_path: Path) -> None:
-    from repolens.pipeline import run_review
+    from repolens.pipeline import ReviewRun, run_review
     from repolens.progress import ReviewProgress
 
     (tmp_path / "workflow.json").write_text(
@@ -78,7 +78,7 @@ def test_pack_heuristics_via_scanners_only(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     out = tmp_path / "reports"
-    result = run_review(
+    result = run_review(ReviewRun(
         path=tmp_path,
         mode="sentinel",
         scanners="off",
@@ -87,7 +87,7 @@ def test_pack_heuristics_via_scanners_only(tmp_path: Path) -> None:
         fmt="json",
         packs=["azure-sentinel"],
         progress=ReviewProgress(quiet=True),
-    )
+    ))
     assert any(i.category == "pack.azure_sentinel" for i in result.report.issues)
 
 

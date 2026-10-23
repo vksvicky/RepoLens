@@ -89,6 +89,13 @@
 # fallback = true
 #   If the configured cloud model fails, try local Ollama, then scanners and
 #   heuristics. CLI: --fallback / --no-fallback. Recommended: true.
+# memory_ceiling_mb = 4096
+#   Optional. After Fast Brain, if this Python process is over the ceiling,
+#   print a hint that names max_files and chars_per_pass. Unset means no check.
+# memory_abort = false
+#   With memory_ceiling_mb, stop before the model (exit 2) when the process
+#   is over the ceiling. A pass that already started is left running.
+#   Recommended: false. The 32B-on-a-small-machine line is a notice, not this.
 
 [scanners]
 # enabled = ["gitleaks", "semgrep", "osv"]
@@ -157,8 +164,9 @@
 #   Whole-tree heuristics, complexity, and test inventory. 0 = uncapped
 #   (ignores and the ~200 KB per-file limit still apply). Recommended: 10000,
 #   or 0 on a monorepo you know is safe to walk.
-# parallel_workers = 8
-#   Threads for line/regex heuristics. Recommended: 8.
+# parallel_workers = 0
+#   0 leaves one CPU core free, capped at 8:
+#   min(8, max(1, cpu_count - 1)). A positive value is used as written.
 # triage_include_heuristics = true
 #   Under --ci, heuristic High+ findings can wake the LLM. Recommended: true.
 

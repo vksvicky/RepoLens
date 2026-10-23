@@ -32,6 +32,11 @@ class ModelConfig(BaseModel):
     lock_cli: bool | None = None
     # Automatic fallback (Cloud LLM -> Ollama -> SAST scanners & heuristics)
     fallback: bool = True
+    # Unset: no ceiling. Checked once after Fast Brain, before the model call.
+    memory_ceiling_mb: int | None = Field(default=None, ge=1)
+    # When true and the process is over the ceiling, stop with exit 2.
+    # A pass that already started is not killed.
+    memory_abort: bool = False
 
 
 class GeneralConfig(BaseModel):
@@ -60,7 +65,7 @@ class FastBrainConfig(BaseModel):
 
     # 0 = no cap beyond ignores / per-file size.
     max_files: int = 10_000
-    parallel_workers: int = 8
+    parallel_workers: int = 0
     # When True, heuristic hits at severity_floor can wake --ci LLM triage.
     triage_include_heuristics: bool = True
     near_clones: NearClonesConfig = Field(default_factory=NearClonesConfig)

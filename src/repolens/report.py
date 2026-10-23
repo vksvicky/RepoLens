@@ -24,6 +24,7 @@ from repolens.report_sections import (
     _render_change_set_section,
     _render_complexity_section,
     _render_import_graph_section,
+    _render_issue,
     _render_provenance_section,
     _render_quality_scorecard_section,
     _render_supply_chain_section,
@@ -31,7 +32,7 @@ from repolens.report_sections import (
     _render_testing_inventory_section,
     _render_verification_section,
 )
-from repolens.schema import FindingReport, Issue, Severity
+from repolens.schema import FindingReport
 
 _FENCED_BLOCK_RE = re.compile(
     r"^\s*```[^\n]*\n(?P<body>.*?)\n```\s*$",
@@ -157,6 +158,31 @@ def write_json_report(
     return path
 
 
+def _reviewed_project_name(report: FindingReport) -> str:
+    prov = report.provenance
+    if prov is None or not prov.reviewedPath:
+        return ""
+    return Path(prov.reviewedPath).name
+
+
+def _reviewed_target_lines(report: FindingReport) -> list[str]:
+    prov = report.provenance
+    if prov is None or not prov.reviewedPath:
+        return []
+    path = Path(prov.reviewedPath)
+    lines = [
+        f"**Project:** `{path.name}`",
+        f"**Path:** `{path}`",
+    ]
+    if prov.gitSha:
+        state = {True: "dirty", False: "clean"}.get(prov.dirtyTree, "unknown")
+        branch = f"{prov.gitBranch} " if prov.gitBranch else ""
+        lines.append(f"**Git:** `{branch}{prov.gitSha[:12]}` ({state})")
+    if prov.repoLensVersion:
+        lines.append(f"**RepoLens:** `{prov.repoLensVersion}`")
+    return lines
+
+
 def _markdown_heading(
     report: FindingReport,
     *,
@@ -166,12 +192,15 @@ def _markdown_heading(
     when: datetime | None,
 ) -> list[str]:
     heading_time = report_heading_time(when)
+    project = _reviewed_project_name(report)
+    title = f"{project} — {heading_time}" if project else heading_time
     lines = [
-        f"# Gate review report — {heading_time}",
+        f"# Gate review report — {title}",
         "",
         f"**Mode:** `{mode}`",
-        f"**Generated:** {heading_time}",
     ]
+    lines.extend(_reviewed_target_lines(report))
+    lines.append(f"**Generated:** {heading_time}")
     duration = format_duration(report.durationSeconds)
     if duration is not None:
         lines.append(f"**Duration:** {duration}")
@@ -313,6 +342,12 @@ def _markdown_scanners(report: FindingReport) -> list[str]:
         detail = f" — {run.detail}" if run.detail else ""
         count = f" ({run.findingCount} finding(s))" if run.status == "ran" else ""
         lines.append(f"- **{run.tool}**: `{run.status}`{detail}{count}")
+    from repolens.report_blocks import format_scanner_times
+
+    times = format_scanner_times(report.scannerRuns)
+    if times:
+        lines.append("")
+        lines.append(times)
     lines.append("")
     return lines
 
@@ -417,82 +452,3 @@ def render_code_example_fenced(code_example: str) -> list[str]:
     fence = "`" * max(3, longest + 1)
     return [fence, body, fence] if body else [fence, fence]
 
-
-def _diff_suffix(issue: Issue) -> str:
-    if issue.introducedInDiff is True:
-        return " — New / touched in this diff"
-    if issue.introducedInDiff is False:
-        return " — Pre-existing baseline"
-    return ""
-
-
-def _render_issue(issue: Issue) -> list[str]:
-    block = [
-        f"### [{issue.severity.value}] {issue.title}{_diff_suffix(issue)}",
-        f"- **Priority:** {issue.priority}",
-        f"- **File:** `{issue.file}`",
-        f"- **Line:** {issue.line}",
-        f"- **Category:** {issue.category}",
-    ]
-    if issue.stableId:
-        block.append(
-            f"- **Fingerprint:** `{issue.stableId}` "
-            "(prefer for `explain` / ignore)"
-        )
-    if issue.runId:
-        block.append(
-            f"- **Occurrence:** `{issue.runId}` "
-            "(this report only; also works with `explain`)"
-        )
-    if issue.source:
-        block.append(f"- **Source:** {issue.source}")
-    if issue.locationVerified is False:
-        block.append(
-            "- **Location:** unverified — omitted from SARIF "
-            "(provide a resolvable `anchorQuote` or use scanner evidence)"
-        )
-    elif issue.locationVerified is True:
-        block.append("- **Location:** verified (SARIF-eligible)")
-    block.extend(
-        [
-            f"- **Explanation:** {issue.explanation}",
-            f"- **Impact:** {issue.impact or '_n/a_'}",
-            f"- **Recommended fix:** {issue.recommendedFix}",
-            f"- **Fix timing:** {issue.fixTiming}",
-        ]
-    )
-    if issue.owasp:
-        block.append(f"- **OWASP:** {issue.owasp}")
-    if issue.cwe:
-        block.append(f"- **CWE:** {issue.cwe}")
-    if issue.packageName or issue.advisoryId:
-        pkg_bits = []
-        if issue.packageName:
-            pkg_bits.append(f"`{issue.packageName}`")
-        if issue.installedVersion:
-            pkg_bits.append(f"installed `{issue.installedVersion}`")
-        if issue.fixedVersion:
-            pkg_bits.append(f"fixed `{issue.fixedVersion}`")
-        if issue.advisoryId:
-            pkg_bits.append(f"advisory `{issue.advisoryId}`")
-        block.append(f"- **SCA (scanner):** {', '.join(pkg_bits)}")
-    if issue.usageHint:
-        label = {
-            "referenced_in_source": "referenced in source",
-            "no_reference_found": "no reference found in scanned source",
-        }.get(issue.usageHint, issue.usageHint)
-        block.append(
-            f"- **Usage hint (not reachability):** {label}"
-            + (f" — {issue.usageHintDetail}" if issue.usageHintDetail else "")
-        )
-    if issue.clusteredCount and issue.clusteredCount > 1:
-        block.append(
-            f"- **Clustered:** {issue.clusteredCount} near-duplicate finding(s) collapsed"
-        )
-    if issue.codeExample.strip():
-        block.append("- **Code example:**")
-        block.append("")
-        block.extend(render_code_example_fenced(issue.codeExample))
-    elif issue.severity in {Severity.CRITICAL, Severity.HIGH}:
-        block.append("- **Code example:** _MISSING (invalid for Critical/High)_")
-    return block

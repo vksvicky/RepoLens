@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from repolens.coverage import coverage_ids_for_pass
@@ -65,20 +66,46 @@ def _pack_p3_role(
     graph: GraphResult | None,
     durability_gaps_out: list[str] | None,
 ) -> tuple[list[FileEntry], str, dict[str, str]]:
-    if not graph_usable:
-        if durability_gaps_out is not None:
-            reason = (
-                "graph unavailable"
-                if graph is None
-                else f"status={graph.status.value}"
-            )
-            durability_gaps_out.append(f"graph.p3_outline_only: {reason}")
-        packed = budget_files(
+    return (
+        _outline_without_graph(
             ordered,
-            max_chars=chars_per_pass,
-            cost_fn=estimate_outline_chars,
+            chars_per_pass=chars_per_pass,
+            graph=graph,
+            durability_gaps_out=durability_gaps_out,
         )
-        return packed, "outline", {}
+        if not graph_usable
+        else _pack_from_graph(
+            ordered,
+            chars_per_pass=chars_per_pass,
+            cycle_modules=cycle_modules,
+        )
+    )
+
+
+def _outline_without_graph(
+    ordered: Sequence[FileEntry],
+    *,
+    chars_per_pass: int,
+    graph: GraphResult | None,
+    durability_gaps_out: list[str] | None,
+) -> tuple[list[FileEntry], str, dict[str, str]]:
+    if durability_gaps_out is not None:
+        reason = "graph unavailable" if graph is None else f"status={graph.status.value}"
+        durability_gaps_out.append(f"graph.p3_outline_only: {reason}")
+    packed = budget_files(
+        ordered,
+        max_chars=chars_per_pass,
+        cost_fn=estimate_outline_chars,
+    )
+    return packed, "outline", {}
+
+
+def _pack_from_graph(
+    ordered: Sequence[FileEntry],
+    *,
+    chars_per_pass: int,
+    cycle_modules: set[str],
+) -> tuple[list[FileEntry], str, dict[str, str]]:
     if cycle_modules:
         return _budget_hybrid_p3(
             ordered,
@@ -93,18 +120,28 @@ def _pack_p3_role(
     return packed, "outline", {}
 
 
-def _pack_role_band(
-    band: str,
-    *,
-    entries: Sequence[FileEntry],
-    hot_paths: Iterable[str],
-    adaptive_paths: Iterable[str],
-    chars_per_pass: int,
-    cycle_modules: set[str],
-    graph_usable: bool,
-    graph: GraphResult | None,
-    durability_gaps_out: list[str] | None,
-) -> tuple[list[FileEntry], str, dict[str, str]]:
+@dataclass
+class PackRoleBand:
+    band: str
+    entries: Sequence[FileEntry]
+    hot_paths: Iterable[str]
+    adaptive_paths: Iterable[str]
+    chars_per_pass: int
+    cycle_modules: set[str]
+    graph_usable: bool
+    graph: GraphResult | None
+    durability_gaps_out: list[str] | None
+
+def _pack_role_band(job: PackRoleBand) -> tuple[list[FileEntry], str, dict[str, str]]:
+    band = job.band
+    entries = job.entries
+    hot_paths = job.hot_paths
+    adaptive_paths = job.adaptive_paths
+    chars_per_pass = job.chars_per_pass
+    cycle_modules = job.cycle_modules
+    graph_usable = job.graph_usable
+    graph = job.graph
+    durability_gaps_out = job.durability_gaps_out
     ordered = _order_for_band(
         entries,
         band=band,
@@ -124,20 +161,21 @@ def _pack_role_band(
     )
 
 
-def plan_deep_passes(
-    mode: str,
-    *,
-    full_audit: bool,
-    entries: Sequence[FileEntry],
-    hot_paths: Iterable[str],
-    adaptive_paths: Iterable[str],
-    chars_per_pass: int,
-    rules: list[Rule],
-    max_passes: int | None = None,
-    role_packs: bool = False,
-    graph: GraphResult | None = None,
-    durability_gaps_out: list[str] | None = None,
-) -> list[DeepPass]:
+@dataclass
+class PlanDeepPasses:
+    mode: str
+    full_audit: bool
+    entries: Sequence[FileEntry]
+    hot_paths: Iterable[str]
+    adaptive_paths: Iterable[str]
+    chars_per_pass: int
+    rules: list[Rule]
+    max_passes: int | None = None
+    role_packs: bool = False
+    graph: GraphResult | None = None
+    durability_gaps_out: list[str] | None = None
+
+def plan_deep_passes(job: PlanDeepPasses) -> list[DeepPass]:
     """Plan band-ordered deep passes from enabled rules for ``mode``.
 
     ``max_passes`` caps how many band passes run (1 = first band only, e.g. P1
@@ -147,6 +185,17 @@ def plan_deep_passes(
     uses outline-cost estimates, or hybrid full bodies for import-cycle modules
     when ``graph`` is available.
     """
+    mode = job.mode
+    full_audit = job.full_audit
+    entries = job.entries
+    hot_paths = job.hot_paths
+    adaptive_paths = job.adaptive_paths
+    chars_per_pass = job.chars_per_pass
+    rules = job.rules
+    max_passes = job.max_passes
+    role_packs = job.role_packs
+    graph = job.graph
+    durability_gaps_out = job.durability_gaps_out
     bands = _resolve_bands(mode, max_passes)
 
     shared: list[FileEntry] | None = None
@@ -170,17 +219,17 @@ def plan_deep_passes(
             enabled_rule_ids=rule_ids,
         )
         if role_packs:
-            packed, pack_mode, file_pack_modes = _pack_role_band(
-                band,
-                entries=entries,
-                hot_paths=hot_paths,
-                adaptive_paths=adaptive_paths,
-                chars_per_pass=chars_per_pass,
-                cycle_modules=cycle_modules,
-                graph_usable=graph_usable,
-                graph=graph,
-                durability_gaps_out=durability_gaps_out,
-            )
+            packed, pack_mode, file_pack_modes = _pack_role_band(PackRoleBand(
+        band=band,
+        entries=entries,
+        hot_paths=hot_paths,
+        adaptive_paths=adaptive_paths,
+        chars_per_pass=chars_per_pass,
+        cycle_modules=cycle_modules,
+        graph_usable=graph_usable,
+        graph=graph,
+        durability_gaps_out=durability_gaps_out,
+    ))
         else:
             packed = list(shared or [])
             pack_mode = "full"

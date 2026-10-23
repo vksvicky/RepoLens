@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
+
+from repolens.pipeline.deep_job import DeepJob
 
 if TYPE_CHECKING:
     from repolens.heuristics.runner import HeuristicResult
 
 from pathlib import Path
 
+from repolens.learning.store import RecordRun
 from repolens.progress import ReviewProgress
 from repolens.schema import (
     FindingReport,
@@ -78,10 +82,7 @@ def _extend_from_import_sarif(
     for block in imported:
         scanner_issues.extend(block.issues)
         if block.skipped:
-            prog.detail(
-                f"SARIF import ({block.tool_name}): "
-                f"skipped {block.skipped} result(s)"
-            )
+            prog.detail(f"SARIF import ({block.tool_name}): skipped {block.skipped} result(s)")
     scanner_runs.extend(scanner_runs_from_imports(imported))
 
 
@@ -97,6 +98,7 @@ def _git_sha(root: Path) -> str | None:
             text=True,
         )
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     if completed.returncode != 0:
         return None
@@ -112,7 +114,11 @@ def _invoke_deep_llm(state) -> None:
 
     if state.report_when is None:
         state.report_when = datetime.now(UTC)
-    state.report = _analyze_deep_passes(
+    from repolens.pipeline.pass_timing import close_pass_timings, open_pass_timings
+
+    token = open_pass_timings()
+    try:
+        state.report = _analyze_deep_passes(DeepJob(
         root=state.root,
         mode=state.mode,
         full_audit=state.full_audit,
@@ -131,25 +137,37 @@ def _invoke_deep_llm(state) -> None:
         retry_passes=normalize_retry_passes(state.retry_passes),
         graph=state.graph_result,
         change_set=state.change_set_block,
-    )
+        ))
+    finally:
+        state.pass_timings = close_pass_timings(token)
 
 
-def _ollama_status_fn(gen, ollama_base: str | None, use_ollama: bool):
-    def status_fn(
-        tick=gen,
-        base: str | None = ollama_base,
-        use: bool = use_ollama,
-    ) -> str | None:
+def _status_with_ollama(gen, ollama_base: str | None):
+    def status_fn(tick=gen, base: str | None = ollama_base) -> str | None:
+        from repolens.provider_status import ollama_running_summary
+
         bits = [tick.summary()]
-        if use:
-            from repolens.provider_status import ollama_running_summary
-
-            live = ollama_running_summary(base)
-            if live:
-                bits.append(live)
+        live = ollama_running_summary(base)
+        if live:
+            bits.append(live)
         return " | ".join(bits)
 
     return status_fn
+
+
+def _status_without_ollama(gen):
+    def status_fn(tick=gen) -> str | None:
+        return tick.summary()
+
+    return status_fn
+
+
+def _ollama_status_fn(gen, ollama_base: str | None, use_ollama: bool):
+    return (
+        _status_with_ollama(gen, ollama_base)
+        if use_ollama
+        else _status_without_ollama(gen)
+    )
 
 
 def _invoke_single_llm(state) -> None:
@@ -187,9 +205,7 @@ def _invoke_single_llm(state) -> None:
         from repolens.consistency import apply_llm_consistency
         from repolens.fp_calibrations import apply_fp_calibrations
 
-        state.report.issues = apply_fp_calibrations(
-            state.report.issues, state.cfg.deep
-        )
+        state.report.issues = apply_fp_calibrations(state.report.issues, state.cfg.deep)
         if (state.cfg.deep.critical_consistency or "").lower() == "llm":
             state.prog.phase("Critical consistency (LLM confirm)…")
             state.report.issues = apply_llm_consistency(
@@ -212,22 +228,19 @@ def _handle_llm_invoke_error(state, exc: BaseException) -> bool:
         state.aborted = True
         return True
     if state.store is not None:
-        state.store.record_run(
-            started_at=state.started,
-            finished_at=time.time(),
-            mode=state.mode,
-            provider=state.cfg.model.provider,
-            model=state.model_name,
-            files_in_prompt=len(state.llm_files),
-            llm_seconds=None,
-            timeout_used=state.timeout,
-            outcome="error",
-        )
+        state.store.record_run(RecordRun(
+        started_at=state.started,
+        finished_at=time.time(),
+        mode=state.mode,
+        provider=state.cfg.model.provider,
+        model=state.model_name,
+        files_in_prompt=len(state.llm_files),
+        llm_seconds=None,
+        timeout_used=state.timeout,
+        outcome="error",
+    ))
     if isinstance(exc, LlmError) and state.cfg.model.fallback:
-        state.prog.phase(
-            f"Fallback: LLM error ({exc}) → "
-            "degraded to SAST scanners & heuristics"
-        )
+        state.prog.phase(f"Fallback: LLM error ({exc}) → degraded to SAST scanners & heuristics")
         state.report = FindingReport(
             confidence=55,
             summary=Summary(),
@@ -247,33 +260,6 @@ def _handle_llm_invoke_error(state, exc: BaseException) -> bool:
     raise exc
 
 
-def _record_llm_success(state) -> None:
-    import time
-
-    from repolens.adaptive import recommend_timeout
-
-    llm_seconds = time.time() - state.started
-    state.llm_seconds_prov = round(time.monotonic() - state._llm_t0, 1)
-    if state.store is None:
-        return
-    state.store.record_run(
-        started_at=state.started,
-        finished_at=time.time(),
-        mode=state.mode,
-        provider=state.cfg.model.provider,
-        model=state.model_name,
-        files_in_prompt=len(state.llm_files),
-        llm_seconds=llm_seconds,
-        timeout_used=state.timeout,
-        outcome="ok",
-    )
-    hist = state.store.successful_llm_seconds()
-    rec = recommend_timeout(
-        hist, adaptive=state.cfg.adaptive, file_count=len(state.llm_files)
-    )
-    state.store.set_meta("recommended_timeout_seconds", f"{rec:g}")
-
-
 def _run_graph_phase(state) -> None:
     from pathlib import Path
 
@@ -291,9 +277,7 @@ def _run_graph_phase(state) -> None:
     gres = analyse_repo_graph(state.root, config=state.cfg.graph)
     state.graph_result = gres
     state.graph_gaps = list(gres.durability_gaps)
-    state.graph_issues = cycles_to_issues(
-        gres, critical_scc_size=state.cfg.graph.critical_scc_size
-    )
+    state.graph_issues = cycles_to_issues(gres, critical_scc_size=state.cfg.graph.critical_scc_size)
     state.graph_block = GraphBlock(
         status=gres.status.value,
         cyclicity=gres.cyclicity,
@@ -310,7 +294,9 @@ def _run_graph_phase(state) -> None:
 def _build_finished_provenance(state):
     from repolens import __version__
     from repolens.llm.model_lock import queue_wait_seconds
+    from repolens.memory_sample import PYTHON_RSS_NOTE, read_peak_rss_bytes
     from repolens.provenance_attest import (
+        git_branch,
         git_dirty_tree,
         journal_tip_hash,
         prompt_template_hash,
@@ -321,16 +307,16 @@ def _build_finished_provenance(state):
     tools = [r.tool for r in state.report.scannerRuns]
     state.report.provenance = ProvenanceBlock(
         repoLensVersion=__version__,
+        reviewedPath=str(state.root),
         gitSha=_git_sha(state.root),
+        gitBranch=git_branch(state.root),
         model=state.cfg.model.model,
         provider=state.cfg.model.provider,
         scannerTools=tools,
         triageRouting=state.cfg.ci.triage_routing,
         llmBypassed=bool(state.report.llmBypassed),
         triageHits=int(state.report.triageHits or 0),
-        failOnScannerOnly=bool(
-            state.cfg.ci.triage_routing and state.cfg.ci.fail_on_scanner_only
-        ),
+        failOnScannerOnly=bool(state.cfg.ci.triage_routing and state.cfg.ci.fail_on_scanner_only),
         fastBrainFiles=state.fast_brain_file_count,
         llmPackFiles=state.llm_pack_file_count,
         fastBrainSeconds=state.fast_brain_seconds,
@@ -343,6 +329,9 @@ def _build_finished_provenance(state):
         notes=list(state.triage_plan.notes) if state.triage_plan is not None else [],
         command=state.invoked_command,
         expandedArgv=list(state.expanded_argv or []),
+        pythonPeakRssBytes=read_peak_rss_bytes(),
+        pythonRssNote=PYTHON_RSS_NOTE,
+        passTimings=list(state.pass_timings or []),
     )
 
 
@@ -353,9 +342,7 @@ def _apply_verify_and_consistency(state) -> None:
     for issue in state.report.issues:
         verify_issue_location(state.root, issue)
     if (state.cfg.deep.critical_consistency or "").lower() in {"heuristic", "llm"}:
-        state.report.issues = apply_heuristic_consistency(
-            state.report.issues, state.cfg.deep
-        )
+        state.report.issues = apply_heuristic_consistency(state.report.issues, state.cfg.deep)
         state.report.summary = state.report.recount_summary()
     if not state.cfg.deep.verify_findings:
         return
@@ -367,17 +354,11 @@ def _apply_verify_and_consistency(state) -> None:
     state.prog.detail("Verify findings: Critical/High location + symbol grounding…")
     append_event(state.root, "verify_started")
     verify_started = time.perf_counter()
-    state.report.issues = apply_verify_findings(
-        state.root, state.report.issues, state.cfg.deep
-    )
+    state.report.issues = apply_verify_findings(state.root, state.report.issues, state.cfg.deep)
     state.report = apply_unverified_gate_penalty(state.report)
     state.report.summary = state.report.recount_summary()
-    grounded = sum(
-        1 for issue in state.report.issues if issue.verificationStatus == "grounded"
-    )
-    suspect = sum(
-        1 for issue in state.report.issues if issue.verificationStatus == "suspect"
-    )
+    grounded = sum(1 for issue in state.report.issues if issue.verificationStatus == "grounded")
+    suspect = sum(1 for issue in state.report.issues if issue.verificationStatus == "suspect")
     append_event(
         state.root,
         "verify_completed",
@@ -387,58 +368,60 @@ def _apply_verify_and_consistency(state) -> None:
     )
 
 
-def _persist_finished_artifacts(state):
-    from datetime import UTC, datetime
+def _advise_local_32b(state) -> None:
+    from repolens.memory_sample import local_32b_notice, physical_ram_bytes
 
-    from repolens.pipeline.types import ReviewResult
-    from repolens.report import write_json_report, write_markdown_report
-    from repolens.sarif import write_sarif_report
-
-    if state.report_when is None:
-        state.report_when = datetime.now(UTC)
-    state.prog.phase(f"Writing report → {state.out}")
-    state.md = (
-        write_markdown_report(state.report, state.out, mode=state.mode, when=state.report_when)
-        if state.fmt in {"md", "both"}
-        else None
+    notice = local_32b_notice(
+        state.cfg.model.provider,
+        state.cfg.model.model,
+        physical_ram_bytes(),
     )
-    state.js = (
-        write_json_report(state.report, state.out, mode=state.mode, when=state.report_when)
-        if state.fmt in {"json", "both"}
-        else None
-    )
-    if state.js is not None:
-        from repolens.explain import write_last_report_pointer
+    if notice:
+        state.prog.phase(notice)
 
-        write_last_report_pointer(state.root, state.js)
-    elif state.md is not None and state.fmt == "md":
-        state.js = write_json_report(
-            state.report, state.out, mode=state.mode, when=state.report_when
-        )
-        from repolens.explain import write_last_report_pointer
 
-        write_last_report_pointer(state.root, state.js)
-    sarif_path = None
-    if state.sarif:
-        sarif_path = write_sarif_report(
-            state.report, state.root, out_dir=state.out, mode=state.mode, when=state.report_when
-        )
-        if sarif_path is not None:
-            n = sum(1 for i in state.report.issues if i.locationVerified)
-            state.prog.detail(
-                f"SARIF: {sarif_path.name} "
-                f"({n}/{len(state.report.issues)} location-verified result(s))"
-            )
-    state.prog.phase("Done")
-    return ReviewResult(
-        report=state.report,
-        markdown_path=state.md,
-        json_path=state.js,
-        files_scanned=state.fast_brain_file_count,
-        dry_run=False,
-        sarif_path=sarif_path,
-        aborted=bool(state.aborted),
+def _enforce_memory_ceiling(state) -> None:
+    from repolens.memory_sample import bytes_for_ceiling, ceiling_decision
+    from repolens.pipeline.types import MemoryCeilingError
+
+    hint, stop = ceiling_decision(
+        state.cfg.model.memory_ceiling_mb,
+        bytes_for_ceiling(),
+        state.cfg.model.memory_abort,
     )
+    if hint:
+        state.prog.phase(hint)
+    if stop:
+        raise MemoryCeilingError(hint or "memory ceiling")
+
+
+def _overlap_scanners_and_fast_brain(state, *, postprocess, supply, fast_brain) -> None:
+    """Run scanner postprocess and Fast Brain together.
+
+    Supply chain starts only after the scanner call returns, so a second Trivy
+    does not share the pool with the first. Both sides are joined before the
+    caller continues. An error on one side waits for the other, then surfaces
+    on this thread.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="repolens-fast-brain") as pool:
+        fast_future = pool.submit(fast_brain, state)
+        scanner_error: BaseException | None = None
+        try:
+            postprocess(state)
+            supply(state)
+        except BaseException as exc:
+            scanner_error = exc
+        fast_error: BaseException | None = None
+        try:
+            fast_future.result()
+        except BaseException as exc:
+            fast_error = exc
+    if scanner_error is not None:
+        raise scanner_error
+    if fast_error is not None:
+        raise fast_error
 
 
 def _execute_review_body(state):
@@ -468,10 +451,14 @@ def _execute_review_body(state):
 
     if state.dry_run:
         return _write_dry_run(state)
+    _advise_local_32b(state)
     _run_scanner_tools(state)
-    _postprocess_scanner_issues(state)
-    _collect_supply_chain(state)
-    _run_fast_brain_phase(state)
+    _overlap_scanners_and_fast_brain(
+        state,
+        postprocess=_postprocess_scanner_issues,
+        supply=_collect_supply_chain,
+        fast_brain=_run_fast_brain_phase,
+    )
     _apply_provider_fallback(state)
     if state.scanners_only:
         _report_scanners_only(state)
@@ -486,6 +473,7 @@ def _execute_review_body(state):
                 _reuse_or_skip_llm(state)
             else:
                 _prepare_llm_prompt(state)
+                _enforce_memory_ceiling(state)
                 _invoke_llm(state)
                 if not state.aborted:
                     _merge_llm_report(state)

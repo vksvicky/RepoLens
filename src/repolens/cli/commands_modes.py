@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from repolens.cli.app import app
-from repolens.cli.commands_review import _run_mode
+from repolens.cli.commands_review import _start
 from repolens.cli.pack_scope import (
     option_bitbucket,
     option_force_changed,
@@ -82,28 +82,16 @@ def sentinel(
     require_sarif_import: bool = option_require_sarif_import(),
 ) -> None:
     """Security-only review (P1 playbook)."""
-    _body_sentinel(
-        path, git_url, github, bitbucket, hf, ref, mode, since, out, fmt, model,
-        fail_on, dry_run, trust_project, scanners, require_scanners, scanners_only,
-        quiet, verbose, heartbeat, timeout, force_full, force_changed, git_diff,
-        deep, deep_passes, ci, sarif, verify_findings, pack, fallback,
-        import_sarif, require_sarif_import,
-    )
-
-
-def _body_sentinel(
-    path, git_url, github, bitbucket, hf, ref, mode, since, out, fmt, model,
-    fail_on, dry_run, trust_project, scanners, require_scanners, scanners_only,
-    quiet, verbose, heartbeat, timeout, force_full, force_changed, git_diff,
-    deep, deep_passes, ci, sarif, verify_findings, pack, fallback,
-    import_sarif, require_sarif_import,
-) -> None:
-    _run_mode(
-        "sentinel", path, git_url, github, bitbucket, hf, ref, mode, since, out, fmt,
-        model, fail_on, dry_run, False, trust_project, scanners, require_scanners,
-        scanners_only, quiet, verbose, heartbeat, timeout, force_full, force_changed,
-        git_diff, deep_passes, deep, None, ci, sarif, verify_findings, pack, fallback,
-        False, import_sarif, require_sarif_import,
+    _start(
+        "sentinel", path=path, git_url=git_url, github=github, bitbucket=bitbucket,
+        hf=hf, ref=ref, mode=mode, since=since, out=out, fmt=fmt, model=model,
+        fail_on=fail_on, dry_run=dry_run, full_audit=False, trust_project=trust_project,
+        scanners=scanners, require_scanners=require_scanners,
+        scanners_only=scanners_only, quiet=quiet, verbose=verbose, heartbeat=heartbeat,
+        timeout=timeout, force_full=force_full, force_changed=force_changed,
+        git_diff=git_diff, deep=deep, deep_passes=deep_passes, ci=ci, sarif=sarif,
+        verify_findings=verify_findings, pack=pack, fallback=fallback, ratchet=False,
+        import_sarif=import_sarif, require_sarif_import=require_sarif_import,
     )
 
 
@@ -144,26 +132,14 @@ def architecture(
     require_sarif_import: bool = option_require_sarif_import(),
 ) -> None:
     """Architecture / production-readiness audit."""
-    _body_architecture(
-        path, git_url, github, bitbucket, hf, ref, mode, since, out, fmt, model,
-        fail_on, dry_run, trust_project, scanners, require_scanners, scanners_only,
-        quiet, verbose, heartbeat, timeout, force_full, force_changed, git_diff,
-        deep, deep_passes, ci, sarif, verify_findings, pack, fallback,
-        import_sarif, require_sarif_import,
-    )
-
-
-def _body_architecture(
-    path, git_url, github, bitbucket, hf, ref, mode, since, out, fmt, model,
-    fail_on, dry_run, trust_project, scanners, require_scanners, scanners_only,
-    quiet, verbose, heartbeat, timeout, force_full, force_changed, git_diff,
-    deep, deep_passes, ci, sarif, verify_findings, pack, fallback,
-    import_sarif, require_sarif_import,
-) -> None:
-    _run_mode(
-        "architecture", path, git_url, github, bitbucket, hf, ref, mode, since, out,
-        fmt, model, fail_on, dry_run, True, trust_project, scanners, require_scanners,
-        scanners_only, quiet, verbose, heartbeat, timeout, force_full, force_changed,
-        git_diff, deep_passes, deep, None, ci, sarif, verify_findings, pack, fallback,
-        False, import_sarif, require_sarif_import,
+    _start(
+        "architecture", path=path, git_url=git_url, github=github,
+        bitbucket=bitbucket, hf=hf, ref=ref, mode=mode, since=since, out=out,
+        fmt=fmt, model=model, fail_on=fail_on, dry_run=dry_run, trust_project=trust_project,
+        scanners=scanners, require_scanners=require_scanners,
+        scanners_only=scanners_only, quiet=quiet, verbose=verbose, heartbeat=heartbeat,
+        timeout=timeout, force_full=force_full, force_changed=force_changed,
+        git_diff=git_diff, deep=deep, deep_passes=deep_passes, ci=ci, sarif=sarif,
+        verify_findings=verify_findings, pack=pack, fallback=fallback, ratchet=False,
+        import_sarif=import_sarif, require_sarif_import=require_sarif_import,
     )
