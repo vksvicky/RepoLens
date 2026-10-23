@@ -39,6 +39,27 @@ def once(n):
     assert "0.1" in issues[0].title
 
 
+def test_many_literals_in_one_file_are_one_finding(tmp_path: Path) -> None:
+    code = """
+def dial():
+    red = 255
+    also = 255
+    blue = 128
+    other = 128
+    return red, also, blue, other
+
+def rim():
+    return 74 + 74
+"""
+    entry = _entry(tmp_path, "tools/dial.py", code)
+    issues = find_magic_numbers([entry])
+    assert len(issues) == 1
+    assert issues[0].line == 3
+    assert "255" in issues[0].explanation
+    assert "128" in issues[0].explanation
+    assert "74" in issues[0].explanation
+
+
 def test_nested_function_literals_stay_with_that_function(tmp_path: Path) -> None:
     code = """
 def outer(n):

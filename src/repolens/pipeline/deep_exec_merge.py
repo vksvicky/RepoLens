@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from repolens.bands import coerce_issue_bands
 from repolens.config import RepoLensConfig
 from repolens.coverage import CoverageResult
-from repolens.inventory import FileEntry
 from repolens.pipeline.deep_exec_coverage import (
     _ordered_unique,
     _run_coverage_closure_if_needed,
     _seeded_coverage,
     _stamp_coverage_and_themes,
 )
+from repolens.pipeline.deep_job import DeepJob
 from repolens.progress import ReviewProgress
 from repolens.schema import FindingReport, ScannerRun
 from repolens.vacuous_floor import PassFloorInput, apply_vacuous_pass_floors
@@ -95,21 +93,19 @@ def _pass_outcomes(
     ]
 
 
-def _merge_planned_pass_results(
-    *,
-    parts: list[FindingReport],
-    heur_issues: list,
-    timed_out_labels: list[str],
-    finished_labels: list[str],
-    p3_gaps: list[str],
-    repair_attempts_total: int,
-    scanner_issues: list | None,
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-    llm_files: list[FileEntry],
-    files: list[FileEntry],
-    root: Path,
-) -> FindingReport:
+def _merge_planned_pass_results(job: DeepJob) -> FindingReport:
+    parts = job.parts
+    heur_issues = job.heur_issues
+    timed_out_labels = job.timed_out_labels
+    finished_labels = job.finished_labels
+    p3_gaps = job.p3_gaps
+    repair_attempts_total = job.repair_attempts_total
+    scanner_issues = job.scanner_issues
+    cfg = job.cfg
+    prog = job.prog
+    llm_files = job.llm_files
+    files = job.files
+    root = job.root
     from repolens.deep import merge_reports
     from repolens.na_truth import reject_false_na_claims
     from repolens.pipeline.pass_resume import note_timed_out_passes
@@ -133,41 +129,39 @@ def _merge_planned_pass_results(
     return report
 
 
-def _finish_deep_after_passes(
-    *,
-    root: Path,
-    mode: str,
-    full_audit: bool,
-    files: list[FileEntry],
-    llm_files: list[FileEntry],
-    cfg: RepoLensConfig,
-    prog: ReviewProgress,
-    scanner_runs: list | None,
-    scanner_issues: list | None,
-    passes: list,
-    parts: list[FindingReport],
-    raw_by_pass: dict[str, str],
-    degraded_by_pass: dict[str, bool],
-    repair_attempts_total: int,
-    all_coverage_ids: list[str],
-    finished_labels: list[str],
-    timed_out_labels: list[str],
-    heur_issues: list,
-    p3_gaps: list[str],
-    raw_dir: Path,
-    out_dir: Path | None,
-    fmt: str,
-    report_when: object | None,
-    change_set: object | None = None,
-) -> FindingReport:
+def _finish_deep_after_passes(job: DeepJob) -> FindingReport:
+    root = job.root
+    mode = job.mode
+    full_audit = job.full_audit
+    files = job.files
+    llm_files = job.llm_files
+    cfg = job.cfg
+    prog = job.prog
+    scanner_runs = job.scanner_runs
+    scanner_issues = job.scanner_issues
+    passes = job.passes
+    parts = job.parts
+    raw_by_pass = job.raw_by_pass
+    degraded_by_pass = job.degraded_by_pass
+    repair_attempts_total = job.repair_attempts_total
+    all_coverage_ids = job.all_coverage_ids
+    finished_labels = job.finished_labels
+    timed_out_labels = job.timed_out_labels
+    heur_issues = job.heur_issues
+    p3_gaps = job.p3_gaps
+    raw_dir = job.raw_dir
+    out_dir = job.out_dir
+    fmt = job.fmt
+    report_when = job.report_when
+    change_set = job.change_set
     from repolens.coverage import evaluate_coverage
 
-    report = _merge_planned_pass_results(
+    report = _merge_planned_pass_results(DeepJob(
         parts=parts, heur_issues=heur_issues, timed_out_labels=timed_out_labels,
         finished_labels=finished_labels, p3_gaps=p3_gaps,
         repair_attempts_total=repair_attempts_total, scanner_issues=scanner_issues,
         cfg=cfg, prog=prog, llm_files=llm_files, files=files, root=root,
-    )
+    ))
     unique_ids = _ordered_unique(all_coverage_ids)
     seeded_na, seeded_covered = _seeded_coverage(
         cfg, full_audit=full_audit, change_set=change_set
@@ -176,12 +170,12 @@ def _finish_deep_after_passes(
         unique_ids, report.issues, report.durabilityGaps,
         seeded_na=seeded_na, seeded_covered=seeded_covered,
     )
-    report, coverage = _run_coverage_closure_if_needed(
+    report, coverage = _run_coverage_closure_if_needed(DeepJob(
         report=report, coverage=coverage, unique_ids=unique_ids, cfg=cfg, prog=prog,
         raw_dir=raw_dir, root=root, parts=parts, heur_issues=heur_issues,
         finished_labels=finished_labels, out_dir=out_dir, fmt=fmt, mode=mode,
         report_when=report_when, full_audit=full_audit, change_set=change_set,
-    )
+    ))
     report, pass_confidences = build_pass_confidences_with_floors(
         _pass_outcomes(passes, parts, raw_by_pass, degraded_by_pass),
         coverage=coverage, scanner_runs=scanner_runs,
@@ -190,8 +184,8 @@ def _finish_deep_after_passes(
     degraded = frozenset(
         name for name, flag in degraded_by_pass.items() if flag
     )
-    return _stamp_coverage_and_themes(
+    return _stamp_coverage_and_themes(DeepJob(
         report=report, coverage=coverage, pass_confidences=pass_confidences,
         scanner_runs=scanner_runs, mode=mode, full_audit=full_audit,
         prog=prog, unique_ids=unique_ids, degraded_passes=degraded,
-    )
+    ))

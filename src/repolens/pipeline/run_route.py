@@ -59,9 +59,7 @@ def _switch_fallback_to_ollama(state: ReviewRun) -> None:
     chosen, _ = resolve_ollama_model(state.cfg.model.model)
     state.cfg.model.provider = "ollama"
     state.cfg.model.model = chosen
-    state.prog.phase(
-        f"Fallback: Cloud AI key missing → switching to local Ollama ({chosen})"
-    )
+    state.prog.phase(f"Fallback: Cloud AI key missing → switching to local Ollama ({chosen})")
 
 
 def _run_fallback_scanners(state: ReviewRun) -> bool:
@@ -96,8 +94,7 @@ def _degrade_without_llm(state: ReviewRun) -> bool:
     state.scanners_only = True
     refreshed = _run_fallback_scanners(state)
     state.prog.phase(
-        "Fallback: Cloud AI key & Ollama unavailable → "
-        "degraded to SAST scanners & heuristics"
+        "Fallback: Cloud AI key & Ollama unavailable → degraded to SAST scanners & heuristics"
     )
     state.scanner_gaps.insert(
         0,
@@ -177,10 +174,7 @@ def _select_adaptive_pack(state: ReviewRun) -> None:
             and len(state.llm_files) == len(state.files)
             and state.files
         ):
-            note = (
-                " — no fingerprint delta → full pack "
-                "(use --changed for delta-only smoke)"
-            )
+            note = " — no fingerprint delta → full pack (use --changed for delta-only smoke)"
         state.prog.phase(
             f"LLM pack: {len(state.llm_files)}/{len(state.files)} file(s) "
             f"(adaptive mode={state.pack_mode}){note}"
@@ -198,12 +192,8 @@ def _apply_git_diff_scope(state: ReviewRun) -> None:
         from repolens.git_refs import resolve_diff_base
         from repolens.schema import ChangeSetBlock
 
-        resolved_base = resolve_diff_base(
-            cli_base=state.git_diff_base_cli, cwd=state.root
-        )
-        changed = list_git_changed_paths(
-            state.root, resolved_base, include_dirty=True
-        )
+        resolved_base = resolve_diff_base(cli_base=state.git_diff_base_cli, cwd=state.root)
+        changed = list_git_changed_paths(state.root, resolved_base, include_dirty=True)
         blast = expand_blast_radius(
             state.root,
             changed,
@@ -218,8 +208,7 @@ def _apply_git_diff_scope(state: ReviewRun) -> None:
             "scanners and Fast Brain remain whole-tree"
             if bool(state.cfg.deep.blast_radius)
             else (
-                "Slow Brain restricted to git change-set; "
-                "scanners and Fast Brain remain whole-tree"
+                "Slow Brain restricted to git change-set; scanners and Fast Brain remain whole-tree"
             )
         )
         if blast.note:
@@ -283,13 +272,9 @@ def _apply_triage_routing(state: ReviewRun) -> None:
             )
             # Prefer Fast Brain inventory so heuristic hits outside the
             # Slow Brain top-N sample can still enter the LLM pack.
-            state.llm_files = select_pack_entries(
-                state.fast_files, state.triage_plan.pack_files
-            )
+            state.llm_files = select_pack_entries(state.fast_files, state.triage_plan.pack_files)
             if not state.llm_files:
-                state.llm_files = select_pack_entries(
-                    state.files, state.triage_plan.pack_files
-                )
+                state.llm_files = select_pack_entries(state.files, state.triage_plan.pack_files)
             if state.git_diff_requested and state.git_changed_paths:
                 from repolens.changeset import filter_entries_to_changeset
 
@@ -317,10 +302,7 @@ def _reuse_or_skip_llm(state: ReviewRun) -> None:
             saved_at=saved_at,
             model=prior_model,
         )
-        state.prog.phase(
-            f"LLM: reused last successful findings "
-            f"({state.report.llmReusedFrom})"
-        )
+        state.prog.phase(f"LLM: reused last successful findings ({state.report.llmReusedFrom})")
         state.prog.detail(
             "No fingerprint delta — carried forward prior AI issues; "
             "scanners refreshed this run. Use --full to re-run the model."
@@ -354,8 +336,7 @@ def _reuse_or_skip_llm(state: ReviewRun) -> None:
                 "will carry findings forward. Or use --scanners-only."
             )
             state.prog.phase(
-                "LLM: skipped — no fingerprint delta and no prior LLM "
-                "snapshot to reuse"
+                "LLM: skipped — no fingerprint delta and no prior LLM snapshot to reuse"
             )
         state.prog.detail(
             "Tip: run a full/auto LLM pass once to seed .repolens/; "
@@ -370,6 +351,9 @@ def _reuse_or_skip_llm(state: ReviewRun) -> None:
             llmSkipped=True,
         )
         state.report.summary = state.report.recount_summary()
+
+
+_PROMPT_PREVIEW = 40
 
 
 def _prepare_llm_prompt(state: ReviewRun) -> None:
@@ -387,8 +371,7 @@ def _prepare_llm_prompt(state: ReviewRun) -> None:
                 adaptive=state.cfg.adaptive,
             )
         state.prog.detail(
-            f"timeout: {resolve_llm_timeout(state.cfg.model):g}s "
-            f"(recommended {recommended:g}s)"
+            f"timeout: {resolve_llm_timeout(state.cfg.model):g}s (recommended {recommended:g}s)"
         )
         _maybe_sync_fts(state.store, state.root, state.fast_files, state.diff)
 
@@ -401,7 +384,7 @@ def _prepare_llm_prompt(state: ReviewRun) -> None:
 
         if has_consent(state.root):
             query = f"{state.mode} " + " ".join(
-                f.relative for f in state.llm_files[:40]
+                f.relative for f in state.llm_files[:_PROMPT_PREVIEW]
             )
             local_ctx = retrieve_context(state.root, query, limit=5)
             if local_ctx:
@@ -411,16 +394,14 @@ def _prepare_llm_prompt(state: ReviewRun) -> None:
 
     scanner_ctx = format_scanner_evidence_for_prompt(state.scanner_issues)
     if scanner_ctx:
-        state.prog.detail(
-            f"attached scanner evidence ({len(state.scanner_issues)} finding(s))"
-        )
+        state.prog.detail(f"attached scanner evidence ({len(state.scanner_issues)} finding(s))")
     heur_ctx = ""
     if state.heur_issues:
         lines = [
             "### Fast Brain heuristic hits (context only)",
             *[
                 f"- [{i.severity}] {i.file}:{i.line} {i.title}"
-                for i in state.heur_issues[:40]
+                for i in state.heur_issues[:_PROMPT_PREVIEW]
             ],
         ]
         heur_ctx = "\n".join(lines)

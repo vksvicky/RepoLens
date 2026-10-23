@@ -65,11 +65,11 @@ def violation_subgraph_edges(
             members.update(group.modules)
     if not members:
         return []
-    return [
-        e
-        for e in result.gated_edges
-        if e.importer in members and e.imported in members
-    ]
+    return [e for e in result.gated_edges if e.importer in members and e.imported in members]
+
+
+_MIN_SCC_SIZE = 2
+_EXTRA_FAS_STARTS = 2
 
 
 def candidate_feedback_arc_sets(
@@ -83,7 +83,7 @@ def candidate_feedback_arc_sets(
         return []
     weights = edge_weights(sub)
     pairs = [(e.importer, e.imported) for e in sub]
-    sccs = [s for s in strongly_connected_components(pairs) if len(s) >= 2]
+    sccs = [s for s in strongly_connected_components(pairs) if len(s) >= _MIN_SCC_SIZE]
     if not sccs:
         return []
 
@@ -103,7 +103,7 @@ def candidate_feedback_arc_sets(
         )
 
     # Alternatives: force-start with each of the next-lightest edges.
-    for starter in ranked[: max_candidates + 2]:
+    for starter in ranked[: max_candidates + _EXTRA_FAS_STARTS]:
         if len(candidates) >= max_candidates:
             break
         alt_ranked = [starter] + [e for e in ranked if e != starter]
@@ -111,10 +111,7 @@ def candidate_feedback_arc_sets(
         if not cut:
             continue
         key = tuple(sorted((e.importer, e.imported) for e in cut))
-        if any(
-            tuple(sorted((e.importer, e.imported) for e in c.edges)) == key
-            for c in candidates
-        ):
+        if any(tuple(sorted((e.importer, e.imported) for e in c.edges)) == key for c in candidates):
             continue
         candidates.append(
             FasCandidate(
@@ -134,7 +131,9 @@ def _greedy_cut(
     remaining = set(pairs)
     cut: list[WeightedEdge] = []
     while True:
-        sccs = [s for s in strongly_connected_components(list(remaining)) if len(s) >= 2]
+        sccs = [
+            s for s in strongly_connected_components(list(remaining)) if len(s) >= _MIN_SCC_SIZE
+        ]
         if not sccs or cyclicity(sccs) == 0:
             break
         members = {m for s in sccs for m in s}
@@ -172,9 +171,7 @@ def metrics_without_edges(
     """Cyclicity and SCCs after dropping omitted gated edges. Does not edit the tree."""
     omit = set(omitted)
     pairs = [
-        (e.importer, e.imported)
-        for e in result.gated_edges
-        if (e.importer, e.imported) not in omit
+        (e.importer, e.imported) for e in result.gated_edges if (e.importer, e.imported) not in omit
     ]
-    sccs = [s for s in strongly_connected_components(pairs) if len(s) >= 2]
+    sccs = [s for s in strongly_connected_components(pairs) if len(s) >= _MIN_SCC_SIZE]
     return cyclicity(sccs), sccs

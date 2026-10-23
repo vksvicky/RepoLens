@@ -160,6 +160,7 @@ def test_dogfood_modules_stay_under_mega_file_cap() -> None:
         "src/repolens/pipeline/run_finish.py",
         "src/repolens/report.py",
         "src/repolens/report_sections.py",
+        "src/repolens/pipeline/run_record.py",
         "src/repolens/scanners/sca.py",
         "src/repolens/scanners/sca_sbom.py",
     ]

@@ -12,9 +12,10 @@ from repolens.deep import (
     module_name_forms,
     plan_deep_passes,
 )
+from repolens.deep_plan import PlanDeepPasses
 from repolens.graph.types import CycleGroup, GraphResult, GraphStatus
 from repolens.inventory import FileEntry
-from repolens.pipeline.pass_cache import pass_key
+from repolens.pipeline.pass_cache import PassKey, pass_key
 from repolens.rules.registry import Rule
 from repolens.schema import FindingReport, Issue, Severity, Summary
 
@@ -73,8 +74,8 @@ def test_role_packs_give_each_band_its_own_file_list() -> None:
         _entry("src/models/user.py", 800),
         _entry("assets/theme.css", 800),
     ]
-    passes = plan_deep_passes(
-        "review",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="review",
         full_audit=False,
         entries=entries,
         hot_paths=[],
@@ -82,7 +83,7 @@ def test_role_packs_give_each_band_its_own_file_list() -> None:
         chars_per_pass=1600,
         rules=rules,
         role_packs=True,
-    )
+    ))
     assert [p.name for p in passes] == ["p1", "p2", "p3"]
     p1_rels = [e.relative for e in passes[0].files]
     p2_rels = [e.relative for e in passes[1].files]
@@ -98,8 +99,8 @@ def test_role_packs_p3_fits_more_files_via_outline_budget() -> None:
     # Ten large files: raw size budgeting fits ~1–2; outline budgeting fits many.
     entries = [_entry(f"src/mod_{i}.py", 40_000) for i in range(10)]
     raw = budget_files(entries, max_chars=50_000)
-    passes = plan_deep_passes(
-        "architecture",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="architecture",
         full_audit=True,
         entries=entries,
         hot_paths=[],
@@ -107,7 +108,7 @@ def test_role_packs_p3_fits_more_files_via_outline_budget() -> None:
         chars_per_pass=50_000,
         rules=rules,
         role_packs=True,
-    )
+    ))
     assert len(passes) == 1
     assert passes[0].pack_mode == "outline"
     assert len(passes[0].files) > len(raw)
@@ -147,8 +148,8 @@ def test_p3_hybrid_full_bodies_for_cycle_modules(tmp_path: Path) -> None:
         status=GraphStatus.OK,
         cycles=[CycleGroup(modules=("pkg.a", "pkg.b"))],
     )
-    passes = plan_deep_passes(
-        "architecture",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="architecture",
         full_audit=True,
         entries=entries,
         hot_paths=[],
@@ -157,7 +158,7 @@ def test_p3_hybrid_full_bodies_for_cycle_modules(tmp_path: Path) -> None:
         rules=rules,
         role_packs=True,
         graph=graph,
-    )
+    ))
     assert passes[0].pack_mode == "hybrid"
     assert passes[0].file_pack_modes["pkg/a.py"] == "full"
     assert passes[0].file_pack_modes["pkg/b.py"] == "full"
@@ -173,8 +174,8 @@ def test_p3_outline_when_graph_failed() -> None:
     rules = [_rule("architecture", "p3")]
     entries = [_entry("pkg/a.py", 1000)]
     graph = GraphResult(status=GraphStatus.FAILED, durability_gaps=["boom"])
-    passes = plan_deep_passes(
-        "architecture",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="architecture",
         full_audit=True,
         entries=entries,
         hot_paths=[],
@@ -184,7 +185,7 @@ def test_p3_outline_when_graph_failed() -> None:
         role_packs=True,
         graph=graph,
         durability_gaps_out=gaps,
-    )
+    ))
     assert passes[0].pack_mode == "outline"
     assert any("graph.p3_outline_only" in g for g in gaps)
 
@@ -222,8 +223,8 @@ def test_role_packs_p1_omits_css_and_prefers_sql_client(tmp_path: Path) -> None:
             priority_band=3,
         ),
     ]
-    passes = plan_deep_passes(
-        "review",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="review",
         full_audit=False,
         entries=entries,
         hot_paths=[],
@@ -231,7 +232,7 @@ def test_role_packs_p1_omits_css_and_prefers_sql_client(tmp_path: Path) -> None:
         chars_per_pass=10_000,
         rules=rules,
         role_packs=True,
-    )
+    ))
     p1 = [e.relative for e in passes[0].files]
     assert "assets/theme.css" not in p1
     assert p1[0] == "src/client.py"
@@ -244,8 +245,8 @@ def test_role_packs_off_keeps_shared_pack() -> None:
         _rule("architecture", "p3"),
     ]
     entries = [_entry("a.py", 100), _entry("b.py", 100)]
-    passes = plan_deep_passes(
-        "review",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="review",
         full_audit=False,
         entries=entries,
         hot_paths=[],
@@ -253,37 +254,56 @@ def test_role_packs_off_keeps_shared_pack() -> None:
         chars_per_pass=10_000,
         rules=rules,
         role_packs=False,
-    )
+    ))
     assert passes[0].files == passes[1].files == passes[2].files
     assert all(p.pack_mode == "full" for p in passes)
 
 
 def test_pass_key_changes_when_prior_summary_changes() -> None:
     entry = _entry("a.py", 10)
-    first = pass_key([entry], "model", "p2", prior_summary="finding A")
-    second = pass_key([entry], "model", "p2", prior_summary="finding B")
-    third = pass_key([entry], "model", "p2")
+    first = pass_key(PassKey(
+        files=[entry],
+        model="model",
+        pass_name="p2",
+        prior_summary="finding A",
+    ))
+    second = pass_key(PassKey(
+        files=[entry],
+        model="model",
+        pass_name="p2",
+        prior_summary="finding B",
+    ))
+    third = pass_key(PassKey(
+        files=[entry],
+        model="model",
+        pass_name="p2",
+    ))
     assert first != second
     assert first != third
 
 
 def test_pass_key_changes_with_pack_mode_and_per_file_modes() -> None:
     entry = _entry("a.py", 10)
-    outline = pass_key([entry], "model", "p3", pack_mode="outline")
-    hybrid = pass_key(
-        [entry],
-        "model",
-        "p3",
+    outline = pass_key(PassKey(
+        files=[entry],
+        model="model",
+        pass_name="p3",
+        pack_mode="outline",
+    ))
+    hybrid = pass_key(PassKey(
+        files=[entry],
+        model="model",
+        pass_name="p3",
         pack_mode="hybrid",
         file_pack_modes={"a.py": "full"},
-    )
-    hybrid2 = pass_key(
-        [entry],
-        "model",
-        "p3",
+    ))
+    hybrid2 = pass_key(PassKey(
+        files=[entry],
+        model="model",
+        pass_name="p3",
         pack_mode="hybrid",
         file_pack_modes={"a.py": "outline"},
-    )
+    ))
     assert outline != hybrid
     assert hybrid != hybrid2
 
@@ -373,7 +393,7 @@ def test_deep_run_with_role_packs_journals_and_rolls_summary(
     from unittest.mock import patch
 
     from repolens.config import AdaptiveConfig, DeepConfig, ModelConfig, RepoLensConfig
-    from repolens.pipeline import run_review
+    from repolens.pipeline import ReviewRun, run_review
     from repolens.pipeline.journal import read_events
     from tests.pipeline_deep_support import _pass_report
 
@@ -404,14 +424,14 @@ def test_deep_run_with_role_packs_journals_and_rolls_summary(
         )
 
     with patch("repolens.llm_structured.analyze_structured", side_effect=fake_analyze):
-        run_review(
+        run_review(ReviewRun(
             path=tmp_path,
             mode="review",
             config=cfg,
             out_dir=tmp_path / "out",
             scanners="off",
             deep=True,
-        )
+        ))
 
     assert "p1" in prompts and "p2" in prompts and "p3" in prompts
     assert "Prior pass findings" in prompts["p2"]

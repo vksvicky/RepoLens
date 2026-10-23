@@ -8,6 +8,10 @@ from pathlib import Path
 from repolens.schema import FindingReport
 
 
+class MemoryCeilingError(Exception):
+    """Python process RSS is over the opt-in ceiling. The model was not started."""
+
+
 class ScannerRequirementError(Exception):
     """Raised when --require-scanners is set and a requested tool is missing."""
 

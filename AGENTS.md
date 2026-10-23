@@ -27,7 +27,7 @@ All other external tools or signals enter as imported SARIF (`--import-sarif`), 
 - **Targeted Fast Checks (while editing specific modules)**:
   - CLI & which: `./.venv/bin/pytest tests/test_which.py tests/test_resolved_argv.py -q`
   - Right-BICEP & Heuristics: `./.venv/bin/pytest tests/test_right_bicep_scenarios.py tests/test_heuristics.py -q`
-- **Local student notes** (gitignored; not in CI): `./.venv/bin/python3 scripts/generate_learn_file_notes.py --check` fails when `docs/learn` has drifted. Regenerate with `./.venv/bin/python3 scripts/generate_learn_file_notes.py`.
+- **Local student notes** (gitignored; not in CI; required on every branch): after any change under `src/` or `tests/`, run `./.venv/bin/python3 scripts/generate_learn_file_notes.py` and then `--check`. Do not hand-edit `docs/learn/src/` or `docs/learn/tests/`. Do not commit `docs/learn/`.
 
 ## Style Rules & Code Conventions
 - **Linter & Formatter**: Ruff configured in `pyproject.toml` (target Python 3.11, line length 100, rules `E, F, I, UP, B` with `B008` ignored for Typer CLI options).
@@ -39,7 +39,7 @@ All other external tools or signals enter as imported SARIF (`--import-sarif`), 
 - **Generated Learn Notes**: Never edit files in `docs/learn/src/` or `docs/learn/tests/` manually. They are generated deterministically by `scripts/generate_learn_file_notes.py`.
 - **Handwritten Course Notes**: `docs/learn/00-start-here.md` through `docs/learn/06-order-complexity-and-your-own-model.md` are written by hand and are outside `--check`.
 - **Changelog**: Add user-visible features and fixes as bullets under `## [Unreleased]` in `docs/CHANGELOG.md`.
-- **Package Version**: The version in `pyproject.toml` remains `0.1.3` until an explicit release is requested.
+- **Package Version**: The version in `pyproject.toml` remains `0.1.4` until an explicit release is requested.
 
 ## Architecture & Review Contracts
 - **Review Target Path**: When testing review runs against dogfood repositories, use `$TARGET` (`--path "$TARGET"` and `--out "$TARGET/reports"`).

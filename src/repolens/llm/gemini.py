@@ -8,7 +8,9 @@ Auth is a single ``GEMINI_API_KEY`` via ``x-goog-api-key``. Vertex reuses
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote
 
@@ -40,6 +42,7 @@ def parse_gemini_sse_text_delta(line: str) -> str | None:
     try:
         data = json.loads(payload)
     except json.JSONDecodeError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     candidates = data.get("candidates") or []
     if not candidates:
@@ -70,17 +73,25 @@ def gemini_generate_payload(prompt: str) -> dict[str, Any]:
     }
 
 
-def stream_gemini_sse(
-    client: httpx.Client,
-    *,
-    url: str,
-    headers: dict[str, str],
-    payload: dict[str, Any],
-    timeout: float,
-    on_delta: Callable[[str], None] | None,
-    label: str = "Gemini",
-) -> str:
+@dataclass
+class GeminiSse:
+    client: httpx.Client
+    url: str
+    headers: dict[str, str]
+    payload: dict[str, Any]
+    timeout: float
+    on_delta: Callable[[str], None] | None
+    label: str = 'Gemini'
+
+def stream_gemini_sse(job: GeminiSse) -> str:
     """Accumulate Gemini-family SSE text deltas (``alt=sse``). Shared by AI Studio + Vertex."""
+    client = job.client
+    url = job.url
+    headers = job.headers
+    payload = job.payload
+    timeout = job.timeout
+    on_delta = job.on_delta
+    label = job.label
     parts: list[str] = []
     watch = StreamWatch(prefill_timeout=timeout, label=label)
     try:
@@ -133,15 +144,15 @@ def analyze_gemini(
     owns_client = client is None
     client = client or httpx.Client(timeout=timeout)
     try:
-        return stream_gemini_sse(
-            client,
-            url=url,
-            headers=headers,
-            payload=payload,
-            timeout=timeout,
-            on_delta=on_delta,
-            label="Gemini",
-        )
+        return stream_gemini_sse(GeminiSse(
+        client=client,
+        url=url,
+        headers=headers,
+        payload=payload,
+        timeout=timeout,
+        on_delta=on_delta,
+        label="Gemini",
+    ))
     except httpx.TimeoutException as exc:
         raise LlmError(timeout_message("Gemini", timeout)) from exc
     except (KeyError, IndexError, json.JSONDecodeError, httpx.HTTPError) as exc:

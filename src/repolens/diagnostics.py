@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
 from repolens import __version__
 from repolens.config import RepoLensConfig
+from repolens.heuristics.runner import RunHeuristics
 from repolens.inventory import scan_inventory
 from repolens.schema import Issue, Severity
 
@@ -29,15 +31,15 @@ def collect_fast_issues(root: Path, cfg: RepoLensConfig) -> list[Issue]:
     )
     from repolens.heuristics import run_heuristics
 
-    heur = run_heuristics(
-        root,
-        inv.files,
+    heur = run_heuristics(RunHeuristics(
+        root=root,
+        entries=inv.files,
         mega_file_lines=cfg.deep.mega_file_lines,
         mega_file_exclude_globs=cfg.deep.extra_skip_globs() or None,
         pack_ids=list(cfg.packs.resolved()) or None,
         workers=cfg.fast_brain.parallel_workers,
         near_clones_config=cfg.fast_brain.near_clones,
-    )
+    ))
     issues: list[Issue] = list(heur.issues)
     from repolens.complexity.runner import run_complexity
 
@@ -56,11 +58,7 @@ def collect_fast_issues(root: Path, cfg: RepoLensConfig) -> list[Issue]:
 
         gres = analyse_repo_graph(root, config=cfg.graph)
         if gres.status not in {GraphStatus.FAILED, GraphStatus.SKIPPED}:
-            issues.extend(
-                cycles_to_issues(
-                    gres, critical_scc_size=cfg.graph.critical_scc_size
-                )
-            )
+            issues.extend(cycles_to_issues(gres, critical_scc_size=cfg.graph.critical_scc_size))
             from repolens.architecture import (
                 ArchitectureLoadError,
                 boundary_violations_to_issues,
@@ -76,11 +74,9 @@ def collect_fast_issues(root: Path, cfg: RepoLensConfig) -> list[Issue]:
             if arch_path is not None:
                 try:
                     doc = load_architecture(arch_path)
-                    issues.extend(
-                        boundary_violations_to_issues(verify_boundaries(gres, doc))
-                    )
+                    issues.extend(boundary_violations_to_issues(verify_boundaries(gres, doc)))
                 except ArchitectureLoadError:
-                    pass
+                    logging.getLogger(__name__).debug("handled expected error", exc_info=True)
     return issues
 
 
@@ -129,9 +125,7 @@ def diagnostic_sarif(issues: list[Issue], *, root: Path) -> dict[str, Any]:
                         "informationUri": "https://github.com/vksvicky/RepoLens",
                     }
                 },
-                "originalUriBaseIds": {
-                    "%SRCROOT%": {"uri": root.resolve().as_uri() + "/"}
-                },
+                "originalUriBaseIds": {"%SRCROOT%": {"uri": root.resolve().as_uri() + "/"}},
                 "results": results,
             }
         ],

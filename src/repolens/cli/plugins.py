@@ -6,6 +6,7 @@ import typer
 from rich.table import Table
 
 from repolens.cli.app import console, plugins_app
+from repolens.cli.exit_codes import EXIT_BAD_INPUT
 from repolens.plugins import install_plugins, plugin_status
 
 
@@ -30,9 +31,7 @@ def plugins_list_cmd() -> None:
 
 @plugins_app.command("install")
 def plugins_install_cmd(
-    tools: list[str] = typer.Argument(
-        None, help="Plugin names or 'all' (default: all)"
-    ),
+    tools: list[str] = typer.Argument(None, help="Plugin names or 'all' (default: all)"),
     yes: bool = typer.Option(
         False, "--yes", "-y", help="Skip consent prompts (CI / non-interactive)"
     ),
@@ -43,7 +42,7 @@ def plugins_install_cmd(
         messages = install_plugins(selected, yes=yes)
     except RuntimeError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     for msg in messages:
         console.print(msg)
     if any("failed" in m or "skipped (declined)" in m for m in messages):

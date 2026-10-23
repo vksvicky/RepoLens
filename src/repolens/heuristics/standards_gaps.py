@@ -6,6 +6,7 @@ Covers Python, JavaScript/TypeScript, Go, Rust, Java, and PHP.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from repolens.inventory import FileEntry
@@ -80,6 +81,7 @@ def _pyproject_has_linter(path: Path) -> bool:
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return False
     return any(section in text for section in _PYTHON_LINTER_SECTIONS)
 

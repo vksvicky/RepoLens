@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from repolens.config import ModelConfig, RepoLensConfig
-from repolens.pipeline import fail_on_triggered, run_review
+from repolens.pipeline import ReviewRun, fail_on_triggered, run_review
 from repolens.playbooks import playbooks_for_mode
 from repolens.schema import FindingReport, Issue, Severity, Summary
 
@@ -51,13 +51,13 @@ def test_playbooks_review_has_three_bands() -> None:
 def test_dry_run_pipeline(tmp_path: Path) -> None:
     (tmp_path / "a.py").write_text("print(1)\n", encoding="utf-8")
     cfg = RepoLensConfig(model=ModelConfig(provider=None))
-    result = run_review(
+    result = run_review(ReviewRun(
         path=tmp_path,
         mode="sentinel",
         dry_run=True,
         config=cfg,
         out_dir=tmp_path / "r",
-    )
+    ))
     assert result.dry_run is True
     assert result.files_scanned >= 1
     assert result.markdown_path is not None

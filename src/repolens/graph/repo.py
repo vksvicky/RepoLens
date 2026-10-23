@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from repolens.config import GraphConfig
@@ -23,6 +24,7 @@ def _safe_under_root(root: Path, relative: str) -> Path | None:
         resolved = candidate.resolve()
         resolved.relative_to(root.resolve())
     except ValueError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     return resolved
 

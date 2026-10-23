@@ -237,3 +237,20 @@ def test_copied_function_one_finding(tmp_path: Path) -> None:
     assert result.issues[0].source == "heuristic"
     assert result.issues[0].category == "quality.near_clone"
     assert result.issues[0].line >= 1
+
+
+def test_deep_tests_do_not_share_a_near_clone_block() -> None:
+    root = Path(__file__).resolve().parents[1]
+    entries: list[FileEntry] = []
+    for relative in ("tests/test_deep.py", "tests/test_deep_merge.py"):
+        path = root / relative
+        entries.append(
+            FileEntry(
+                path=path,
+                relative=relative,
+                size=path.stat().st_size,
+                priority_band=3,
+            )
+        )
+    result = find_near_clones(entries, config=NearClonesConfig())
+    assert result.issues == []

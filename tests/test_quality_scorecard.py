@@ -6,6 +6,7 @@ from repolens.quality import (
     DEEP_NESTING_CATEGORY,
     MEGA_FILE_CATEGORY,
     NEAR_CLONE_CATEGORY,
+    ScorecardArgs,
     build_quality_scorecard,
     build_quality_scorecard_from_issues,
 )
@@ -51,7 +52,7 @@ def test_build_quality_scorecard_counts_categories_exactly() -> None:
 
 
 def test_build_quality_scorecard_low_level_fields() -> None:
-    card = build_quality_scorecard(
+    card = build_quality_scorecard(ScorecardArgs(
         mega=3,
         nesting=7,
         near_clusters=12,
@@ -59,7 +60,7 @@ def test_build_quality_scorecard_low_level_fields() -> None:
         findings_emitted=10,
         files_scanned=1840,
         notes=[],
-    )
+    ))
     assert card == QualityScorecard(
         megaFileCount=3,
         deepNestingCount=7,

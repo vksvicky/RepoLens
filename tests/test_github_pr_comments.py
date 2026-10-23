@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from repolens.github_pr_comments import (
+    ReviewComments,
     build_comment_body,
     finding_marker,
     post_or_update_review_comments,
@@ -132,25 +133,25 @@ def test_post_or_update_creates_then_updates() -> None:
     client.post.return_value = create_resp
     client.patch.return_value = patch_resp
 
-    first = post_or_update_review_comments(
-        report,
+    first = post_or_update_review_comments(ReviewComments(
+        report=report,
         owner="o",
         repo="r",
         pr_number=1,
         token="t",
         client=client,
-    )
+    ))
     assert first.created == 1
     assert first.updated == 0
 
-    second = post_or_update_review_comments(
-        report,
+    second = post_or_update_review_comments(ReviewComments(
+        report=report,
         owner="o",
         repo="r",
         pr_number=1,
         token="t",
         client=client,
-    )
+    ))
     assert second.created == 0
     assert second.updated == 1
     client.patch.assert_called()
@@ -170,9 +171,14 @@ def test_post_skips_when_line_not_in_diff() -> None:
     bad.text = "Validation Failed"
     client.get.side_effect = [list_resp, pull_resp]
     client.post.return_value = bad
-    result = post_or_update_review_comments(
-        report, owner="o", repo="r", pr_number=1, token="t", client=client
-    )
+    result = post_or_update_review_comments(ReviewComments(
+        report=report,
+        owner="o",
+        repo="r",
+        pr_number=1,
+        token="t",
+        client=client,
+    ))
     assert result.created == 0
     assert result.skipped == 1
     assert result.errors
