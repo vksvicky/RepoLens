@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The docs linked from the PyPI page install `repolens-audit==0.1.4`. Local learning describes the store that ships. Notes that were never committed are no longer named as if they were in the repo.
+
+## [0.1.4] — 2026-10-23
+
+Published as `repolens-audit==0.1.4` when the `v0.1.4` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tag `v0.1.3`.
+
 ### Added
 
 - Every report records Python process peak RSS. The figure is this process, not the Ollama model and not OS memory pressure.
@@ -21,6 +29,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- The status line on the PyPI page links the sample report and the docs to GitHub, so those links open the files instead of a missing path on pypi.org.
 - The report title, the first summary line, and the summary table name the reviewed project, its path, the git branch and revision, and whether that tree is dirty. A Fluida review no longer looks like a RepoLens self-check.
 - `run_review` takes a `ReviewRun`. Review, sentinel, and architecture pass one run request from the command through flag checks into that call.
 - Deep-pass helpers take a `DeepJob` instead of repeating the same root, config, and progress arguments.
@@ -28,6 +37,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The PyPI page links the sample report and the docs to GitHub. `report.py` and `run_support.py` are back under the 500-line bar. A VmRSS value that is not a number is logged and skipped. The learn-note drift check uses a temporary tree, so it still names stale, missing, and extra notes when the local notes folder is absent.
 - A saved deep pass does not read source excerpts or outlines again. A pass whose files changed still does.
 - A file that repeats many unnamed numbers is one Low, not one Low per number. Colour and coordinate literals in drawing code were filling the report.
 - The unused issue fixture copied into `tests/test_deep.py` is gone, so Fast Brain no longer reports a near-clone against `tests/test_deep_merge.py`.

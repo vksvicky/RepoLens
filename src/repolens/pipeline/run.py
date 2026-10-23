@@ -13,12 +13,12 @@ if TYPE_CHECKING:
 from repolens.config import ModelConfig, load_config
 from repolens.pipeline.review_state import ReviewRun
 from repolens.pipeline.run_collect import _load_review_inventory
+from repolens.pipeline.run_record import _record_llm_success
 from repolens.pipeline.run_support import (
     _execute_review_body,
     _handle_llm_invoke_error,
     _invoke_deep_llm,
     _invoke_single_llm,
-    _record_llm_success,
 )
 from repolens.pipeline.types import ReviewResult
 from repolens.progress import ReviewProgress, null_progress

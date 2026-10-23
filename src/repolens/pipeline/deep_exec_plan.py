@@ -77,9 +77,9 @@ def _maybe_sync_fts(store, root: Path, files: list[FileEntry], diff) -> None:
         if entry.relative not in touch:
             continue
         try:
-            from repolens.inventory import read_prefix
+            from repolens.inventory import FTS_CHUNK_CHARS, read_prefix
 
-            text = read_prefix(entry.path, 80_000)[:80_000]
+            text = read_prefix(entry.path, FTS_CHUNK_CHARS)[:FTS_CHUNK_CHARS]
         except OSError:
             logging.getLogger(__name__).debug("handled expected error", exc_info=True)
             continue

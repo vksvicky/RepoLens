@@ -320,6 +320,9 @@ def classify_fingerprint_deletions(
     return removed, dropped
 
 
+FTS_CHUNK_CHARS = 80_000
+
+
 def read_prefix(path: Path, max_chars: int) -> str:
     """Read at most ``max_chars + 1`` characters so a slice can see truncation."""
     with path.open(encoding="utf-8", errors="replace") as handle:

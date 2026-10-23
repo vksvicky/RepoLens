@@ -188,21 +188,10 @@ _MS_PER_SECOND = 1000
 
 def _execute_live_pass(job: DeepJob) -> tuple[FindingReport, str, bool, int]:
     root = job.root
-    idx = job.idx
-    n = job.n
     deep_pass = job.deep_pass
     label = job.label
-    key = job.key
-    rules = job.rules
-    pack_ids = job.pack_ids
-    prompt_prefix = job.prompt_prefix
-    cfg = job.cfg
     prog = job.prog
-    raw_dir = job.raw_dir
     model_name = job.model_name
-    provider = job.provider
-    timeout = job.timeout
-    file_work = job.file_work
     wait_before = queue_wait_seconds()
     started = time.perf_counter()
     token = bind_lock_context(
@@ -212,21 +201,7 @@ def _execute_live_pass(job: DeepJob) -> tuple[FindingReport, str, bool, int]:
         status=prog.phase,
     )
     try:
-        part, raw, degraded, attempts, chars_in, chars_out, clock = _run_deep_pass(DeepJob(
-            idx=idx,
-            n=n,
-            deep_pass=deep_pass,
-            rules=rules,
-            pack_ids=pack_ids,
-            prompt_prefix=prompt_prefix,
-            cfg=cfg,
-            prog=prog,
-            raw_dir=raw_dir,
-            model_name=model_name,
-            provider=provider,
-            timeout=timeout,
-            file_work=file_work,
-        ))
+        part, raw, degraded, attempts, chars_in, chars_out, clock = _run_deep_pass(job)
     finally:
         reset_lock_context(token)
     pass_duration_ms = int((time.perf_counter() - started) * _MS_PER_SECOND)
@@ -243,7 +218,7 @@ def _execute_live_pass(job: DeepJob) -> tuple[FindingReport, str, bool, int]:
     )
     record_pass_timing(row)
     if not degraded:
-        save_pass(root, key, part)
+        save_pass(root, job.key, part)
     append_event(
         root,
         "pass_completed",

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from repolens.inventory import list_files, read_prefix
+from repolens.inventory import FTS_CHUNK_CHARS, list_files, read_prefix
 from repolens.learning.consent import ensure_consent
 from repolens.learning.store import (
     FtsHit,
@@ -35,10 +35,10 @@ class LearningIndex:
             count = 0
             for entry in files:
                 try:
-                    text = read_prefix(entry.path, 80_000)
+                    text = read_prefix(entry.path, FTS_CHUNK_CHARS)
                 except OSError:
                     continue
-                content = text[:80_000]
+                content = text[:FTS_CHUNK_CHARS]
                 if not content.strip():
                     continue
                 store.upsert_chunk(entry.relative, content)

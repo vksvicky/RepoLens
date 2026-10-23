@@ -81,3 +81,5 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-21 | overlap→push | 91% | 0/0/0/1 | Scanners overlap Fast Brain; supply chain waits for the scanner future; duration only when a tool ran | chat |
 | 2026-10-21 | review-time→push | 91% | 0/0/0/1 | Per-pass first-token rows; plan uses the last same-model sample; coverage closure is not the plan sample | chat |
 | 2026-10-21 | memory-footprint→push | 91% | 0/0/0/1 | One read for per-file checks; bounded excerpt and FTS; workers 0 leaves one core free | chat |
+| 2026-10-23 | v0.1.4 | 94% | 0/0/0/0 | Release from main: version bump, changelog move, README links are GitHub blobs; benchmark branch left out | chat |
+| 2026-10-23 | docs→push | 95% | 0/0/0/0 | Linked docs install 0.1.4; local learning matches the store; missing design filenames removed | chat |

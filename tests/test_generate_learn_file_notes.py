@@ -53,23 +53,37 @@ def test_write_mode_writes_notes_and_returns_zero(
     assert readme.read_text(encoding="utf-8") == "# index\n"
 
 
-def test_drift_names_stale_missing_and_extra_notes() -> None:
+def test_drift_names_stale_missing_and_extra_notes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     module = _load()
-    expected = module._rendered_notes()
-    stale_path = next(path for path in expected if path.name != "README.md")
-    expected[stale_path] = expected[stale_path] + "\n"
-    ghost = module.LEARN / "src" / "not-a-real-file.md"
-    expected[ghost] = "ghost"
-    extra_path = next(
-        path for path in list(expected) if path.name != "README.md" and path != stale_path
-    )
-    del expected[extra_path]
+    learn = tmp_path / "docs" / "learn"
+    src = learn / "src"
+    tests = learn / "tests"
+    src.mkdir(parents=True)
+    tests.mkdir()
+    keep = src / "keep.md"
+    stale = src / "stale.md"
+    extra = src / "extra.md"
+    keep.write_text("same\n", encoding="utf-8")
+    stale.write_text("old\n", encoding="utf-8")
+    extra.write_text("gone\n", encoding="utf-8")
+    (tests / "keep.md").write_text("same\n", encoding="utf-8")
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(module, "LEARN", learn)
+    ghost = src / "not-a-real-file.md"
+    expected = {
+        keep: "same\n",
+        stale: "new\n",
+        ghost: "ghost",
+        tests / "keep.md": "same\n",
+    }
 
     problems = set(module._drift(expected))
 
-    assert f"stale {stale_path.relative_to(module.ROOT).as_posix()}" in problems
-    assert f"missing {ghost.relative_to(module.ROOT).as_posix()}" in problems
-    assert f"extra {extra_path.relative_to(module.ROOT).as_posix()}" in problems
+    assert "stale docs/learn/src/stale.md" in problems
+    assert "missing docs/learn/src/not-a-real-file.md" in problems
+    assert "extra docs/learn/src/extra.md" in problems
 
 
 def test_source_note_explains_links_and_logic() -> None:
