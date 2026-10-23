@@ -39,6 +39,7 @@ def vm_rss_bytes_from_status(text: str) -> int | None:
         try:
             return int(parts[1]) * _KIB
         except ValueError:
+            logging.getLogger(__name__).debug("handled expected error", exc_info=True)
             return None
     return None
 

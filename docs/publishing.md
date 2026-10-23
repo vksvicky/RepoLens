@@ -9,7 +9,7 @@ Plain `repolens` / `repo-lens` are blocked by PyPI name-similarity against exist
 
 ```bash
 # Preferred (PyPI) — CLI entry point is still `repolens`
-pip install "repolens-audit[scanners]==0.1.3"
+pip install "repolens-audit[scanners]==0.1.4"
 
 # From git (unreleased tip / contributors)
 pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
@@ -20,7 +20,7 @@ pip install -e ".[dev]"
 
 ## Release workflow (automated)
 
-Tag a version matching `pyproject.toml` (e.g. `v0.1.3`) and push the tag.  
+Tag a version matching `pyproject.toml` (e.g. `v0.1.4`) and push the tag.  
 [`.github/workflows/publish.yml`](../.github/workflows/publish.yml) builds the sdist/wheel and uploads via **Trusted Publishing** (OIDC). No long-lived PyPI API token in GitHub secrets.
 
 The same `v*` tag also triggers [`.github/workflows/publish-ghcr.yml`](../.github/workflows/publish-ghcr.yml), which builds the slim multi-arch image and pushes `ghcr.io/<owner>/repolens` (semver + `latest` for non-prerelease). Uses `GITHUB_TOKEN` only — no registry password in secrets. Details: [docker.md](./docker.md).
@@ -99,16 +99,16 @@ repolens review --path . --out ./reports-dogfood --scanners-only --fail-on ""
 
 # 4) CI argv assembly (what the GitHub Action uses)
 python - <<'PY'
-from repolens.ci_args import build_review_argv
-print(build_review_argv(run="dry-run", fail_on=""))
-print(build_review_argv(run="auto", has_key=False, fail_on=""))
+from repolens.ci_args import BuildReviewArgv, build_review_argv
+print(build_review_argv(BuildReviewArgv(run="dry-run", fail_on="")))
+print(build_review_argv(BuildReviewArgv(run="auto", has_key=False, fail_on="")))
 PY
 
 # 5) Optional: full LLM review if you have a key / Ollama configured
 # repolens review --path . --out ./reports-dogfood --scanners auto
 ```
 
-On Windows PowerShell, use the same `repolens …` commands after `.\.venv\Scripts\Activate.ps1`. For step 4, run `python -c "from repolens.ci_args import build_review_argv; print(build_review_argv(run='dry-run', fail_on=''))"`.
+On Windows PowerShell, use the same `repolens …` commands after `.\.venv\Scripts\Activate.ps1`. For step 4, run `python -c "from repolens.ci_args import BuildReviewArgv, build_review_argv; print(build_review_argv(BuildReviewArgv(run='dry-run', fail_on='')))"`.
 
 **Pass criteria**
 

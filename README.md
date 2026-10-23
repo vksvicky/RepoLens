@@ -4,11 +4,11 @@
 
 RepoLens is an open-source CLI that runs structured code reviews against projects you care about: on your machine, or cloned from GitHub, Bitbucket, Hugging Face, or any Git URL. It follows a clear **P1 → P2 → P3** pass (security → bugs/reliability/performance → architecture/quality) and writes audit-friendly reports with impact, remediation steps, and code-example fixes for Critical/High findings.
 
-> **Status:** **`repolens-audit==0.1.3`** (CLI: `repolens`) — Phases **0–9** complete; M1–M4 shipped  
+> **Status:** **`repolens-audit==0.1.4`** (CLI: `repolens`) — Phases **0–9** complete; M1–M4 shipped  
 > Local CLI · remotes · optional scanners · explain + diagrams · GitHub Action · opt-in local learning · enterprise CI recipes  
-> Install: `pip install "repolens-audit[scanners]==0.1.3"` · from a clone: `pip install -e ".[dev]"`  
-> **[View a sample due-diligence report](./reports/samples/sample_audit_report.md)** ([PDF](./reports/samples/sample_audit_report.pdf)) — gate ≠ “% secure”; remediation + architecture signals included  
-> Docs: [phases](./docs/phases.md) · [FAQ](./docs/faq.md) · [rules](./docs/rules.md) · [install extras](./docs/install-extras.md) · [CI / Action](./docs/ci.md) · [remotes](./docs/remote-sources.md) · [scanners](./docs/scanners.md) · [local learning](./docs/local-learning.md) · [publishing](./docs/publishing.md)
+> Install: `pip install "repolens-audit[scanners]==0.1.4"` · from a clone: `pip install -e ".[dev]"`  
+> **[View a sample due-diligence report](https://github.com/vksvicky/RepoLens/blob/main/reports/samples/sample_audit_report.md)** ([PDF](https://github.com/vksvicky/RepoLens/blob/main/reports/samples/sample_audit_report.pdf)) — gate ≠ “% secure”; remediation + architecture signals included  
+> Docs: [phases](https://github.com/vksvicky/RepoLens/blob/main/docs/phases.md) · [FAQ](https://github.com/vksvicky/RepoLens/blob/main/docs/faq.md) · [rules](https://github.com/vksvicky/RepoLens/blob/main/docs/rules.md) · [install extras](https://github.com/vksvicky/RepoLens/blob/main/docs/install-extras.md) · [CI / Action](https://github.com/vksvicky/RepoLens/blob/main/docs/ci.md) · [remotes](https://github.com/vksvicky/RepoLens/blob/main/docs/remote-sources.md) · [scanners](https://github.com/vksvicky/RepoLens/blob/main/docs/scanners.md) · [local learning](https://github.com/vksvicky/RepoLens/blob/main/docs/local-learning.md) · [publishing](https://github.com/vksvicky/RepoLens/blob/main/docs/publishing.md)
 
 ---
 
@@ -21,19 +21,19 @@ RepoLens is an open-source CLI that runs structured code reviews against project
 | Actionable findings | Impact, fix plan, **code examples** on Critical/High |
 | Shareable audits | Markdown reports (PDF via pandoc / Print) |
 | Production honesty | Complements—does not replace—CI, tests, and scanners |
-| Python **cyclicity ratchet** | Baseline + `repolens check --diff` for fast CI (Rule 1 — debt must not rise); see [FAQ](./docs/faq.md#cyclicity-ratchet-baseline-g2) |
-| **Complexity + test inventory** | Fast Brain McCabe/cognitive (Python) + Top-10 table; test file/case counts; AI refactor capped at top-5 — [FAQ](./docs/faq.md#do-we-measure-complexity-and-test-coverage) |
+| Python **cyclicity ratchet** | Baseline + `repolens check --diff` for fast CI (Rule 1 — debt must not rise); see [FAQ](https://github.com/vksvicky/RepoLens/blob/main/docs/faq.md#cyclicity-ratchet-baseline-g2) |
+| **Complexity + test inventory** | Fast Brain McCabe/cognitive (Python) + Top-10 table; test file/case counts; AI refactor capped at top-5 — [FAQ](https://github.com/vksvicky/RepoLens/blob/main/docs/faq.md#do-we-measure-complexity-and-test-coverage) |
 
 RepoLens is **zero-infrastructure** — `pipx` or ephemeral CI runners; no SonarQube server and no PR-review SaaS. Built for **M&A auditors**, **fractional CTOs**, and **pre-release platform gates** who need portable dual-review evidence.
 
 RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your test suite. Those stay in CI. RepoLens adds a consistent, human-readable due-diligence layer you can run anywhere.
 
-**Reading the report, not running the tool?** Start with [RepoLens in plain language](./docs/for-everyone.md).
+**Reading the report, not running the tool?** Start with [RepoLens in plain language](https://github.com/vksvicky/RepoLens/blob/main/docs/for-everyone.md).
 
 **Start here.** Install, ask which command to run, then open the Markdown report. You do not need to memorize flags.
 
 ```bash
-pip install "repolens-audit[scanners]==0.1.3"
+pip install "repolens-audit[scanners]==0.1.4"
 repolens which pr          # prints the exact command
 repolens review --preset pr --path .
 ```
@@ -60,7 +60,7 @@ repolens review --preset pr --path .
 | `repolens baseline` | Snapshot import-graph cyclicity (`.repolens/baseline.json`) |
 | `repolens check --diff` | Rule 1 ratchet gate for CI / pre-commit |
 
-**What gets checked?** See **[docs/rules.md](./docs/rules.md)** — plain guide to rules, why they exist, and how to turn them on/off.
+**What gets checked?** See **[docs/rules.md](https://github.com/vksvicky/RepoLens/blob/main/docs/rules.md)** — plain guide to rules, why they exist, and how to turn them on/off.
 
 ---
 
@@ -71,11 +71,11 @@ repolens review --preset pr --path .
 - **AI:** **BYOK primary** (Bedrock / Vertex / Gemini / Anthropic / OpenAI…) for minutes-scale deep audits; **Ollama for air-gap** (14B–32B+ — often hours on thin laptops); automatic local fallback (`--fallback`) when configured  
 - **CVE / SAST / secrets:** optional plugins (OSV, Semgrep, gitleaks)—not in the slim default install  
 - **Local learning:** opt-in on-disk FTS index (`repolens learn`), informed consent first  
-- **CI:** official GitHub Action (`action.yml`) — see [docs/ci.md](./docs/ci.md)
+- **CI:** official GitHub Action (`action.yml`) — see [docs/ci.md](https://github.com/vksvicky/RepoLens/blob/main/docs/ci.md)
 
-Full answers: **[docs/faq.md](./docs/faq.md)**.  
-**Setup (cloud / Ollama / scanners):** **[docs/setup-ai-and-scanners.md](./docs/setup-ai-and-scanners.md)**.  
-**Try it (local + GitHub / Bitbucket / HF / git URL):** **[docs/try-on-your-repo.md](./docs/try-on-your-repo.md)**.  
+Full answers: **[docs/faq.md](https://github.com/vksvicky/RepoLens/blob/main/docs/faq.md)**.  
+**Setup (cloud / Ollama / scanners):** **[docs/setup-ai-and-scanners.md](https://github.com/vksvicky/RepoLens/blob/main/docs/setup-ai-and-scanners.md)**.  
+**Try it (local + GitHub / Bitbucket / HF / git URL):** **[docs/try-on-your-repo.md](https://github.com/vksvicky/RepoLens/blob/main/docs/try-on-your-repo.md)**.  
 Interactive helper: `./scripts/repolens-guided.sh` (see [try-on-your-repo](docs/try-on-your-repo.md#guided-review-interactive)).
 
 ---
@@ -84,7 +84,7 @@ Interactive helper: `./scripts/repolens-guided.sh` (see [try-on-your-repo](docs/
 
 ```bash
 # Preferred: PyPI (CLI entry point is still `repolens`)
-pip install "repolens-audit[scanners]==0.1.3"
+pip install "repolens-audit[scanners]==0.1.4"
 
 # From a clone (contributors / dogfood)
 python3 -m venv .venv
@@ -94,7 +94,7 @@ pip install -e ".[dev]"
 
 ### Install extras (`[dev]`, `[scanners]`, …)
 
-These are **optional parts of the RepoLens package** (defined in this repo’s [`pyproject.toml`](./pyproject.toml)). They are **not** settings inside the apps you review.
+These are **optional parts of the RepoLens package** (defined in this repo’s [`pyproject.toml`](https://github.com/vksvicky/RepoLens/blob/main/pyproject.toml)). They are **not** settings inside the apps you review.
 
 | Extra | Command | What you get |
 |-------|---------|--------------|
@@ -103,7 +103,7 @@ These are **optional parts of the RepoLens package** (defined in this repo’s [
 | **scanners** | `pip install -e ".[scanners]"` | + Semgrep (gitleaks/osv still via `repolens plugins install`) |
 | **local-ml** | `pip install -e ".[local-ml]"` | + sentence-transformers |
 
-Full detail: **[docs/install-extras.md](./docs/install-extras.md)**.
+Full detail: **[docs/install-extras.md](https://github.com/vksvicky/RepoLens/blob/main/docs/install-extras.md)**.
 
 ```bash
 # From a clone
@@ -149,7 +149,7 @@ repolens review --git-url https://github.com/owner/repo.git --ref main --dry-run
 ```
 
 Private remotes: `GITHUB_TOKEN` / `BITBUCKET_TOKEN` / `HF_TOKEN` (or `gh auth login`).  
-Full examples: [docs/try-on-your-repo.md](./docs/try-on-your-repo.md) · [docs/remote-sources.md](./docs/remote-sources.md) · [docs/scanners.md](./docs/scanners.md).
+Full examples: [docs/try-on-your-repo.md](https://github.com/vksvicky/RepoLens/blob/main/docs/try-on-your-repo.md) · [docs/remote-sources.md](https://github.com/vksvicky/RepoLens/blob/main/docs/remote-sources.md) · [docs/scanners.md](https://github.com/vksvicky/RepoLens/blob/main/docs/scanners.md).
 
 ### GitHub Actions
 
@@ -164,9 +164,9 @@ Full examples: [docs/try-on-your-repo.md](./docs/try-on-your-repo.md) · [docs/r
     OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # optional
 ```
 
-Details: [docs/ci.md](./docs/ci.md).
+Details: [docs/ci.md](https://github.com/vksvicky/RepoLens/blob/main/docs/ci.md).
 
-Playbooks also work with any LLM chat: [docs/using-playbooks.md](./docs/using-playbooks.md).
+Playbooks also work with any LLM chat: [docs/using-playbooks.md](https://github.com/vksvicky/RepoLens/blob/main/docs/using-playbooks.md).
 
 ---
 
@@ -193,11 +193,11 @@ pandoc reports/gate_review_report_review_YYYY-MM-DD_HHMM.md -o reports/gate_revi
 
 | Playbook | File |
 |----------|------|
-| Security (P1 / `sentinel`) | [playbooks/security.md](./playbooks/security.md) |
-| Architecture (release / full audit) | [playbooks/architecture.md](./playbooks/architecture.md) |
+| Security (P1 / `sentinel`) | [playbooks/security.md](https://github.com/vksvicky/RepoLens/blob/main/playbooks/security.md) |
+| Architecture (release / full audit) | [playbooks/architecture.md](https://github.com/vksvicky/RepoLens/blob/main/playbooks/architecture.md) |
 
-**Rules** (what is checked, why, enable/disable): **[docs/rules.md](./docs/rules.md)**.  
-Playbook files: [playbooks/README.md](./playbooks/README.md). Contributions: [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md).
+**Rules** (what is checked, why, enable/disable): **[docs/rules.md](https://github.com/vksvicky/RepoLens/blob/main/docs/rules.md)**.  
+Playbook files: [playbooks/README.md](https://github.com/vksvicky/RepoLens/blob/main/playbooks/README.md). Contributions: [docs/CONTRIBUTING.md](https://github.com/vksvicky/RepoLens/blob/main/docs/CONTRIBUTING.md).
 
 ---
 
@@ -217,7 +217,7 @@ RepoLens/
 └── .github/workflows/        # CI, publish, Action example
 ```
 
-Naming conventions: [docs/README.md](./docs/README.md#naming-pattern).
+Naming conventions: [docs/README.md](https://github.com/vksvicky/RepoLens/blob/main/docs/README.md#naming-pattern).
 
 ---
 
@@ -232,26 +232,26 @@ Naming conventions: [docs/README.md](./docs/README.md#naming-pattern).
 | **4** | GitHub Action, PyPI publish path, local learning | Done |
 | **Next** | Harden publish / marketplace polish / richer embeddings | Open |
 
-Tracker: **[docs/phases.md](./docs/phases.md)**.
+Tracker: **[docs/phases.md](https://github.com/vksvicky/RepoLens/blob/main/docs/phases.md)**.
 
 ---
 
 ## Contributing
 
-- [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md)
-- [docs/CODE_OF_CONDUCT.md](./docs/CODE_OF_CONDUCT.md)
-- [docs/SECURITY.md](./docs/SECURITY.md) for vulnerability reports
-- [docs/SUPPORT.md](./docs/SUPPORT.md)
+- [docs/CONTRIBUTING.md](https://github.com/vksvicky/RepoLens/blob/main/docs/CONTRIBUTING.md)
+- [docs/CODE_OF_CONDUCT.md](https://github.com/vksvicky/RepoLens/blob/main/docs/CODE_OF_CONDUCT.md)
+- [docs/SECURITY.md](https://github.com/vksvicky/RepoLens/blob/main/docs/SECURITY.md) for vulnerability reports
+- [docs/SUPPORT.md](https://github.com/vksvicky/RepoLens/blob/main/docs/SUPPORT.md)
 - Feedback (teaching / shipping): [Discussions](https://github.com/vksvicky/RepoLens/discussions) · Bugs & features: [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose)
 
 ---
 
 ## Disclaimer (AI / LLM output)
 
-RepoLens findings and suggestions may be produced or assisted by AI/LLMs, heuristics, and optional scanners. They can be wrong or incomplete. **You** are responsible for verifying results before you act. Authors accept **no liability** for harm from reliance on AI/LLM or tool-assisted output. Reports are not a certification or professional audit engagement. Full text appears in every Markdown report under **Disclaimer**, and in the [FAQ](./docs/faq.md#disclaimer-ai--llm-output).
+RepoLens findings and suggestions may be produced or assisted by AI/LLMs, heuristics, and optional scanners. They can be wrong or incomplete. **You** are responsible for verifying results before you act. Authors accept **no liability** for harm from reliance on AI/LLM or tool-assisted output. Reports are not a certification or professional audit engagement. Full text appears in every Markdown report under **Disclaimer**, and in the [FAQ](https://github.com/vksvicky/RepoLens/blob/main/docs/faq.md#disclaimer-ai--llm-output).
 
 ---
 
 ## License
 
-[MIT](./LICENSE) — use it, fork it, adapt the playbooks for your org. Software is provided **as is** (see the licence).
+[MIT](https://github.com/vksvicky/RepoLens/blob/main/LICENSE) — use it, fork it, adapt the playbooks for your org. Software is provided **as is** (see the licence).

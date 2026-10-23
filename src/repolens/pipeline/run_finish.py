@@ -8,13 +8,13 @@ from repolens.last_llm import (
     save_last_llm_report,
 )
 from repolens.pipeline.review_state import ReviewRun
+from repolens.pipeline.run_record import _persist_finished_artifacts
 from repolens.pipeline.run_support import (
     _apply_verify_and_consistency,
     _attach_complexity,
     _attach_quality,
     _attach_testing,
     _build_finished_provenance,
-    _persist_finished_artifacts,
 )
 from repolens.pipeline.types import ReviewResult
 from repolens.triage import (

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import shlex
 
-from repolens.schema import FindingReport, QualityScorecard
+from repolens.schema import FindingReport, Issue, QualityScorecard, Severity
 
 
 def _render_quality_scorecard_section(report: FindingReport) -> list[str]:
@@ -317,8 +317,6 @@ def _render_suppressed_section(report: FindingReport) -> list[str]:
         "_Excluded from fail-on and SARIF; kept here for audit._",
         "",
     ]
-    from repolens.report import _diff_suffix
-
     for row in rows:
         issue = row.issue
         sid = f" `{issue.stableId}`" if issue.stableId else ""
@@ -329,3 +327,85 @@ def _render_suppressed_section(report: FindingReport) -> list[str]:
         )
     lines.append("")
     return lines
+
+
+def _diff_suffix(issue: Issue) -> str:
+    if issue.introducedInDiff is True:
+        return " — New / touched in this diff"
+    if issue.introducedInDiff is False:
+        return " — Pre-existing baseline"
+    return ""
+
+
+def _render_issue(issue: Issue) -> list[str]:
+    from repolens.report import render_code_example_fenced
+
+    block = [
+        f"### [{issue.severity.value}] {issue.title}{_diff_suffix(issue)}",
+        f"- **Priority:** {issue.priority}",
+        f"- **File:** `{issue.file}`",
+        f"- **Line:** {issue.line}",
+        f"- **Category:** {issue.category}",
+    ]
+    if issue.stableId:
+        block.append(
+            f"- **Fingerprint:** `{issue.stableId}` "
+            "(prefer for `explain` / ignore)"
+        )
+    if issue.runId:
+        block.append(
+            f"- **Occurrence:** `{issue.runId}` "
+            "(this report only; also works with `explain`)"
+        )
+    if issue.source:
+        block.append(f"- **Source:** {issue.source}")
+    if issue.locationVerified is False:
+        block.append(
+            "- **Location:** unverified — omitted from SARIF "
+            "(provide a resolvable `anchorQuote` or use scanner evidence)"
+        )
+    elif issue.locationVerified is True:
+        block.append("- **Location:** verified (SARIF-eligible)")
+    block.extend(
+        [
+            f"- **Explanation:** {issue.explanation}",
+            f"- **Impact:** {issue.impact or '_n/a_'}",
+            f"- **Recommended fix:** {issue.recommendedFix}",
+            f"- **Fix timing:** {issue.fixTiming}",
+        ]
+    )
+    if issue.owasp:
+        block.append(f"- **OWASP:** {issue.owasp}")
+    if issue.cwe:
+        block.append(f"- **CWE:** {issue.cwe}")
+    if issue.packageName or issue.advisoryId:
+        pkg_bits = []
+        if issue.packageName:
+            pkg_bits.append(f"`{issue.packageName}`")
+        if issue.installedVersion:
+            pkg_bits.append(f"installed `{issue.installedVersion}`")
+        if issue.fixedVersion:
+            pkg_bits.append(f"fixed `{issue.fixedVersion}`")
+        if issue.advisoryId:
+            pkg_bits.append(f"advisory `{issue.advisoryId}`")
+        block.append(f"- **SCA (scanner):** {', '.join(pkg_bits)}")
+    if issue.usageHint:
+        label = {
+            "referenced_in_source": "referenced in source",
+            "no_reference_found": "no reference found in scanned source",
+        }.get(issue.usageHint, issue.usageHint)
+        block.append(
+            f"- **Usage hint (not reachability):** {label}"
+            + (f" — {issue.usageHintDetail}" if issue.usageHintDetail else "")
+        )
+    if issue.clusteredCount and issue.clusteredCount > 1:
+        block.append(
+            f"- **Clustered:** {issue.clusteredCount} near-duplicate finding(s) collapsed"
+        )
+    if issue.codeExample.strip():
+        block.append("- **Code example:**")
+        block.append("")
+        block.extend(render_code_example_fenced(issue.codeExample))
+    elif issue.severity in {Severity.CRITICAL, Severity.HIGH}:
+        block.append("- **Code example:** _MISSING (invalid for Critical/High)_")
+    return block

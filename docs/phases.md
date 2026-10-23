@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==0.1.3`**, tag `v0.1.3` (publish workflow succeeded 2026-10-11).  
+**Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==0.1.4`**, tag `v0.1.4`.  
 **Active program:** none. [M1](https://github.com/vksvicky/RepoLens/milestone/1)–[M5](https://github.com/vksvicky/RepoLens/milestone/5) are done. Index [#12](https://github.com/vksvicky/RepoLens/issues/12).  
 **Parked (not a release gate):** [#91](https://github.com/vksvicky/RepoLens/issues/91) local UI calibrations (#17b).  
 **Feedback:** [Discussions](https://github.com/vksvicky/RepoLens/discussions) + [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose).
