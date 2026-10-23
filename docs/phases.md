@@ -469,8 +469,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Design sketch | [x] | phase-7-enterprise-ci-and-report-delivery.md |
-| Thin execution checklist | [x] | phase-7-execution-checklist.md |
+| Design sketch | [x] | [ci.md](./ci.md) corporate CI recipes |
+| Thin execution checklist | [x] | [ci.md](./ci.md) |
 | Expand [ci.md](./ci.md) (Jenkins / CircleCI / GitLab) | [x] | Core recipes; Azure DevOps stretch sketch |
 | Artifact → email / webhook recipes | [x] | Corporate SMTP / Slack-Teams summary payload (no code dumps) |
 | Adaptive cache guidance for ephemeral CI | [x] | Default off (`enabled = false`) or restore via CI cache |

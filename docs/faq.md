@@ -634,7 +634,7 @@ Hugging Face repos (models/datasets/Spaces) are reviewed as **git content** (cod
 **Can we build them in?**  
 Use `repolens plugins install …` (consent download) or `pip install "repolens-audit[scanners]"` for Semgrep via pip — large native scanners stay out of the slim default wheel. Missing scanners never break the LLM review path unless you pass `--require-scanners`.
 
-Guide: [scanners.md](./scanners.md) · Design: ai-keys-scanners-and-local-learning.md · Private registries: trivy-registry-auth.md.
+Guide: [scanners.md](./scanners.md). Private registries use `TRIVY_USERNAME` / `TRIVY_PASSWORD` or `TRIVY_REGISTRY_TOKEN` in the environment, never in TOML.
 
 ### Why not just `semgrep && trivy && gitleaks`?
 
@@ -829,8 +829,6 @@ Each report also records **Duration** (wall clock for the whole command).
 | Dashboard / DefectDojo? | Ingest `FindingReport` JSON and/or anchored SARIF; RepoLens does **not** host a SaaS UI. |
 | Push protection vs RepoLens? | Forge **secret push protection** blocks pre-receive secrets; RepoLens audits **landed / PR** code in CI. Use both. |
 | Cloud LLM in CI forbidden? | `--scanners-only`, or Ollama on a private runner. |
-
-Design: phase-7-enterprise-ci-and-report-delivery.md.
 
 ---
 

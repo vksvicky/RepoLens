@@ -62,17 +62,19 @@ Do these **once** before the first `v*` tag publish.
 
 Same form on [test.pypi.org publishing](https://test.pypi.org/manage/account/publishing/) if you want a dry-run. That needs a separate workflow or a temporary `repository-url` on the publish Action — not configured by default. Prefer local dogfood (below) + prod Trusted Publisher for the first alpha.
 
-### D. First release (only after dogfood + pending publisher)
+### D. Tag a release (only after dogfood)
+
+The first tag was `v0.1.0a1`. The current release is `v0.1.4`. Tag the version already in `pyproject.toml`:
 
 ```bash
-# On main, clean working tree, version already 0.1.0a1 in pyproject.toml
-git tag v0.1.0a1
-git push origin v0.1.0a1
+# On main, clean working tree, version already 0.1.4 in pyproject.toml
+git tag v0.1.4
+git push origin v0.1.4
 ```
 
 1. Watch **Actions → Publish** for the tag.  
 2. Confirm https://pypi.org/project/repolens-audit/  
-3. Smoke: `pip install "repolens-audit==0.1.0a1" && repolens version`
+3. Smoke: `pip install "repolens-audit==0.1.4" && repolens version`
 
 ---
 
@@ -131,10 +133,10 @@ Also exercise the Action on GitHub (workflow_dispatch on [repolens-example.yml](
 - [x] PyPI pending publisher saved for `repolens-audit` / `publish.yml` / `pypi`  
 - [x] Version in `pyproject.toml` + `src/repolens/__init__.py` matches the tag  
 - [x] [CHANGELOG.md](./CHANGELOG.md) updated  
-- [x] Tag `v0.1.0a1` and `git push origin v0.1.0a1`  
+- [x] Tag `v0.1.4` and `git push origin v0.1.4`  
 - [x] Publish workflow green; package visible on PyPI  
-- [x] `pip install "repolens-audit==0.1.0a1"` smoke test (`repolens version` works)  
-- [x] Document Action pin: `uses: vksvicky/RepoLens@v0.1.0a1` (or `@main` while iterating)
+- [x] `pip install "repolens-audit==0.1.4"` smoke test (`repolens version` works)  
+- [x] Document Action pin: `uses: vksvicky/RepoLens@v0.1.4` (or `@main` while iterating)
 
 ## Related
 

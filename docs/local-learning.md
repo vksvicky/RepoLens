@@ -2,7 +2,7 @@
 
 RepoLens can keep a **local** index of your repository to improve later reviews. Nothing is uploaded to a RepoLens service.
 
-**Related (not shipped yet):** Phase 5 uses one **SQLite + FTS5** store (`.repolens/repolens.sqlite`): always-on fingerprints/timings (no contents) + the same opt-in `chunks` FTS index. 
+One **SQLite + FTS5** store (`.repolens/repolens.sqlite`) holds fingerprints and timings with no file contents, plus an opt-in `chunks` index after you accept local learning. 
 
 
 
@@ -30,11 +30,11 @@ When `enabled = true` **and** consent exists, reviews prepend retrieved local ch
 |---------|---------|
 | `repolens learn build --accept-local-learning` | Build/rebuild SQLite FTS index |
 | `repolens learn status` | Consent + index presence |
-| `repolens learn clear` | Delete `index.sqlite` (keeps consent) |
+| `repolens learn clear` | Clear the FTS chunks. Consent and the fingerprint/run rows stay. A leftover `index.sqlite` is removed only when the unified database is not there. |
 
 ## Where it runs
 
-**Local-first:** adaptive fingerprints and FTS assume a normal local project checkout. Network/SMB paths may come later and will need **read-write** access to create `.repolens/` (or a local cache redirect).  §8.
+**Local-first:** adaptive fingerprints and FTS assume a normal local project checkout. The store needs a writable `.repolens/` directory on that machine.
 
 ## Storage (gitignored)
 
