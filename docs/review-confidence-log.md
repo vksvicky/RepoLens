@@ -83,3 +83,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-21 | memory-footprint→push | 91% | 0/0/0/1 | One read for per-file checks; bounded excerpt and FTS; workers 0 leaves one core free | chat |
 | 2026-10-23 | v0.1.4 | 94% | 0/0/0/0 | Release from main: version bump, changelog move, README links are GitHub blobs; benchmark branch left out | chat |
 | 2026-10-23 | docs→push | 95% | 0/0/0/0 | Linked docs install 0.1.4; local learning matches the store; missing design filenames removed | chat |
+| 2026-10-23 | phases-sync | 96% | 0/0/0/0 | Issue #12: phases.md names 0.1.4, closed trackers, and the open benchmark and DSPy tracks | chat |

@@ -6,8 +6,8 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==0.1.4`**, tag `v0.1.4`.  
-**Active program:** none. [M1](https://github.com/vksvicky/RepoLens/milestone/1)–[M5](https://github.com/vksvicky/RepoLens/milestone/5) are done. Index [#12](https://github.com/vksvicky/RepoLens/issues/12).  
+**Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==0.1.4`**, tag `v0.1.4` (PyPI and GHCR publish succeeded 2026-10-23).  
+**Active program:** none. [M1](https://github.com/vksvicky/RepoLens/milestone/1)–[M5](https://github.com/vksvicky/RepoLens/milestone/5) are done. Open tracks: benchmark [#153](https://github.com/vksvicky/RepoLens/issues/153) and DSPy [#136](https://github.com/vksvicky/RepoLens/issues/136). Index [#12](https://github.com/vksvicky/RepoLens/issues/12).  
 **Parked (not a release gate):** [#91](https://github.com/vksvicky/RepoLens/issues/91) local UI calibrations (#17b).  
 **Feedback:** [Discussions](https://github.com/vksvicky/RepoLens/discussions) + [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose).
 
@@ -46,6 +46,10 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **M3 Deep DX** | [#109](https://github.com/vksvicky/RepoLens/issues/109)–[#112](https://github.com/vksvicky/RepoLens/issues/112) | **Done** — fix / blast-radius / view / portfolio |
 | **M4 Ecosystem** | [#113](https://github.com/vksvicky/RepoLens/issues/113)–[#116](https://github.com/vksvicky/RepoLens/issues/116) | **Done** — workspace graph, overlays, VS Code panel, Docker (`832d249`) |
 | **M5 Release & distribution** | [#117](https://github.com/vksvicky/RepoLens/issues/117)–[#120](https://github.com/vksvicky/RepoLens/issues/120) | **Done** — 0.1.2, GHCR publish, first-week recipe |
+| **0.1.3 provenance and locks** | [#121](https://github.com/vksvicky/RepoLens/issues/121)–[#127](https://github.com/vksvicky/RepoLens/issues/127) | **Done** — URL sanitation, fenced commands, hashed Semgrep and Checkov wheels |
+| **0.1.4 memory and review time** | [#137](https://github.com/vksvicky/RepoLens/issues/137)–[#145](https://github.com/vksvicky/RepoLens/issues/145) · trackers [#151](https://github.com/vksvicky/RepoLens/issues/151), [#152](https://github.com/vksvicky/RepoLens/issues/152) · release [#154](https://github.com/vksvicky/RepoLens/issues/154) | **Done** — peak RSS, one Fast Brain read, scanner overlap, per-pass timing; published `v0.1.4` |
+| **Local versus BYOK benchmark** | [#146](https://github.com/vksvicky/RepoLens/issues/146)–[#150](https://github.com/vksvicky/RepoLens/issues/150), [#155](https://github.com/vksvicky/RepoLens/issues/155) · tracker [#153](https://github.com/vksvicky/RepoLens/issues/153) | **In progress** — branch `benchmark`; not on `main` |
+| **DSPy instruction tail** | [#133](https://github.com/vksvicky/RepoLens/issues/133)–[#135](https://github.com/vksvicky/RepoLens/issues/135) · tracker [#136](https://github.com/vksvicky/RepoLens/issues/136) | **Not started** |
 ---
 
 ## Legend
@@ -604,6 +608,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-09-26 | Dogfood #15/#16 landed | [PR #57](https://github.com/vksvicky/RepoLens/pull/57); [#13](https://github.com/vksvicky/RepoLens/issues/13) closed; LogViewer `--git-diff auto --deep-passes 1` validated; Vertex/Bedrock → [#58](https://github.com/vksvicky/RepoLens/issues/58) |
 | 2026-09-26 | Tracker hygiene | Close [#11](https://github.com/vksvicky/RepoLens/issues/11) (parked residuals, no sticky issue); close [#6](https://github.com/vksvicky/RepoLens/issues/6) → Discussions + issue templates |
 | 2026-10-13 | Tracker sync ([#12](https://github.com/vksvicky/RepoLens/issues/12)) | M1–M5 done; `v0.1.3` published; no active milestone; [#91](https://github.com/vksvicky/RepoLens/issues/91) stays parked |
+| 2026-10-23 | Tracker sync ([#12](https://github.com/vksvicky/RepoLens/issues/12)) | `v0.1.4` published; [#151](https://github.com/vksvicky/RepoLens/issues/151), [#152](https://github.com/vksvicky/RepoLens/issues/152), and [#154](https://github.com/vksvicky/RepoLens/issues/154) closed; [#91](https://github.com/vksvicky/RepoLens/issues/91) stays parked; open tracks are [#153](https://github.com/vksvicky/RepoLens/issues/153) and [#136](https://github.com/vksvicky/RepoLens/issues/136) |
 
 ---
 
