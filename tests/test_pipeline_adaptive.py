@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from repolens.config import AdaptiveConfig, ModelConfig, RepoLensConfig
 from repolens.learning.store import ProjectStore, store_db_path
-from repolens.pipeline import run_review
+from repolens.pipeline import ReviewRun, run_review
 from repolens.schema import FindingReport, Issue, Severity, Summary
 
 
@@ -17,13 +17,13 @@ def test_dry_run_syncs_fingerprints(tmp_path: Path) -> None:
         model=ModelConfig(provider=None),
         adaptive=AdaptiveConfig(enabled=True),
     )
-    run_review(
+    run_review(ReviewRun(
         path=tmp_path,
         mode="review",
         dry_run=True,
         config=cfg,
         out_dir=tmp_path / "out",
-    )
+    ))
     assert store_db_path(tmp_path).is_file()
     with ProjectStore(tmp_path) as store:
         fps = store.list_fingerprints()
@@ -36,13 +36,13 @@ def test_adaptive_disabled_skips_db(tmp_path: Path) -> None:
         model=ModelConfig(provider=None),
         adaptive=AdaptiveConfig(enabled=False),
     )
-    run_review(
+    run_review(ReviewRun(
         path=tmp_path,
         mode="review",
         dry_run=True,
         config=cfg,
         out_dir=tmp_path / "out",
-    )
+    ))
     assert not store_db_path(tmp_path).is_file()
 
 
@@ -58,26 +58,26 @@ def test_llm_pack_shrinks_on_second_run(tmp_path: Path) -> None:
     fake_result = StructuredLlmResult(report=fake, raw_text="", layer="coerced", error=None)
 
     with patch("repolens.llm_structured.analyze_structured", return_value=fake_result) as mocked:
-        run_review(
+        run_review(ReviewRun(
             path=tmp_path,
             mode="review",
             config=cfg,
             out_dir=tmp_path / "out1",
             scanners="off",
             deep=False,
-        )
+        ))
         first_prompt = mocked.call_args[0][0]
         assert "auth.py" in first_prompt and "util.py" in first_prompt
 
         (tmp_path / "auth.py").write_text("def login(): return 1\n", encoding="utf-8")
-        run_review(
+        run_review(ReviewRun(
             path=tmp_path,
             mode="review",
             config=cfg,
             out_dir=tmp_path / "out2",
             scanners="off",
             deep=False,
-        )
+        ))
         second_prompt = mocked.call_args[0][0]
         assert "### auth.py (" in second_prompt
         # Unchanged, non-P1 source is omitted. The filename may still appear
@@ -110,16 +110,16 @@ def test_force_changed_reuses_last_llm_when_unchanged(tmp_path: Path) -> None:
     fake = FindingReport(confidence=80, summary=Summary(medium=1), issues=[issue])
     fake_result = StructuredLlmResult(report=fake, raw_text="", layer="coerced", error=None)
     with patch("repolens.llm_structured.analyze_structured", return_value=fake_result) as mocked:
-        run_review(
+        run_review(ReviewRun(
             path=repo,
             mode="review",
             config=cfg,
             out_dir=out1,
             scanners="off",
             deep=False,
-        )
+        ))
         assert mocked.call_count == 1
-        result = run_review(
+        result = run_review(ReviewRun(
             path=repo,
             mode="review",
             config=cfg,
@@ -127,7 +127,7 @@ def test_force_changed_reuses_last_llm_when_unchanged(tmp_path: Path) -> None:
             scanners="off",
             force_changed=True,
             deep=False,
-        )
+        ))
         assert mocked.call_count == 1  # no second LLM call
         assert result.report.llmSkipped is True
         assert result.report.llmReusedFrom is not None
@@ -145,13 +145,13 @@ def test_force_changed_skips_when_no_prior_snapshot(tmp_path: Path) -> None:
         model=ModelConfig(provider=None),
         adaptive=AdaptiveConfig(enabled=True, mode="changed"),
     )
-    run_review(
+    run_review(ReviewRun(
         path=repo,
         mode="review",
         config=cfg,
         out_dir=tmp_path / "dry",
         dry_run=True,
-    )
+    ))
     cfg2 = RepoLensConfig(
         model=ModelConfig(provider="ollama", model="x", timeout_seconds=30),
         adaptive=AdaptiveConfig(enabled=True, mode="auto"),
@@ -161,7 +161,7 @@ def test_force_changed_skips_when_no_prior_snapshot(tmp_path: Path) -> None:
     fake = FindingReport(confidence=50, summary=Summary(), issues=[])
     fake_result = StructuredLlmResult(report=fake, raw_text="", layer="coerced", error=None)
     with patch("repolens.llm_structured.analyze_structured", return_value=fake_result) as mocked:
-        result = run_review(
+        result = run_review(ReviewRun(
             path=repo,
             mode="review",
             config=cfg2,
@@ -169,7 +169,7 @@ def test_force_changed_skips_when_no_prior_snapshot(tmp_path: Path) -> None:
             scanners="off",
             force_changed=True,
             deep=False,
-        )
+        ))
         assert mocked.call_count == 0
         assert result.report.llmSkipped is True
         assert result.report.llmReusedFrom is None
@@ -191,16 +191,16 @@ def test_force_full_includes_all(tmp_path: Path) -> None:
     fake = FindingReport(confidence=50, summary=Summary(), issues=[])
     fake_result = StructuredLlmResult(report=fake, raw_text="", layer="coerced", error=None)
     with patch("repolens.llm_structured.analyze_structured", return_value=fake_result) as mocked:
-        run_review(
+        run_review(ReviewRun(
             path=tmp_path,
             mode="review",
             config=cfg,
             out_dir=tmp_path / "o1",
             scanners="off",
             deep=False,
-        )
+        ))
         (tmp_path / "auth.py").write_text("def login(): return 2\n", encoding="utf-8")
-        run_review(
+        run_review(ReviewRun(
             path=tmp_path,
             mode="review",
             config=cfg,
@@ -208,6 +208,6 @@ def test_force_full_includes_all(tmp_path: Path) -> None:
             scanners="off",
             force_full=True,
             deep=False,
-        )
+        ))
         prompt = mocked.call_args[0][0]
         assert "auth.py" in prompt and "util.py" in prompt

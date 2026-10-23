@@ -199,14 +199,19 @@ def _is_repolens_process(argv: list[str]) -> bool:
     )
 
 
+_PY_MODULE_INDEX = 2
+_PY_MODULE_ARGC = 3
+_FLAG_VALUE_STEP = 2
+
+
 def _normalized_argv(argv: list[str]) -> list[str]:
     if (
-        len(argv) >= 3
+        len(argv) >= _PY_MODULE_ARGC
         and Path(argv[0]).name.lower().startswith("python")
         and argv[1] == "-m"
-        and argv[2].split(".")[0] == "repolens"
+        and argv[_PY_MODULE_INDEX].split(".")[0] == "repolens"
     ):
-        rest = argv[3:]
+        rest = argv[_PY_MODULE_ARGC:]
     else:
         rest = argv[1:]
     out = ["repolens"]
@@ -216,7 +221,7 @@ def _normalized_argv(argv: list[str]) -> list[str]:
         if token in _URL_FLAGS and index + 1 < len(rest):
             out.append(token)
             out.append(strip_url_userinfo(rest[index + 1]))
-            index += 2
+            index += _FLAG_VALUE_STEP
             continue
         out.append(strip_url_userinfo(token))
         index += 1

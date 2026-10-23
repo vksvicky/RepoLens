@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 # C-family line/block comments: // and /* … */
 _C_STYLE_COMMENT_SUFFIXES = {".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".kt"}
@@ -120,16 +121,24 @@ def chunk_is_import_only(norm_chunk: Sequence[str], suffix: str) -> bool:
     return all(is_import_line(line, suffix) for line in non_blank)
 
 
-def should_skip_window(
-    *,
-    norm_chunk: Sequence[str],
-    phys_start: int,
-    phys_end: int,
-    raw_lines: Sequence[str],
-    suffix: str,
-    header_n: int,
-    import_mask: Sequence[bool] | None = None,
-) -> bool:
+@dataclass
+class SkipWindow:
+    norm_chunk: Sequence[str]
+    phys_start: int
+    phys_end: int
+    raw_lines: Sequence[str]
+    suffix: str
+    header_n: int
+    import_mask: Sequence[bool] | None = None
+
+def should_skip_window(job: SkipWindow) -> bool:
+    norm_chunk = job.norm_chunk
+    phys_start = job.phys_start
+    phys_end = job.phys_end
+    raw_lines = job.raw_lines
+    suffix = job.suffix
+    header_n = job.header_n
+    import_mask = job.import_mask
     if phys_end <= header_n:
         phys_text = [
             raw_lines[i - 1]

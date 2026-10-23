@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from repolens.config import CiConfig, ModelConfig, RepoLensConfig, ScannersConfig
-from repolens.pipeline import run_review
+from repolens.pipeline import ReviewRun, run_review
 from repolens.schema import Issue, ScannerRun, Severity
 from repolens.triage import (
     fail_on_triggered,
@@ -207,7 +207,7 @@ def test_ci_clean_diff_does_not_call_llm(tmp_path: Path) -> None:
         patch("repolens.pipeline.run._analyze_with_repair", llm_mock),
         patch("repolens.pipeline.deep_exec._analyze_deep_passes", llm_mock),
     ):
-        result = run_review(
+        result = run_review(ReviewRun(
             path=tmp_path,
             mode="sentinel",
             config=cfg,
@@ -215,7 +215,7 @@ def test_ci_clean_diff_does_not_call_llm(tmp_path: Path) -> None:
             scanners="auto",
             ci=True,
             deep=False,
-        )
+        ))
     assert result.report.llmBypassed is True
     assert result.report.llmSkipped is True
     llm_mock.assert_not_called()

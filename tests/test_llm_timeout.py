@@ -16,6 +16,7 @@ from repolens.llm import (
     analyze,
     resolve_llm_timeout,
 )
+from repolens.llm.transport import OpenAiStream
 
 
 def test_resolve_llm_timeout_defaults() -> None:
@@ -88,17 +89,17 @@ def test_stream_stops_when_writing_runs_past_the_time_limit(
     )
 
     with pytest.raises(LlmError, match="stopped after 10"):
-        _stream_openai_compatible(
-            client,
-            base="http://example.test/v1",
-            headers={},
-            payload={"model": "m", "messages": []},
-            model="m",
-            provider="ollama",
-            timeout=10.0,
-            silence_timeout=300.0,
-            on_delta=None,
-        )
+        _stream_openai_compatible(OpenAiStream(
+        client=client,
+        base="http://example.test/v1",
+        headers={},
+        payload={"model": "m", "messages": []},
+        model="m",
+        provider="ollama",
+        timeout=10.0,
+        silence_timeout=300.0,
+        on_delta=None,
+    ))
 
 
 def test_stream_aborts_when_tokens_stop(
@@ -129,17 +130,17 @@ def test_stream_aborts_when_tokens_stop(
     )
 
     with pytest.raises(LlmError, match="went silent for 10"):
-        _stream_openai_compatible(
-            client,
-            base="http://example.test/v1",
-            headers={},
-            payload={"model": "m", "messages": []},
-            model="m",
-            provider="ollama",
-            timeout=7200.0,
-            silence_timeout=10.0,
-            on_delta=None,
-        )
+        _stream_openai_compatible(OpenAiStream(
+        client=client,
+        base="http://example.test/v1",
+        headers={},
+        payload={"model": "m", "messages": []},
+        model="m",
+        provider="ollama",
+        timeout=7200.0,
+        silence_timeout=10.0,
+        on_delta=None,
+    ))
 
 
 def test_init_writes_ollama_timeout(tmp_path, monkeypatch) -> None:

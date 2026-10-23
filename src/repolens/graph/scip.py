@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +50,7 @@ def _roles(occ: dict[str, Any]) -> int:
     try:
         return int(raw)
     except (TypeError, ValueError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return 0
 
 
@@ -59,6 +61,7 @@ def _line(occ: dict[str, Any]) -> int | None:
     try:
         start = int(rng[0])
     except (TypeError, ValueError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     return start + 1
 
@@ -74,11 +77,7 @@ def _result_from_edges(
     for scc in cyclic:
         scc_set = set(scc)
         representative = next(
-            (
-                edge
-                for edge in gated
-                if edge.importer in scc_set and edge.imported in scc_set
-            ),
+            (edge for edge in gated if edge.importer in scc_set and edge.imported in scc_set),
             None,
         )
         cycles.append(CycleGroup(modules=scc, representative_edge=representative))

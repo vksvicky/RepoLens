@@ -13,6 +13,7 @@ from repolens.architecture.fas import (
     parse_omit_edge_token,
 )
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT, EXIT_NOT_READY, JSON_INDENT
 from repolens.config import load_config
 from repolens.graph import analyse_repo_graph
 from repolens.graph.query import (
@@ -37,14 +38,15 @@ def _graph(root: Path):
         console.print("[red]Graph analysis not OK[/red]")
         for gap in result.durability_gaps:
             console.print(f"  {gap}")
-        raise typer.Exit(code=3)
+        raise typer.Exit(code=EXIT_NOT_READY)
     return result
 
 
-def _emit(rows: object, *, as_json: bool) -> None:
-    if as_json:
-        typer.echo(json.dumps(rows, indent=2))
-        return
+def _emit_json(rows: object) -> None:
+    typer.echo(json.dumps(rows, indent=JSON_INDENT))
+
+
+def _emit_text(rows: object) -> None:
     if isinstance(rows, list):
         if not rows:
             console.print("(none)")
@@ -52,7 +54,11 @@ def _emit(rows: object, *, as_json: bool) -> None:
         for row in rows:
             console.print(row if isinstance(row, str) else json.dumps(row))
         return
-    typer.echo(json.dumps(rows, indent=2))
+    typer.echo(json.dumps(rows, indent=JSON_INDENT))
+
+
+def _emit(rows: object, *, as_json: bool) -> None:
+    _emit_json(rows) if as_json else _emit_text(rows)
 
 
 @graph_app.command("deps")
@@ -83,7 +89,7 @@ def graph_cycles(
     """Cycle groups plus cyclicity. JSON on stdout."""
     if fmt.strip().lower() != "json":
         console.print("[red]--format must be json[/red]")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     result = _graph(path.resolve())
     cycles_out = []
     for c in result.cycles:
@@ -104,7 +110,7 @@ def graph_cycles(
         "cycleCount": len(result.cycles),
         "cycles": cycles_out,
     }
-    typer.echo(json.dumps(payload, indent=2))
+    typer.echo(json.dumps(payload, indent=JSON_INDENT))
 
 
 @graph_app.command("edges")
@@ -115,7 +121,7 @@ def graph_edges(
     """Gated import edges (importer, imported, kind, line). JSON on stdout."""
     if fmt.strip().lower() != "json":
         console.print("[red]--format must be json[/red]")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     result = _graph(path.resolve())
     rows = [
         {
@@ -126,7 +132,7 @@ def graph_edges(
         }
         for e in result.gated_edges
     ]
-    typer.echo(json.dumps(rows, indent=2))
+    typer.echo(json.dumps(rows, indent=JSON_INDENT))
 
 
 @graph_app.command("breakup")
@@ -142,14 +148,14 @@ def graph_breakup(
     """Candidate cycle cuts, or cyclicity after omitting edges. JSON on stdout."""
     if fmt.strip().lower() != "json":
         console.print("[red]--format must be json[/red]")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     omitted: list[tuple[str, str]] = []
     for token in omit_edge or []:
         try:
             omitted.append(parse_omit_edge_token(token))
         except ValueError as exc:
             console.print(f"[red]{exc}[/red]")
-            raise typer.Exit(code=2) from exc
+            raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     result = _graph(path.resolve())
     cyclicity_now, sccs = metrics_without_edges(result, omitted)
     candidates = []
@@ -178,7 +184,7 @@ def graph_breakup(
         "omitted": [{"importer": a, "imported": b} for a, b in omitted],
         "note": "Preview only — no files were edited.",
     }
-    typer.echo(json.dumps(payload, indent=2))
+    typer.echo(json.dumps(payload, indent=JSON_INDENT))
 
 
 @graph_app.command("would-cycle")

@@ -8,6 +8,7 @@ import pytest
 
 from repolens.inventory import FileEntry
 from repolens.pipeline.pass_cache import (
+    PassKey,
     closure_key,
     load_pass,
     pass_key,
@@ -46,8 +47,18 @@ def _report() -> FindingReport:
 
 def test_pass_key_changes_when_the_repolens_version_changes(tmp_path: Path) -> None:
     entry = _entry(tmp_path, "app.py", "a = 1\n")
-    first = pass_key([entry], "qwen2.5-coder:32b", "p1", version="0.1.0a1")
-    second = pass_key([entry], "qwen2.5-coder:32b", "p1", version="0.1.0a2")
+    first = pass_key(PassKey(
+        files=[entry],
+        model="qwen2.5-coder:32b",
+        pass_name="p1",
+        version="0.1.0a1",
+    ))
+    second = pass_key(PassKey(
+        files=[entry],
+        model="qwen2.5-coder:32b",
+        pass_name="p1",
+        version="0.1.0a2",
+    ))
     assert first != second
 
 
@@ -62,16 +73,31 @@ def test_pass_key_uses_the_installed_repolens_version(
 ) -> None:
     monkeypatch.setattr("repolens.pipeline.pass_cache.__version__", "9.9.9")
     entry = _entry(tmp_path, "app.py", "a = 1\n")
-    assert pass_key([entry], "qwen2.5-coder:32b", "p1") == pass_key(
-        [entry], "qwen2.5-coder:32b", "p1", version="9.9.9"
-    )
+    assert pass_key(PassKey(
+        files=[entry],
+        model="qwen2.5-coder:32b",
+        pass_name="p1",
+    )) == pass_key(PassKey(
+        files=[entry],
+        model="qwen2.5-coder:32b",
+        pass_name="p1",
+        version="9.9.9",
+    ))
 
 
 def test_pass_key_changes_when_file_contents_change(tmp_path: Path) -> None:
     entry = _entry(tmp_path, "app.py", "a = 1\n")
-    first = pass_key([entry], "qwen2.5-coder:32b", "p1")
+    first = pass_key(PassKey(
+        files=[entry],
+        model="qwen2.5-coder:32b",
+        pass_name="p1",
+    ))
     entry.path.write_text("a = 2\n", encoding="utf-8")
-    second = pass_key([entry], "qwen2.5-coder:32b", "p1")
+    second = pass_key(PassKey(
+        files=[entry],
+        model="qwen2.5-coder:32b",
+        pass_name="p1",
+    ))
     assert first != second
 
 
@@ -84,7 +110,11 @@ def test_closure_key_changes_when_the_missed_ids_change() -> None:
 
 def test_saved_pass_reloads_the_findings(tmp_path: Path) -> None:
     entry = _entry(tmp_path, "app.py", "a = 1\n")
-    key = pass_key([entry], "qwen2.5-coder:32b", "p1")
+    key = pass_key(PassKey(
+        files=[entry],
+        model="qwen2.5-coder:32b",
+        pass_name="p1",
+    ))
     save_pass(tmp_path, key, _report())
     loaded = load_pass(tmp_path, key)
     assert loaded is not None

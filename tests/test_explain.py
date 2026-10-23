@@ -12,6 +12,7 @@ from repolens.cli import app
 from repolens.explain import (
     ExplainDisabledError,
     ExplainSolution,
+    RunExplain,
     _evidence_bundle,
     _safe_issue_path,
     build_diagram_from_moves,
@@ -147,13 +148,13 @@ def test_run_explain_writes_markdown(tmp_path: Path, monkeypatch) -> None:
     )
 
     with patch("repolens.explain_prompt.analyze_raw", return_value=llm_json):
-        artifact = run_explain(
-            uuid=run_id,
-            project_root=root,
-            out_dir=out,
-            diagram=True,
-            render_image="never",
-        )
+        artifact = run_explain(RunExplain(
+        uuid=run_id,
+        project_root=root,
+        out_dir=out,
+        diagram=True,
+        render_image="never",
+    ))
     text = artifact.read_text(encoding="utf-8")
     assert "Problem" in text
     assert "Actionable solutions" in text
@@ -304,9 +305,12 @@ def test_generic_boilerplate_falls_back_to_outline(tmp_path: Path, monkeypatch) 
         }
     )
     with patch("repolens.explain_prompt.analyze_raw", return_value=waffle):
-        artifact = run_explain(
-            uuid=run_id, project_root=root, out_dir=out, render_image="never"
-        )
+        artifact = run_explain(RunExplain(
+        uuid=run_id,
+        project_root=root,
+        out_dir=out,
+        render_image="never",
+    ))
     text = artifact.read_text(encoding="utf-8")
     assert "Structure used as evidence" in text
     assert "review" in text
@@ -332,11 +336,11 @@ def test_explain_disabled_raises(tmp_path: Path, monkeypatch) -> None:
     path.write_text(report.model_dump_json(), encoding="utf-8")
     write_last_report_pointer(root, path)
     try:
-        run_explain(
-            uuid="11111111-1111-4111-8111-111111111111",
-            project_root=root,
-            out_dir=out,
-        )
+        run_explain(RunExplain(
+        uuid="11111111-1111-4111-8111-111111111111",
+        project_root=root,
+        out_dir=out,
+    ))
         raise AssertionError("expected ExplainDisabledError")
     except ExplainDisabledError:
         pass

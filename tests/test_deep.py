@@ -12,6 +12,7 @@ from repolens.deep import (
     build_deep_prompt,
     plan_deep_passes,
 )
+from repolens.deep_plan import PlanDeepPasses
 from repolens.inventory import FileEntry
 from repolens.rules.registry import Rule
 from repolens.schema import FindingReport, Issue, Summary
@@ -44,47 +45,6 @@ def _rule(
     )
 
 
-def _issue(
-    *,
-    file: str = "a.py",
-    title: str = "Finding",
-    severity: str = "LOW",
-    priority: str = "P3",
-) -> Issue:
-    return Issue.model_validate(
-        {
-            "severity": severity,
-            "priority": priority,
-            "category": "Test",
-            "file": file,
-            "line": 1,
-            "title": title,
-            "explanation": "x",
-            "impact": "impact text" if severity in {"CRITICAL", "HIGH"} else "",
-            "recommendedFix": "fix it",
-            "codeExample": "code()" if severity in {"CRITICAL", "HIGH"} else "",
-            "fixTiming": "before launch",
-        }
-    )
-
-
-def _report(
-    *,
-    confidence: int,
-    issues: list[Issue] | None = None,
-    gaps: list[str] | None = None,
-) -> FindingReport:
-    issues = issues or []
-    report = FindingReport(
-        confidence=confidence,
-        summary=Summary(),
-        issues=issues,
-        durabilityGaps=gaps or [],
-    )
-    report.summary = report.recount_summary()
-    return report
-
-
 def test_budget_files_never_exceeds_char_budget() -> None:
     entries = [
         _entry("small.py", 100),
@@ -115,15 +75,15 @@ def test_plan_deep_passes_review_orders_p1_p2_p3() -> None:
         _rule("reliability", "p2", coverage_ids=["rel.a"]),
     ]
     entries = [_entry("src/a.py", 50), _entry("src/b.py", 50)]
-    passes = plan_deep_passes(
-        "review",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="review",
         full_audit=False,
         entries=entries,
         hot_paths=[],
         adaptive_paths=[],
         chars_per_pass=10_000,
         rules=rules,
-    )
+    ))
     assert [p.name for p in passes] == ["p1", "p2", "p3"]
     assert passes[0].rule_ids == ["security"]
     assert passes[1].rule_ids == ["reliability"]
@@ -136,8 +96,8 @@ def test_plan_deep_passes_max_passes_caps_bands() -> None:
         _rule("reliability", "p2"),
         _rule("architecture", "p3"),
     ]
-    passes = plan_deep_passes(
-        "review",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="review",
         full_audit=False,
         entries=[_entry("a.py", 10)],
         hot_paths=[],
@@ -145,7 +105,7 @@ def test_plan_deep_passes_max_passes_caps_bands() -> None:
         chars_per_pass=1000,
         rules=rules,
         max_passes=1,
-    )
+    ))
     assert [p.name for p in passes] == ["p1"]
 
 
@@ -155,15 +115,15 @@ def test_plan_deep_passes_sentinel_is_p1_only() -> None:
         _rule("reliability", "p2"),
         _rule("architecture", "p3"),
     ]
-    passes = plan_deep_passes(
-        "sentinel",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="sentinel",
         full_audit=False,
         entries=[_entry("a.py", 10)],
         hot_paths=[],
         adaptive_paths=[],
         chars_per_pass=1000,
         rules=rules,
-    )
+    ))
     assert len(passes) == 1
     assert passes[0].name == "p1"
     assert passes[0].rule_ids == ["security"]
@@ -174,15 +134,15 @@ def test_plan_deep_passes_architecture_is_p3_only() -> None:
         _rule("security", "p1"),
         _rule("architecture", "p3"),
     ]
-    passes = plan_deep_passes(
-        "architecture",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="architecture",
         full_audit=True,
         entries=[_entry("a.py", 10)],
         hot_paths=[],
         adaptive_paths=[],
         chars_per_pass=1000,
         rules=rules,
-    )
+    ))
     assert len(passes) == 1
     assert passes[0].name == "p3"
     assert passes[0].rule_ids == ["architecture"]
@@ -196,15 +156,15 @@ def test_plan_deep_passes_prefers_hot_and_adaptive_paths() -> None:
         _entry("adaptive.py", 40),
         _entry("rest.py", 40),
     ]
-    passes = plan_deep_passes(
-        "sentinel",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="sentinel",
         full_audit=False,
         entries=entries,
         hot_paths=["hot.py"],
         adaptive_paths=["adaptive.py"],
         chars_per_pass=80,
         rules=rules,
-    )
+    ))
     assert len(passes) == 1
     relatives = [e.relative for e in passes[0].files]
     assert relatives == ["hot.py", "adaptive.py"]
@@ -217,15 +177,15 @@ def test_plan_deep_passes_uses_coverage_ids_for_enabled_rules() -> None:
         _rule("reliability", "p2"),
         _rule("architecture", "p3"),
     ]
-    passes = plan_deep_passes(
-        "review",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="review",
         full_audit=False,
         entries=[_entry("a.py", 10)],
         hot_paths=[],
         adaptive_paths=[],
         chars_per_pass=1000,
         rules=rules,
-    )
+    ))
     assert passes[0].coverage_ids  # security matrix ids
     assert all(cid.startswith("sec.") for cid in passes[0].coverage_ids)
     assert all(cid.startswith("rel.") for cid in passes[1].coverage_ids)
@@ -258,26 +218,26 @@ def test_plan_deep_passes_skips_disabled_and_unknown_mode() -> None:
         _rule("security", "p1", enabled=True),
         _rule("reliability", "p2", enabled=False),
     ]
-    passes = plan_deep_passes(
-        "review",
+    passes = plan_deep_passes(PlanDeepPasses(
+        mode="review",
         full_audit=False,
         entries=[_entry("a.py", 10)],
         hot_paths=[],
         adaptive_paths=[],
         chars_per_pass=1000,
         rules=[r for r in rules if r.enabled],
-    )
+    ))
     assert [p.name for p in passes] == ["p1"]
     with pytest.raises(ValueError):
-        plan_deep_passes(
-            "unknown",
-            full_audit=False,
-            entries=[],
-            hot_paths=[],
-            adaptive_paths=[],
-            chars_per_pass=100,
-            rules=rules,
-        )
+        plan_deep_passes(PlanDeepPasses(
+        mode="unknown",
+        full_audit=False,
+        entries=[],
+        hot_paths=[],
+        adaptive_paths=[],
+        chars_per_pass=100,
+        rules=rules,
+    ))
 
 
 def test_deep_helpers_cover_degraded_passes_and_metrics(monkeypatch) -> None:

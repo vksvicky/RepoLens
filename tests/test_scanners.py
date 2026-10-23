@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from repolens.config import ModelConfig, RepoLensConfig, ScannersConfig
-from repolens.pipeline import ScannerRequirementError, run_review
+from repolens.pipeline import ReviewRun, ScannerRequirementError, run_review
 from repolens.scanners.base import resolve_binary, tools_cache_dir
 from repolens.scanners.gitleaks import run_gitleaks
 from repolens.scanners.osv import run_osv
@@ -231,14 +231,14 @@ def test_scanners_only_pipeline(tmp_path: Path) -> None:
         "repolens.pipeline.run_collect.run_scanners",
         return_value=([fake_issue_run], [], []),
     ):
-        result = run_review(
+        result = run_review(ReviewRun(
             path=tmp_path,
             mode="sentinel",
             config=cfg,
             out_dir=tmp_path / "r",
             scanners_only=True,
             scanners="auto",
-        )
+        ))
     assert result.dry_run is False
     assert result.report.scannerRuns[0].tool == "gitleaks"
     text = result.markdown_path.read_text(encoding="utf-8")  # type: ignore[union-attr]
@@ -263,11 +263,11 @@ def test_require_scanners_raises(tmp_path: Path) -> None:
         ),
         pytest.raises(ScannerRequirementError),
     ):
-        run_review(
+        run_review(ReviewRun(
             path=tmp_path,
             mode="sentinel",
             config=cfg,
             out_dir=tmp_path / "r",
             scanners_only=True,
             require_scanners=True,
-        )
+        ))

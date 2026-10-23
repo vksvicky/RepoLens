@@ -8,6 +8,7 @@ from pathlib import Path
 import typer
 
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import JSON_INDENT
 from repolens.config import load_config
 from repolens.heuristics.near_clones import find_near_clones
 from repolens.inventory import scan_inventory
@@ -46,7 +47,7 @@ def duplicates_cmd(
         )
     emit_json = as_json or fmt.strip().lower() == "json"
     if emit_json:
-        typer.echo(json.dumps(rows, indent=2))
+        typer.echo(json.dumps(rows, indent=JSON_INDENT))
         return
     if not rows:
         console.print("No near-clone clusters in the inventory pack.")

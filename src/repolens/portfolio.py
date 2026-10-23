@@ -31,10 +31,10 @@ class PortfolioRunResult:
 
 def _run_repo_scanners(*, path: Path, out: Path, slow_brain: bool) -> None:
     """Invoke review scanners-only (or optional deep) for one repo."""
-    from repolens.pipeline import run_review
+    from repolens.pipeline import ReviewRun, run_review
     from repolens.progress import null_progress
 
-    run_review(
+    run_review(ReviewRun(
         path=path,
         mode="review",
         out_dir=out,
@@ -43,7 +43,7 @@ def _run_repo_scanners(*, path: Path, out: Path, slow_brain: bool) -> None:
         deep=True if slow_brain else False,
         fmt="both",
         progress=null_progress(),
-    )
+    ))
 
 
 def _read_paths_file(paths_file: Path) -> list[Path]:

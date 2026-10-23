@@ -70,8 +70,7 @@ def _issue_for(func: FunctionComplexity) -> Issue | None:
         file=func.path,
         line=func.start_line,
         title=(
-            f"High complexity: `{func.name}` "
-            f"(cyclo={func.cyclomatic}, cognitive={func.cognitive})"
+            f"High complexity: `{func.name}` (cyclo={func.cyclomatic}, cognitive={func.cognitive})"
         ),
         explanation=(
             f"Function `{func.name}` spans lines {func.start_line}–{func.end_line} "
@@ -94,12 +93,13 @@ def _issue_for(func: FunctionComplexity) -> Issue | None:
         ),
         codeExample=code,
         fixTiming=(
-            "before launch"
-            if severity in {Severity.CRITICAL, Severity.HIGH}
-            else "if time permits"
+            "before launch" if severity in {Severity.CRITICAL, Severity.HIGH} else "if time permits"
         ),
         source="heuristic",
     )
+
+
+_P95 = 95
 
 
 def run_complexity(
@@ -110,9 +110,19 @@ def run_complexity(
     hotspot_limit: int = _HOTSPOT_LIMIT,
 ) -> ComplexityResult:
     """Analyse Python files; emit Issues above thresholds; build Top-N block."""
-    if not enabled:
-        return ComplexityResult()
+    return (
+        _analyse_complexity(root, entries, hotspot_limit=hotspot_limit)
+        if enabled
+        else ComplexityResult()
+    )
 
+
+def _analyse_complexity(
+    root: Path,
+    entries: Sequence[FileEntry],
+    *,
+    hotspot_limit: int,
+) -> ComplexityResult:
     root = root.resolve()
     functions: list[FunctionComplexity] = []
     notes: list[str] = []
@@ -161,8 +171,8 @@ def run_complexity(
         issueCount=len(issues),
         maxCyclomatic=max(cyclo_vals) if cyclo_vals else 0,
         maxCognitive=max(cog_vals) if cog_vals else 0,
-        p95Cyclomatic=_percentile_nearest(cyclo_vals, 95),
-        p95Cognitive=_percentile_nearest(cog_vals, 95),
+        p95Cyclomatic=_percentile_nearest(cyclo_vals, _P95),
+        p95Cognitive=_percentile_nearest(cog_vals, _P95),
         hotspots=hotspots,
         notes=notes,
     )

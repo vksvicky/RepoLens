@@ -7,6 +7,7 @@ from pathlib import Path
 import typer
 
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT
 from repolens.cli.pack_scope import option_path
 from repolens.cli.review_options import option_out
 from repolens.explain import IssueNotFoundError, find_issue, load_latest_report
@@ -35,12 +36,10 @@ def fix_cmd(
     """Apply one grounded remediation from a report. Single file only — no self-heal loops."""
     if patch and interactive:
         console.print("[red]Choose one of --patch or --interactive[/red]")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     if not patch and not interactive:
-        console.print(
-            "[red]Specify --patch (stdout diff) or --interactive (apply on disk)[/red]"
-        )
-        raise typer.Exit(code=2)
+        console.print("[red]Specify --patch (stdout diff) or --interactive (apply on disk)[/red]")
+        raise typer.Exit(code=EXIT_BAD_INPUT)
 
     root = Path(path or ".").resolve()
     try:
@@ -49,13 +48,13 @@ def fix_cmd(
         fix_plan = plan_fix(root, issue)
     except FileNotFoundError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     except IssueNotFoundError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     except FixRefuseError as exc:
         console.print(f"[yellow]Refused:[/yellow] {exc}")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
 
     console.print(f"[dim]report[/dim] {report_path}")
     console.print(f"[dim]finding[/dim] {issue.title} → {fix_plan.relative_path}")
@@ -79,5 +78,5 @@ def fix_cmd(
         apply_fix(fix_plan)
     except FixRefuseError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     console.print(f"[green]Applied[/green] {fix_plan.relative_path} (syntax OK)")

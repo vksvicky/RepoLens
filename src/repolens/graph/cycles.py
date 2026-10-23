@@ -59,6 +59,9 @@ def strongly_connected_components(
     return out
 
 
+_MIN_CYCLE_NODES = 2
+
+
 def cyclicity(sccs: Sequence[tuple[str, ...]]) -> int:
     """Sum of n² over SCCs with n ≥ 2 (cycle debt for G1 reporting)."""
-    return sum(len(s) ** 2 for s in sccs if len(s) >= 2)
+    return sum(len(s) * len(s) for s in sccs if len(s) >= _MIN_CYCLE_NODES)

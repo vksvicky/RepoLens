@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import urllib.error
 import urllib.request
 from typing import Any
@@ -22,6 +23,7 @@ def ollama_running_summary(base_url: str | None = None) -> str | None:
             raw = resp.read().decode("utf-8", errors="replace")
         data: dict[str, Any] = json.loads(raw)
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError, ValueError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
 
     models = data.get("models") or []

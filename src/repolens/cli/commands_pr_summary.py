@@ -9,7 +9,9 @@ from pathlib import Path
 import typer
 
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT
 from repolens.github_pr_comments import (
+    ReviewComments,
     post_or_update_review_comments,
     resolve_github_token,
     resolve_pr_number,
@@ -80,19 +82,17 @@ def _load_finding_report(report: Path | None, reports_dir: Path) -> FindingRepor
     if path is None:
         path = find_newest_report_json(reports_dir)
         if path is None:
-            console.print(
-                f"[red]No gate_review_report_*.json under[/red] {reports_dir.resolve()}"
-            )
-            raise typer.Exit(code=2)
+            console.print(f"[red]No gate_review_report_*.json under[/red] {reports_dir.resolve()}")
+            raise typer.Exit(code=EXIT_BAD_INPUT)
     if not path.is_file():
         console.print(f"[red]Report not found:[/red] {path}")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         return FindingReport.model_validate(data)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         console.print(f"[red]Could not load report:[/red] {exc}")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
 
 
 def _append_github_summary(md: str, summary_env: str) -> None:
@@ -103,19 +103,21 @@ def _append_github_summary(md: str, summary_env: str) -> None:
     console.print("[green]Appended[/green] PR summary → $GITHUB_STEP_SUMMARY")
 
 
+def _route_github_summary(md: str, summary_env: str) -> None:
+    if not summary_env:
+        console.print("[yellow]$GITHUB_STEP_SUMMARY unset[/yellow] — printing Markdown to stdout")
+        typer.echo(md)
+        return
+    _append_github_summary(md, summary_env)
+
+
 def _emit_pr_summary(md: str, *, out: Path | None, github_summary: bool) -> None:
     if out is not None:
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(md, encoding="utf-8")
         console.print(f"[green]Wrote[/green] {out.resolve()}")
     summary_env = os.environ.get("GITHUB_STEP_SUMMARY", "").strip()
-    if github_summary and not summary_env:
-        console.print(
-            "[yellow]$GITHUB_STEP_SUMMARY unset[/yellow] — printing Markdown to stdout"
-        )
-        typer.echo(md)
-    elif github_summary:
-        _append_github_summary(md, summary_env)
+    _route_github_summary(md, summary_env) if github_summary else None
     if not out and not github_summary:
         typer.echo(md)
 
@@ -125,14 +127,10 @@ def _post_pr_review_comments(finding_report: FindingReport, *, pr: int | None) -
     slug = resolve_repo_slug()
     pr_number = resolve_pr_number(explicit=pr)
     if not token:
-        console.print(
-            "[yellow]--post-review-comments ignored:[/yellow] no GITHUB_TOKEN/GH_TOKEN"
-        )
+        console.print("[yellow]--post-review-comments ignored:[/yellow] no GITHUB_TOKEN/GH_TOKEN")
         return
     if slug is None:
-        console.print(
-            "[yellow]--post-review-comments ignored:[/yellow] GITHUB_REPOSITORY unset"
-        )
+        console.print("[yellow]--post-review-comments ignored:[/yellow] GITHUB_REPOSITORY unset")
         return
     if pr_number is None:
         console.print(
@@ -141,13 +139,13 @@ def _post_pr_review_comments(finding_report: FindingReport, *, pr: int | None) -
         )
         return
     owner, repo = slug
-    result = post_or_update_review_comments(
-        finding_report,
+    result = post_or_update_review_comments(ReviewComments(
+        report=finding_report,
         owner=owner,
         repo=repo,
         pr_number=pr_number,
         token=token,
-    )
+    ))
     console.print(
         f"[green]PR comments[/green] created={result.created} "
         f"updated={result.updated} skipped={result.skipped}"

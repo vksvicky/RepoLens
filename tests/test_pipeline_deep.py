@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from repolens.config import AdaptiveConfig, DeepConfig, ModelConfig, RepoLensConfig
 from repolens.llm_structured import StructuredLlmResult
-from repolens.pipeline import run_review
+from repolens.pipeline import ReviewRun, run_review
 from repolens.progress import ReviewProgress
 from repolens.report import render_markdown
 from repolens.schema import FindingReport, Summary
@@ -68,14 +68,14 @@ def test_deep_mode_merges_three_passes_heuristics_and_lists_coverage(
     with patch(
         "repolens.llm_structured.analyze_structured", side_effect=fake_analyze
     ) as mocked:
-        result = run_review(
+        result = run_review(ReviewRun(
             path=tmp_path,
             mode="review",
             config=cfg,
             out_dir=tmp_path / "out",
             scanners="off",
             deep=True,
-        )
+        ))
 
     assert mocked.call_count == 4
     assert call_pass_ids == ["p1", "p2", "p3", "coverage"]
@@ -122,14 +122,14 @@ def test_deep_waiting_once_per_pass(tmp_path: Path) -> None:
         patch("repolens.llm_structured.analyze_structured", return_value=fake_result),
         patch.object(ReviewProgress, "waiting", fake_waiting),
     ):
-        run_review(
+        run_review(ReviewRun(
             path=tmp_path,
             mode="review",
             config=cfg,
             out_dir=tmp_path / "out",
             scanners="off",
             deep=True,
-        )
+        ))
 
     deep_waits = [m for m in waiting_labels if m.startswith("Deep pass ")]
     assert len(deep_waits) == 3
@@ -164,14 +164,14 @@ def test_no_deep_keeps_outer_waiting(tmp_path: Path) -> None:
         patch("repolens.llm_structured.analyze_structured", return_value=fake_result),
         patch.object(ReviewProgress, "waiting", fake_waiting),
     ):
-        run_review(
+        run_review(ReviewRun(
             path=tmp_path,
             mode="review",
             config=cfg,
             out_dir=tmp_path / "out",
             scanners="off",
             deep=False,
-        )
+        ))
 
     assert len(waiting_labels) == 1
     assert waiting_labels[0].startswith("LLM:")
@@ -197,14 +197,14 @@ def test_no_deep_uses_single_shot_analyze(tmp_path: Path) -> None:
     with patch(
         "repolens.llm_structured.analyze_structured", return_value=fake_result
     ) as mocked:
-        result = run_review(
+        result = run_review(ReviewRun(
             path=tmp_path,
             mode="review",
             config=cfg,
             out_dir=tmp_path / "out",
             scanners="off",
             deep=False,
-        )
+        ))
 
     assert mocked.call_count == 1
     assert mocked.call_args.kwargs.get("pass_id") == "single"
@@ -226,14 +226,14 @@ def test_deep_default_on_for_llm_runs(tmp_path: Path) -> None:
     with patch(
         "repolens.llm_structured.analyze_structured", return_value=fake_result
     ) as mocked:
-        run_review(
+        run_review(ReviewRun(
             path=tmp_path,
             mode="review",
             config=cfg,
             out_dir=tmp_path / "out",
             scanners="off",
             # deep=None → config default (on)
-        )
+        ))
 
     assert mocked.call_count == 4
     pass_ids = [c.kwargs.get("pass_id") for c in mocked.call_args_list]
@@ -275,14 +275,14 @@ def test_deep_metrics_penalize_lazy_na_and_render_glossary(tmp_path: Path) -> No
         )
 
     with patch("repolens.llm_structured.analyze_structured", side_effect=fake_analyze):
-        result = run_review(
+        result = run_review(ReviewRun(
             path=tmp_path,
             mode="review",
             config=cfg,
             out_dir=tmp_path / "out",
             scanners="off",
             deep=True,
-        )
+        ))
 
     assert result.report.confidence < 95
     assert result.report.securityAuditConfidence is not None
@@ -327,14 +327,14 @@ def test_degraded_pass_still_merges(tmp_path: Path) -> None:
         )
 
     with patch("repolens.llm_structured.analyze_structured", side_effect=fake_analyze):
-        result = run_review(
+        result = run_review(ReviewRun(
             path=tmp_path,
             mode="review",
             config=cfg,
             out_dir=tmp_path / "out",
             scanners="off",
             deep=True,
-        )
+        ))
 
     titles = {i.title for i in result.report.issues}
     assert "p2 ok" in titles

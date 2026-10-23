@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -12,17 +13,21 @@ def journal_path(root: Path) -> Path:
     return root / ".repolens" / "journal.jsonl"
 
 
+_MS_PER_SECOND = 1000
+_SECONDS_PER_MINUTE = 60
+
+
 def format_duration_ms(ms: int) -> str:
     """Human duration for CLI; JSONL keeps raw millisecond ints."""
-    if ms < 1000:
+    if ms < _MS_PER_SECOND:
         return "< 1s"
-    total_seconds = ms / 1000.0
-    if total_seconds < 60:
+    total_seconds = ms / _MS_PER_SECOND
+    if total_seconds < _SECONDS_PER_MINUTE:
         text = f"{total_seconds:.1f}".rstrip("0").rstrip(".")
         return f"{text}s"
-    minutes = int(total_seconds // 60)
-    seconds = int(round(total_seconds - minutes * 60))
-    if seconds == 60:
+    minutes = int(total_seconds // _SECONDS_PER_MINUTE)
+    seconds = int(round(total_seconds - minutes * _SECONDS_PER_MINUTE))
+    if seconds == _SECONDS_PER_MINUTE:
         minutes += 1
         seconds = 0
     return f"{minutes}m {seconds}s"
@@ -38,6 +43,7 @@ def append_event(root: Path, event: str, **fields: Any) -> None:
         with path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(body, ensure_ascii=False) + "\n")
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return
 
 
@@ -103,29 +109,19 @@ def postmortem_data(root: Path) -> dict[str, Any]:
     """Structured post-mortem with raw millisecond ints (machine-safe)."""
     events = read_events(root)
     started = next((e for e in events if e.get("event") == "review_started"), None)
-    interrupted = next(
-        (e for e in reversed(events) if e.get("event") == "interrupted"), None
-    )
-    verify = next(
-        (e for e in reversed(events) if e.get("event") == "verify_completed"), None
-    )
+    interrupted = next((e for e in reversed(events) if e.get("event") == "interrupted"), None)
+    verify = next((e for e in reversed(events) if e.get("event") == "verify_completed"), None)
     completed = [e for e in events if e.get("event") == "pass_completed"]
     started_passes = [e for e in events if e.get("event") == "pass_started"]
     unfinished: str | None = None
     if interrupted is not None:
-        finished_labels = {
-            str(e.get("label") or e.get("role") or "") for e in completed
-        }
+        finished_labels = {str(e.get("label") or e.get("role") or "") for e in completed}
         for row in reversed(started_passes):
             label = str(row.get("label") or row.get("role") or "").strip()
             if label and label not in finished_labels:
                 unfinished = label
                 break
-        status = (
-            f"INTERRUPTED during {unfinished}"
-            if unfinished
-            else "INTERRUPTED"
-        )
+        status = f"INTERRUPTED during {unfinished}" if unfinished else "INTERRUPTED"
     else:
         status = "COMPLETED"
     return {
@@ -160,10 +156,7 @@ def build_postmortem(root: Path) -> str:
         dur = format_duration_ms(int(row.get("pass_duration_ms") or 0))
         wait = format_duration_ms(int(row.get("queue_wait_ms") or 0))
         file_bit = f"{files} files ({pack}), " if files is not None else ""
-        lines.append(
-            f"  ✓ {label}: {file_bit}{findings} findings, {dur} "
-            f"(queue wait: {wait})"
-        )
+        lines.append(f"  ✓ {label}: {file_bit}{findings} findings, {dur} (queue wait: {wait})")
     during = data.get("interrupted_during")
     if during:
         lines.append(f"  — {during}: started, not completed")
@@ -179,8 +172,7 @@ def build_postmortem(root: Path) -> str:
     if last:
         lines.append(f"Last finished: {last}")
     lines.append(
-        f"Resume: repolens review --resume --path {root} "
-        "(re-run one pass: --retry-pass p3)"
+        f"Resume: repolens review --resume --path {root} (re-run one pass: --retry-pass p3)"
     )
     chars = data["chars"]
     lines.append(

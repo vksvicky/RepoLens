@@ -100,54 +100,60 @@ def _weak_tls_hit(line: str) -> bool:
     return False
 
 
+def transport_tls_issues(entry: FileEntry, text: str) -> list[Issue]:
+    if is_test_source(entry.relative):
+        return []
+    if entry.path.suffix.lower() not in SOURCE_SUFFIXES:
+        return []
+    issues: list[Issue] = []
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        if _comment_only(line):
+            continue
+        urls = _http_hits(line)
+        weak = _weak_tls_hit(line)
+        if not urls and not weak:
+            continue
+        snippet = urls[0] if urls else line.strip()[:80]
+        issues.append(
+            Issue(
+                severity=Severity.MEDIUM,
+                priority="P1",
+                category="heuristic.transport_tls",
+                file=entry.relative,
+                line=lineno,
+                title="Insecure HTTP or weak TLS setting",
+                explanation=(
+                    f"{entry.relative}:{lineno} looks like cleartext HTTP or a "
+                    f"legacy TLS version ({snippet}). Loopback and XML/JSON schema "
+                    "namespaces are ignored."
+                ),
+                impact=(
+                    "Cleartext or obsolete TLS can expose credentials and data "
+                    "in transit."
+                ),
+                recommendedFix=(
+                    "Use HTTPS, disable SSLv2/SSLv3/TLS 1.0/1.1, and set a modern "
+                    "minimum TLS version (1.2+)."
+                ),
+                codeExample=(
+                    "# Prefer https:// and TLS 1.2+\n"
+                    "# ssl.TLSVersion.TLSv1_2"
+                ),
+                fixTiming="before launch",
+                source="heuristic",
+            )
+        )
+    return issues
+
+
 def find_transport_tls(files: list[FileEntry]) -> list[Issue]:
     issues: list[Issue] = []
     for entry in files:
         if not entry.path.is_file():
             continue
-        if is_test_source(entry.relative):
-            continue
-        if entry.path.suffix.lower() not in SOURCE_SUFFIXES:
-            continue
         try:
             text = entry.path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        for lineno, line in enumerate(text.splitlines(), start=1):
-            if _comment_only(line):
-                continue
-            urls = _http_hits(line)
-            weak = _weak_tls_hit(line)
-            if not urls and not weak:
-                continue
-            snippet = urls[0] if urls else line.strip()[:80]
-            issues.append(
-                Issue(
-                    severity=Severity.MEDIUM,
-                    priority="P1",
-                    category="heuristic.transport_tls",
-                    file=entry.relative,
-                    line=lineno,
-                    title="Insecure HTTP or weak TLS setting",
-                    explanation=(
-                        f"{entry.relative}:{lineno} looks like cleartext HTTP or a "
-                        f"legacy TLS version ({snippet}). Loopback and XML/JSON schema "
-                        "namespaces are ignored."
-                    ),
-                    impact=(
-                        "Cleartext or obsolete TLS can expose credentials and data "
-                        "in transit."
-                    ),
-                    recommendedFix=(
-                        "Use HTTPS, disable SSLv2/SSLv3/TLS 1.0/1.1, and set a modern "
-                        "minimum TLS version (1.2+)."
-                    ),
-                    codeExample=(
-                        "# Prefer https:// and TLS 1.2+\n"
-                        "# ssl.TLSVersion.TLSv1_2"
-                    ),
-                    fixTiming="before launch",
-                    source="heuristic",
-                )
-            )
+        issues.extend(transport_tls_issues(entry, text))
     return issues

@@ -74,3 +74,12 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-11 | WIP→commit | 94% | 0/0/0/0 | Overlay scanners: extract Issue builders so fintech/healthtech clear deep-nesting; 5 overlay pytest | chat |
 | 2026-10-13 | WIP→commit | 84% | 0/0/0/1 | Post-0.1.3: hash-locked Semgrep/Checkov, learn notes, clean-code heuristics; scanners extra still unhashed; blog drafts left out | chat |
 | 2026-10-13 | WIP→commit | 90% | 0/0/0/1 | Internal notes leave the published tree; older commits on origin still contain plans, recipes, and one review | chat |
+| 2026-10-18 | WIP→push | 90% | 0/0/0/0 | Fast Brain signature objects and boolean splits; selfdog 2026-10-18 0/0/0/0; version stays 0.1.3 | chat |
+| 2026-10-21 | WIP→commit | 92% | 0/0/0/0 | Report title names the reviewed project; one magic-number Low per file; local commit only | chat |
+| 2026-10-21 | 6a0efd5→push | 92% | 0/0/0/0 | Same report-identity commit pushed; optional provenance fields; git branch via list-form rev-parse | chat |
+| 2026-10-21 | issue-140→push | 92% | 0/0/0/1 | Opt-in RSS ceiling exits 2 only before the model; 32B notice does not name a cloud model or stop the run | chat |
+| 2026-10-21 | overlap→push | 91% | 0/0/0/1 | Scanners overlap Fast Brain; supply chain waits for the scanner future; duration only when a tool ran | chat |
+| 2026-10-21 | review-time→push | 91% | 0/0/0/1 | Per-pass first-token rows; plan uses the last same-model sample; coverage closure is not the plan sample | chat |
+| 2026-10-21 | memory-footprint→push | 91% | 0/0/0/1 | One read for per-file checks; bounded excerpt and FTS; workers 0 leaves one core free | chat |
+| 2026-10-23 | v0.1.4 | 94% | 0/0/0/0 | Release from main: version bump, changelog move, README links are GitHub blobs; benchmark branch left out | chat |
+| 2026-10-23 | docs→push | 95% | 0/0/0/0 | Linked docs install 0.1.4; local learning matches the store; missing design filenames removed | chat |

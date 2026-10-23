@@ -12,6 +12,7 @@ from repolens.schema import Issue, Severity
 
 _PYTHON = {".py"}
 _IGNORED = {0, 1, -1}
+_SHOWN_LITERALS = 8
 
 
 def _literal_key(value: int | float) -> str:
@@ -58,36 +59,84 @@ def _issue(relative: str, lineno: int, literal: str) -> Issue:
     )
 
 
+def _unique_literals(hits: list[tuple[int, str]]) -> list[str]:
+    literals: list[str] = []
+    for _lineno, literal in sorted(hits, key=lambda item: (item[0], item[1])):
+        if literal not in literals:
+            literals.append(literal)
+    return literals
+
+
+def _issue_for_file(relative: str, hits: list[tuple[int, str]]) -> Issue:
+    ordered = sorted(hits, key=lambda item: (item[0], item[1]))
+    literals = _unique_literals(ordered)
+    line = ordered[0][0]
+    if len(literals) == 1:
+        return _issue(relative, line, literals[0])
+    shown = literals[:_SHOWN_LITERALS]
+    extra = len(literals) - len(shown)
+    tail = f", and {extra} more" if extra else ""
+    return Issue(
+        severity=Severity.LOW,
+        priority="P3",
+        category="heuristic.magic_number",
+        file=relative,
+        line=max(line, 1),
+        title=f"Repeated unnamed numbers ({len(literals)})",
+        explanation=(
+            f"{relative}:{line} repeats {len(literals)} unnamed numbers "
+            f"({', '.join(shown)}{tail}). 0, 1, and -1 are ignored."
+        ),
+        recommendedFix=(
+            "Name the repeated sizes, limits, and colours in this file. "
+            "One name per number is enough."
+        ),
+        fixTiming="if time permits",
+        source="heuristic",
+    )
+
+
+def _repeated_literals(source: str, suffix: str) -> list[tuple[int, str]]:
+    if suffix in OTHER_SUFFIXES:
+        return magic_hits(source, suffix)
+    if suffix not in _PYTHON:
+        return []
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    hits: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        counts: dict[str, list[int]] = {}
+        for lineno, key in _literals(node):
+            counts.setdefault(key, []).append(lineno)
+        for key, places in counts.items():
+            if len(places) >= 2:
+                hits.append((places[0], key))
+    return hits
+
+
+def magic_number_issues(entry: FileEntry, text: str) -> list[Issue]:
+    if is_test_source(entry.relative) or is_mega_file_excluded(entry.relative):
+        return []
+    suffix = entry.path.suffix.lower()
+    hits = _repeated_literals(text, suffix)
+    if not hits:
+        return []
+    return [_issue_for_file(entry.relative, hits)]
+
+
 def find_magic_numbers(files: list[FileEntry]) -> list[Issue]:
     issues: list[Issue] = []
     for entry in files:
         if not entry.path.is_file():
             continue
-        if is_test_source(entry.relative) or is_mega_file_excluded(entry.relative):
-            continue
-        suffix = entry.path.suffix.lower()
         try:
             source = entry.path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        if suffix in OTHER_SUFFIXES:
-            for lineno, literal in magic_hits(source, suffix):
-                issues.append(_issue(entry.relative, lineno, literal))
-            continue
-        if suffix not in _PYTHON:
-            continue
-        try:
-            tree = ast.parse(source)
-        except SyntaxError:
-            continue
-        for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            counts: dict[str, list[int]] = {}
-            for lineno, key in _literals(node):
-                counts.setdefault(key, []).append(lineno)
-            for key, places in counts.items():
-                if len(places) >= 2:
-                    issues.append(_issue(entry.relative, places[0], key))
+        issues.extend(magic_number_issues(entry, source))
     issues.sort(key=lambda item: (item.file, item.line, item.category, item.title))
     return issues

@@ -7,7 +7,13 @@ from pathlib import Path
 import typer
 
 from repolens.cli.app import app, console
-from repolens.suppressions import IGNORE_FILENAME, append_ignore_entry, load_ignore_file
+from repolens.cli.exit_codes import EXIT_BAD_INPUT
+from repolens.suppressions import (
+    IGNORE_FILENAME,
+    IgnoreAppend,
+    append_ignore_entry,
+    load_ignore_file,
+)
 
 ignore_app = typer.Typer(
     name="ignore",
@@ -29,17 +35,17 @@ def ignore_add(
     """Append one ignore row. Need --id or --file plus --category."""
     root = path.resolve()
     try:
-        out = append_ignore_entry(
-            root,
-            stable_id=rule_id,
-            file=file,
-            category=category,
-            reason=reason,
-            note=note,
-        )
+        out = append_ignore_entry(IgnoreAppend(
+        root=root,
+        stable_id=rule_id,
+        file=file,
+        category=category,
+        reason=reason,
+        note=note,
+    ))
     except ValueError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     console.print(f"[green]Wrote[/green] {out}")
 
 
@@ -57,7 +63,7 @@ def ignore_list(
         entries = load_ignore_file(root)
     except ValueError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     active = [e for e in entries if e.active_on()]
     console.print(f"{ignore_path} — {len(active)} active / {len(entries)} total")
     for entry in entries:

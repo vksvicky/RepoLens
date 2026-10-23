@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path, PurePosixPath
 from posixpath import normpath
 
@@ -18,6 +19,7 @@ def _under_root(root: Path, relative: str) -> bool:
         (root / relative).resolve().relative_to(root.resolve())
         return True
     except (ValueError, OSError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return False
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import subprocess
@@ -42,6 +43,7 @@ def run_capture(
         )
         return f"{proc.stdout or ''}{proc.stderr or ''}"
     except Exception:  # noqa: BLE001 — guided UX must not crash on probe failures
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return ""
 
 
@@ -75,13 +77,16 @@ def default_local_path(environ: Mapping[str, str] | None = None) -> str:
     return "."
 
 
+_LONG_RUN_TIMEOUT_S = 3600.0
+
+
 def suggest_timeout_seconds(model: str | None) -> float:
     """Default HTTP timeout hint from model size tags in the name."""
     name = (model or "").lower()
     if re.search(r"(?<!\d)(70|72|65)b\b", name):
-        return 3600.0
+        return _LONG_RUN_TIMEOUT_S
     if re.search(r"(?<!\d)32b\b", name):
-        return 3600.0
+        return _LONG_RUN_TIMEOUT_S
     if re.search(r"(?<!\d)14b\b", name):
         return 1800.0
     return 900.0
@@ -101,10 +106,11 @@ def full_pack_large_model_warning(
     """Warn when a large model is paired with a likely full LLM pack."""
     if not is_large_local_model(model) or force_changed:
         return None
-    if force_full:
-        pack = "forced full pack (--full)"
-    else:
-        pack = "adaptive pack (unchanged repos stay full)"
+    pack = (
+        "forced full pack (--full)"
+        if force_full
+        else "adaptive pack (unchanged repos stay full)"
+    )
     return (
         f"Warning: {model} is a large local model with a likely {pack}. "
         "Expect a very large prompt and long runtimes; prefer "
@@ -169,9 +175,7 @@ def list_installed_models() -> list[str]:
         if names:
             return names
     try:
-        with urllib.request.urlopen(
-            "http://127.0.0.1:11434/api/tags", timeout=1
-        ) as resp:
+        with urllib.request.urlopen("http://127.0.0.1:11434/api/tags", timeout=1) as resp:
             payload = json.loads(resp.read().decode())
         return parse_ollama_tags_json(payload)
     except (
@@ -182,4 +186,3 @@ def list_installed_models() -> list[str]:
         ValueError,
     ):
         return []
-

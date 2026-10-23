@@ -7,6 +7,7 @@ from pathlib import Path
 import typer
 
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT
 from repolens.portfolio import run_portfolio
 
 
@@ -36,11 +37,9 @@ def portfolio_cmd(
         result = run_portfolio(paths_file, out, slow_brain=slow_brain)
     except (OSError, ValueError) as exc:
         console.print(f"[red]portfolio failed:[/red] {exc}")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
 
     ok = sum(1 for r in result.repos if r.ok)
     failed = len(result.repos) - ok
-    console.print(
-        f"[green]Portfolio[/green] {ok} ok · {failed} failed → {result.index_path}"
-    )
+    console.print(f"[green]Portfolio[/green] {ok} ok · {failed} failed → {result.index_path}")
     raise typer.Exit(code=result.exit_code)

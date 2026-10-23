@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import fcntl
 import json
+import logging
 import os
 import random
 from collections.abc import Callable
@@ -17,6 +18,7 @@ def _pid_alive(pid: int) -> bool:
     try:
         os.kill(pid, 0)
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return False
     return True
 
@@ -25,10 +27,11 @@ def ticket_seq(path: Path) -> int:
     return int(path.stem.split("_")[0])
 
 
-def poll_delay(
-    base: float = 2.0, jitter: Callable[[], float] | None = None
-) -> float:
-    delta = (jitter or (lambda: random.uniform(-0.2, 0.2)))()
+_JITTER_SPAN_S = 0.2
+
+
+def poll_delay(base: float = 2.0, jitter: Callable[[], float] | None = None) -> float:
+    delta = (jitter or (lambda: random.uniform(-_JITTER_SPAN_S, _JITTER_SPAN_S)))()
     return max(0.05, float(base) + float(delta))
 
 

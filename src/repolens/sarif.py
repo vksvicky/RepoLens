@@ -8,6 +8,7 @@ Only emits results with verified locations:
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -33,6 +34,7 @@ def _safe_rel(root: Path, relative: str) -> str | None:
     try:
         path.relative_to(root.resolve())
     except ValueError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     return rel
 
@@ -50,9 +52,7 @@ def verify_issue_location(root: Path, issue: Issue) -> AnchorLocation | None:
             return None
         # Prefer anchor quote when present (still scanner-trusted path)
         if issue.anchorQuote and issue.anchorQuote.strip():
-            loc = resolve_anchor(
-                root, rel, issue.anchorQuote, hint_line=issue.line
-            )
+            loc = resolve_anchor(root, rel, issue.anchorQuote, hint_line=issue.line)
             if loc is not None:
                 issue.locationVerified = True
                 return loc
@@ -133,12 +133,8 @@ def build_sarif_log(report: FindingReport, root: Path) -> dict[str, Any]:
                 "id": rid,
                 "name": issue.category or rid,
                 "shortDescription": {"text": issue.title[:200]},
-                "fullDescription": {
-                    "text": (issue.explanation or issue.title)[:2000]
-                },
-                "defaultConfiguration": {
-                    "level": _LEVEL.get(issue.severity, "warning")
-                },
+                "fullDescription": {"text": (issue.explanation or issue.title)[:2000]},
+                "defaultConfiguration": {"level": _LEVEL.get(issue.severity, "warning")},
             }
             if issue.cwe:
                 rules[rid]["properties"] = {"cwe": issue.cwe}

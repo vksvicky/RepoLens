@@ -39,14 +39,13 @@ def registry_auth_incomplete(environ: Mapping[str, str]) -> bool:
     return not password and not token
 
 
-def trivy_child_env(
-    environ: Mapping[str, str], *, pass_registry_env: bool
-) -> dict[str, str]:
-    env = {str(k): str(v) for k, v in environ.items() if v is not None}
-    if not pass_registry_env:
-        for key in ALLOWLIST:
-            env.pop(key, None)
-        return env
+def _env_without_registry(env: dict[str, str]) -> dict[str, str]:
+    for key in ALLOWLIST:
+        env.pop(key, None)
+    return env
+
+
+def _env_with_registry(env: dict[str, str], environ: Mapping[str, str]) -> dict[str, str]:
     for key in ALLOWLIST:
         value = _stripped(environ, key)
         if value:
@@ -54,6 +53,17 @@ def trivy_child_env(
         else:
             env.pop(key, None)
     return env
+
+
+def trivy_child_env(
+    environ: Mapping[str, str], *, pass_registry_env: bool
+) -> dict[str, str]:
+    env = {str(k): str(v) for k, v in environ.items() if v is not None}
+    return (
+        _env_with_registry(env, environ)
+        if pass_registry_env
+        else _env_without_registry(env)
+    )
 
 
 def redact_secrets(text: str, environ: Mapping[str, str]) -> str:

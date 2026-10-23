@@ -5,6 +5,7 @@ from __future__ import annotations
 import fnmatch
 import json
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -56,18 +57,27 @@ def derive_path_pattern(file: str) -> str | None:
     return None
 
 
-def record_feedback(
-    root: Path,
-    *,
-    stable_id: str,
-    reason: str,
-    category: str = "",
-    file: str = "",
-    title: str = "",
-    note: str = "",
-    path_pattern: str = "",
-) -> Path:
+@dataclass
+class RecordFeedback:
+    root: Path
+    stable_id: str
+    reason: str
+    category: str = ''
+    file: str = ''
+    title: str = ''
+    note: str = ''
+    path_pattern: str = ''
+
+def record_feedback(job: RecordFeedback) -> Path:
     """Append one local feedback event (no upload)."""
+    root = job.root
+    stable_id = job.stable_id
+    reason = job.reason
+    category = job.category
+    file = job.file
+    title = job.title
+    note = job.note
+    path_pattern = job.path_pattern
     path = feedback_path(root)
     path.parent.mkdir(parents=True, exist_ok=True)
     file_norm = file.strip().replace("\\", "/")

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+import logging
+from dataclasses import dataclass
 from pathlib import Path
 
 from repolens import __version__
@@ -35,9 +37,7 @@ def normalize_retry_pass(raw: str) -> str:
     """Map ``P3`` / ``architecture`` / ``arch`` (any case) to a band key."""
     key = raw.lower().strip()
     if key not in _PASS_ALIASES:
-        raise ValueError(
-            f"Unknown pass {raw!r}; use p1|p2|p3 or security|reliability|architecture"
-        )
+        raise ValueError(f"Unknown pass {raw!r}; use p1|p2|p3 or security|reliability|architecture")
     return _PASS_ALIASES[key]
 
 
@@ -68,16 +68,24 @@ def closure_key(missed: list[str], model: str, *, version: str | None = None) ->
     return digest.hexdigest()
 
 
-def pass_key(
-    files: list[FileEntry],
-    model: str,
-    pass_name: str,
-    *,
-    version: str | None = None,
-    prior_summary: str | None = None,
-    pack_mode: str = "full",
-    file_pack_modes: dict[str, str] | None = None,
-) -> str:
+@dataclass
+class PassKey:
+    files: list[FileEntry]
+    model: str
+    pass_name: str
+    version: str | None = None
+    prior_summary: str | None = None
+    pack_mode: str = 'full'
+    file_pack_modes: dict[str, str] | None = None
+
+def pass_key(job: PassKey) -> str:
+    files = job.files
+    model = job.model
+    pass_name = job.pass_name
+    version = job.version
+    prior_summary = job.prior_summary
+    pack_mode = job.pack_mode
+    file_pack_modes = job.file_pack_modes
     digest = hashlib.sha256()
     digest.update(PROMPT_TEMPLATE_VERSION.encode())
     digest.update(b"\0")
@@ -122,4 +130,5 @@ def load_pass(root: Path, key: str) -> FindingReport | None:
     try:
         return FindingReport.model_validate_json(path.read_text(encoding="utf-8"))
     except ValueError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None

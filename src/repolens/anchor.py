@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,6 +27,7 @@ def _safe_file(root: Path, relative: str) -> Path | None:
     try:
         path.relative_to(root.resolve())
     except ValueError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     if not path.is_file():
         return None
@@ -53,6 +55,7 @@ def resolve_anchor(
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
 
     matches: list[AnchorLocation] = []
