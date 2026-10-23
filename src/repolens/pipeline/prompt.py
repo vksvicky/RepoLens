@@ -74,6 +74,15 @@ def _append_full_entry(sections: list[str], entry: FileEntry, *, heading: str) -
     sections.append("")
 
 
+def _finish_source_sections(prompt: str, sections: list[str]) -> str:
+    """Concatenate the existing prompt once. It is not a member of ``sections``."""
+    body = "\n".join(sections)
+    head = prompt.rstrip()
+    if not body:
+        return head
+    return f"{head}\n\n{body}"
+
+
 def _append_source_files(
     prompt: str,
     files: list[FileEntry],
@@ -81,7 +90,7 @@ def _append_source_files(
     pack_mode: str = "full",
     file_pack_modes: dict[str, str] | None = None,
 ) -> str:
-    sections = [prompt.rstrip(), "", "## Source files"]
+    sections = ["## Source files"]
     modes = file_pack_modes or {}
     if pack_mode == "hybrid":
         full_files = [e for e in files if modes.get(e.relative, "outline") == "full"]
@@ -103,7 +112,7 @@ def _append_source_files(
                 )
                 for entry in outline_files:
                     _append_outline_entry(sections, entry)
-            return "\n".join(sections)
+            return _finish_source_sections(prompt, sections)
 
     if pack_mode == "outline":
         sections.append(
@@ -127,10 +136,10 @@ def _append_source_files(
                 sections.append(read_excerpt(entry))
                 sections.append("```")
             sections.append("")
-        return "\n".join(sections)
+        return _finish_source_sections(prompt, sections)
 
     for entry in files:
         _append_full_entry(sections, entry, heading="###")
-    return "\n".join(sections)
+    return _finish_source_sections(prompt, sections)
 
 

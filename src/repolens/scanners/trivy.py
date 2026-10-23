@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 from collections.abc import Mapping
@@ -57,14 +58,10 @@ def _vulnerability_issue(target: str, vuln: dict[str, Any]) -> Issue:
         line=1,
         title=f"{vuln_id} in {pkg}: {title}"[:200],
         explanation=desc[:2000],
-        impact=(
-            "Known vulnerable dependency or package may be exploitable in production."
-        ),
+        impact=("Known vulnerable dependency or package may be exploitable in production."),
         recommendedFix=_vulnerability_fix(pkg, installed, fixed, vuln_id),
         codeExample=(
-            f"# Upgrade {pkg}"
-            + (f" to {fixed}" if fixed else "")
-            + f"\n# Advisory: {vuln_id}"
+            f"# Upgrade {pkg}" + (f" to {fixed}" if fixed else "") + f"\n# Advisory: {vuln_id}"
         ),
         fixTiming="before launch",
         cwe=None,
@@ -82,6 +79,7 @@ def _misconfig_line(mis: dict[str, Any]) -> int:
     try:
         return max(int(cause.get("StartLine") or 1), 1)
     except (TypeError, ValueError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return 1
 
 
@@ -99,13 +97,10 @@ def _misconfig_issue(target: str, mis: dict[str, Any]) -> Issue:
         title=f"{mis_id}: {title}"[:200],
         explanation=desc[:2000] + (f"\n{url}" if url else ""),
         impact="Infrastructure or container misconfiguration increases attack surface.",
-        recommendedFix=(
-            f"Remediate {mis_id} in {target}" + (f" (see {url})" if url else ".")
-        ),
+        recommendedFix=(f"Remediate {mis_id} in {target}" + (f" (see {url})" if url else ".")),
         codeExample=(
             f"# Fix misconfiguration {mis_id} in {target}\n"
-            f"# Follow scanner guidance"
-            + (f": {url}" if url else "")
+            f"# Follow scanner guidance" + (f": {url}" if url else "")
         ),
         fixTiming="before launch",
     )
@@ -216,9 +211,7 @@ def _run_trivy_images(
             env=child,
         )
         if img.returncode not in {0, 1}:
-            fail = redact_secrets(
-                (img.stderr or img.stdout or "trivy image failed")[:300], env_src
-            )
+            fail = redact_secrets((img.stderr or img.stdout or "trivy image failed")[:300], env_src)
             details.append(f"{image}: {fail}")
             continue
         payload = (img.stdout or "").strip()

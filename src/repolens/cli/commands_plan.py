@@ -10,6 +10,7 @@ import typer
 from rich.table import Table
 
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import JSON_INDENT
 from repolens.cli.pack_scope import option_trust_project
 from repolens.cli.review_options import (
     option_plan_full_audit,
@@ -52,10 +53,11 @@ def _body_plan(
     if role_packs is not None:
         cfg.deep.role_packs = role_packs
     plan = forecast_deep_plan(root, cfg, mode=mode, full_audit=full_audit)
-    if as_json:
-        typer.echo(json.dumps(forecast_as_dict(plan), indent=2))
-        return
-    _print_plan_table(root, plan)
+    _echo_plan_json(plan) if as_json else _print_plan_table(root, plan)
+
+
+def _echo_plan_json(plan: Any) -> None:
+    typer.echo(json.dumps(forecast_as_dict(plan), indent=JSON_INDENT))
 
 
 def _print_plan_table(root: Path, plan: Any) -> None:
@@ -80,8 +82,12 @@ def _print_plan_table(root: Path, plan: Any) -> None:
     table.add_column("Coverage ids", justify="right")
     for row in plan.passes:
         table.add_row(
-            row.name, row.pack_mode, str(row.file_count),
-            f"{row.estimated_chars:,}", str(row.rule_count), str(row.coverage_id_count),
+            row.name,
+            row.pack_mode,
+            str(row.file_count),
+            f"{row.estimated_chars:,}",
+            str(row.rule_count),
+            str(row.coverage_id_count),
         )
     console.print(table)
     for row in plan.passes:

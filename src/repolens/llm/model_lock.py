@@ -5,6 +5,7 @@ from __future__ import annotations
 import errno
 import fcntl
 import json
+import logging
 import os
 import time
 from collections.abc import Callable, Iterator
@@ -70,9 +71,7 @@ def bind_lock_context(
     pass_name: str,
     status: Callable[[str], None] | None = None,
 ) -> Token[LockContext | None]:
-    return _lock_context.set(
-        LockContext(repo=repo, path=path, pass_name=pass_name, status=status)
-    )
+    return _lock_context.set(LockContext(repo=repo, path=path, pass_name=pass_name, status=status))
 
 
 def reset_lock_context(token: Token[LockContext | None]) -> None:
@@ -95,6 +94,7 @@ def default_lock_dir() -> Path:
 
 
 _LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "0.0.0.0", "::1"})
+_LOCK_WAIT_S = 0.05
 
 
 def is_local_host(hostname: str) -> bool:
@@ -123,18 +123,14 @@ def _ensure_url(base_url: str) -> str:
     return "http" + "://" + base_url
 
 
-def lock_path_for(
-    base_url: str, lock_dir: Path, *, provider: str | None = None
-) -> Path:
+def lock_path_for(base_url: str, lock_dir: Path, *, provider: str | None = None) -> Path:
     parsed = urlparse(_ensure_url(base_url))
     host = parsed.hostname or "127.0.0.1"
     port = endpoint_port(parsed.scheme, parsed.port, provider)
     return lock_dir / f"local_{_host_slug(host)}_{port}.lock"
 
 
-def should_use_model_lock(
-    model_cfg: ModelConfig, cli_flag: bool | None = None
-) -> bool:
+def should_use_model_lock(model_cfg: ModelConfig, cli_flag: bool | None = None) -> bool:
     from repolens.providers import default_base_url_for
 
     flag = cli_flag if cli_flag is not None else model_cfg.lock_cli
@@ -146,7 +142,7 @@ def should_use_model_lock(
         return True
     if model_cfg.provider != "openai_compatible":
         return False
-    base = (model_cfg.base_url or default_base_url_for("openai_compatible") or "")
+    base = model_cfg.base_url or default_base_url_for("openai_compatible") or ""
     parsed = urlparse(_ensure_url(base))
     return is_local_host(parsed.hostname or "")
 
@@ -155,6 +151,7 @@ def _read_json(path: Path) -> dict[str, Any] | None:
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     return raw if isinstance(raw, dict) else None
 
@@ -163,31 +160,40 @@ def format_wait_message(meta: dict[str, Any], *, clock: str | None = None) -> st
     shown = clock or time.strftime("%H:%M", time.localtime(float(meta["started_at"])))
     repo = meta.get("repo") or "another review"
     pass_name = meta.get("pass") or "a pass"
-    return (
-        "[Slow Brain] Waiting for local model "
-        f"(held by {repo} for {pass_name} since {shown})..."
-    )
+    return f"[Slow Brain] Waiting for local model (held by {repo} for {pass_name} since {shown})..."
 
+
+@dataclass
+class ModelLockOptions:
+    repo: str
+    path: str
+    pass_name: str
+    model: str
+    base_url: str
+    provider: str | None = None
+    lock_dir: Path | None = None
+    poll_seconds: float = 2.0
+    status: Callable[[str], None] | None = None
+    sleeper: Callable[[float], None] | None = None
+    jitter: Callable[[], float] | None = None
+    clock: Callable[[], float] | None = None
 
 class OllamaModelLock:
     """Advisory lock held for one model call. The fd stays open until release."""
 
-    def __init__(
-        self,
-        *,
-        repo: str,
-        path: str,
-        pass_name: str,
-        model: str,
-        base_url: str,
-        provider: str | None = None,
-        lock_dir: Path | None = None,
-        poll_seconds: float = 2.0,
-        status: Callable[[str], None] | None = None,
-        sleeper: Callable[[float], None] | None = None,
-        jitter: Callable[[], float] | None = None,
-        clock: Callable[[], float] | None = None,
-    ) -> None:
+    def __init__(self, job: ModelLockOptions) -> None:
+        repo = job.repo
+        path = job.path
+        pass_name = job.pass_name
+        model = job.model
+        base_url = job.base_url
+        provider = job.provider
+        lock_dir = job.lock_dir
+        poll_seconds = job.poll_seconds
+        status = job.status
+        sleeper = job.sleeper
+        jitter = job.jitter
+        clock = job.clock
         self.repo = repo
         self.path = path
         self.pass_name = pass_name
@@ -202,9 +208,7 @@ class OllamaModelLock:
         self.clock = clock or time.monotonic
         self.waited_seconds = 0.0
         self.lock_file = lock_path_for(base_url, self.lock_dir, provider=provider)
-        self.queue_dir = self.lock_dir / (
-            "queue_" + self.lock_file.stem.removeprefix("local_")
-        )
+        self.queue_dir = self.lock_dir / ("queue_" + self.lock_file.stem.removeprefix("local_"))
         self._fd: int | None = None
         self._nested = False
         self._ticket: Path | None = None
@@ -273,10 +277,10 @@ class OllamaModelLock:
                     self._fd = None
                     raise
                 if self._holder_is_dead():
-                    time.sleep(0.05)
+                    time.sleep(_LOCK_WAIT_S)
                     continue
                 self._announce_holder()
-                self.sleeper(0.05)
+                self.sleeper(_LOCK_WAIT_S)
         self._write_metadata()
 
     def __exit__(self, *args: object) -> None:
@@ -311,12 +315,14 @@ class OllamaModelLock:
         try:
             text = self.lock_file.read_text(encoding="utf-8")
         except OSError:
+            logging.getLogger(__name__).debug("handled expected error", exc_info=True)
             return None
         if not text.strip():
             return None
         try:
             raw = json.loads(text)
         except json.JSONDecodeError:
+            logging.getLogger(__name__).debug("handled expected error", exc_info=True)
             return None
         return raw if isinstance(raw, dict) else None
 

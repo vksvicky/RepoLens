@@ -10,6 +10,7 @@ from threading import Timer
 import typer
 
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT
 from repolens.cli.pack_scope import option_path
 from repolens.diff_audit import load_report
 from repolens.explain import load_latest_report
@@ -32,9 +33,7 @@ def view_cmd(
         help="Serve the HTML on localhost (stdlib http.server) until Ctrl-C",
     ),
     port: int = typer.Option(8765, "--port", help="Port for --serve"),
-    no_open: bool = typer.Option(
-        False, "--no-open", help="Do not open a browser tab"
-    ),
+    no_open: bool = typer.Option(False, "--no-open", help="Do not open a browser tab"),
 ) -> None:
     """Filterable local HTML viewer — zero heavy frontend stack."""
     root = Path(path or ".").resolve()
@@ -46,7 +45,7 @@ def view_cmd(
             rep, report_path = load_latest_report(root)
     except (OSError, ValueError, FileNotFoundError) as exc:
         console.print(f"[red]view failed:[/red] {exc}")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
 
     dest = out or report_path.with_suffix(".html")
     if dest.suffix.lower() != ".html":

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import typer
 
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT
 
 _SCENARIOS = (
     "pr",
@@ -62,7 +63,7 @@ def _unknown(scenario: str) -> None:
     names = " | ".join(_SCENARIOS)
     console.print(f"[red]Unknown scenario: {scenario}[/red]")
     console.print(f"Valid scenarios: {names}")
-    raise typer.Exit(code=2)
+    raise typer.Exit(code=EXIT_BAD_INPUT)
 
 
 @app.command("which")

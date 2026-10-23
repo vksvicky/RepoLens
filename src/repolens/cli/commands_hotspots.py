@@ -8,6 +8,7 @@ from pathlib import Path
 import typer
 
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT, EXIT_NOT_READY, JSON_INDENT
 from repolens.git_churn import GitChurnError, collect_git_hotspots
 
 
@@ -26,17 +27,15 @@ def hotspots_cmd(
         msg = str(exc)
         console.print(f"[red]{msg}[/red]")
         if "unsafe since" in msg:
-            raise typer.Exit(code=2) from exc
-        raise typer.Exit(code=3) from exc
+            raise typer.Exit(code=EXIT_BAD_INPUT) from exc
+        raise typer.Exit(code=EXIT_NOT_READY) from exc
 
     if fmt.strip().lower() == "json":
-        typer.echo(json.dumps(rows, indent=2))
+        typer.echo(json.dumps(rows, indent=JSON_INDENT))
         return
     if not rows:
         console.print("No churn in that window.")
         return
     console.print("path  commits  added  deleted")
     for row in rows:
-        console.print(
-            f"{row['path']}  {row['commits']}  {row['added']}  {row['deleted']}"
-        )
+        console.print(f"{row['path']}  {row['commits']}  {row['added']}  {row['deleted']}")

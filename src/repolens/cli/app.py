@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 
 from repolens import __version__
+from repolens.cli.exit_codes import EXIT_BAD_INPUT
 from repolens.cli.review_options import (
     option_init_base_url,
     option_init_force,
@@ -106,11 +107,14 @@ def _init_provider_defaults() -> dict[str, tuple[str | None, str | None, str | N
         "anthropic": ("claude-sonnet-4-20250514", "ANTHROPIC_API_KEY", None),
         "deepseek": ("deepseek-chat", "DEEPSEEK_API_KEY", "https://api.deepseek.com/v1"),
         "openai_compatible": (
-            "gpt-4.1-mini", "REPOLENS_API_KEY", "https://api.openai.com/v1",
+            "gpt-4.1-mini",
+            "REPOLENS_API_KEY",
+            "https://api.openai.com/v1",
         ),
         "ollama": (None, None, "http://127.0.0.1:11434/v1"),
         "gemini": (
-            "gemini-2.0-flash", "GEMINI_API_KEY",
+            "gemini-2.0-flash",
+            "GEMINI_API_KEY",
             "https://generativelanguage.googleapis.com/v1beta",
         ),
         "vertex": ("gemini-2.0-flash", "VERTEX_ACCESS_TOKEN", None),
@@ -132,6 +136,9 @@ def _write_none_provider() -> None:
     )
 
 
+_MODEL_NAME_PREVIEW = 5
+
+
 def _resolve_ollama_init_model(model: str | None) -> str | None:
     from repolens.llm import resolve_ollama_model
 
@@ -139,8 +146,8 @@ def _resolve_ollama_init_model(model: str | None) -> str | None:
     if installed and (model is None or not model.strip()):
         console.print(
             f"[dim]Using installed Ollama model:[/dim] {chosen_model} "
-            f"(from {', '.join(installed[:5])}"
-            f"{'…' if len(installed) > 5 else ''})"
+            f"(from {', '.join(installed[:_MODEL_NAME_PREVIEW])}"
+            f"{'…' if len(installed) > _MODEL_NAME_PREVIEW else ''})"
         )
     elif not installed:
         console.print(
@@ -195,16 +202,15 @@ def _body_init(
     provider = provider.strip().lower()
     if provider not in INIT_PROVIDERS:
         console.print(
-            f"[red]Unknown provider:[/red] {provider}. "
-            f"Choose from {sorted(INIT_PROVIDERS)}"
+            f"[red]Unknown provider:[/red] {provider}. Choose from {sorted(INIT_PROVIDERS)}"
         )
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
 
     path = user_config_path()
     if path.exists() and not force:
         console.print(f"[yellow]Config already exists:[/yellow] {path}")
         console.print("Re-run with --force to overwrite, or edit the file manually.")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
 
     if provider == "none":
         _write_none_provider()
@@ -220,7 +226,7 @@ def _body_init(
             f"[red]{provider}[/red] requires [cyan]--base-url[/cyan] "
             "(Azure resource endpoint). " + (alias.notes or "")
         )
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     if provider == "openai_compatible" and not base_url:
         console.print(
             "[yellow]openai_compatible[/yellow] usually needs "
@@ -230,11 +236,17 @@ def _body_init(
     if provider == "ollama":
         chosen_model = _resolve_ollama_init_model(model)
     written = write_user_config(
-        provider=provider, model=chosen_model, api_key_env=key_env, base_url=chosen_base,
+        provider=provider,
+        model=chosen_model,
+        api_key_env=key_env,
+        base_url=chosen_base,
     )
     console.print(f"[green]Wrote[/green] {written}")
     _print_init_success_hints(
-        provider=provider, chosen_model=chosen_model, key_env=key_env, alias=alias,
+        provider=provider,
+        chosen_model=chosen_model,
+        key_env=key_env,
+        alias=alias,
     )
 
 

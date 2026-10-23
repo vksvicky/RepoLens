@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
 from repolens.config import RepoLensConfig, load_config, resolve_report_dir
 from repolens.explain_prompt import (
+    CallExplainLlm,
     ExplainDoc,
     ExplainSolution,
+    WriteExplainMarkdown,
     _call_explain_llm,
     _evidence_bundle,
     _safe_issue_path,
@@ -77,6 +81,7 @@ def _read_pointer(project_root: Path) -> Path | None:
     try:
         data = json.loads(pointer.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError, ValueError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     raw = data.get("json") if isinstance(data, dict) else None
     if not isinstance(raw, str) or not raw.strip():
@@ -143,18 +148,27 @@ def find_issue(report: FindingReport, uuid: str) -> Issue:
     raise IssueNotFoundError(f"Issue UUID not found: {uuid}")
 
 
-def run_explain(
-    *,
-    uuid: str,
-    project_root: Path,
-    out_dir: Path | None = None,
-    config: RepoLensConfig | None = None,
-    diagram: bool = True,
-    render_image: str | None = None,
-    no_diagram: bool = False,
-    progress: ReviewProgress | None = None,
-) -> Path:
+@dataclass
+class RunExplain:
+    uuid: str
+    project_root: Path
+    out_dir: Path | None = None
+    config: RepoLensConfig | None = None
+    diagram: bool = True
+    render_image: str | None = None
+    no_diagram: bool = False
+    progress: ReviewProgress | None = None
+
+def run_explain(job: RunExplain) -> Path:
     """Resolve issue, call LLM (or degrade), write ``explain_*.md``."""
+    uuid = job.uuid
+    project_root = job.project_root
+    out_dir = job.out_dir
+    config = job.config
+    diagram = job.diagram
+    render_image = job.render_image
+    no_diagram = job.no_diagram
+    progress = job.progress
     root = project_root.resolve()
     cfg = config or load_config(root)
     prog = progress or null_progress()
@@ -174,15 +188,11 @@ def run_explain(
     report, report_path = load_latest_report(root, out_dir=report_out)
     prog.detail(f"report: {report_path}")
     issue = find_issue(report, uuid)
-    prog.phase(
-        f"Explain: found {issue.severity.value} · {issue.category} · `{issue.file}`"
-    )
+    prog.phase(f"Explain: found {issue.severity.value} · {issue.category} · `{issue.file}`")
 
     outline, excerpt = _evidence_bundle(root, issue)
     if outline:
-        prog.detail(
-            f"structure outline: {outline.count(chr(10)) + 1} line(s) of symbols"
-        )
+        prog.detail(f"structure outline: {outline.count(chr(10)) + 1} line(s) of symbols")
     else:
         prog.detail("structure outline: none (small file or unsupported language)")
 
@@ -190,7 +200,7 @@ def run_explain(
     model_name = cfg.model.model or default_model(cfg.model.provider)
     timeout = resolve_llm_timeout(cfg.model)
     started = time.monotonic()
-    doc = _call_explain_llm(
+    doc = _call_explain_llm(CallExplainLlm(
         issue=issue,
         outline=outline,
         excerpt=excerpt,
@@ -199,9 +209,9 @@ def run_explain(
         provider=provider,
         model_name=model_name,
         timeout=timeout,
-    )
+    ))
     duration = time.monotonic() - started
-    return _write_explain_markdown(
+    return _write_explain_markdown(WriteExplainMarkdown(
         issue=issue,
         doc=doc,
         uuid=uuid,
@@ -215,7 +225,7 @@ def run_explain(
         render_image=render_image,
         cfg=cfg,
         prog=prog,
-    )
+    ))
 
 
 # Re-export types/helpers used by tests and callers via ``repolens.explain``.

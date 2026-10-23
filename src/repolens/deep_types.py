@@ -15,9 +15,7 @@ from repolens.inventory import FileEntry
 from repolens.prose import BRITISH_ENGLISH_INSTRUCTION
 from repolens.schema import FindingReport
 
-_COVERAGE_LINE_SHAPE = (
-    "coverage:<id>: N/A — <one fact that is true in this repository>"
-)
+_COVERAGE_LINE_SHAPE = "coverage:<id>: N/A — <one fact that is true in this repository>"
 
 _MODULE_SUFFIXES = (
     ".py",
@@ -82,6 +80,9 @@ def coverage_closure_prompt(missed_ids: Iterable[str]) -> str:
     return "\n".join(lines)
 
 
+_SRC_PREFIX_LEN = 4  # len("src.") and len("src/")
+
+
 def module_name_forms(name: str) -> set[str]:
     """Normalize a module or path into comparable dotted/path forms."""
     n = name.strip().replace("\\", "/")
@@ -101,10 +102,10 @@ def module_name_forms(name: str) -> set[str]:
         dotted = form.replace("/", ".")
         forms.add(dotted)
         if dotted.startswith("src."):
-            extras.add(dotted[4:])
+            extras.add(dotted[_SRC_PREFIX_LEN:])
         if form.startswith("src/"):
-            extras.add(form[4:])
-            extras.add(form[4:].replace("/", "."))
+            extras.add(form[_SRC_PREFIX_LEN:])
+            extras.add(form[_SRC_PREFIX_LEN:].replace("/", "."))
     forms |= extras
     return {f for f in forms if f}
 
@@ -132,9 +133,7 @@ def estimate_outline_chars(entry: FileEntry) -> int:
     return max(80, min(entry.size, approx_lines * 30 // 8))
 
 
-def compact_pass_summary(
-    report: FindingReport, *, max_chars: int = 800
-) -> str:
+def compact_pass_summary(report: FindingReport, *, max_chars: int = 800) -> str:
     """≤~200-token summary of findings for the next deep pass."""
     lines = ["Confirmed findings from the prior Slow Brain pass:"]
     for issue in report.issues[:12]:
@@ -142,9 +141,7 @@ def compact_pass_summary(
         lines.append(f"- [{sev}] {issue.title} ({issue.file}:{issue.line})")
     if not report.issues:
         lines.append("- (no findings)")
-    covered = [
-        gap for gap in report.durabilityGaps if gap.startswith("coverage:")
-    ][:8]
+    covered = [gap for gap in report.durabilityGaps if gap.startswith("coverage:")][:8]
     if covered:
         lines.append("Coverage notes:")
         lines.extend(f"- {gap}" for gap in covered)

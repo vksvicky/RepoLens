@@ -185,6 +185,11 @@ def _licenses_from_sbom(sbom_path: Path) -> tuple[list[str], list[str], str | No
     return license_ids, notes, None
 
 
+def _note_skipped_sbom(gaps: list[str], detail: str) -> None:
+    gaps.append(f"SBOM skipped: {detail}")
+    logger.info("SBOM skipped: %s", detail)
+
+
 def build_supply_chain(
     root: Path,
     out_dir: Path,
@@ -208,9 +213,7 @@ def build_supply_chain(
     if sbom or licenses:
         sbom_path, detail = write_trivy_sbom(root, out_dir)
         if sbom_path is None:
-            if sbom:
-                gaps.append(f"SBOM skipped: {detail}")
-                logger.info("SBOM skipped: %s", detail)
+            _note_skipped_sbom(gaps, detail) if sbom else None
         else:
             notes.append(detail)
 

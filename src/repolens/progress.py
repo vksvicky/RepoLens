@@ -12,14 +12,17 @@ from typing import TextIO
 
 from rich.console import Console
 
+_SECONDS_PER_MINUTE = 60
+_MINUTES_PER_HOUR = 60
+
 
 def _elapsed_label(seconds: int) -> str:
-    if seconds < 60:
+    if seconds < _SECONDS_PER_MINUTE:
         return f"{seconds}s"
-    minutes, sec = divmod(seconds, 60)
-    if minutes < 60:
+    minutes, sec = divmod(seconds, _SECONDS_PER_MINUTE)
+    if minutes < _MINUTES_PER_HOUR:
         return f"{minutes}m {sec}s"
-    hours, minutes = divmod(minutes, 60)
+    hours, minutes = divmod(minutes, _MINUTES_PER_HOUR)
     return f"{hours}h {minutes}m"
 
 
@@ -139,19 +142,13 @@ class ReviewProgress:
                     extras.append(hint)
                 suffix = (" — " + " | ".join(extras)) if extras else ""
                 if not extras:
-                    suffix = (
-                        " — Waiting. Ctrl+C keeps any pass that already finished."
-                    )
-                self._print(
-                    f"[dim]… {_elapsed_label(elapsed)} — {message}{suffix}[/dim]"
-                )
+                    suffix = " — Waiting. Ctrl+C keeps any pass that already finished."
+                self._print(f"[dim]… {_elapsed_label(elapsed)} — {message}{suffix}[/dim]")
 
         use_heartbeat = float(self.heartbeat_seconds) > 0
         thread: threading.Thread | None = None
         if use_heartbeat:
-            thread = threading.Thread(
-                target=_heartbeat, name="repolens-heartbeat", daemon=True
-            )
+            thread = threading.Thread(target=_heartbeat, name="repolens-heartbeat", daemon=True)
             thread.start()
         status_cm = (
             self.console.status(message, spinner="dots")

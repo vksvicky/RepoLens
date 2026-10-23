@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import grimp
@@ -99,15 +100,15 @@ def _collect_import_edges(
         for imported in sorted(graph.find_modules_directly_imported_by(importer)):
             details = graph.get_import_details(importer=importer, imported=imported)
             edges.append(
-                _edge_from_details(
-                    importer,
-                    imported,
-                    details,
-                    root=root,
-                    packages=packages,
-                    scope_cache=scope_cache,
-                    gaps=gaps,
-                )
+                _edge_from_details(EdgeFromDetails(
+        importer=importer,
+        imported=imported,
+        details=details,
+        root=root,
+        packages=packages,
+        scope_cache=scope_cache,
+        gaps=gaps,
+    ))
             )
     return edges
 
@@ -138,16 +139,24 @@ def _passes_gate(edge: ImportEdge, cfg: GraphConfig) -> bool:
     return True
 
 
-def _edge_from_details(
-    importer: str,
-    imported: str,
-    details: list,
-    *,
-    root: Path,
-    packages: list[str],
-    scope_cache: dict[str, ScopeRanges],
-    gaps: list[str],
-) -> ImportEdge:
+@dataclass
+class EdgeFromDetails:
+    importer: str
+    imported: str
+    details: list
+    root: Path
+    packages: list[str]
+    scope_cache: dict[str, ScopeRanges]
+    gaps: list[str]
+
+def _edge_from_details(job: EdgeFromDetails) -> ImportEdge:
+    importer = job.importer
+    imported = job.imported
+    details = job.details
+    root = job.root
+    packages = job.packages
+    scope_cache = job.scope_cache
+    gaps = job.gaps
     if not details:
         return ImportEdge(
             importer=importer,

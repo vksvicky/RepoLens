@@ -7,8 +7,14 @@ from pathlib import Path
 import typer
 
 from repolens.cli.app import app, console
-from repolens.feedback_store import lookup_issue_meta, record_feedback
-from repolens.suppressions import IGNORE_FILENAME, append_ignore_entry, load_ignore_file
+from repolens.cli.exit_codes import EXIT_BAD_INPUT
+from repolens.feedback_store import RecordFeedback, lookup_issue_meta, record_feedback
+from repolens.suppressions import (
+    IGNORE_FILENAME,
+    IgnoreAppend,
+    append_ignore_entry,
+    load_ignore_file,
+)
 
 feedback_app = typer.Typer(
     name="feedback",
@@ -22,9 +28,7 @@ _REASONS = ("false_positive", "wont_fix", "accepted_risk", "other")
 
 @feedback_app.command("down")
 def feedback_down(
-    stable_id: str = typer.Argument(
-        ..., help="Issue Fingerprint from a report (JSON: stableId)"
-    ),
+    stable_id: str = typer.Argument(..., help="Issue Fingerprint from a report (JSON: stableId)"),
     reason: str = typer.Option(
         "false_positive",
         "--reason",
@@ -50,22 +54,22 @@ def feedback_down(
     reason = reason.strip().lower()
     if reason not in _REASONS:
         console.print(f"[red]Unknown reason:[/red] {reason}. Choose from {_REASONS}")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     root = path.resolve()
     meta = lookup_issue_meta(root, stable_id.strip())
     try:
-        written = append_ignore_entry(
-            root,
-            stable_id=stable_id.strip(),
-            reason=reason,
-            note=note.strip(),
-            expires=expires,
-        )
+        written = append_ignore_entry(IgnoreAppend(
+        root=root,
+        stable_id=stable_id.strip(),
+        reason=reason,
+        note=note.strip(),
+        expires=expires,
+    ))
     except ValueError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
-    fb_path = record_feedback(
-        root,
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
+    fb_path = record_feedback(RecordFeedback(
+        root=root,
         stable_id=stable_id.strip(),
         reason=reason,
         category=meta.get("category", ""),
@@ -73,7 +77,7 @@ def feedback_down(
         title=meta.get("title", ""),
         note=note.strip(),
         path_pattern=path_pattern.strip(),
-    )
+    ))
     console.print(f"[green]Wrote[/green] ignore entry → {written}")
     console.print(f"[green]Logged[/green] feedback event → {fb_path}")
     if reason == "false_positive" and meta.get("category"):
@@ -103,7 +107,7 @@ def feedback_list(
         entries = load_ignore_file(root)
     except ValueError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     active = [e for e in entries if e.active_on()]
     console.print(f"{ignore_path} — {len(active)} active / {len(entries)} total")
     for entry in entries:

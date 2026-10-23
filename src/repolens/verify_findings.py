@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from repolens.config import DeepConfig
@@ -13,12 +14,16 @@ _CRIT_PENALTY = 8
 _HIGH_PENALTY = 4
 
 
+_SYMBOL_LINE_WINDOW = 40
+
+
 def _near_symbol(root: Path, issue: Issue) -> bool:
     """True when a cited-looking token matches a symbol near the reported line."""
     path = root / issue.file
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return False
     from repolens.file_outline import collect_symbols
 
@@ -34,8 +39,8 @@ def _near_symbol(root: Path, issue: Issue) -> bool:
         if token in hay or short in hay:
             cited = True
             near = (
-                abs(sym.start_line - issue.line) <= 40
-                or abs(sym.end_line - issue.line) <= 40
+                abs(sym.start_line - issue.line) <= _SYMBOL_LINE_WINDOW
+                or abs(sym.end_line - issue.line) <= _SYMBOL_LINE_WINDOW
                 or (sym.start_line <= issue.line <= sym.end_line)
             )
             if near:
@@ -63,9 +68,7 @@ def apply_verify_findings(
         if issue.severity not in {Severity.CRITICAL, Severity.HIGH}:
             out.append(
                 issue.model_copy(
-                    update={
-                        "verificationStatus": issue.verificationStatus or "skipped"
-                    }
+                    update={"verificationStatus": issue.verificationStatus or "skipped"}
                 )
             )
             continue
@@ -108,10 +111,7 @@ def apply_unverified_gate_penalty(report: FindingReport) -> FindingReport:
             suspects += 1
     if penalty <= 0:
         return report
-    note = (
-        f"metrics.verify_suspect_penalty:{penalty} "
-        f"({suspects} unverified Crit/High)"
-    )
+    note = f"metrics.verify_suspect_penalty:{penalty} ({suspects} unverified Crit/High)"
     if note not in report.durabilityGaps:
         report.durabilityGaps.append(note)
 

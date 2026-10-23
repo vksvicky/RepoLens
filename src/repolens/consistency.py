@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
@@ -62,9 +63,7 @@ def _demote_one(issue: Issue, tag: str) -> Issue:
     return issue.model_copy(update={"severity": new_sev, "explanation": explanation})
 
 
-def apply_heuristic_consistency(
-    issues: list[Issue], deep: DeepConfig
-) -> list[Issue]:
+def apply_heuristic_consistency(issues: list[Issue], deep: DeepConfig) -> list[Issue]:
     """Demote unverified Critical(/High) LLM/heuristic findings one band."""
     mode = _mode(deep)
     if mode == "off":
@@ -112,6 +111,7 @@ def _parse_decisions(raw: str) -> ConsistencyResponse | None:
         data = json.loads(text[start:end])
         return ConsistencyResponse.model_validate(data)
     except (ValueError, json.JSONDecodeError, TypeError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
 
 

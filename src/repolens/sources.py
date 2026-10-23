@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import logging
 import os
 import re
 import shutil
@@ -15,9 +16,7 @@ from typing import Literal
 SourceKind = Literal["path", "git-url", "github", "bitbucket", "hf"]
 
 _SLUG_RE = re.compile(r"^([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?$")
-_HF_ID_RE = re.compile(
-    r"^(?:(datasets|spaces|models)/)?([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)$"
-)
+_HF_ID_RE = re.compile(r"^(?:(datasets|spaces|models)/)?([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)$")
 
 
 class SourceError(Exception):
@@ -41,9 +40,7 @@ def parse_github_slug(slug: str) -> tuple[str, str]:
 def parse_bitbucket_slug(slug: str) -> tuple[str, str]:
     match = _SLUG_RE.fullmatch(slug.strip())
     if not match:
-        raise SourceError(
-            f"Invalid --bitbucket value {slug!r}; expected WORKSPACE/REPO"
-        )
+        raise SourceError(f"Invalid --bitbucket value {slug!r}; expected WORKSPACE/REPO")
     return match.group(1), match.group(2)
 
 
@@ -53,8 +50,7 @@ def parse_hf_id(repo_id: str) -> str:
     match = _HF_ID_RE.fullmatch(raw)
     if not match:
         raise SourceError(
-            f"Invalid --hf value {repo_id!r}; expected "
-            "ORG/NAME or datasets|spaces|models/ORG/NAME"
+            f"Invalid --hf value {repo_id!r}; expected ORG/NAME or datasets|spaces|models/ORG/NAME"
         )
     prefix, org, name = match.group(1), match.group(2), match.group(3)
     if prefix and prefix != "models":
@@ -121,6 +117,7 @@ def resolve_github_token() -> str | None:
             timeout=15,
         )
     except (OSError, subprocess.TimeoutExpired):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     if completed.returncode != 0:
         return None
@@ -278,6 +275,9 @@ def _looks_like_auth_failure(completed: subprocess.CompletedProcess[str]) -> boo
     return any(n in text for n in needles)
 
 
+_ERROR_DETAIL_CHARS = 300
+
+
 def _sanitize_git_error(text: str) -> str:
     cleaned = re.sub(r"(?i)(authorization:\s*(?:bearer|basic)\s+)\S+", r"\1***", text)
     cleaned = re.sub(r"(?i)(://)([^/@\s]+@)", r"\1***@", cleaned)
@@ -285,5 +285,5 @@ def _sanitize_git_error(text: str) -> str:
     for ln in lines:
         if ln.lower().startswith("cloning into"):
             continue
-        return ln[:300]
-    return lines[0][:300] if lines else ""
+        return ln[:_ERROR_DETAIL_CHARS]
+    return lines[0][:_ERROR_DETAIL_CHARS] if lines else ""

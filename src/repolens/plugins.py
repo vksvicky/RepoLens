@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import platform
 import shutil
 import stat
@@ -214,6 +215,14 @@ def plugin_status() -> list[tuple[str, str, str]]:
     return rows
 
 
+def _declined(tool: str, ask, spec: AssetSpec, messages: list[str]) -> bool:
+    answer = str(ask(f"Download/install {tool} {spec.version}? [y/N] ")).strip().lower()
+    if answer not in {"y", "yes"}:
+        messages.append(f"{tool}: skipped (declined). Manual install:\n{MANUAL_HINTS[tool]}")
+        return True
+    return False
+
+
 def install_plugins(
     tools: list[str],
     *,
@@ -234,13 +243,8 @@ def install_plugins(
         if spec is None:
             messages.append(f"{tool}: no pinned asset for {key}")
             continue
-        if not yes:
-            answer = str(ask(f"Download/install {tool} {spec.version}? [y/N] ")).strip().lower()
-            if answer not in {"y", "yes"}:
-                messages.append(
-                    f"{tool}: skipped (declined). Manual install:\n{MANUAL_HINTS[tool]}"
-                )
-                continue
+        if _declined(tool, ask, spec, messages) if not yes else False:
+            continue
         try:
             if spec.kind == "pip":
                 _install_pip_tool(spec)
@@ -254,10 +258,13 @@ def install_plugins(
     return messages
 
 
+_HASH_CHUNK = 1024 * 1024  # 1 MiB
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+        for chunk in iter(lambda: fh.read(_HASH_CHUNK), b""):
             digest.update(chunk)
     return digest.hexdigest()
 
@@ -308,6 +315,7 @@ def _is_within_directory(base: Path, candidate: Path) -> bool:
         candidate_resolved.relative_to(base_resolved)
         return True
     except ValueError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return False
 
 
@@ -367,8 +375,7 @@ def _plugin_lock_file(name: str, platform_key: str) -> Path:
     path = Path(__file__).resolve().parent / "plugin_locks" / filename
     if not path.is_file():
         raise RuntimeError(
-            f"{name.capitalize()} hash lock has no pin for {platform_key} "
-            f"CPython {major}.{minor}."
+            f"{name.capitalize()} hash lock has no pin for {platform_key} CPython {major}.{minor}."
         )
     return path
 
@@ -376,9 +383,7 @@ def _plugin_lock_file(name: str, platform_key: str) -> Path:
 def _require_lock_pins_wheel(lock: Path, digest: str, name: str) -> None:
     text = lock.read_text(encoding="utf-8")
     if f"--hash=sha256:{digest}" not in text:
-        raise RuntimeError(
-            f"checksum mismatch: {name} lock {lock.name} does not pin {digest}"
-        )
+        raise RuntimeError(f"checksum mismatch: {name} lock {lock.name} does not pin {digest}")
 
 
 def _ensure_venv_python(name: str) -> Path:

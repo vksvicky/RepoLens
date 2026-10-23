@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import shlex
 
-from repolens.schema import FindingReport, QualityScorecard
+from repolens.schema import FindingReport, Issue, QualityScorecard, Severity
 
 
 def _render_quality_scorecard_section(report: FindingReport) -> list[str]:
@@ -40,9 +40,7 @@ def _render_quality_scorecard_section(report: FindingReport) -> list[str]:
     for note in q.notes:
         lines.append(f"_{note}._")
         lines.append("")
-    lines.append(
-        "_Deterministic DRY/KISS signals — not a SOLID/DRY/KISS certification._"
-    )
+    lines.append("_Deterministic DRY/KISS signals — not a SOLID/DRY/KISS certification._")
     lines.append("")
     return lines
 
@@ -76,8 +74,7 @@ def _render_complexity_section(report: FindingReport) -> list[str]:
         )
         for h in block.hotspots:
             lines.append(
-                f"| `{h.file}` | `{h.function}` | {h.line} | "
-                f"{h.cyclomatic} | {h.cognitive} |"
+                f"| `{h.file}` | `{h.function}` | {h.line} | {h.cyclomatic} | {h.cognitive} |"
             )
         lines.append("")
     for note in block.notes:
@@ -116,6 +113,9 @@ def _render_testing_inventory_section(report: FindingReport) -> list[str]:
     return lines
 
 
+_LICENSE_PREVIEW = 40
+
+
 def _render_supply_chain_section(report: FindingReport) -> list[str]:
     """Phase 6.2 SBOM / license inventory (scanner-owned)."""
     sc = report.supplyChain
@@ -126,8 +126,9 @@ def _render_supply_chain_section(report: FindingReport) -> list[str]:
         fmt = f" ({sc.sbomFormat})" if sc.sbomFormat else ""
         lines.append(f"- **SBOM**{fmt}: `{sc.sbomPath}`")
     if sc.licenses:
-        preview = ", ".join(sc.licenses[:40])
-        more = f" (+{len(sc.licenses) - 40} more)" if len(sc.licenses) > 40 else ""
+        preview = ", ".join(sc.licenses[:_LICENSE_PREVIEW])
+        extra = len(sc.licenses) - _LICENSE_PREVIEW
+        more = f" (+{extra} more)" if extra > 0 else ""
         lines.append(f"- **Licenses observed**: {preview}{more}")
     for note in sc.notes:
         lines.append(f"- {note}")
@@ -160,9 +161,7 @@ def _render_change_set_section(report: FindingReport) -> list[str]:
         for p in block.paths:
             lines.append(f"- `{p}`")
         if block.pathCount > len(block.paths):
-            lines.append(
-                f"- _…and {block.pathCount - len(block.paths)} more_"
-            )
+            lines.append(f"- _…and {block.pathCount - len(block.paths)} more_")
         lines.append("")
     return lines
 
@@ -205,6 +204,10 @@ def _provenance_identity_lines(prov) -> list[str]:
     lines: list[str] = []
     if prov.repoLensVersion:
         lines.append(f"- **RepoLens**: `{prov.repoLensVersion}`")
+    if prov.reviewedPath:
+        lines.append(f"- **Reviewed path**: `{prov.reviewedPath}`")
+    if prov.gitBranch:
+        lines.append(f"- **Git branch**: `{prov.gitBranch}`")
     if prov.gitSha:
         lines.append(f"- **Git SHA**: `{prov.gitSha}`")
     if prov.dirtyTree is not None:
@@ -224,6 +227,17 @@ def _provenance_identity_lines(prov) -> list[str]:
         lines.append(_md_inline_or_fence("Command", prov.command))
     if prov.expandedArgv:
         lines.append(_md_inline_or_fence("Expanded argv", shlex.join(prov.expandedArgv)))
+    if prov.pythonPeakRssBytes is not None:
+        from repolens.memory_sample import format_peak_rss
+
+        label = format_peak_rss(prov.pythonPeakRssBytes).split(": ", 1)[1]
+        lines.append(f"- **Python process peak RSS**: `{label}`")
+    if prov.pythonRssNote:
+        lines.append(f"- **Python RSS note**: {prov.pythonRssNote}")
+    if prov.passTimings:
+        from repolens.pipeline.pass_timing import format_pass_timing
+
+        lines.extend(format_pass_timing(row) for row in prov.passTimings)
     return lines
 
 
@@ -263,14 +277,12 @@ def _render_verification_section(report: FindingReport) -> list[str]:
     grounded = [
         i
         for i in report.issues
-        if i.verificationStatus == "grounded"
-        and i.severity in {Severity.CRITICAL, Severity.HIGH}
+        if i.verificationStatus == "grounded" and i.severity in {Severity.CRITICAL, Severity.HIGH}
     ]
     suspect = [
         i
         for i in report.issues
-        if i.verificationStatus == "suspect"
-        and i.severity in {Severity.CRITICAL, Severity.HIGH}
+        if i.verificationStatus == "suspect" and i.severity in {Severity.CRITICAL, Severity.HIGH}
     ]
     if not grounded and not suspect:
         return []
@@ -305,8 +317,6 @@ def _render_suppressed_section(report: FindingReport) -> list[str]:
         "_Excluded from fail-on and SARIF; kept here for audit._",
         "",
     ]
-    from repolens.report import _diff_suffix
-
     for row in rows:
         issue = row.issue
         sid = f" `{issue.stableId}`" if issue.stableId else ""
@@ -317,3 +327,85 @@ def _render_suppressed_section(report: FindingReport) -> list[str]:
         )
     lines.append("")
     return lines
+
+
+def _diff_suffix(issue: Issue) -> str:
+    if issue.introducedInDiff is True:
+        return " — New / touched in this diff"
+    if issue.introducedInDiff is False:
+        return " — Pre-existing baseline"
+    return ""
+
+
+def _render_issue(issue: Issue) -> list[str]:
+    from repolens.report import render_code_example_fenced
+
+    block = [
+        f"### [{issue.severity.value}] {issue.title}{_diff_suffix(issue)}",
+        f"- **Priority:** {issue.priority}",
+        f"- **File:** `{issue.file}`",
+        f"- **Line:** {issue.line}",
+        f"- **Category:** {issue.category}",
+    ]
+    if issue.stableId:
+        block.append(
+            f"- **Fingerprint:** `{issue.stableId}` "
+            "(prefer for `explain` / ignore)"
+        )
+    if issue.runId:
+        block.append(
+            f"- **Occurrence:** `{issue.runId}` "
+            "(this report only; also works with `explain`)"
+        )
+    if issue.source:
+        block.append(f"- **Source:** {issue.source}")
+    if issue.locationVerified is False:
+        block.append(
+            "- **Location:** unverified — omitted from SARIF "
+            "(provide a resolvable `anchorQuote` or use scanner evidence)"
+        )
+    elif issue.locationVerified is True:
+        block.append("- **Location:** verified (SARIF-eligible)")
+    block.extend(
+        [
+            f"- **Explanation:** {issue.explanation}",
+            f"- **Impact:** {issue.impact or '_n/a_'}",
+            f"- **Recommended fix:** {issue.recommendedFix}",
+            f"- **Fix timing:** {issue.fixTiming}",
+        ]
+    )
+    if issue.owasp:
+        block.append(f"- **OWASP:** {issue.owasp}")
+    if issue.cwe:
+        block.append(f"- **CWE:** {issue.cwe}")
+    if issue.packageName or issue.advisoryId:
+        pkg_bits = []
+        if issue.packageName:
+            pkg_bits.append(f"`{issue.packageName}`")
+        if issue.installedVersion:
+            pkg_bits.append(f"installed `{issue.installedVersion}`")
+        if issue.fixedVersion:
+            pkg_bits.append(f"fixed `{issue.fixedVersion}`")
+        if issue.advisoryId:
+            pkg_bits.append(f"advisory `{issue.advisoryId}`")
+        block.append(f"- **SCA (scanner):** {', '.join(pkg_bits)}")
+    if issue.usageHint:
+        label = {
+            "referenced_in_source": "referenced in source",
+            "no_reference_found": "no reference found in scanned source",
+        }.get(issue.usageHint, issue.usageHint)
+        block.append(
+            f"- **Usage hint (not reachability):** {label}"
+            + (f" — {issue.usageHintDetail}" if issue.usageHintDetail else "")
+        )
+    if issue.clusteredCount and issue.clusteredCount > 1:
+        block.append(
+            f"- **Clustered:** {issue.clusteredCount} near-duplicate finding(s) collapsed"
+        )
+    if issue.codeExample.strip():
+        block.append("- **Code example:**")
+        block.append("")
+        block.extend(render_code_example_fenced(issue.codeExample))
+    elif issue.severity in {Severity.CRITICAL, Severity.HIGH}:
+        block.append("- **Code example:** _MISSING (invalid for Critical/High)_")
+    return block

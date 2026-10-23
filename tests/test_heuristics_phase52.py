@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from repolens.heuristics import run_heuristics
 from repolens.heuristics.paths import is_test_source
+from repolens.heuristics.runner import RunHeuristics
 from repolens.inventory import FileEntry
 from repolens.schema import Severity
 from repolens.themes import theme_id_for_category
@@ -50,9 +51,10 @@ def test_large_function_boundary_79_vs_80(tmp_path: Path) -> None:
     # def + 78 body lines = 79; def + 79 body lines = 80.
     (tmp_path / "small.py").write_text(_fn_lines("small", 78), encoding="utf-8")
     (tmp_path / "big.py").write_text(_fn_lines("big", 79), encoding="utf-8")
-    result = run_heuristics(
-        tmp_path, [_entry(tmp_path, "small.py"), _entry(tmp_path, "big.py")]
-    )
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=[_entry(tmp_path, "small.py"), _entry(tmp_path, "big.py")],
+    ))
     hits = [i for i in result.issues if i.category == "heuristic.large_function"]
     assert [i.file for i in hits] == ["big.py"]
     assert hits[0].line == 1
@@ -70,7 +72,10 @@ def test_large_function_outer_includes_nested_inners_not_flagged(tmp_path: Path)
         ]
     )
     (tmp_path / "nest.py").write_text(inner + "\n", encoding="utf-8")
-    result = run_heuristics(tmp_path, [_entry(tmp_path, "nest.py")])
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=[_entry(tmp_path, "nest.py")],
+    ))
     hits = [i for i in result.issues if i.category == "heuristic.large_function"]
     assert len(hits) == 1
     assert "outer" in hits[0].title
@@ -92,9 +97,10 @@ def test_transport_skips_xmlns_and_flags_real_http(tmp_path: Path) -> None:
         "API = 'http://evil.example/api'\n",
         encoding="utf-8",
     )
-    result = run_heuristics(
-        tmp_path, [_entry(tmp_path, "ok.py"), _entry(tmp_path, "bad.py")]
-    )
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=[_entry(tmp_path, "ok.py"), _entry(tmp_path, "bad.py")],
+    ))
     hits = [i for i in result.issues if i.category == "heuristic.transport_tls"]
     assert [i.file for i in hits] == ["bad.py"]
     assert hits[0].priority == "P1"
@@ -112,7 +118,10 @@ def test_transport_skips_detector_regex_and_scheme_concat(tmp_path: Path) -> Non
         "ctx = ssl.PROTOCOL_TLSv1\n",
         encoding="utf-8",
     )
-    result = run_heuristics(tmp_path, [_entry(tmp_path, "detector.py")])
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=[_entry(tmp_path, "detector.py")],
+    ))
     hits = [i for i in result.issues if i.category == "heuristic.transport_tls"]
     assert len(hits) == 2
     explanations = " ".join(i.explanation for i in hits)
@@ -131,7 +140,10 @@ def test_transport_skips_malformed_ipv6_like_urls_without_crashing(
         "API = 'http://evil.example/api'\n",
         encoding="utf-8",
     )
-    result = run_heuristics(tmp_path, [_entry(tmp_path, "regexish.py")])
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=[_entry(tmp_path, "regexish.py")],
+    ))
     hits = [i for i in result.issues if i.category == "heuristic.transport_tls"]
     assert [i.file for i in hits] == ["regexish.py"]
     assert "evil.example" in hits[0].explanation
@@ -152,14 +164,14 @@ def test_transport_skips_comments_tests_and_weak_tls_hits(tmp_path: Path) -> Non
         "import ssl\nctx = ssl.PROTOCOL_TLSv1\n",
         encoding="utf-8",
     )
-    result = run_heuristics(
-        tmp_path,
-        [
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=[
             _entry(tmp_path, "src/commented.py"),
             _entry(tmp_path, "tests/test_http.py"),
             _entry(tmp_path, "src/tls.py"),
         ],
-    )
+    ))
     hits = [i for i in result.issues if i.category == "heuristic.transport_tls"]
     assert [i.file for i in hits] == ["src/tls.py"]
 
@@ -168,7 +180,10 @@ def test_unreadable_source_is_skipped(tmp_path: Path) -> None:
     (tmp_path / "gone.py").write_text("def x():\n    return 1\n", encoding="utf-8")
     entry = _entry(tmp_path, "gone.py")
     with patch.object(Path, "read_text", side_effect=OSError("nope")):
-        result = run_heuristics(tmp_path, [entry])
+        result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=[entry],
+    ))
     assert not any(
         i.category in {"heuristic.large_function", "heuristic.transport_tls"}
         for i in result.issues

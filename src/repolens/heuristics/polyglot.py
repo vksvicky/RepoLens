@@ -126,19 +126,23 @@ def logging_hits(text: str, suffix: str, *, is_test: bool) -> list[tuple[str, in
             secret = _secret_on_line(line)
             if secret:
                 hits.append(("heuristic.logging_secret", lineno, secret))
-        if is_test:
-            continue
-        if suffix in _JS:
-            for match in _JS_CATCH.finditer(line):
-                if _js_swallows(match.group(1)):
-                    hits.append(("heuristic.swallowed_exception", lineno, "catch"))
-        elif suffix == ".go":
-            for match in _GO_ERR.finditer(line):
-                if _go_swallows(match.group(1)):
-                    hits.append(("heuristic.swallowed_exception", lineno, "err"))
-        elif suffix == ".rs" and _rust_line_swallows(line):
-            hits.append(("heuristic.swallowed_exception", lineno, "Err"))
+        _record_swallows(hits, line, suffix, lineno) if not is_test else None
     return hits
+
+
+def _record_swallows(
+    hits: list[tuple[str, int, str]], line: str, suffix: str, lineno: int
+) -> None:
+    if suffix in _JS:
+        for match in _JS_CATCH.finditer(line):
+            if _js_swallows(match.group(1)):
+                hits.append(("heuristic.swallowed_exception", lineno, "catch"))
+    elif suffix == ".go":
+        for match in _GO_ERR.finditer(line):
+            if _go_swallows(match.group(1)):
+                hits.append(("heuristic.swallowed_exception", lineno, "err"))
+    elif suffix == ".rs" and _rust_line_swallows(line):
+        hits.append(("heuristic.swallowed_exception", lineno, "Err"))
 
 
 def _param_count(param_src: str) -> int:

@@ -8,6 +8,7 @@ import typer
 
 from repolens import __version__
 from repolens.cli.app import baseline_app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT, EXIT_NOT_READY
 from repolens.config import GraphConfig, load_config
 from repolens.graph import analyse_repo_graph
 from repolens.graph.baseline import (
@@ -54,27 +55,22 @@ def baseline_set(
     root = path.resolve()
     cfg = load_config(root)
     graph_cfg = cfg.graph
-    target = _resolve_baseline_path(
-        root, out=out, baseline_path=graph_cfg.baseline_path
-    )
+    target = _resolve_baseline_path(root, out=out, baseline_path=graph_cfg.baseline_path)
     result = analyse_repo_graph(root, config=graph_cfg)
     if result.status is GraphStatus.FAILED:
         for gap in result.durability_gaps:
             console.print(f"[red]{gap}[/red]")
         console.print("[red]Graph analysis failed; baseline not written.[/red]")
-        raise typer.Exit(code=3)
+        raise typer.Exit(code=EXIT_NOT_READY)
     if result.status is GraphStatus.SKIPPED:
         for gap in result.durability_gaps:
             console.print(f"[red]{gap}[/red]")
         console.print(
-            "[red]Graph analysis was skipped (e.g. graph disabled); "
-            "baseline not written.[/red]"
+            "[red]Graph analysis was skipped (e.g. graph disabled); baseline not written.[/red]"
         )
-        raise typer.Exit(code=3)
+        raise typer.Exit(code=EXIT_NOT_READY)
     metrics = measure_quality_metrics(root, cfg, result)
-    doc = baseline_from_graph(
-        result, config=graph_cfg, version=__version__, metrics=metrics
-    )
+    doc = baseline_from_graph(result, config=graph_cfg, version=__version__, metrics=metrics)
     write_baseline(target, doc)
     fps = doc["graph"]["fingerprints"]
     console.print(f"[green]Wrote[/green] baseline → {target}")
@@ -98,13 +94,11 @@ def baseline_show(
     """Print cyclicity, fingerprint count, and baseline path."""
     root = path.resolve()
     graph_cfg = _graph_config_for_root(root)
-    target = _resolve_baseline_path(
-        root, out=out, baseline_path=graph_cfg.baseline_path
-    )
+    target = _resolve_baseline_path(root, out=out, baseline_path=graph_cfg.baseline_path)
     if not target.is_file():
         console.print(f"[red]No baseline found at[/red] {target}")
         console.print("Run [cyan]repolens baseline set[/cyan] to create one.")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     doc = load_baseline(target)
     graph = doc.get("graph") or {}
     cyclicity = graph.get("cyclicity", "?")

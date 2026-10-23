@@ -37,19 +37,23 @@ def resolve_floor_value(
     return 75 if scanners_all_ran else 55
 
 
+def _skip_for_checklist(checklist_complete: bool) -> SkipReason | None:
+    return None if checklist_complete else "checklist_incomplete"
+
+
+def _skip_for_evidence(has_evidence: bool, checklist_complete: bool) -> SkipReason | None:
+    return (
+        _skip_for_checklist(checklist_complete) if has_evidence else "no_analysis_evidence"
+    )
+
+
 def skip_reason(
     *,
     degraded: bool,
     has_evidence: bool,
     checklist_complete: bool,
 ) -> SkipReason | None:
-    if degraded:
-        return "pass_degraded"
-    if not has_evidence:
-        return "no_analysis_evidence"
-    if not checklist_complete:
-        return "checklist_incomplete"
-    return None
+    return "pass_degraded" if degraded else _skip_for_evidence(has_evidence, checklist_complete)
 
 
 def is_finding_like_gap(gap: str) -> bool:
@@ -65,12 +69,14 @@ def is_finding_like_gap(gap: str) -> bool:
     return False
 
 
-def is_vacuous_for_floor(report: FindingReport, *, degraded: bool) -> bool:
-    if degraded:
-        return False
+def _report_is_vacuous(report: FindingReport) -> bool:
     if report.confidence != 0 or report.issues:
         return False
-    return not any(is_finding_like_gap(g) for g in report.durabilityGaps)
+    return not any(is_finding_like_gap(gap) for gap in report.durabilityGaps)
+
+
+def is_vacuous_for_floor(report: FindingReport, *, degraded: bool) -> bool:
+    return False if degraded else _report_is_vacuous(report)
 
 
 def checklist_complete_for_scored(

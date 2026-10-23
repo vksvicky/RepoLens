@@ -1,0 +1,20 @@
+---
+description: Regenerate local student notes after every source or test change, on every branch
+alwaysApply: true
+---
+
+# Learn notes stay current
+
+`docs/learn/` is gitignored. It is still the teaching tree for this checkout. Update it on every branch, including a one-file fix. Do not skip it because the notes are not committed.
+
+After any change under `src/` or `tests/`, and before the work is called done:
+
+```bash
+./.venv/bin/python3 scripts/generate_learn_file_notes.py
+./.venv/bin/python3 scripts/generate_learn_file_notes.py --check
+```
+
+- Do not hand-edit `docs/learn/src/` or `docs/learn/tests/`. The generator owns those files.
+- Do not commit `docs/learn/`. `--check` is local. CI does not run it.
+- Handwritten course notes `docs/learn/00-start-here.md` through `docs/learn/06-order-complexity-and-your-own-model.md` stay hand-written. They are outside `--check`.
+- A new module or test that the generator cannot describe is fixed in `scripts/generate_learn_file_notes.py`, then the generator is run again.

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from repolens.heuristics import HeuristicResult, run_heuristics
+from repolens.heuristics.runner import RunHeuristics
 from repolens.inventory import FileEntry
 from repolens.schema import Severity
 
@@ -28,7 +29,11 @@ def test_mega_file_at_threshold_emits_medium_and_hot_path(tmp_path: Path) -> Non
     big.write_text("\n".join(f"let x{i} = {i}" for i in range(500)) + "\n", encoding="utf-8")
     entries = _entries_for(tmp_path, "LocalizedString.swift")
 
-    result = run_heuristics(tmp_path, entries, mega_file_lines=500)
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=entries,
+        mega_file_lines=500,
+    ))
 
     assert isinstance(result, HeuristicResult)
     mega = [
@@ -56,7 +61,10 @@ def test_gitignore_missing_env_when_notarize_mentions_password(tmp_path: Path) -
     gitignore.write_text("*.pyc\nnode_modules/\n", encoding="utf-8")
     entries = _entries_for(tmp_path, "scripts/notarize.sh", ".gitignore")
 
-    result = run_heuristics(tmp_path, entries)
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=entries,
+    ))
 
     secrets = [
         i
@@ -162,7 +170,10 @@ def test_extract_replace_sibling_pair_emits_medium_duplication(tmp_path: Path) -
         "Views/ReplaceToolView.swift",
     )
 
-    result = run_heuristics(tmp_path, entries)
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=entries,
+    ))
 
     dups = [
         i
@@ -182,7 +193,10 @@ def test_todo_fixme_density_emits_low(tmp_path: Path) -> None:
     src.write_text("".join(lines), encoding="utf-8")
     entries = _entries_for(tmp_path, "messy.py")
 
-    result = run_heuristics(tmp_path, entries)
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=entries,
+    ))
 
     todos = [
         i
@@ -210,7 +224,10 @@ def test_sibling_pairs_skip_test_fixtures(tmp_path: Path) -> None:
         f"{rel}/ExtractToolView.swift",
         f"{rel}/ReplaceToolView.swift",
     )
-    result = run_heuristics(tmp_path, entries)
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=entries,
+    ))
     dups = [i for i in result.issues if "sibling" in i.title.lower() or "duplic" in i.title.lower()]
     assert not dups
 
@@ -229,7 +246,10 @@ def test_scripts_hygiene_skips_markdown_playbooks(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     entries = _entries_for(tmp_path, "playbooks/security.md", "scripts/notarize.sh")
-    result = run_heuristics(tmp_path, entries)
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=entries,
+    ))
     hygiene = [i for i in result.issues if i.category == "heuristic.scripts_hygiene"]
     assert hygiene
     assert all(i.file.endswith(".sh") for i in hygiene)
@@ -244,7 +264,10 @@ def test_runner_emits_near_clone_via_fast_brain(tmp_path: Path) -> None:
     (tmp_path / "b.py").write_text(leading + fn, encoding="utf-8")
     entries = _entries_for(tmp_path, "a.py", "b.py")
 
-    result = run_heuristics(tmp_path, entries)
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=entries,
+    ))
 
     clones = [i for i in result.issues if i.category == "quality.near_clone"]
     assert len(clones) == 1
@@ -258,7 +281,10 @@ def test_missing_dependabot_when_package_manifest_exists(tmp_path: Path) -> None
     (tmp_path / "src" / "index.js").write_text("console.log(1)\n", encoding="utf-8")
     entries = _entries_for(tmp_path, "package.json", "src/index.js")
 
-    result = run_heuristics(tmp_path, entries)
+    result = run_heuristics(RunHeuristics(
+        root=tmp_path,
+        entries=entries,
+    ))
 
     ci = [
         i

@@ -7,7 +7,7 @@ from pathlib import Path
 from repolens.config import AdaptiveConfig, DeepConfig, ModelConfig, RepoLensConfig
 from repolens.deep import DeepPass, estimate_outline_chars
 from repolens.diff_audit import diff_audit_reports
-from repolens.feedback_store import record_feedback
+from repolens.feedback_store import RecordFeedback, record_feedback
 from repolens.inventory import FileEntry
 from repolens.learned_prefs import derive_learned_prefs, load_learned_prefs, save_learned_prefs
 from repolens.na_truth import reject_false_na_claims
@@ -136,13 +136,13 @@ def test_na_truth_rejects_absence_when_path_hints_match(tmp_path: Path) -> None:
 
 def test_learned_prefs_from_repeated_feedback(tmp_path: Path) -> None:
     for i in range(2):
-        record_feedback(
-            tmp_path,
-            stable_id=f"id-{i}",
-            reason="false_positive",
-            file=f"scripts/dev_tool_{i}.py",
-            title="noise",
-        )
+        record_feedback(RecordFeedback(
+        root=tmp_path,
+        stable_id=f"id-{i}",
+        reason="false_positive",
+        file=f"scripts/dev_tool_{i}.py",
+        title="noise",
+    ))
     prefs = derive_learned_prefs(tmp_path)
     save_learned_prefs(tmp_path, prefs)
     loaded = load_learned_prefs(tmp_path)

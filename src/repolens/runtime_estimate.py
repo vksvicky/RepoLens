@@ -20,6 +20,10 @@ _SEC_PER_FILE: dict[str, float] = {
 _DEFAULT_SEC = 1.5
 
 
+_SHORT_ESTIMATE_MINUTES = 5
+_MINUTES_PER_HOUR = 60
+
+
 def estimate_deep_runtime_minutes(
     *,
     files: int,
@@ -48,23 +52,20 @@ def estimate_deep_runtime(
     """Human-readable pre-flight line for progress / stderr."""
     if files <= 0:
         return "Slow Brain estimate: no LLM files in pack (0 minutes)"
-    minutes = estimate_deep_runtime_minutes(
-        files=files, passes=passes, provider=provider
-    )
+    minutes = estimate_deep_runtime_minutes(files=files, passes=passes, provider=provider)
     provider_label = (provider or "unknown").strip() or "unknown"
     key = provider_label.lower()
-    if minutes < 5:
+    if minutes < _SHORT_ESTIMATE_MINUTES:
         band = f"~{minutes} min"
-    elif minutes < 60:
-        band = f"~{minutes}–{minutes + max(5, minutes // 3)} min"
+    elif minutes < _MINUTES_PER_HOUR:
+        band = f"~{minutes}–{minutes + max(_SHORT_ESTIMATE_MINUTES, minutes // 3)} min"
     else:
-        hours = minutes / 60.0
+        hours = minutes / _MINUTES_PER_HOUR
         band = f"~{hours:.1f}–{hours * 1.4:.1f} h (local large models often hit the high end)"
     tip = _provider_class_tip(key)
     return (
         f"Slow Brain estimate: {files} file(s) × {passes} pass(es) via {provider_label} "
-        f"→ {band}"
-        + (f" ({tip})" if tip else "")
+        f"→ {band}" + (f" ({tip})" if tip else "")
     )
 
 

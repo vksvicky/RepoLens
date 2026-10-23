@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 
 import httpx
 
@@ -63,6 +64,7 @@ def detect_ollama(*, timeout: float = 0.5) -> bool:
             response = client.get(OLLAMA_PROBE_URL)
         return response.status_code < 500
     except (httpx.HTTPError, OSError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return False
 
 
@@ -86,9 +88,7 @@ def list_ollama_models(*, timeout: float = 1.0) -> list[str]:
     return names
 
 
-def pick_ollama_model(
-    installed: list[str], *, fallback: str = OLLAMA_FALLBACK_MODEL
-) -> str:
+def pick_ollama_model(installed: list[str], *, fallback: str = OLLAMA_FALLBACK_MODEL) -> str:
     """Prefer an already-installed model; only use fallback when the list is empty."""
     return installed[0] if installed else fallback
 
@@ -101,6 +101,9 @@ def resolve_ollama_model(
     if explicit and explicit.strip():
         return explicit.strip(), installed
     return pick_ollama_model(installed), installed
+
+
+_MODEL_NAME_PREVIEW = 5
 
 
 def provider_setup_hints() -> list[str]:
@@ -121,7 +124,9 @@ def provider_setup_hints() -> list[str]:
         installed = list_ollama_models()
         if installed:
             chosen = pick_ollama_model(installed)
-            listed = ", ".join(installed[:5]) + ("…" if len(installed) > 5 else "")
+            listed = ", ".join(installed[:_MODEL_NAME_PREVIEW]) + (
+                "…" if len(installed) > _MODEL_NAME_PREVIEW else ""
+            )
             hints.insert(
                 1,
                 f"Detected Ollama with installed model(s): {listed} — "
@@ -156,5 +161,3 @@ def default_model(provider: str | None) -> str:
         return resolve_ollama_model(None)[0]
     named = default_model_for(provider)
     return named or "gpt-4.1-mini"
-
-

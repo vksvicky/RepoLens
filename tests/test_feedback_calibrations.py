@@ -6,6 +6,7 @@ from pathlib import Path
 
 from repolens.config import DeepConfig
 from repolens.feedback_store import (
+    RecordFeedback,
     apply_feedback_calibrations,
     derive_path_pattern,
     normalize_title,
@@ -40,14 +41,14 @@ def _issue(
 
 
 def test_file_category_false_positive_demotes_llm(tmp_path: Path) -> None:
-    record_feedback(
-        tmp_path,
+    record_feedback(RecordFeedback(
+        root=tmp_path,
         stable_id="11111111-1111-4111-8111-111111111111",
         reason="false_positive",
         category="sec.injection",
         file="src/a.py",
         title="demo",
-    )
+    ))
     out = apply_feedback_calibrations(
         [_issue(), _issue(source="scanner")],
         tmp_path,
@@ -59,13 +60,13 @@ def test_file_category_false_positive_demotes_llm(tmp_path: Path) -> None:
 
 
 def test_category_needs_two_events(tmp_path: Path) -> None:
-    record_feedback(
-        tmp_path,
+    record_feedback(RecordFeedback(
+        root=tmp_path,
         stable_id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         reason="false_positive",
         category="sec.xss",
         file="other.py",
-    )
+    ))
     # Only one category-level event → no demote for different file
     out = apply_feedback_calibrations(
         [_issue(category="sec.xss", file="src/b.py")],
@@ -74,13 +75,13 @@ def test_category_needs_two_events(tmp_path: Path) -> None:
     )
     assert out[0].severity == Severity.HIGH
 
-    record_feedback(
-        tmp_path,
+    record_feedback(RecordFeedback(
+        root=tmp_path,
         stable_id="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
         reason="false_positive",
         category="sec.xss",
         file="third.py",
-    )
+    ))
     out = apply_feedback_calibrations(
         [_issue(category="sec.xss", file="src/b.py")],
         tmp_path,
@@ -90,13 +91,13 @@ def test_category_needs_two_events(tmp_path: Path) -> None:
 
 
 def test_feedback_calibrations_can_disable(tmp_path: Path) -> None:
-    record_feedback(
-        tmp_path,
+    record_feedback(RecordFeedback(
+        root=tmp_path,
         stable_id="11111111-1111-4111-8111-111111111111",
         reason="false_positive",
         category="sec.injection",
         file="src/a.py",
-    )
+    ))
     out = apply_feedback_calibrations(
         [_issue()],
         tmp_path,
@@ -111,14 +112,14 @@ def test_derive_path_pattern_dev_prefix() -> None:
 
 
 def test_path_pattern_demotes_sibling_files(tmp_path: Path) -> None:
-    record_feedback(
-        tmp_path,
+    record_feedback(RecordFeedback(
+        root=tmp_path,
         stable_id="11111111-1111-4111-8111-111111111111",
         reason="false_positive",
         category="sec.injection",
         file="scripts/dev_legacy.py",
         title="shell=True in helper",
-    )
+    ))
     # Auto-derived scripts/dev_*.py should demote sibling
     out = apply_feedback_calibrations(
         [
@@ -136,14 +137,14 @@ def test_path_pattern_demotes_sibling_files(tmp_path: Path) -> None:
 
 
 def test_explicit_path_pattern(tmp_path: Path) -> None:
-    record_feedback(
-        tmp_path,
+    record_feedback(RecordFeedback(
+        root=tmp_path,
         stable_id="11111111-1111-4111-8111-111111111111",
         reason="false_positive",
         category="quality.nesting",
         file="tests/fixtures/deep.py",
         path_pattern="tests/fixtures/*.py",
-    )
+    ))
     out = apply_feedback_calibrations(
         [_issue(category="quality.nesting", file="tests/fixtures/other.py")],
         tmp_path,
@@ -156,14 +157,14 @@ def test_title_cluster_needs_two(tmp_path: Path) -> None:
     assert normalize_title("Shell injection on line 12") == normalize_title(
         "Shell injection on line 40"
     )
-    record_feedback(
-        tmp_path,
+    record_feedback(RecordFeedback(
+        root=tmp_path,
         stable_id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         reason="false_positive",
         category="sec.injection",
         file="a.py",
         title="Shell injection on line 12",
-    )
+    ))
     out = apply_feedback_calibrations(
         [_issue(category="sec.injection", file="b.py", title="Shell injection on line 99")],
         tmp_path,
@@ -171,14 +172,14 @@ def test_title_cluster_needs_two(tmp_path: Path) -> None:
     )
     assert out[0].severity == Severity.HIGH  # one title event insufficient
 
-    record_feedback(
-        tmp_path,
+    record_feedback(RecordFeedback(
+        root=tmp_path,
         stable_id="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
         reason="false_positive",
         category="sec.injection",
         file="c.py",
         title="Shell injection on line 40",
-    )
+    ))
     out = apply_feedback_calibrations(
         [
             _issue(
@@ -198,14 +199,14 @@ def test_title_cluster_needs_two(tmp_path: Path) -> None:
 
 
 def test_scanner_never_pattern_demoted(tmp_path: Path) -> None:
-    record_feedback(
-        tmp_path,
+    record_feedback(RecordFeedback(
+        root=tmp_path,
         stable_id="11111111-1111-4111-8111-111111111111",
         reason="false_positive",
         category="sec.injection",
         file="scripts/dev_a.py",
         path_pattern="scripts/dev_*.py",
-    )
+    ))
     out = apply_feedback_calibrations(
         [_issue(source="scanner", file="scripts/dev_b.py")],
         tmp_path,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import tomllib
 from dataclasses import dataclass
@@ -13,9 +14,7 @@ from repolens.triage import infer_issue_source
 
 IGNORE_FILENAME = ".repolens-ignore"
 
-_VALID_REASONS = frozenset(
-    {"false_positive", "wont_fix", "accepted_risk", "other"}
-)
+_VALID_REASONS = frozenset({"false_positive", "wont_fix", "accepted_risk", "other"})
 
 _DISABLE_NEXT = re.compile(
     r"(?:#|//)\s*repolens:disable-next-line(?:\s+(\S+))?\s*$",
@@ -78,9 +77,7 @@ def load_ignore_file(root: Path) -> list[IgnoreEntry]:
         file_ = row.get("file")
         category = row.get("category")
         if not sid and not (file_ and category):
-            raise ValueError(
-                f"{IGNORE_FILENAME}: ignore[{i}] needs stableId or file+category"
-            )
+            raise ValueError(f"{IGNORE_FILENAME}: ignore[{i}] needs stableId or file+category")
         expires = _parse_expires(row.get("expires"), index=i)
         out.append(
             IgnoreEntry(
@@ -106,9 +103,7 @@ def _parse_expires(value: object, *, index: int) -> date | None:
     try:
         return date.fromisoformat(text[:10])
     except ValueError as exc:
-        raise ValueError(
-            f"{IGNORE_FILENAME}: ignore[{index}] invalid expires {value!r}"
-        ) from exc
+        raise ValueError(f"{IGNORE_FILENAME}: ignore[{index}] invalid expires {value!r}") from exc
 
 
 def parse_disable_lines(text: str) -> set[int]:
@@ -150,6 +145,7 @@ def _safe_project_file(root: Path, relative: str) -> Path | None:
     try:
         candidate.relative_to(root_res)
     except ValueError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     if not candidate.is_file():
         return None
@@ -169,6 +165,7 @@ def _disable_covers(root: Path, issue: Issue) -> bool:
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return False
     return issue.line in parse_disable_lines(text)
 
@@ -226,17 +223,25 @@ def apply_suppressions(
     return active, suppressed
 
 
-def append_ignore_entry(
-    root: Path,
-    *,
-    stable_id: str | None = None,
-    file: str | None = None,
-    category: str | None = None,
-    reason: str,
-    note: str = "",
-    expires: str | None = None,
-) -> Path:
+@dataclass
+class IgnoreAppend:
+    root: Path
+    reason: str
+    stable_id: str | None = None
+    file: str | None = None
+    category: str | None = None
+    note: str = ''
+    expires: str | None = None
+
+def append_ignore_entry(job: IgnoreAppend) -> Path:
     """Append one ``[[ignore]]`` table to ``.repolens-ignore`` (create if needed)."""
+    root = job.root
+    stable_id = job.stable_id
+    file = job.file
+    category = job.category
+    reason = job.reason
+    note = job.note
+    expires = job.expires
     if reason not in _VALID_REASONS:
         raise ValueError(f"unknown reason {reason!r}; use one of {sorted(_VALID_REASONS)}")
     if not stable_id and not (file and category):
@@ -246,6 +251,7 @@ def append_ignore_entry(
         "",
         "[[ignore]]",
     ]
+
     def _toml_str(value: str) -> str:
         return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 

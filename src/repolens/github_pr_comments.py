@@ -10,6 +10,7 @@ Anti-spam defaults:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from dataclasses import dataclass
@@ -22,9 +23,7 @@ from repolens.pr_summary import _critical_high, _safe_annotation_file, _truncate
 from repolens.schema import FindingReport, Issue
 
 _MAX_COMMENTS = 3
-_MARKER_RE = re.compile(
-    r"<!--\s*repolens-finding:(?P<sid>[0-9a-fA-F-]{36})\s*-->"
-)
+_MARKER_RE = re.compile(r"<!--\s*repolens-finding:(?P<sid>[0-9a-fA-F-]{36})\s*-->")
 _API = "https://api.github.com"
 
 
@@ -95,12 +94,14 @@ def resolve_pr_number(*, explicit: int | None = None) -> int | None:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     pr = data.get("pull_request") or {}
     num = pr.get("number") or data.get("number")
     try:
         n = int(num)
     except (TypeError, ValueError):
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     return n if n > 0 else None
 
@@ -132,6 +133,9 @@ def _auth_headers(token: str) -> dict[str, str]:
     }
 
 
+_COMMENT_PAGE_SIZE = 100
+
+
 def _list_review_comments(
     client: httpx.Client,
     *,
@@ -143,13 +147,13 @@ def _list_review_comments(
     comments: list[dict[str, Any]] = []
     page = 1
     while page <= 5:
-        response = client.get(url, params={"per_page": 100, "page": page})
+        response = client.get(url, params={"per_page": _COMMENT_PAGE_SIZE, "page": page})
         response.raise_for_status()
         batch = response.json()
         if not isinstance(batch, list) or not batch:
             break
         comments.extend(batch)
-        if len(batch) < 100:
+        if len(batch) < _COMMENT_PAGE_SIZE:
             break
         page += 1
     return comments
@@ -168,9 +172,7 @@ def _index_repolens_comments(
     return indexed
 
 
-def _pull_head_sha(
-    client: httpx.Client, *, owner: str, repo: str, pr: int
-) -> str:
+def _pull_head_sha(client: httpx.Client, *, owner: str, repo: str, pr: int) -> str:
     response = client.get(f"{_API}/repos/{owner}/{repo}/pulls/{pr}")
     response.raise_for_status()
     data = response.json()
@@ -194,17 +196,26 @@ def _patch_review_comment(
     )
 
 
-def _create_review_comment(
-    client: httpx.Client,
-    *,
-    owner: str,
-    repo: str,
-    pr_number: int,
-    body: str,
-    head_sha: str,
-    path: str,
-    line: int,
-) -> httpx.Response:
+@dataclass
+class CreateReviewComment:
+    client: httpx.Client
+    owner: str
+    repo: str
+    pr_number: int
+    body: str
+    head_sha: str
+    path: str
+    line: int
+
+def _create_review_comment(job: CreateReviewComment) -> httpx.Response:
+    client = job.client
+    owner = job.owner
+    repo = job.repo
+    pr_number = job.pr_number
+    body = job.body
+    head_sha = job.head_sha
+    path = job.path
+    line = job.line
     payload = {
         "body": body,
         "commit_id": head_sha,
@@ -224,20 +235,31 @@ def _http_error(response: httpx.Response, *, label: str) -> str | None:
     return f"{label}: HTTP {response.status_code} {response.text[:200]}"
 
 
-def _sync_one_comment(
-    client: httpx.Client,
-    *,
-    owner: str,
-    repo: str,
-    pr_number: int,
-    issue: Issue,
-    sid: str,
-    body: str,
-    path: str,
-    head_sha: str,
-    prior: dict[str, Any] | None,
-) -> tuple[int, int, int, str | None]:
+@dataclass
+class SyncOneComment:
+    client: httpx.Client
+    owner: str
+    repo: str
+    pr_number: int
+    issue: Issue
+    sid: str
+    body: str
+    path: str
+    head_sha: str
+    prior: dict[str, Any] | None
+
+def _sync_one_comment(job: SyncOneComment) -> tuple[int, int, int, str | None]:
     """Return (created, updated, skipped, error) for one review comment."""
+    client = job.client
+    owner = job.owner
+    repo = job.repo
+    pr_number = job.pr_number
+    issue = job.issue
+    sid = job.sid
+    body = job.body
+    path = job.path
+    head_sha = job.head_sha
+    prior = job.prior
     if prior and prior.get("id") is not None:
         response = _patch_review_comment(
             client,
@@ -250,8 +272,8 @@ def _sync_one_comment(
         if detail is None:
             return 0, 1, 0, None
         return 0, 0, 1, detail
-    response = _create_review_comment(
-        client,
+    response = _create_review_comment(CreateReviewComment(
+        client=client,
         owner=owner,
         repo=repo,
         pr_number=pr_number,
@@ -259,7 +281,7 @@ def _sync_one_comment(
         head_sha=head_sha,
         path=path,
         line=int(issue.line),
-    )
+    ))
     # Line may not be in the PR diff — skip quietly with note.
     detail = _http_error(response, label=f"create {sid}@{path}:{issue.line}")
     if detail is None:
@@ -267,17 +289,25 @@ def _sync_one_comment(
     return 0, 0, 1, detail
 
 
-def post_or_update_review_comments(
-    report: FindingReport,
-    *,
-    owner: str,
-    repo: str,
-    pr_number: int,
-    token: str,
-    max_comments: int = _MAX_COMMENTS,
-    client: httpx.Client | None = None,
-) -> PrCommentResult:
+@dataclass
+class ReviewComments:
+    report: FindingReport
+    owner: str
+    repo: str
+    pr_number: int
+    token: str
+    max_comments: int = _MAX_COMMENTS
+    client: httpx.Client | None = None
+
+def post_or_update_review_comments(job: ReviewComments) -> PrCommentResult:
     """Create or update up to *max_comments* inline review comments."""
+    report = job.report
+    owner = job.owner
+    repo = job.repo
+    pr_number = job.pr_number
+    token = job.token
+    max_comments = job.max_comments
+    client = job.client
     issues = select_issues_for_comments(report, max_comments=max_comments)
     if not issues:
         return PrCommentResult(0, 0, 0, [])
@@ -299,16 +329,18 @@ def post_or_update_review_comments(
             prior = existing.get(sid)
             try:
                 created_n, updated_n, skipped_n, detail = _sync_one_comment(
-                    client,
-                    owner=owner,
-                    repo=repo,
-                    pr_number=pr_number,
-                    issue=issue,
-                    sid=sid,
-                    body=body,
-                    path=path,
-                    head_sha=head_sha,
-                    prior=prior,
+                    SyncOneComment(
+                        client=client,
+                        owner=owner,
+                        repo=repo,
+                        pr_number=pr_number,
+                        issue=issue,
+                        sid=sid,
+                        body=body,
+                        path=path,
+                        head_sha=head_sha,
+                        prior=prior,
+                    )
                 )
                 created += created_n
                 updated += updated_n

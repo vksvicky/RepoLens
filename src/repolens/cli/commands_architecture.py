@@ -17,6 +17,7 @@ from repolens.architecture import (
     verify_boundaries,
 )
 from repolens.cli.app import check_app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT, EXIT_NOT_READY, JSON_INDENT
 from repolens.config import load_config
 from repolens.graph import analyse_repo_graph
 from repolens.graph.types import GraphStatus
@@ -43,35 +44,35 @@ def check_architecture(
         arch_path = discover_architecture_path(root, explicit=architecture)
     except ArchitectureLoadError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
     if arch_path is None:
         console.print(
             "[red]No architecture file found.[/red] Expected one of: "
             "repolens.yaml, .repolens/architecture.yaml, architecture.json"
         )
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
 
     try:
         doc = load_architecture(arch_path)
     except ArchitectureLoadError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise typer.Exit(code=2) from exc
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
 
     result = analyse_repo_graph(root, config=cfg.graph)
     if result.status is GraphStatus.FAILED:
         for gap in result.durability_gaps:
             console.print(f"[red]{gap}[/red]")
-        raise typer.Exit(code=3)
+        raise typer.Exit(code=EXIT_NOT_READY)
     if result.status is GraphStatus.SKIPPED:
         console.print("[red]Graph analysis skipped; cannot verify architecture.[/red]")
-        raise typer.Exit(code=3)
+        raise typer.Exit(code=EXIT_NOT_READY)
 
     violations = verify_boundaries(result, doc)
     candidates = candidate_feedback_arc_sets(result)
     ctx = remediation_context(result, violations=violations)
 
     if json_out:
-        console.print(json.dumps(ctx, indent=2, sort_keys=True))
+        console.print(json.dumps(ctx, indent=JSON_INDENT, sort_keys=True))
     else:
         console.print(f"Architecture: {arch_path}")
         console.print(f"Boundaries: {len(doc.boundaries)}")
@@ -85,12 +86,8 @@ def check_architecture(
         if candidates:
             console.print(f"FAS candidates: {len(candidates)} (not auto-applied)")
             for c in candidates:
-                edges = ", ".join(
-                    f"{e.importer}→{e.imported}(w={e.weight})" for e in c.edges
-                )
-                console.print(
-                    f"  [cyan]{c.label}[/cyan] weight={c.total_weight}: {edges}"
-                )
+                edges = ", ".join(f"{e.importer}→{e.imported}(w={e.weight})" for e in c.edges)
+                console.print(f"  [cyan]{c.label}[/cyan] weight={c.total_weight}: {edges}")
         issues = boundary_violations_to_issues(violations)
         if issues:
             console.print(f"Issues emitted: {len(issues)} (arch.boundary_violation)")

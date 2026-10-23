@@ -7,6 +7,8 @@ threshold. Public names are also available via ``repolens.metrics``.
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
+from typing import Any
 
 from repolens.metrics import (
     _PASS_LABEL,
@@ -71,16 +73,24 @@ def _pass_failure_note(report: FindingReport, prefix: str) -> str | None:
     return None
 
 
-def _band_sentence(
-    label: str,
-    score: int,
-    *,
-    missed: list[str],
-    issues: list[Issue],
-    pred,
-    detail: bool,
-    pass_note: str | None = None,
-) -> str:
+@dataclass
+class BandSentence:
+    label: str
+    score: int
+    missed: list[str]
+    issues: list[Issue]
+    pred: Any
+    detail: bool
+    pass_note: str | None = None
+
+def _band_sentence(job: BandSentence) -> str:
+    label = job.label
+    score = job.score
+    missed = job.missed
+    issues = job.issues
+    pred = job.pred
+    detail = job.detail
+    pass_note = job.pass_note
     critical = _titles(issues, pred, Severity.CRITICAL)
     high = _titles(issues, pred, Severity.HIGH)
     clauses = [
@@ -186,15 +196,15 @@ def low_audit_explanations(report: FindingReport) -> list[str]:
         if score >= LOW_AUDIT_BELOW:
             continue
         lines.append(
-            _band_sentence(
-                label,
-                score,
-                missed=[item for item in missed if item.startswith(prefix)],
-                issues=list(report.issues),
-                pred=_band_predicate(prefix),
-                detail=True,
-                pass_note=_pass_failure_note(report, prefix),
-            )
+            _band_sentence(BandSentence(
+        label=label,
+        score=score,
+        missed=[item for item in missed if item.startswith(prefix)],
+        issues=list(report.issues),
+        pred=_band_predicate(prefix),
+        detail=True,
+        pass_note=_pass_failure_note(report, prefix),
+    ))
         )
     gate = _gate_sentence(report, bands)
     if gate is not None:
@@ -211,15 +221,15 @@ def low_audit_brief(report: FindingReport) -> list[str]:
         if score >= LOW_AUDIT_BELOW:
             continue
         lines.append(
-            _band_sentence(
-                label,
-                score,
-                missed=[item for item in missed if item.startswith(prefix)],
-                issues=list(report.issues),
-                pred=_band_predicate(prefix),
-                detail=False,
-                pass_note=_pass_failure_note(report, prefix),
-            )
+            _band_sentence(BandSentence(
+        label=label,
+        score=score,
+        missed=[item for item in missed if item.startswith(prefix)],
+        issues=list(report.issues),
+        pred=_band_predicate(prefix),
+        detail=False,
+        pass_note=_pass_failure_note(report, prefix),
+    ))
         )
     gate = _gate_sentence(report, bands)
     if gate is not None:

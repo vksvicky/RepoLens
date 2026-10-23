@@ -10,6 +10,7 @@ import typer
 from rich.table import Table
 
 from repolens.cli.app import app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT
 from repolens.evidence_pack import build_evidence_pack, resolve_evidence_inputs
 from repolens.executive_summary import write_executive_summary
 from repolens.schema import FindingReport
@@ -49,27 +50,27 @@ def export(
     typer.echo(f"Report: {report.resolve()}")
     if evidence_pack and executive_summary:
         console.print("[red]Choose one of --evidence-pack or --executive-summary[/red]")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     dest = out or (report.resolve() if report.is_dir() else report.resolve().parent)
     if evidence_pack:
         try:
             zip_path = build_evidence_pack(report, dest)
         except (OSError, FileNotFoundError, ValueError) as exc:
             console.print(f"[red]evidence pack failed:[/red] {exc}")
-            raise typer.Exit(code=2) from exc
+            raise typer.Exit(code=EXIT_BAD_INPUT) from exc
         console.print(f"[green]Evidence pack:[/green] {zip_path}")
         return
     if executive_summary:
         fmt_norm = fmt.strip().lower()
         if fmt_norm not in {"md", "html"}:
             console.print("[red]--format must be md or html[/red]")
-            raise typer.Exit(code=2)
+            raise typer.Exit(code=EXIT_BAD_INPUT)
         try:
             inputs = resolve_evidence_inputs(report)
             path = write_executive_summary(inputs.report, dest, fmt=fmt_norm)
         except (OSError, FileNotFoundError, ValueError) as exc:
             console.print(f"[red]executive summary failed:[/red] {exc}")
-            raise typer.Exit(code=2) from exc
+            raise typer.Exit(code=EXIT_BAD_INPUT) from exc
         console.print(f"[green]Executive summary:[/green] {path}")
         if pdf:
             _pandoc_pdf(path)
@@ -85,12 +86,12 @@ def _pandoc_pdf(report: Path) -> None:
         console.print(
             "[yellow]pandoc not found.[/yellow] Install pandoc or use Print → Save as PDF."
         )
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     pdf_out = report.with_suffix(".pdf")
     completed = subprocess.run([pandoc, str(report), "-o", str(pdf_out)], check=False)
     if completed.returncode != 0:
         console.print("[red]pandoc failed[/red]")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     console.print(f"[green]PDF:[/green] {pdf_out}")
 
 
@@ -116,6 +117,51 @@ def _print_gate_and_ai_blocks(report: FindingReport) -> None:
         console.print(escape(detail))
 
 
+def _summary_title(prov) -> str:
+    if prov is None or not prov.reviewedPath:
+        return "RepoLens summary"
+    return Path(prov.reviewedPath).name
+
+
+def _reviewed_banner(prov) -> str | None:
+    if prov is None or not prov.reviewedPath:
+        return None
+    path = Path(prov.reviewedPath)
+    bits = [f"Reviewed: {path.name}", str(path)]
+    if prov.gitSha:
+        state = {True: "dirty", False: "clean"}.get(prov.dirtyTree, "unknown")
+        branch = f"{prov.gitBranch} " if prov.gitBranch else ""
+        bits.append(f"{branch}{prov.gitSha[:12]} ({state})")
+    return " · ".join(bits)
+
+
+def _add_reviewed_rows(table: Table, prov) -> None:
+    if prov is None or not prov.reviewedPath:
+        return
+    path = Path(prov.reviewedPath)
+    table.add_row("Project", path.name)
+    table.add_row("Path", str(path))
+    if prov.gitSha:
+        state = {True: "dirty", False: "clean"}.get(prov.dirtyTree, "unknown")
+        branch = f"{prov.gitBranch} " if prov.gitBranch else ""
+        table.add_row("Git", f"{branch}{prov.gitSha[:12]} ({state})")
+    if prov.repoLensVersion:
+        table.add_row("RepoLens", prov.repoLensVersion)
+
+
+def _add_rss_row(table: Table, prov) -> None:
+    if prov is None or prov.pythonPeakRssBytes is None:
+        return
+    from repolens.memory_sample import format_peak_rss
+
+    value = format_peak_rss(prov.pythonPeakRssBytes).split(": ", 1)[1]
+    table.add_row("Python process peak RSS", value)
+
+
+def _add_dry_run_row(table: Table) -> None:
+    table.add_row("Dry run", "yes")
+
+
 def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_run: bool) -> None:
     from repolens.metrics import low_audit_brief
     from repolens.report import (
@@ -125,12 +171,13 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
         format_two_lane_headline,
     )
 
-    table = Table(title="RepoLens summary")
+    prov = report.provenance
+    table = Table(title=_summary_title(prov))
     table.add_column("Metric")
     table.add_column("Value")
-    if dry_run:
-        table.add_row("Dry run", "yes")
-    prov = report.provenance
+    _add_dry_run_row(table) if dry_run else None
+    _add_reviewed_rows(table, prov)
+    _add_rss_row(table, prov)
     fb = prov.fastBrainFiles if prov is not None else None
     llm = prov.llmPackFiles if prov is not None else None
     if fb is not None:
@@ -169,6 +216,14 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
     if report.scannerRuns:
         ran = sum(1 for r in report.scannerRuns if r.status == "ran")
         table.add_row("Scanners ran", f"{ran}/{len(report.scannerRuns)}")
+        from repolens.report_blocks import format_scanner_times
+
+        times = format_scanner_times(report.scannerRuns)
+        if times:
+            table.add_row("Scanner time", times.removeprefix("Scanners: "))
+    banner = _reviewed_banner(prov)
+    if banner:
+        console.print(banner)
     headline = format_two_lane_headline(report)
     if headline:
         console.print(f"[bold]Two-Lane[/bold]: {headline}")
@@ -183,8 +238,6 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
 
         console.print("Questions the review did not finish:")
         for cid in cov.missed:
-            sentence = cov.missedNotes.get(cid) or explain_missed_id(
-                cid, report.durabilityGaps
-            )
+            sentence = cov.missedNotes.get(cid) or explain_missed_id(cid, report.durabilityGaps)
             console.print(f"- {sentence}")
     console.print(f"* {GATE_ADEQUACY_ONE_LINER}")

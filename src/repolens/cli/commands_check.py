@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import os
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
 import typer
 
 from repolens.cli.app import check_app, console
+from repolens.cli.exit_codes import EXIT_BAD_INPUT, EXIT_NOT_READY, JSON_INDENT
 from repolens.cli.review_options import (
     option_base,
     option_baseline,
@@ -128,18 +130,35 @@ def check(
     base: str | None = option_base(),
 ) -> None:
     """Graph-only cyclicity ratchet, or Fast Brain diagnostics with --format."""
-    _body_check(ctx, diff, fmt, path, baseline, require_baseline, base)
+    _body_check(BodyCheck(
+        ctx=ctx,
+        diff=diff,
+        fmt=fmt,
+        path=path,
+        baseline=baseline,
+        require_baseline=require_baseline,
+        base=base,
+    ))
 
 
-def _body_check(
-    ctx: typer.Context,
-    diff: bool,
-    fmt: str,
-    path: Path,
-    baseline: Path | None,
-    require_baseline: bool,
-    base: str | None,
-) -> None:
+@dataclass
+class BodyCheck:
+    ctx: typer.Context
+    diff: bool
+    fmt: str
+    path: Path
+    baseline: Path | None
+    require_baseline: bool
+    base: str | None
+
+def _body_check(job: BodyCheck) -> None:
+    ctx = job.ctx
+    diff = job.diff
+    fmt = job.fmt
+    path = job.path
+    baseline = job.baseline
+    require_baseline = job.require_baseline
+    base = job.base
     if ctx.invoked_subcommand is not None:
         return
     fmt_n = fmt.strip().lower()
@@ -148,13 +167,13 @@ def _body_check(
         return
     if fmt_n:
         console.print("[red]--format must be sarif | jsonl[/red]")
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     if not diff:
         console.print(
             "[red]Specify --diff to run the cyclicity ratchet check.[/red] "
             "Example: [cyan]repolens check --diff[/cyan]"
         )
-        raise typer.Exit(code=2)
+        raise typer.Exit(code=EXIT_BAD_INPUT)
     _run_check_ratchet(path.resolve(), baseline, require_baseline, base)
 
 
@@ -166,15 +185,13 @@ def _run_check_ratchet(
 ) -> None:
     cfg = load_config(root)
     graph_cfg: GraphConfig = cfg.graph
-    target = _resolve_baseline_path(
-        root, baseline=baseline, baseline_path=graph_cfg.baseline_path
-    )
+    target = _resolve_baseline_path(root, baseline=baseline, baseline_path=graph_cfg.baseline_path)
     must_have = require_baseline or graph_cfg.require_baseline
     if not target.is_file():
         if must_have:
             console.print(f"[red]No baseline found at[/red] {target}")
             console.print("Run [cyan]repolens baseline set[/cyan] to create one.")
-            raise typer.Exit(code=2)
+            raise typer.Exit(code=EXIT_BAD_INPUT)
         console.print(
             f"[yellow]Warning:[/yellow] no baseline found at {target}; "
             "skipping ratchet check. Run [cyan]repolens baseline set[/cyan] to create one."
@@ -186,24 +203,27 @@ def _run_check_ratchet(
         for gap in result.durability_gaps:
             console.print(f"[red]{gap}[/red]")
         console.print("[red]Graph analysis failed; ratchet check aborted.[/red]")
-        raise typer.Exit(code=3)
+        raise typer.Exit(code=EXIT_NOT_READY)
     if result.status is GraphStatus.SKIPPED:
         for gap in result.durability_gaps:
             console.print(f"[red]{gap}[/red]")
         console.print(
-            "[red]Graph analysis was skipped (e.g. graph disabled); "
-            "ratchet check aborted.[/red]"
+            "[red]Graph analysis was skipped (e.g. graph disabled); ratchet check aborted.[/red]"
         )
-        raise typer.Exit(code=3)
+        raise typer.Exit(code=EXIT_NOT_READY)
 
     doc = load_baseline(target)
     current_metrics = measure_quality_metrics(root, cfg, result)
     ratchet = evaluate_ratchet(
-        current=result, baseline=doc, config=graph_cfg, current_metrics=current_metrics,
+        current=result,
+        baseline=doc,
+        config=graph_cfg,
+        current_metrics=current_metrics,
     )
     console.print(ratchet.message)
     _print_fingerprint_delta(
-        added=ratchet.fingerprints_added, removed=ratchet.fingerprints_removed,
+        added=ratchet.fingerprints_added,
+        removed=ratchet.fingerprints_removed,
     )
     for note in ratchet.notes:
         console.print(f"[yellow]{note}[/yellow]")
@@ -211,8 +231,10 @@ def _run_check_ratchet(
         console.print(f"[dim]Config drift: {ratchet.config_mismatch_detail}[/dim]")
     if ratchet.breached:
         if not _maybe_anchor_breach(
-            root=root, cli_base=base,
-            added_fingerprints=ratchet.fingerprints_added, message=ratchet.message,
+            root=root,
+            cli_base=base,
+            added_fingerprints=ratchet.fingerprints_added,
+            message=ratchet.message,
         ):
             console.print(f"[yellow]{_UNANCHORED_NOTE}[/yellow]")
         raise typer.Exit(code=1)
@@ -234,5 +256,5 @@ def _emit_diagnostics(root: Path, fmt: str) -> None:
     if fmt == "jsonl":
         typer.echo(diagnostic_jsonl(issues), nl=False)
     else:
-        typer.echo(json.dumps(diagnostic_sarif(issues, root=root), indent=2))
+        typer.echo(json.dumps(diagnostic_sarif(issues, root=root), indent=JSON_INDENT))
     raise typer.Exit(code=1 if issues else 0)
