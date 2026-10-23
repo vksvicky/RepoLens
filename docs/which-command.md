@@ -50,7 +50,15 @@ See [compare.md](./compare.md) for “we audit, they edit” vs coding-agent har
 
 ### 1. Full combined result (use this)
 
-One command for **scanners + clean code + cycles + full-tree model write-up** (security, reliability, architecture). This is the dogfood command used on RepoLens today.
+One command for **scanners + clean code + cycles + full-tree model write-up** (security, reliability, architecture). This is the dogfood command used on RepoLens today. From a `main` checkout:
+
+```bash
+./scripts/selfdog-review.sh
+```
+
+That reviews this checkout and writes `reports/selfdog-deep/`. The script puts this checkout's `src` first on `PYTHONPATH`, so a dev install that points at another checkout still runs this tree. Set `TARGET` to review another tree and still write the report here. Add `--dry-run` to count files and stop before scanners and the model. Any extra flag is passed through.
+
+The same command, written out:
 
 ```bash
 repolens review \
@@ -63,6 +71,42 @@ repolens review \
   --model qwen2.5-coder:32b \
   --timeout 7200 \
   --verbose
+```
+
+| Flag | What it does |
+| --- | --- |
+| `--path .` | This checkout. `TARGET=/path ./scripts/selfdog-review.sh` reviews that path instead. |
+| `--out reports/selfdog-deep` | Markdown report directory in this checkout. |
+| `--full` | The model sees the whole tree, up to the file cap, not only the git change-set. |
+| `--full-audit` | Extended theme questions as well as the core set. |
+| `--deep` | Three Slow Brain passes: security, then reliability, then architecture. |
+| `--scanners gitleaks,semgrep,osv,trivy,checkov` | The closed scanner list. Fast Brain runs at the same time. Supply chain starts after those scanners return. |
+| `--model qwen2.5-coder:32b` | Local Ollama model for this run. |
+| `--timeout 7200` | Longest one model pass may run, in seconds. Finished passes are kept. |
+| `--verbose` | Phase lines while the run is going. |
+
+The report already records these. You do not add a flag for them.
+
+| In the report | Where | Meaning |
+| --- | --- | --- |
+| Python process peak RSS | Provenance | Memory of this Python process. Not the Ollama model. |
+| Scanner time | Automated scanners | One line of `tool Ns` for each scanner that ran. |
+| Pass queue, first token, generation, chars/s | Provenance, one line per live pass | A resumed pass names itself and leaves the times empty. |
+| DSPy instruction digest | Provenance, one line per pass that loaded a file | Absent when `[deep] dspy_program` is unset. This script leaves it unset, so the stock sentence is used. |
+| 32b notice | The terminal, before the model | Printed when this machine has under 24 GiB and the model id contains `32b`. The run continues. |
+
+Two settings stay in the user config. The script does not turn them on. A project `.repolens.toml` cannot set `dspy_program` unless the review was started with `--trust-project-config`.
+
+```toml
+[model]
+# Unset means no ceiling. The 32b notice still prints on a small machine.
+# memory_ceiling_mb = 24576
+# memory_abort = false
+
+[deep]
+# One compiled file, or a directory of p1.json, p2.json, p3.json, and coverage.json.
+# Empty keeps the stock sentence. A review does not import DSPy.
+# dspy_program = ""
 ```
 
 | You get | You do not get yet |

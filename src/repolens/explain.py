@@ -200,16 +200,27 @@ def run_explain(job: RunExplain) -> Path:
     model_name = cfg.model.model or default_model(cfg.model.provider)
     timeout = resolve_llm_timeout(cfg.model)
     started = time.monotonic()
-    doc = _call_explain_llm(CallExplainLlm(
-        issue=issue,
-        outline=outline,
-        excerpt=excerpt,
-        cfg=cfg,
-        prog=prog,
-        provider=provider,
-        model_name=model_name,
-        timeout=timeout,
-    ))
+    local = None
+    if (issue.category or "") == "heuristic.large_function":
+        from repolens.explain_steps import large_function_doc
+
+        local = large_function_doc(root, issue)
+    if local is not None:
+        prog.phase("Explain: function span, read from the file, no model call")
+        doc = local
+        provider = ""
+        model_name = ""
+    else:
+        doc = _call_explain_llm(CallExplainLlm(
+            issue=issue,
+            outline=outline,
+            excerpt=excerpt,
+            cfg=cfg,
+            prog=prog,
+            provider=provider,
+            model_name=model_name,
+            timeout=timeout,
+        ))
     duration = time.monotonic() - started
     return _write_explain_markdown(WriteExplainMarkdown(
         issue=issue,

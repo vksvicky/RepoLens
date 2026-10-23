@@ -45,6 +45,7 @@ class ExplainDoc(BaseModel):
     solutions: list[ExplainSolution] = Field(default_factory=list)
     proposedRefactorDiff: str = ""
     diagramMermaid: str = ""
+    diagramText: str = ""
     nextStep: str = ""
 
 

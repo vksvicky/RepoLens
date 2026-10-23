@@ -412,12 +412,15 @@ def render_explain_markdown(job: RenderExplainMarkdown) -> str:
     meta.extend(_render_proposed_refactor(doc))
     
     plan_title, plan_moves = _select_plan_moves(doc)
-    grounded = build_diagram_from_moves(
-        host_file=issue.file,
-        moves=plan_moves,
-        plan_title=plan_title,
-    )
-    diagram_section = grounded or diagram_block or "_No diagram._"
+    if doc.diagramText.strip():
+        diagram_section = doc.diagramText.strip()
+    else:
+        grounded = build_diagram_from_moves(
+            host_file=issue.file,
+            moves=plan_moves,
+            plan_title=plan_title,
+        )
+        diagram_section = grounded or diagram_block or "_No diagram._"
     next_step = build_recommended_next_step(
         next_step=doc.nextStep,
         host_file=issue.file,

@@ -140,6 +140,25 @@ def _merge_closure(report: FindingReport, extra: FindingReport) -> FindingReport
     return report
 
 
+def _record_closure_timing(clock, gen, prompt: str, raw_text: str, wait_before: float) -> None:
+    """Store queue wait and generation time for the coverage closure pass."""
+    from repolens.llm.model_lock import queue_wait_seconds
+    from repolens.pipeline.pass_timing import live_pass_timing, record_pass_timing
+
+    clock.finish()
+    gen.mark_done()
+    waited = round(max(0.0, queue_wait_seconds() - wait_before), 1)
+    record_pass_timing(
+        live_pass_timing(
+            "coverage",
+            queue_wait_seconds=waited,
+            prompt_chars=len(prompt),
+            raw_text=raw_text,
+            clock=clock,
+        )
+    )
+
+
 def _apply_coverage_closure(
     report: FindingReport,
     missed: list[str],
@@ -156,12 +175,7 @@ def _apply_coverage_closure(
     from repolens.llm.model_lock import queue_wait_seconds
     from repolens.llm_structured import analyze_structured
     from repolens.pipeline.pass_cache import closure_key, load_pass, save_pass
-    from repolens.pipeline.pass_timing import (
-        StreamClock,
-        live_pass_timing,
-        record_pass_timing,
-        resumed_pass_timing,
-    )
+    from repolens.pipeline.pass_timing import StreamClock, record_pass_timing, resumed_pass_timing
 
     model_name = cfg.model.model or default_model(cfg.model.provider)
     project = root or raw_dir.parent
@@ -206,15 +220,7 @@ def _apply_coverage_closure(
             raw_dir=raw_dir,
             on_delta=on_delta,
         )
-    clock.finish()
-    gen.mark_done()
-    record_pass_timing(live_pass_timing(
-        "coverage",
-        queue_wait_seconds=round(max(0.0, queue_wait_seconds() - wait_before), 1),
-        prompt_chars=len(prompt),
-        raw_text=result.raw_text or "",
-        clock=clock,
-    ))
+    _record_closure_timing(clock, gen, prompt, result.raw_text or "", wait_before)
     if result.report is None:
         prog.phase("Coverage closure returned no report; unanswered ids stay missed")
         return report

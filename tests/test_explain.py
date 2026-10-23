@@ -113,6 +113,61 @@ def test_load_latest_report_uses_pointer(tmp_path: Path) -> None:
     assert loaded.issues[0].runId == "11111111-1111-4111-8111-111111111111"
 
 
+def test_large_function_explain_lists_steps_and_skips_the_model(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    root = tmp_path / "proj"
+    root.mkdir()
+    out = root / "reports"
+    out.mkdir()
+    (root / "app.py").write_text(
+        "def closure(report, missed):\n"
+        '    """One short pass."""\n'
+        "    if not missed:\n"
+        "        return report\n"
+        "    cached = load_pass()\n"
+        "    if cached is not None:\n"
+        "        return merge(report, cached)\n"
+        "    result = analyze()\n"
+        "    record_timing()\n"
+        "    return merge(report, result)\n",
+        encoding="utf-8",
+    )
+    run_id = "11111111-1111-4111-8111-111111111111"
+    issue = Issue(
+        severity=Severity.MEDIUM,
+        priority="P3",
+        category="heuristic.large_function",
+        file="app.py",
+        line=1,
+        title="Large function 'closure': 81 lines",
+        explanation="closure spans 81 lines (threshold 80).",
+        impact="",
+        recommendedFix="Extract a helper.",
+        codeExample="",
+        stableId="22222222-2222-4222-8222-222222222222",
+        runId=run_id,
+    )
+    report = FindingReport(confidence=70, summary=Summary(medium=1), issues=[issue])
+    path = out / "gate_review_report_review_2026-08-06_1000.json"
+    path.write_text(report.model_dump_json(), encoding="utf-8")
+    write_last_report_pointer(root, path)
+
+    def _refuse_model(*_args, **_kwargs):
+        raise AssertionError("large-function explain must not call the model")
+
+    with patch("repolens.explain_prompt.analyze_raw", side_effect=_refuse_model):
+        artifact = run_explain(RunExplain(uuid=run_id, project_root=root, out_dir=out))
+    text = artifact.read_text(encoding="utf-8")
+    assert "load_pass()" in text
+    assert "analyze()" in text
+    assert "record_timing()" in text
+    assert "another file leaves the span" in text
+    assert "thin shell" not in text
+    assert "via `ollama`" not in text
+
+
 def test_run_explain_writes_markdown(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     root = tmp_path / "proj"

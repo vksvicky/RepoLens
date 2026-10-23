@@ -35,6 +35,11 @@ def _entries(relatives: list[str]) -> list[FileEntry]:
     return out
 
 
+def test_coverage_closure_function_stays_under_eighty_lines() -> None:
+    large = find_large_functions(_entries(["src/repolens/pipeline/deep_pass.py"]))
+    assert large == []
+
+
 def test_selfdog_29_heuristic_locations_remain_clear() -> None:
     relatives = [
         "src/repolens/deep.py",
