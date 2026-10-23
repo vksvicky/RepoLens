@@ -285,6 +285,11 @@
 #   Distinct P1/P2/P3 file budgets, P3 outline packs, rolling prior-pass summary.
 #   Default off until dogfood; set true to measure chars-in/out savings.
 #   Recommended: false until you compare a measured baseline.
+# dspy_program = ""
+#   One compiled instruction file, or a directory of p1.json, p2.json, p3.json,
+#   and coverage.json. Empty keeps the stock sentence. A review does not import
+#   DSPy. Put this in the user config. A project file cannot set it unless
+#   the review was started with --trust-project. Recommended: leave unset.
 
 [explain]
 # enabled = true

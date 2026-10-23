@@ -415,7 +415,7 @@ Deep reports include a **Theme breakdown** section:
 
 Heuristics (mega-files, sibling duplication, gitignore/secrets, CI gaps, …) map into theme finding counts. Deprecated ids such as `sec.secrets` / `sec.deps_config` alias to the new theme ids so older N/A notes still resolve. Themes are **not** a substitute for Semgrep/OSV/gitleaks/CodeQL.
 
-Design: phase-5.2-theme-coverage-and-report-breakdown.md · phase-5.1-deep-hardening.md. Config: `[deep]` (`enabled`, `chars_per_pass`, `mega_file_lines`, `mega_file_exclude_globs`, `skip_paths`). `skip_paths` adds trees on top of the defaults (`bin/`, `gen/`, `test_output/`, `out/`, `*.mcgen`).
+Design: phase-5.2-theme-coverage-and-report-breakdown.md · phase-5.1-deep-hardening.md. Config: `[deep]` (`enabled`, `chars_per_pass`, `mega_file_lines`, `mega_file_exclude_globs`, `skip_paths`, `dspy_program`). `dspy_program` is a compiled instruction file or a directory of `p1.json`, `p2.json`, `p3.json`, and `coverage.json`. A review does not import DSPy. A project `.repolens.toml` cannot set that path unless `--trust-project` is on. `skip_paths` adds trees on top of the defaults (`bin/`, `gen/`, `test_output/`, `out/`, `*.mcgen`).
 
 **Rules** load by **id** from a registry (project `.repolens/rules/` → user config → packaged defaults)—not hard-coded Markdown paths on the author’s machine. Override a rule with `.repolens/rules/<id>.md`.
 

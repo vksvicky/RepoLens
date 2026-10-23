@@ -7,7 +7,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
 **Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==0.1.4`**, tag `v0.1.4` (PyPI and GHCR publish succeeded 2026-10-23).  
-**Active program:** none. [M1](https://github.com/vksvicky/RepoLens/milestone/1)–[M5](https://github.com/vksvicky/RepoLens/milestone/5) are done. Open tracks: benchmark [#153](https://github.com/vksvicky/RepoLens/issues/153) and DSPy [#136](https://github.com/vksvicky/RepoLens/issues/136). Index [#12](https://github.com/vksvicky/RepoLens/issues/12).  
+**Active program:** none. [M1](https://github.com/vksvicky/RepoLens/milestone/1)–[M5](https://github.com/vksvicky/RepoLens/milestone/5) are done. Open track: benchmark [#153](https://github.com/vksvicky/RepoLens/issues/153). Index [#12](https://github.com/vksvicky/RepoLens/issues/12).  
 **Parked (not a release gate):** [#91](https://github.com/vksvicky/RepoLens/issues/91) local UI calibrations (#17b).  
 **Feedback:** [Discussions](https://github.com/vksvicky/RepoLens/discussions) + [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose).
 
@@ -49,7 +49,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | **0.1.3 provenance and locks** | [#121](https://github.com/vksvicky/RepoLens/issues/121)–[#127](https://github.com/vksvicky/RepoLens/issues/127) | **Done** — URL sanitation, fenced commands, hashed Semgrep and Checkov wheels |
 | **0.1.4 memory and review time** | [#137](https://github.com/vksvicky/RepoLens/issues/137)–[#145](https://github.com/vksvicky/RepoLens/issues/145) · trackers [#151](https://github.com/vksvicky/RepoLens/issues/151), [#152](https://github.com/vksvicky/RepoLens/issues/152) · release [#154](https://github.com/vksvicky/RepoLens/issues/154) | **Done** — peak RSS, one Fast Brain read, scanner overlap, per-pass timing; published `v0.1.4` |
 | **Local versus BYOK benchmark** | [#146](https://github.com/vksvicky/RepoLens/issues/146)–[#150](https://github.com/vksvicky/RepoLens/issues/150), [#155](https://github.com/vksvicky/RepoLens/issues/155) · tracker [#153](https://github.com/vksvicky/RepoLens/issues/153) | **In progress** — branch `benchmark`; not on `main` |
-| **DSPy instruction tail** | [#133](https://github.com/vksvicky/RepoLens/issues/133)–[#135](https://github.com/vksvicky/RepoLens/issues/135) · tracker [#136](https://github.com/vksvicky/RepoLens/issues/136) | **In progress** — a review can load an instruction file; a live compile stays manual |
+| **DSPy instruction tail** | [#133](https://github.com/vksvicky/RepoLens/issues/133)–[#135](https://github.com/vksvicky/RepoLens/issues/135) · tracker [#136](https://github.com/vksvicky/RepoLens/issues/136) | **Done** — `[deep] dspy_program` loads a compiled file into the Slow Brain. A review does not import DSPy. `scripts/dspy_compile.py` writes and re-checks that file. A live optimizer run stays an offline job and is not a package dependency |
 ---
 
 ## Legend
@@ -609,6 +609,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-09-26 | Tracker hygiene | Close [#11](https://github.com/vksvicky/RepoLens/issues/11) (parked residuals, no sticky issue); close [#6](https://github.com/vksvicky/RepoLens/issues/6) → Discussions + issue templates |
 | 2026-10-13 | Tracker sync ([#12](https://github.com/vksvicky/RepoLens/issues/12)) | M1–M5 done; `v0.1.3` published; no active milestone; [#91](https://github.com/vksvicky/RepoLens/issues/91) stays parked |
 | 2026-10-23 | Tracker sync ([#12](https://github.com/vksvicky/RepoLens/issues/12)) | `v0.1.4` published; [#151](https://github.com/vksvicky/RepoLens/issues/151), [#152](https://github.com/vksvicky/RepoLens/issues/152), and [#154](https://github.com/vksvicky/RepoLens/issues/154) closed; [#91](https://github.com/vksvicky/RepoLens/issues/91) stays parked; open tracks are [#153](https://github.com/vksvicky/RepoLens/issues/153) and [#136](https://github.com/vksvicky/RepoLens/issues/136) |
+| 2026-10-23 | DSPy instruction file | [#133](https://github.com/vksvicky/RepoLens/issues/133) and [#134](https://github.com/vksvicky/RepoLens/issues/134) load on review. [#135](https://github.com/vksvicky/RepoLens/issues/135) writes the file. A live optimizer call stays manual. Open track is benchmark [#153](https://github.com/vksvicky/RepoLens/issues/153) |
 
 ---
 

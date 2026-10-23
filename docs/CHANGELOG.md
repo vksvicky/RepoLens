@@ -13,7 +13,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - The Semgrep install pin is 1.181.0, including the hashed plugin locks and the `scanners` extra.
-- The phase index records `0.1.4` as shipped and names the open benchmark and DSPy tracks.
+- The phase index records the DSPy instruction file as done. The open track is the benchmark, which is not on `main`.
 
 ### Fixed
 
