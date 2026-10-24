@@ -31,7 +31,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [scanners.md](./scanners.md) | Optional scanners: plugins install, flags, cache |
 | [packs.md](./packs.md) | Optional domain packs (Azure Sentinel / SOAR, …) |
 | [packs-quickcheck.md](./packs-quickcheck.md) | Packs: expected CLI output + rough timings |
-| [ci.md](./ci.md) | GitHub Action + Bitbucket CI + PR suggested-fix summary |
+| [ci.md](./ci.md) | Pull request job and weekly audit for GitHub, Jenkins, Bitbucket, GitLab, CircleCI, Azure DevOps, and Buildkite |
 | [publishing.md](./publishing.md) | PyPI Trusted Publisher UI + pre-publish dogfood |
 | [local-learning.md](./local-learning.md) | Opt-in on-disk index + memory |
 | [review-confidence-log.md](./review-confidence-log.md) | Confidence history template |

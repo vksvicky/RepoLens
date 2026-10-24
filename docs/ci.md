@@ -2,7 +2,407 @@
 
 Use the official **GitHub Action** (composite) or a small shell script (Bitbucket Pipelines, generic CI).
 
+## Pull request and scheduled audit
 
+Two jobs. The pull request job does not call a model. The weekly or monthly job is the full audit.
+
+Weekly cron: `0 6 * * 1`. Monthly cron: `0 6 1 * *`. Use one of them.
+
+### 1. Install
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+pip install "repolens-audit[scanners]==0.1.4"
+repolens plugins install all --yes
+```
+
+### 2. Pull request
+
+```bash
+repolens review --path . --out reports --format both --sarif \
+  --preset pr \
+  --scanners gitleaks,semgrep,osv,trivy,checkov \
+  --fail-on HIGH \
+  --require-scanners
+```
+
+Exit 1 fails the build.
+
+### 3. Weekly or monthly
+
+Set a cloud key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, or `REPOLENS_API_KEY`) or run on a machine that already has Ollama.
+
+```bash
+repolens review --path . --out reports --format both --sarif \
+  --preset release \
+  --scanners gitleaks,semgrep,osv,trivy,checkov \
+  --timeout 7200 \
+  --require-scanners \
+  --verbose
+```
+
+### GitHub Actions
+
+```yaml
+name: RepoLens
+on:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+jobs:
+  pull-request:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install "repolens-audit[scanners]==0.1.4"
+          repolens plugins install all --yes
+      - name: Review
+        run: |
+          . .venv/bin/activate
+          repolens review --path . --out reports --format both --sarif \
+            --preset pr \
+            --scanners gitleaks,semgrep,osv,trivy,checkov \
+            --fail-on HIGH \
+            --require-scanners
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: repolens-pr
+          path: reports/
+  weekly:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install "repolens-audit[scanners]==0.1.4"
+          repolens plugins install all --yes
+      - name: Audit
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          . .venv/bin/activate
+          repolens review --path . --out reports --format both --sarif \
+            --preset release \
+            --scanners gitleaks,semgrep,osv,trivy,checkov \
+            --timeout 7200 \
+            --require-scanners \
+            --verbose
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: repolens-weekly
+          path: reports/
+```
+
+### Jenkins
+
+1. New Pipeline job from this `Jenkinsfile`.
+2. Add the cloud key as credential id `openai-api-key`, or leave that line out on an Ollama agent.
+
+```groovy
+pipeline {
+  agent any
+  triggers { cron('H 6 * * 1') }
+  stages {
+    stage('Install') {
+      steps {
+        sh '''#!/usr/bin/env bash
+          set -euo pipefail
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install "repolens-audit[scanners]==0.1.4"
+          repolens plugins install all --yes
+        '''
+      }
+    }
+    stage('Pull request') {
+      when { changeRequest() }
+      steps {
+        sh '''#!/usr/bin/env bash
+          set -euo pipefail
+          . .venv/bin/activate
+          repolens review --path . --out reports --format both --sarif \
+            --preset pr \
+            --scanners gitleaks,semgrep,osv,trivy,checkov \
+            --fail-on HIGH \
+            --require-scanners
+        '''
+      }
+    }
+    stage('Weekly audit') {
+      when { triggeredBy 'TimerTrigger' }
+      environment {
+        OPENAI_API_KEY = credentials('openai-api-key')
+      }
+      steps {
+        sh '''#!/usr/bin/env bash
+          set -euo pipefail
+          . .venv/bin/activate
+          repolens review --path . --out reports --format both --sarif \
+            --preset release \
+            --scanners gitleaks,semgrep,osv,trivy,checkov \
+            --timeout 7200 \
+            --require-scanners \
+            --verbose
+        '''
+      }
+    }
+  }
+  post {
+    always {
+      archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
+    }
+  }
+}
+```
+
+### Bitbucket Pipelines
+
+1. Commit `bitbucket-pipelines.yml`.
+2. Repository settings → Pipelines → Schedules → custom pipeline `weekly-audit` → weekly.
+
+```yaml
+image: python:3.12
+pipelines:
+  pull-requests:
+    "**":
+      - step:
+          name: RepoLens pull request
+          script:
+            - python -m venv .venv
+            - . .venv/bin/activate
+            - pip install "repolens-audit[scanners]==0.1.4"
+            - repolens plugins install all --yes
+            - |
+              repolens review --path . --out reports --format both --sarif \
+                --preset pr \
+                --scanners gitleaks,semgrep,osv,trivy,checkov \
+                --fail-on HIGH \
+                --require-scanners
+          artifacts:
+            - reports/**
+  custom:
+    weekly-audit:
+      - step:
+          name: RepoLens weekly audit
+          script:
+            - python -m venv .venv
+            - . .venv/bin/activate
+            - pip install "repolens-audit[scanners]==0.1.4"
+            - repolens plugins install all --yes
+            - |
+              repolens review --path . --out reports --format both --sarif \
+                --preset release \
+                --scanners gitleaks,semgrep,osv,trivy,checkov \
+                --timeout 7200 \
+                --require-scanners \
+                --verbose
+          artifacts:
+            - reports/**
+```
+
+Put `OPENAI_API_KEY` in repository variables, secured.
+
+### GitLab CI
+
+1. Commit `.gitlab-ci.yml`.
+2. Build → Pipeline schedules → cron `0 6 * * 1` → target branch `main`.
+
+```yaml
+stages: [test]
+repolens-pr:
+  image: python:3.12-slim
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  before_script:
+    - pip install "repolens-audit[scanners]==0.1.4"
+    - repolens plugins install all --yes
+  script:
+    - |
+      repolens review --path . --out reports --format both --sarif \
+        --preset pr \
+        --scanners gitleaks,semgrep,osv,trivy,checkov \
+        --fail-on HIGH \
+        --require-scanners
+  artifacts:
+    when: always
+    paths: [reports/]
+repolens-weekly:
+  image: python:3.12-slim
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  before_script:
+    - pip install "repolens-audit[scanners]==0.1.4"
+    - repolens plugins install all --yes
+  script:
+    - |
+      repolens review --path . --out reports --format both --sarif \
+        --preset release \
+        --scanners gitleaks,semgrep,osv,trivy,checkov \
+        --timeout 7200 \
+        --require-scanners \
+        --verbose
+  artifacts:
+    when: always
+    paths: [reports/]
+```
+
+Put `OPENAI_API_KEY` in CI/CD variables, masked.
+
+### CircleCI
+
+1. Commit `.circleci/config.yml`.
+2. Project settings → Triggers → Add scheduled trigger is not used here. The schedule is in the workflow below.
+
+```yaml
+version: 2.1
+jobs:
+  repolens-pr:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run: pip install "repolens-audit[scanners]==0.1.4" && repolens plugins install all --yes
+      - run: |
+          repolens review --path . --out reports --format both --sarif \
+            --preset pr \
+            --scanners gitleaks,semgrep,osv,trivy,checkov \
+            --fail-on HIGH \
+            --require-scanners
+      - store_artifacts:
+          path: reports
+  repolens-weekly:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run: pip install "repolens-audit[scanners]==0.1.4" && repolens plugins install all --yes
+      - run: |
+          repolens review --path . --out reports --format both --sarif \
+            --preset release \
+            --scanners gitleaks,semgrep,osv,trivy,checkov \
+            --timeout 7200 \
+            --require-scanners \
+            --verbose
+      - store_artifacts:
+          path: reports
+workflows:
+  pull-request:
+    jobs:
+      - repolens-pr:
+          filters:
+            branches:
+              ignore: main
+  weekly:
+    triggers:
+      - schedule:
+          cron: "0 6 * * 1"
+          filters:
+            branches:
+              only: main
+    jobs:
+      - repolens-weekly
+```
+
+Put `OPENAI_API_KEY` in a project environment variable.
+
+### Azure DevOps
+
+1. Commit `azure-pipelines.yml`.
+2. Pipelines → Edit → Triggers → Scheduled → weekly, branch `main`.
+
+```yaml
+trigger: none
+pr:
+  - main
+schedules:
+  - cron: "0 6 * * 1"
+    displayName: Weekly RepoLens audit
+    branches:
+      include: [main]
+    always: true
+pool:
+  vmImage: ubuntu-latest
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3.12"
+  - script: |
+      pip install "repolens-audit[scanners]==0.1.4"
+      repolens plugins install all --yes
+      if [ "$(Build.Reason)" = "Schedule" ]; then
+        repolens review --path . --out reports --format both --sarif \
+          --preset release \
+          --scanners gitleaks,semgrep,osv,trivy,checkov \
+          --timeout 7200 \
+          --require-scanners \
+          --verbose
+      else
+        repolens review --path . --out reports --format both --sarif \
+          --preset pr \
+          --scanners gitleaks,semgrep,osv,trivy,checkov \
+          --fail-on HIGH \
+          --require-scanners
+      fi
+    displayName: RepoLens
+    env:
+      OPENAI_API_KEY: $(OPENAI_API_KEY)
+  - task: PublishBuildArtifacts@1
+    condition: always()
+    inputs:
+      PathtoPublish: reports
+      ArtifactName: repolens-reports
+```
+
+### Buildkite
+
+1. New pipeline from `pipeline.yml` in the repo.
+2. Pipeline settings → Schedules → cron `0 6 * * 1` → branch `main` → env `REPOLENS_SCHEDULE=1`.
+
+```yaml
+steps:
+  - label: ":mag: RepoLens"
+    command: |
+      python3 -m venv .venv
+      . .venv/bin/activate
+      pip install "repolens-audit[scanners]==0.1.4"
+      repolens plugins install all --yes
+      if [ "${REPOLENS_SCHEDULE:-}" = "1" ]; then
+        repolens review --path . --out reports --format both --sarif \
+          --preset release \
+          --scanners gitleaks,semgrep,osv,trivy,checkov \
+          --timeout 7200 \
+          --require-scanners \
+          --verbose
+      else
+        repolens review --path . --out reports --format both --sarif \
+          --preset pr \
+          --scanners gitleaks,semgrep,osv,trivy,checkov \
+          --fail-on HIGH \
+          --require-scanners
+      fi
+    artifact_paths: "reports/**/*"
+```
+
+Put `OPENAI_API_KEY` in the weekly schedule environment, not in the pull request step.
 
 ## GitHub Actions
 
