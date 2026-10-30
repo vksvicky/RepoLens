@@ -55,12 +55,14 @@ _EXAMPLE_PATH = re.compile(
     re.IGNORECASE,
 )
 _LOCAL_UI = re.compile(
-    r"local[\s_-]?ui|desktop|clipboard|pasteboard|userdefaults|nsuserdefaults|"
-    r"localstorage|sessionstorage|text field|on-screen|swiftui|uikit|view state",
+    r"local[\s_-]?ui|desktop[\s_-]?(?:app|ui)|main window|ui window|"
+    r"nsview|uiview|swiftui|uikit|\bcanvas\b|text field|label\.text|"
+    r"clipboard|pasteboard|userdefaults|nsuserdefaults|"
+    r"localstorage|sessionstorage|on-screen|view state",
     re.IGNORECASE,
 )
 _DATA_EXPOSURE = re.compile(
-    r"data exposure|sensitive data|\bpii\b|shown in|displays|text field|label\.text",
+    r"data exposure|sensitive data|\bpii\b|shown in|text field|label\.text",
     re.IGNORECASE,
 )
 _EXFIL = re.compile(

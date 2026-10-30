@@ -168,6 +168,54 @@ def test_local_ui_with_a_network_path_stays_medium() -> None:
     assert LOCAL_UI_TAG not in out[0].explanation
 
 
+def _plain_issue(*, explanation: str, severity: Severity = Severity.HIGH) -> Issue:
+    """Title and code example avoid widget phrases, so only the explanation can match."""
+    return Issue(
+        severity=severity,
+        priority="P2",
+        category="sec.logging",
+        file="src/cli.py",
+        line=4,
+        title="Error reported on the console",
+        explanation=explanation,
+        impact="The operator sees a stack trace.",
+        recommendedFix="Log the code.",
+        codeExample="print(err)",
+    )
+
+
+def test_desktop_cli_and_displays_stay_at_their_severity() -> None:
+    issue = _plain_issue(
+        explanation=(
+            "displaying an error message: the desktop CLI displays it "
+            "inside a time window beside a stack frame and a database view."
+        ),
+    )
+    out = apply_fp_calibrations([issue], DeepConfig())
+    assert out[0].severity == Severity.HIGH
+    assert LOCAL_UI_TAG not in out[0].explanation
+
+
+def test_swiftui_text_field_with_pii_is_demoted() -> None:
+    issue = _plain_issue(
+        explanation="The SwiftUI text field shows PII on screen.",
+        severity=Severity.MEDIUM,
+    )
+    out = apply_fp_calibrations([issue], DeepConfig())
+    assert out[0].severity == Severity.LOW
+    assert LOCAL_UI_TAG in out[0].explanation
+
+
+def test_swiftui_text_field_with_pii_and_urlsession_stays_medium() -> None:
+    issue = _plain_issue(
+        explanation="The SwiftUI text field shows PII, then URLSession uploads it.",
+        severity=Severity.MEDIUM,
+    )
+    out = apply_fp_calibrations([issue], DeepConfig())
+    assert out[0].severity == Severity.MEDIUM
+    assert LOCAL_UI_TAG not in out[0].explanation
+
+
 def test_local_ui_calibration_can_be_disabled() -> None:
     issue = _local_ui_issue(
         explanation="The desktop view displays the token in a text field.",

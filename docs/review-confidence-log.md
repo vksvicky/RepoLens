@@ -93,3 +93,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-30 | ui-bench→commit | 93% | 0/0/0/1 | Local-UI exposure demotes when no network or IPC path. CI benchmark row is a measured zero. Model row writer stays out. Local main only | chat |
 | 2026-10-30 | adopt→commit | 92% | 0/0/0/1 | Fast Brain pre-commit hook and GitLab code-quality JSON. SARIF upload uses the Action file. `--scanners off` stays off. Local main only | chat |
 | 2026-10-30 | v0.1.5→push | 93% | 0/0/0/1 | Version and install docs move to 0.1.5. Dogfood dry-run and scanners-only with an empty fail-on. Complexity highs are existing span checks. v0.1.4 stays | chat |
+| 2026-10-30 | v0.1.6→commit | 94% | 0/0/0/1 | Local-UI demotion matches a widget phrase. Bare desktop and displays no longer demote. text field stays on both sides. Local main only | chat |

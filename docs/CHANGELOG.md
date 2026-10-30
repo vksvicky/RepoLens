@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.6] — 2026-10-30
+
+Published as `repolens-audit==0.1.6` when the `v0.1.6` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tag `v0.1.5`.
+
+### Fixed
+
+- A local-UI demotion no longer fires because the finding says "desktop" or "displays". It still requires a widget phrase, a data exposure, and no network or IPC path. `text field` and `label.text` stay on both sides of that check.
+
+### Changed
+
+- The private-GPU recipe no longer sets `REPOLENS_API_KEY` to a placeholder word. A server that ignores the key still needs a non-empty value. A server that checks the key needs the real one.
+
 ## [0.1.5] — 2026-10-30
 
 Published as `repolens-audit==0.1.5` when the `v0.1.5` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tag `v0.1.4`.

@@ -4,9 +4,9 @@
 
 RepoLens is an open-source CLI that runs structured code reviews against projects you care about: on your machine, or cloned from GitHub, Bitbucket, Hugging Face, or any Git URL. It follows a clear **P1 → P2 → P3** pass (security → bugs/reliability/performance → architecture/quality) and writes audit-friendly reports with impact, remediation steps, and code-example fixes for Critical/High findings.
 
-> **Status:** **`repolens-audit==0.1.5`** (CLI: `repolens`) — Phases **0–9** complete; M1–M4 shipped  
+> **Status:** **`repolens-audit==0.1.6`** (CLI: `repolens`) — Phases **0–9** complete; M1–M4 shipped  
 > Local CLI · remotes · optional scanners · explain + diagrams · GitHub Action · opt-in local learning · enterprise CI recipes  
-> Install: `pip install "repolens-audit[scanners]==0.1.5"` · from a clone: `pip install -e ".[dev]"`  
+> Install: `pip install "repolens-audit[scanners]==0.1.6"` · from a clone: `pip install -e ".[dev]"`  
 > **[View a sample due-diligence report](https://github.com/vksvicky/RepoLens/blob/main/reports/samples/sample_audit_report.md)** ([PDF](https://github.com/vksvicky/RepoLens/blob/main/reports/samples/sample_audit_report.pdf)) — gate ≠ “% secure”; remediation + architecture signals included  
 > Docs: [phases](https://github.com/vksvicky/RepoLens/blob/main/docs/phases.md) · [FAQ](https://github.com/vksvicky/RepoLens/blob/main/docs/faq.md) · [rules](https://github.com/vksvicky/RepoLens/blob/main/docs/rules.md) · [install extras](https://github.com/vksvicky/RepoLens/blob/main/docs/install-extras.md) · [CI / Action](https://github.com/vksvicky/RepoLens/blob/main/docs/ci.md) · [remotes](https://github.com/vksvicky/RepoLens/blob/main/docs/remote-sources.md) · [scanners](https://github.com/vksvicky/RepoLens/blob/main/docs/scanners.md) · [local learning](https://github.com/vksvicky/RepoLens/blob/main/docs/local-learning.md) · [publishing](https://github.com/vksvicky/RepoLens/blob/main/docs/publishing.md)
 
@@ -33,7 +33,7 @@ RepoLens is **not** a replacement for Semgrep, CodeQL, Dependabot, Snyk, or your
 **Start here.** Install, ask which command to run, then open the Markdown report. You do not need to memorize flags.
 
 ```bash
-pip install "repolens-audit[scanners]==0.1.5"
+pip install "repolens-audit[scanners]==0.1.6"
 repolens which pr          # prints the exact command
 repolens review --preset pr --path .
 ```
@@ -84,7 +84,7 @@ Interactive helper: `./scripts/repolens-guided.sh` (see [try-on-your-repo](docs/
 
 ```bash
 # Preferred: PyPI (CLI entry point is still `repolens`)
-pip install "repolens-audit[scanners]==0.1.5"
+pip install "repolens-audit[scanners]==0.1.6"
 
 # From a clone (contributors / dogfood)
 python3 -m venv .venv

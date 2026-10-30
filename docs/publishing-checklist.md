@@ -16,6 +16,6 @@ When you create the remote (e.g. `gh repo create`):
 
 7. Confirm Actions **Docs sanity** + **Python** jobs are green on `main`.  
 8. From a clean clone: `pip install -e ".[dev]" && pytest -q && repolens version`.  
-9. For a PyPI release: tag the version in `pyproject.toml` — current release is `v0.1.5`. See [publishing.md](./publishing.md). Do not move `v0.1.4`.  
-10. Point Action consumers at that tag: `uses: vksvicky/RepoLens@v0.1.5` (or `@main` while iterating).
+9. For a PyPI release: tag the version in `pyproject.toml` — current release is `v0.1.6`. See [publishing.md](./publishing.md). Do not move `v0.1.4` or `v0.1.5`.  
+10. Point Action consumers at that tag: `uses: vksvicky/RepoLens@v0.1.6` (or `@main` while iterating).
 

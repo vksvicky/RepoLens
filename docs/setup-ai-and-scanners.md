@@ -21,7 +21,7 @@ RepoLens itself is the **review process**. Pick **one** path (you can combine A 
 | **[B. Local Ollama](#option-b--local-ai-on-your-computer-e-g-ollama)** | Air-gap; code must never leave the machine | Yes (if hardware fits) |
 | **[C. Scanners only](#option-c--checklist-scanners-only-no-ai-narrative)** | PR gates / inventory without AI narrative | No — inventory only |
 
-> **Status today:** Phases **0–9** complete — `pip install "repolens-audit[scanners]==0.1.5"` or from source (`pip install -e .`) then `repolens init`.  
+> **Status today:** Phases **0–9** complete — `pip install "repolens-audit[scanners]==0.1.6"` or from source (`pip install -e .`) then `repolens init`.  
 > - Options **A** and **B** work via the CLI **or** **[playbooks + any LLM chat](./using-playbooks.md)**.  
 > - Option **C** scanners: `repolens plugins install` · [scanners.md](./scanners.md).  
 > - CI: [ci.md](./ci.md) · Local learning: [local-learning.md](./local-learning.md).  
@@ -126,13 +126,12 @@ vllm serve Qwen/Qwen2.5-Coder-32B-Instruct --port 8000
 repolens init --provider openai_compatible \
   --base-url http://vllm-cluster:8000/v1 \
   --model Qwen/Qwen2.5-Coder-32B-Instruct --force
-export REPOLENS_API_KEY="local"
 repolens review --path . --preset changed --timeout 1800
 ```
 
 Text Generation Inference uses the same `--base-url` and `--model` when that server exposes `/v1`.
 
-- The key variable for this provider is `REPOLENS_API_KEY`. A private cluster that ignores the key still needs a non-empty value, because the client sends one.
+- The key variable for this provider is `REPOLENS_API_KEY`. A server that does not check the key still needs some non-empty value, because the client sends one. A server that checks the key needs the real key.
 - `--timeout` is the wait for the first token.
 - Streaming and batching stay on the OpenAI-compatible client. A client change waits on a saved response that the current parser rejects.
 

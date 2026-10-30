@@ -34,7 +34,7 @@ Runtime only: `pip install -e .`
 ### After PyPI (same extra names)
 
 ```bash
-pip install "repolens-audit[scanners]==0.1.5"
+pip install "repolens-audit[scanners]==0.1.6"
 pip install "repolens-audit[dev]"          # contributor tooling
 # Console script remains: repolens
 ```
