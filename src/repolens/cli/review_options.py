@@ -159,6 +159,14 @@ def option_sarif() -> Any:
     return typer.Option(False, "--sarif", help=_SARIF_HELP)
 
 
+def option_gitlab_codequality() -> Any:
+    return typer.Option(
+        False,
+        "--gitlab-codequality",
+        help="Write gl-code-quality-report.json for the GitLab merge-request widget",
+    )
+
+
 def option_verify_findings() -> Any:
     return typer.Option(
         None, "--verify-findings/--no-verify-findings", help=_VERIFY_FINDINGS_HELP

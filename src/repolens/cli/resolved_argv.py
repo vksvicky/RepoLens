@@ -44,6 +44,7 @@ class ResolvedInvocation:
     model: str | None = None
     deep_passes: int | None = None
     sarif: bool = False
+    gitlab_codequality: bool = False
     role_packs: bool | None = None
     import_sarif: tuple[str, ...] = ()
     require_scanners: bool = False
@@ -152,6 +153,8 @@ def _append_output(argv: list[str], inv: ResolvedInvocation) -> None:
         _extend_flag(argv, "--model", inv.model)
     if inv.sarif:
         argv.append("--sarif")
+    if inv.gitlab_codequality:
+        argv.append("--gitlab-codequality")
     if inv.role_packs is True:
         argv.append("--role-packs")
     elif inv.role_packs is False:

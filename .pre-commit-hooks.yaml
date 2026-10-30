@@ -1,0 +1,10 @@
+- id: repolens-fast
+  name: RepoLens Fast Brain
+  description: >
+    Whole-tree Fast Brain before commit. No model and no scanner binaries.
+    Blocks at MEDIUM (mega-file, large function, deep nesting, and the
+    other Fast Brain checks). Does not scan file contents for secrets.
+  entry: repolens hook fast
+  language: python
+  pass_filenames: false
+  always_run: true

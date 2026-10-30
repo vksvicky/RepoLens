@@ -15,6 +15,7 @@ from repolens.cli import commands_explain as commands_explain  # noqa: F401
 from repolens.cli import commands_feedback as commands_feedback  # noqa: F401
 from repolens.cli import commands_fix as commands_fix  # noqa: F401
 from repolens.cli import commands_graph as commands_graph  # noqa: F401
+from repolens.cli import commands_hook as commands_hook  # noqa: F401
 from repolens.cli import commands_hotspots as commands_hotspots  # noqa: F401
 from repolens.cli import commands_ignore as commands_ignore  # noqa: F401
 from repolens.cli import commands_journal as commands_journal  # noqa: F401

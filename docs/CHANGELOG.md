@@ -8,6 +8,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `repolens export <report.json> --gitlab-codequality <path>` and `repolens review --gitlab-codequality` write GitLab code-quality JSON. Scanner and Fast Brain rows with a safe path and line are included. An LLM row is included only when its location was verified. The GitLab CI example publishes that file as the merge-request code-quality report.
+- `repolens hook fast` runs Fast Brain before a commit, fails at MEDIUM, and leaves the report in a temporary directory. `.pre-commit-hooks.yaml` exposes it as `repolens-fast`. It does not run scanner binaries. A project with CI triage still fails this hook on a Fast Brain medium finding.
+- [setup-ai-and-scanners.md](./setup-ai-and-scanners.md) has a private-GPU recipe for vLLM and Text Generation Inference on `openai_compatible`.
 - `[deep] dspy_program` can point at a compiled instruction file, or a directory of `p1.json`, `p2.json`, `p3.json`, and `coverage.json`. A loaded file replaces the stock format sentence for that pass and changes the pass-cache key. The review does not import DSPy. A file that fails validation stays on the stock sentence and is recorded as `rejected`. A project `.repolens.toml` cannot set this path unless `--trust-project` is on.
 - `scripts/dspy_compile.py` can compile that file. A live run prints the configured provider and model, then calls DSPy `COPRO` (instruction only, no demos) on the synthetic fixtures under `tests/fixtures/dspy/`. Install `dspy` by hand for that run. It is not a package dependency, and CI does not call a model.
 - `./scripts/selfdog-review.sh` runs the full combined review of this checkout. It imports this checkout's `src` even when the dev install points at another tree. Set `TARGET` to review another tree. The report still lands in `reports/selfdog-deep/`. [which-command.md](./which-command.md) names what that run already records.
@@ -17,6 +20,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- The GitHub code-scanning example uploads the SARIF file from the Action run. It does not start a second review.
+- `--scanners off` stays off when the run is scanners-only, including `--preset pr`.
 - The Semgrep install pin is 1.181.0, including the hashed plugin locks and the `scanners` extra.
 - The phase index records the DSPy instruction file as done. The open track is the benchmark, which is not on `main`.
 - The phase index records local-UI calibration as done. The benchmark control, fixture, script, and summary are on `main`. The row writer and stream token counts stay open.

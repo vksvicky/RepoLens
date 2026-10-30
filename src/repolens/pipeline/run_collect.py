@@ -175,8 +175,6 @@ def _write_dry_run(state: ReviewRun) -> ReviewResult:
 
 def _run_scanner_tools(state: ReviewRun) -> None:
     state.tools = parse_scanners_flag(state.scanners, config_enabled=state.cfg.scanners.enabled)
-    if state.scanners_only and state.tools is None:
-        state.tools = list(state.cfg.scanners.enabled)
 
     state.scanner_runs = []
     state.scanner_issues = []

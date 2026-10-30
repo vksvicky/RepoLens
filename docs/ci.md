@@ -2,6 +2,25 @@
 
 Use the official **GitHub Action** (composite) or a small shell script (Bitbucket Pipelines, generic CI).
 
+## Pre-commit
+
+Fast Brain only. No model and no scanner binaries. It does not scan file contents for secrets. On this checkout, about 1,000 files took about 2 seconds.
+
+```yaml
+- repo: https://github.com/vksvicky/RepoLens
+  rev: <commit sha>
+  hooks:
+    - id: repolens-fast
+```
+
+Pin `rev` to the commit you installed. After `v0.1.5` is tagged, pin that tag.
+
+```bash
+repolens hook fast
+```
+
+The hook blocks at MEDIUM. A project that turns on CI triage still fails this hook on a Fast Brain medium finding. `repolens review --ci` keeps the scanner-only gate.
+
 ## Pull request and scheduled audit
 
 Two jobs. The pull request job does not call a model. The weekly or monthly job is the full audit.
@@ -240,10 +259,13 @@ repolens-pr:
         --preset pr \
         --scanners gitleaks,semgrep,osv,trivy,checkov \
         --fail-on HIGH \
-        --require-scanners
+        --require-scanners \
+        --gitlab-codequality
   artifacts:
     when: always
     paths: [reports/]
+    reports:
+      codequality: reports/gl-code-quality-report.json
 repolens-weekly:
   image: python:3.12-slim
   stage: test
@@ -259,13 +281,18 @@ repolens-weekly:
         --scanners gitleaks,semgrep,osv,trivy,checkov \
         --timeout 7200 \
         --require-scanners \
+        --gitlab-codequality \
         --verbose
   artifacts:
     when: always
     paths: [reports/]
+    reports:
+      codequality: reports/gl-code-quality-report.json
 ```
 
 Put `OPENAI_API_KEY` in CI/CD variables, masked.
+
+GitLab reads `reports/gl-code-quality-report.json` as the merge-request code-quality widget. The file includes scanner and Fast Brain findings that have a path and a line. An LLM finding is included only when its location was verified.
 
 ### CircleCI
 
@@ -601,22 +628,33 @@ repolens review --ci --scanners auto --fail-on HIGH --format both --sarif
 
 ### Upload to GitHub code scanning (GHAS)
 
+One Action run writes the SARIF file, the job summary, and the check annotations. Upload that file. Do not start a second review.
+
+`pr-summary` fills the job summary and the check annotations. `upload-sarif` fills Security → Code scanning. A finding without a verified location stays in the job summary and the Markdown report, and is absent from the SARIF file.
+
 ```yaml
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+jobs:
+  repolens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
       - uses: vksvicky/RepoLens@main
         with:
           path: .
           run: auto
           fail-on: HIGH
           ci: "true"
-      - name: RepoLens SARIF (optional local CLI)
-        if: always
-        run: |
-          repolens review --path . --ci --scanners-only --sarif --fail-on "" || true
+          sarif: "true"
+          pr-summary: "true"
       - uses: github/codeql-action/upload-sarif@v3
-        if: always
+        if: always()
         with:
           sarif_file: reports/
-          # or a single reports/*.sarif.json path
 ```
 
 Sonar / other ASPM: ingest the same SARIF as an external issues file, or archive `reports/**` (JSON + SARIF + `sbom.cdx.json`) as CI artifacts. RepoLens does **not** host an ASPM portal.

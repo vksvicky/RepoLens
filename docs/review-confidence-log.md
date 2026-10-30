@@ -91,3 +91,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-24 | ci-schedules→commit | 95% | 0/0/0/0 | Docs only. Pull request stays scanners-only. Weekly audit is a separate scheduled job. Keys stay in each host's secret store | chat |
 | 2026-10-30 | hygiene→commit | 94% | 0/0/0/0 | Explain logs a parse or read failure at debug. Resume and retry tests share one stand-in. Local main only | chat |
 | 2026-10-30 | ui-bench→commit | 93% | 0/0/0/1 | Local-UI exposure demotes when no network or IPC path. CI benchmark row is a measured zero. Model row writer stays out. Local main only | chat |
+| 2026-10-30 | adopt→commit | 92% | 0/0/0/1 | Fast Brain pre-commit hook and GitLab code-quality JSON. SARIF upload uses the Action file. `--scanners off` stays off. Local main only | chat |

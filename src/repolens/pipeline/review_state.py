@@ -41,6 +41,8 @@ class ReviewRun:
     deep: bool | None = None
     ci: bool = False
     sarif: bool = False
+    gitlab_codequality: bool = False
+    record_last_report: bool = True
     verify_findings: bool | None = None
     packs: list[str] | None = None
     fallback: bool | None = None

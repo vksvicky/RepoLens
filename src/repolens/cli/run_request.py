@@ -42,6 +42,7 @@ class RunRequest:
     explain_uuids: str | None = None
     ci: bool = False
     sarif: bool = False
+    gitlab_codequality: bool = False
     verify_findings: bool | None = None
     packs: list[str] | None = None
     fallback: bool = True

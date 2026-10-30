@@ -114,6 +114,28 @@ export REPOLENS_API_KEY="..."
 | Gemini OpenAI-compatible gateway | `…/v1beta/openai/` | Optional; prefer native `gemini` |
 | Vertex AI / Amazon Bedrock (native) | — | Phase 9 follow-ups (not in MVP) |
 
+#### Private GPU node (vLLM or Text Generation Inference)
+
+Both servers speak the OpenAI `/v1` API. RepoLens uses `openai_compatible`. There is no `vllm` or `tgi` provider.
+
+```bash
+vllm serve Qwen/Qwen2.5-Coder-32B-Instruct --port 8000
+```
+
+```bash
+repolens init --provider openai_compatible \
+  --base-url http://vllm-cluster:8000/v1 \
+  --model Qwen/Qwen2.5-Coder-32B-Instruct --force
+export REPOLENS_API_KEY="local"
+repolens review --path . --preset changed --timeout 1800
+```
+
+Text Generation Inference uses the same `--base-url` and `--model` when that server exposes `/v1`.
+
+- The key variable for this provider is `REPOLENS_API_KEY`. A private cluster that ignores the key still needs a non-empty value, because the client sends one.
+- `--timeout` is the wait for the first token.
+- Streaming and batching stay on the OpenAI-compatible client. A client change waits on a saved response that the current parser rejects.
+
 **Not BYOK:** `ollama` (local) and `none` (scanners / dry-run only).
 
 > **Restricted / Enterprise Models (e.g. Claude Mythos 5):**  

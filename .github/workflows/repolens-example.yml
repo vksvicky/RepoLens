@@ -1,5 +1,7 @@
 # Example consumer workflow — copy or adapt in your repositories.
 # In *this* repo it dogfoods the composite Action with --dry-run (no LLM keys required).
+# Code scanning upload of the Action's SARIF file is the example in docs/ci.md.
+# This dry-run does not upload SARIF.
 name: RepoLens example
 
 on:

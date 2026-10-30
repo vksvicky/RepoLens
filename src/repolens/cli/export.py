@@ -13,6 +13,7 @@ from repolens.cli.app import app, console
 from repolens.cli.exit_codes import EXIT_BAD_INPUT
 from repolens.evidence_pack import build_evidence_pack, resolve_evidence_inputs
 from repolens.executive_summary import write_executive_summary
+from repolens.gitlab_codequality import write_gitlab_codequality
 from repolens.schema import FindingReport
 
 
@@ -45,9 +46,20 @@ def export(
         "--out",
         help="Output directory for pack/summary (default: next to the report)",
     ),
+    gitlab_codequality: Path | None = typer.Option(
+        None,
+        "--gitlab-codequality",
+        help="Write GitLab code-quality JSON for this FindingReport",
+    ),
 ) -> None:
     """Export or convert an existing report."""
     typer.echo(f"Report: {report.resolve()}")
+    if gitlab_codequality is not None and (evidence_pack or executive_summary or pdf):
+        console.print("[red]--gitlab-codequality cannot be combined with another export[/red]")
+        raise typer.Exit(code=EXIT_BAD_INPUT)
+    if gitlab_codequality is not None:
+        _write_gitlab_export(report, gitlab_codequality)
+        return
     if evidence_pack and executive_summary:
         console.print("[red]Choose one of --evidence-pack or --executive-summary[/red]")
         raise typer.Exit(code=EXIT_BAD_INPUT)
@@ -78,6 +90,19 @@ def export(
     if not pdf:
         return
     _pandoc_pdf(report)
+
+
+def _write_gitlab_export(report: Path, dest: Path) -> None:
+    if report.suffix.lower() != ".json" or report.name.endswith(".sarif.json"):
+        console.print("[red]GitLab code quality needs a FindingReport JSON file[/red]")
+        raise typer.Exit(code=EXIT_BAD_INPUT)
+    try:
+        loaded = FindingReport.model_validate_json(report.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        console.print(f"[red]GitLab code quality failed:[/red] {exc}")
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
+    path = write_gitlab_codequality(loaded, dest)
+    console.print(f"[green]GitLab code quality:[/green] {path}")
 
 
 def _pandoc_pdf(report: Path) -> None:

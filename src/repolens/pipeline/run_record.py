@@ -49,18 +49,16 @@ def _persist_finished_artifacts(state):
         if state.fmt in {"json", "both"}
         else None
     )
-    if state.js is not None:
-        from repolens.explain import write_last_report_pointer
-
-        write_last_report_pointer(state.root, state.js)
-    elif state.md is not None and state.fmt == "md":
+    if state.js is None and state.md is not None and state.fmt == "md":
         state.js = write_json_report(
             state.report, state.out, mode=state.mode, when=state.report_when
         )
+    if state.js is not None and state.record_last_report:
         from repolens.explain import write_last_report_pointer
 
         write_last_report_pointer(state.root, state.js)
     sarif_path = None
+    gitlab_path = None
     if state.sarif:
         sarif_path = write_sarif_report(
             state.report, state.root, out_dir=state.out, mode=state.mode, when=state.report_when
@@ -71,6 +69,11 @@ def _persist_finished_artifacts(state):
                 f"SARIF: {sarif_path.name} "
                 f"({n}/{len(state.report.issues)} location-verified result(s))"
             )
+    if state.gitlab_codequality:
+        from repolens.gitlab_codequality import GITLAB_CODEQUALITY_NAME, write_gitlab_codequality
+
+        gitlab_path = write_gitlab_codequality(state.report, state.out / GITLAB_CODEQUALITY_NAME)
+        state.prog.detail(f"GitLab code quality: {gitlab_path.name}")
     state.prog.phase("Done")
     return ReviewResult(
         report=state.report,
@@ -79,5 +82,6 @@ def _persist_finished_artifacts(state):
         files_scanned=state.fast_brain_file_count,
         dry_run=False,
         sarif_path=sarif_path,
+        gitlab_path=gitlab_path,
         aborted=bool(state.aborted),
     )

@@ -200,6 +200,8 @@ def _print_run_result_paths(result: Any) -> None:
         console.print(f"[green]JSON report:[/green] {result.json_path}")
     if result.sarif_path:
         console.print(f"[green]SARIF report:[/green] {result.sarif_path}")
+    if result.gitlab_path:
+        console.print(f"[green]GitLab code quality:[/green] {result.gitlab_path}")
     if result.aborted:
         raise typer.Exit(code=130)
 
@@ -255,6 +257,7 @@ def _call_run_review(request: RunRequest, resolved_root: Path, out_dir: Path | N
         deep=request.deep,
         ci=request.ci,
         sarif=request.sarif,
+        gitlab_codequality=request.gitlab_codequality,
         verify_findings=request.verify_findings,
         packs=request.packs,
         fallback=request.fallback,

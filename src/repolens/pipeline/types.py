@@ -37,4 +37,5 @@ class ReviewResult:
     files_scanned: int
     dry_run: bool
     sarif_path: Path | None = None
+    gitlab_path: Path | None = None
     aborted: bool = False
