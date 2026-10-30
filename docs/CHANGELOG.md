@@ -21,6 +21,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - Coverage closure records its pass timing in a helper, so `_apply_coverage_closure` stays under the 80-line function span.
+- A large-function explain logs a parse or read failure with the traceback. The retry-pass tests live in their own file, so the resume tests stay under the 500-line file check.
+- The resume and retry tests share one deep-pass stand-in, so that setup is no longer a copied block.
 - `repolens explain` for a large-function finding reads that function's steps from the file and does not call the model. The diagram lists those steps. Moving the whole function into another file does not clear the span.
 - The docs linked from the PyPI page install `repolens-audit==0.1.4`. Local learning describes the store that ships. Notes that were never committed are no longer named as if they were in the repo.
 

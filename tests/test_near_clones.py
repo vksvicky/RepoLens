@@ -254,3 +254,23 @@ def test_deep_tests_do_not_share_a_near_clone_block() -> None:
         )
     result = find_near_clones(entries, config=NearClonesConfig())
     assert result.issues == []
+
+
+def test_resume_and_retry_tests_do_not_share_a_near_clone_block() -> None:
+    root = Path(__file__).resolve().parents[1]
+    entries: list[FileEntry] = []
+    for relative in (
+        "tests/test_pipeline_deep_resume.py",
+        "tests/test_pipeline_retry_pass.py",
+    ):
+        path = root / relative
+        entries.append(
+            FileEntry(
+                path=path,
+                relative=relative,
+                size=path.stat().st_size,
+                priority_band=3,
+            )
+        )
+    result = find_near_clones(entries, config=NearClonesConfig())
+    assert result.issues == []

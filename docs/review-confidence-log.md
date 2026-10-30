@@ -89,3 +89,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-23 | dspy-compile→push | 93% | 0/0/0/1 | COPRO runs only when dspy is installed by hand. CI covers the writer, the metric, and the model fields. Review still does not import DSPy | chat |
 | 2026-10-23 | explain-span→commit | 94% | 0/0/0/1 | Line-span explain reads the function and skips the model. Closure timing is a helper. Step list stops at 12. Local main only | chat |
 | 2026-10-24 | ci-schedules→commit | 95% | 0/0/0/0 | Docs only. Pull request stays scanners-only. Weekly audit is a separate scheduled job. Keys stay in each host's secret store | chat |
+| 2026-10-30 | hygiene→commit | 94% | 0/0/0/0 | Explain logs a parse or read failure at debug. Resume and retry tests share one stand-in. Local main only | chat |

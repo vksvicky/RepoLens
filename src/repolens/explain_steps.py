@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import logging
 from pathlib import Path
 
 _LABEL_CHARS = 80
@@ -56,6 +57,7 @@ def _function_covering(text: str, line: int):
     try:
         tree = ast.parse(text)
     except SyntaxError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     exact = None
     container = None
@@ -104,6 +106,7 @@ def large_function_doc(root: Path, issue):
     try:
         text = path.read_text(encoding="utf-8")
     except OSError:
+        logging.getLogger(__name__).debug("handled expected error", exc_info=True)
         return None
     function = _function_covering(text, issue.line)
     if function is None:

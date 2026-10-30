@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
+from repolens.config import AdaptiveConfig, DeepConfig, ModelConfig, RepoLensConfig
 from repolens.llm_structured import StructuredLlmResult
 from repolens.schema import FindingReport, Issue, Severity, Summary
 
@@ -45,3 +48,37 @@ def _pass_report(
     return StructuredLlmResult(
         report=report, raw_text="{}", layer="ok", error=None
     )
+
+
+def ollama_deep_config() -> RepoLensConfig:
+    """Mock Ollama settings with deep mode on."""
+    return RepoLensConfig(
+        model=ModelConfig(provider="ollama", model="mock", timeout_seconds=30),
+        adaptive=AdaptiveConfig(enabled=False),
+        deep=DeepConfig(enabled=True),
+    )
+
+
+def _band_priority(pass_id: str) -> str:
+    if pass_id == "p1":
+        return "P1"
+    if pass_id == "p2":
+        return "P2"
+    return "P3"
+
+
+def recording_band_analyze(calls: list[str]) -> Callable[..., StructuredLlmResult]:
+    """Record each pass id and return one finding for that band."""
+
+    def analyze(
+        prompt, model_cfg, *, pass_id, progress=None, raw_dir=None, on_delta=None, **_
+    ):
+        calls.append(pass_id)
+        return _pass_report(
+            title=f"{pass_id} finding",
+            file="a.py",
+            priority=_band_priority(pass_id),
+            coverage_na=[],
+        )
+
+    return analyze

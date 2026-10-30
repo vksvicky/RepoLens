@@ -35,6 +35,17 @@ def _entries(relatives: list[str]) -> list[FileEntry]:
     return out
 
 
+def test_deep_resume_and_retry_files_stay_under_mega_file_lines() -> None:
+    from repolens.heuristics.mega_files import find_mega_files
+
+    relatives = [
+        "tests/test_pipeline_deep_resume.py",
+        "tests/test_pipeline_retry_pass.py",
+    ]
+    mega, _ = find_mega_files(_entries(relatives), mega_file_lines=500)
+    assert mega == []
+
+
 def test_coverage_closure_function_stays_under_eighty_lines() -> None:
     large = find_large_functions(_entries(["src/repolens/pipeline/deep_pass.py"]))
     assert large == []
