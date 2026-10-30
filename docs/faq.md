@@ -288,7 +288,7 @@ For `heuristic.mega_file`, RepoLens feeds a **symbol outline** (classes/function
 
 ## How do we reduce known LLM false positives for everyone?
 
-Post-parse **FP calibrations** (default on) demote patterns such as list-form `subprocess` “command injection”. Toggle under `[deep].fp_calibrations` in config / `.repolens.toml` (e.g. `subprocess_list_not_injection = false` to disable). Design:.
+Post-parse **FP calibrations** (default on) demote patterns such as list-form `subprocess` “command injection”, and a local-only UI data exposure that has no network or IPC path (`attack_surface=local_ui`). The same local-UI title is clustered across files. Toggle under `[deep].fp_calibrations` in config / `.repolens.toml` (e.g. `subprocess_list_not_injection = false`, or `local_ui_attack_surface = false`). Design:.
 
 ---
 

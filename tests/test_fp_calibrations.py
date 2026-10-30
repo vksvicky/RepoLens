@@ -6,7 +6,9 @@ from pathlib import Path
 
 from repolens.config import DeepConfig, load_config
 from repolens.fp_calibrations import (
+    CALIBRATION_LOCAL_UI,
     CALIBRATION_SUBPROCESS_LIST,
+    LOCAL_UI_TAG,
     apply_fp_calibrations,
     effective_fp_calibrations,
 )
@@ -130,3 +132,47 @@ def test_intentional_vuln_example_demoted() -> None:
     out = apply_fp_calibrations([issue], DeepConfig())
     assert out[0].severity == Severity.LOW
     assert "[calibrated: intentional_vuln_example]" in out[0].explanation
+
+
+def _local_ui_issue(*, explanation: str, severity: Severity = Severity.MEDIUM) -> Issue:
+    return Issue(
+        severity=severity,
+        priority="P2",
+        category="sec.data_exposure",
+        file="Sources/SettingsView.swift",
+        line=12,
+        title="Token shown in a local UI text field",
+        explanation=explanation,
+        impact="A person at the screen can read the value.",
+        recommendedFix="Show a placeholder.",
+        codeExample="label.text = token",
+    )
+
+
+def test_local_ui_data_exposure_is_demoted_and_tagged() -> None:
+    issue = _local_ui_issue(
+        explanation="The desktop view displays the token in a text field.",
+    )
+    out = apply_fp_calibrations([issue], DeepConfig())
+    assert out[0].severity == Severity.LOW
+    assert LOCAL_UI_TAG in out[0].explanation
+    assert f"[calibrated: {CALIBRATION_LOCAL_UI}]" in out[0].explanation
+
+
+def test_local_ui_with_a_network_path_stays_medium() -> None:
+    issue = _local_ui_issue(
+        explanation="The desktop view displays the token, then URLSession uploads it.",
+    )
+    out = apply_fp_calibrations([issue], DeepConfig())
+    assert out[0].severity == Severity.MEDIUM
+    assert LOCAL_UI_TAG not in out[0].explanation
+
+
+def test_local_ui_calibration_can_be_disabled() -> None:
+    issue = _local_ui_issue(
+        explanation="The desktop view displays the token in a text field.",
+    )
+    deep = DeepConfig(fp_calibrations={CALIBRATION_LOCAL_UI: False})
+    out = apply_fp_calibrations([issue], deep)
+    assert out[0].severity == Severity.MEDIUM
+    assert effective_fp_calibrations(DeepConfig())[CALIBRATION_LOCAL_UI] is True

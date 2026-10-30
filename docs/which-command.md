@@ -411,6 +411,15 @@ Every example is this repository, run from the RepoLens folder. A command you ca
 | `repolens hotspots --since 6.months` | **Now.** Files that change most in git (not function complexity). | `repolens hotspots --path . --since 6.months --format json` |
 | `repolens check architecture` | **Now, when a rules file exists.** Boundary violations + candidate cuts as text. This checkout has no rules file until you add one. | `repolens check architecture --path .` |
 
+### Compare two runs without a model
+
+| Command | What it does | Example |
+| --- | --- | --- |
+| `scripts/repolens_benchmark.py --arm ci` | **Now.** Checkout script, not a `repolens` command. Scanners and Fast Brain on `tests/fixtures/benchmark/`. Token totals are zero. No API key. | `./.venv/bin/python scripts/repolens_benchmark.py --path tests/fixtures/benchmark --arm ci --label ci` |
+| `scripts/repolens_benchmark.py --summary` | **Now.** Table from two JSON rows. A missing count stays `missing`. | `./.venv/bin/python scripts/repolens_benchmark.py --summary docs/benchmarks/before.json docs/benchmarks/after.json` |
+
+`--arm local` requires Ollama. `--arm byok` requires a key provider and refuses Ollama. Both stop before a model call until the row writer lands. Details: [benchmark.md](./benchmark.md).
+
 ### After you have a report
 
 | Command | What it does | Example |

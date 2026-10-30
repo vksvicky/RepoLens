@@ -10,12 +10,15 @@ from repolens.schema import Issue, Severity
 CALIBRATION_SUBPROCESS_LIST = "subprocess_list_not_injection"
 CALIBRATION_TEST_FIXTURE_SECRETS = "test_fixture_secrets"
 CALIBRATION_INTENTIONAL_VULN = "intentional_vuln_example"
+CALIBRATION_LOCAL_UI = "local_ui_attack_surface"
+LOCAL_UI_TAG = "attack_surface=local_ui"
 
 # Packaged defaults — omit key in config to use these; set false to disable.
 DEFAULT_FP_CALIBRATIONS: dict[str, bool] = {
     CALIBRATION_SUBPROCESS_LIST: True,
     CALIBRATION_TEST_FIXTURE_SECRETS: True,
     CALIBRATION_INTENTIONAL_VULN: True,
+    CALIBRATION_LOCAL_UI: True,
 }
 
 _INJECTION_HINT = re.compile(
@@ -51,6 +54,20 @@ _EXAMPLE_PATH = re.compile(
     r"(^|/)(examples?/|demos?/|fixtures?/vuln)",
     re.IGNORECASE,
 )
+_LOCAL_UI = re.compile(
+    r"local[\s_-]?ui|desktop|clipboard|pasteboard|userdefaults|nsuserdefaults|"
+    r"localstorage|sessionstorage|text field|on-screen|swiftui|uikit|view state",
+    re.IGNORECASE,
+)
+_DATA_EXPOSURE = re.compile(
+    r"data exposure|sensitive data|\bpii\b|shown in|displays|text field|label\.text",
+    re.IGNORECASE,
+)
+_EXFIL = re.compile(
+    r"https?://|\bsocket\b|urllib|requests\.|fetch\(|webhook|\bupload\b|\bexfil|"
+    r"\bipc\b|\bxpc\b|urlsession|nsurlsession|\bgrpc\b|\bnetwork\b",
+    re.IGNORECASE,
+)
 
 
 def effective_fp_calibrations(deep: DeepConfig) -> dict[str, bool]:
@@ -75,6 +92,8 @@ def apply_fp_calibrations(issues: list[Issue], deep: DeepConfig) -> list[Issue]:
             current = _calibrate_test_fixture_secrets(current)
         if enabled.get(CALIBRATION_INTENTIONAL_VULN):
             current = _calibrate_intentional_vuln(current)
+        if enabled.get(CALIBRATION_LOCAL_UI):
+            current = _calibrate_local_ui(current)
         out.append(current)
     return out
 
@@ -146,3 +165,24 @@ def _calibrate_intentional_vuln(issue: Issue) -> Issue:
     if not (path_hit and text_hit):
         return issue
     return _demote(issue, CALIBRATION_INTENTIONAL_VULN)
+
+
+def _tag_local_ui(issue: Issue) -> Issue:
+    if LOCAL_UI_TAG in issue.explanation:
+        return issue
+    explanation = issue.explanation.rstrip()
+    spacer = " " if explanation else ""
+    return issue.model_copy(update={"explanation": f"{explanation}{spacer}{LOCAL_UI_TAG}"})
+
+
+def _calibrate_local_ui(issue: Issue) -> Issue:
+    """Demote a local-only UI exposure that has no network or IPC path."""
+    text = _issue_text(issue)
+    if _EXFIL.search(text):
+        return issue
+    if not _LOCAL_UI.search(text) or not _DATA_EXPOSURE.search(text):
+        return issue
+    tagged = _tag_local_ui(issue)
+    if tagged.severity == Severity.LOW:
+        return tagged
+    return _demote(tagged, CALIBRATION_LOCAL_UI)

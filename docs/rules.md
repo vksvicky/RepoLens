@@ -144,14 +144,14 @@ These live in config (see [`.repolens.example.toml`](../.repolens.example.toml))
 |---------|--------------|-----|
 | `[deep]` | Multi-pass deep review (default on) | Better coverage on large repos |
 | `[deep].dspy_program` | Path to one compiled instruction file, or a directory of `p1.json`, `p2.json`, `p3.json`, and `coverage.json` | Replaces the stock format sentence for that pass. A review does not import DSPy. A project file cannot set this unless `--trust-project` is on |
-| `[deep].fp_calibrations` | Softens known AI false positives (e.g. safe `subprocess` list calls) | Less noise without hiding real `shell=True` issues |
+| `[deep].fp_calibrations` | Softens known AI false positives (safe `subprocess` list calls, and a local-only UI exposure with no network or IPC path) | Less noise without hiding real `shell=True` issues or a finding that uploads, calls the network, or uses IPC |
 | `[explain]` | `repolens explain <id>` deep-dives | Extra detail on one finding when you need it |
 
 Disable an FP calibration only if you want the raw AI severity back:
 
 ```toml
 [deep]
-fp_calibrations = { subprocess_list_not_injection = false }
+fp_calibrations = { subprocess_list_not_injection = false, local_ui_attack_surface = false }
 ```
 
 ## Deep-dive one finding

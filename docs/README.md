@@ -25,6 +25,7 @@ So: CAPS is not “all docs.” It is only for a small set of well-known meta fi
 | [install-extras.md](./install-extras.md) | What `[dev]` / `[scanners]` / `[local-ml]` install (RepoLens `pyproject.toml`) |
 | [command-atlas.md](./command-atlas.md) | **Holy grail:** install → every command → expect / if-then → timings → troubleshooting |
 | [which-command.md](./which-command.md) | Which command to run for security, architecture, or clean code, plus editor-plugin mockups |
+| [benchmark.md](./benchmark.md) | Scanners-only benchmark control and the before/after table |
 | [try-on-your-repo.md](./try-on-your-repo.md) | Install + review local / GitHub / Bitbucket / HF / git URL (macOS, Linux, Windows) |
 | [polycode-polycoach-loop.md](./polycode-polycoach-loop.md) | PolyCode PolyCoach classroom loop (sibling guide) |
 | [remote-sources.md](./remote-sources.md) | Remote commands + auth: `--github`, `--bitbucket`, `--hf`, `--git-url` |

@@ -173,3 +173,35 @@ def test_cluster_tie_prefers_scanner_over_llm() -> None:
     assert len(out) == 1
     assert out[0].source == "scanner"
     assert out[0].clusteredCount == 2
+
+
+def test_local_ui_data_exposure_clusters_across_files() -> None:
+    from repolens.fp_calibrations import LOCAL_UI_TAG
+
+    one = _issue(
+        severity=Severity.LOW,
+        title="Token shown in a local UI text field",
+        file="ios/Settings.swift",
+        category="sec.data_exposure",
+    )
+    two = _issue(
+        severity=Severity.LOW,
+        title="Token shown in a local UI text field",
+        file="ios/Profile.swift",
+        category="sec.data_exposure",
+    )
+    other = _issue(
+        severity=Severity.LOW,
+        title="Clipboard keeps a draft",
+        file="ios/Editor.swift",
+        category="sec.data_exposure",
+    )
+    note = f"The desktop view displays the value. {LOCAL_UI_TAG}"
+    tagged = [
+        item.model_copy(update={"explanation": note})
+        for item in (one, two, other)
+    ]
+    out = cluster_near_duplicates(tagged)
+    assert len(out) == 2
+    counts = sorted(item.clusteredCount or 1 for item in out)
+    assert counts == [1, 2]

@@ -12,11 +12,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `scripts/dspy_compile.py` can compile that file. A live run prints the configured provider and model, then calls DSPy `COPRO` (instruction only, no demos) on the synthetic fixtures under `tests/fixtures/dspy/`. Install `dspy` by hand for that run. It is not a package dependency, and CI does not call a model.
 - `./scripts/selfdog-review.sh` runs the full combined review of this checkout. It imports this checkout's `src` even when the dev install points at another tree. Set `TARGET` to review another tree. The report still lands in `reports/selfdog-deep/`. [which-command.md](./which-command.md) names what that run already records.
 - [ci.md](./ci.md) has the pull request command and the weekly or monthly audit for GitHub Actions, Jenkins, Bitbucket, GitLab, CircleCI, Azure DevOps, and Buildkite.
+- A local-only UI data exposure is demoted and tagged `attack_surface=local_ui` when the finding has no network or IPC path. The same title clusters across files. Turn it off with `[deep].fp_calibrations` key `local_ui_attack_surface`.
+- `scripts/repolens_benchmark.py` runs the scanners-only control on `tests/fixtures/benchmark/` and can print a before/after table from two JSON rows. `--arm local` and `--arm byok` check the provider and stop until the row writer lands. The script is not a `repolens benchmark` command. [benchmark.md](./benchmark.md)
 
 ### Changed
 
 - The Semgrep install pin is 1.181.0, including the hashed plugin locks and the `scanners` extra.
 - The phase index records the DSPy instruction file as done. The open track is the benchmark, which is not on `main`.
+- The phase index records local-UI calibration as done. The benchmark control, fixture, script, and summary are on `main`. The row writer and stream token counts stay open.
 
 ### Fixed
 

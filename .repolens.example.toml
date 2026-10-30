@@ -259,9 +259,10 @@
 #   Extra paths left out of the inventory and Fast Brain size checks.
 #   Defaults always apply: bin/, gen/, test_output/, out/, and *.mcgen.
 #   Add a tree this project generates. Scanners still walk the full tree.
-# fp_calibrations = { subprocess_list_not_injection = true, test_fixture_secrets = true, intentional_vuln_example = true }
+# fp_calibrations = { subprocess_list_not_injection = true, test_fixture_secrets = true, intentional_vuln_example = true, local_ui_attack_surface = true }
 #   Set an id to false to stop that demotion. Unknown ids are ignored.
-#   Recommended: leave the three defaults on.
+#   local_ui_attack_surface demotes a local-only UI exposure that has no network or IPC path.
+#   Recommended: leave the defaults on.
 # critical_consistency = "off"
 #   Second look at Critical findings: "off" | "heuristic" | "llm".
 #   Recommended: "off" daily; "heuristic" on a release audit.

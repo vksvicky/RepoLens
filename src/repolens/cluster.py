@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from repolens.fp_calibrations import LOCAL_UI_TAG
 from repolens.schema import Issue, Severity
 
 _SEV_RANK = {
@@ -45,6 +46,8 @@ def _theme_family(category: str) -> str:
 
 
 def _cluster_key(issue: Issue) -> tuple[str, str, str]:
+    if LOCAL_UI_TAG in issue.explanation:
+        return ("*", "local_ui", _norm_title(issue.title))
     identity = (issue.cwe or "").strip().lower()
     if not identity:
         category = (issue.category or "").strip().lower()
