@@ -9,7 +9,7 @@ Plain `repolens` / `repo-lens` are blocked by PyPI name-similarity against exist
 
 ```bash
 # Preferred (PyPI) — CLI entry point is still `repolens`
-pip install "repolens-audit[scanners]==0.1.4"
+pip install "repolens-audit[scanners]==0.1.5"
 
 # From git (unreleased tip / contributors)
 pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
@@ -20,7 +20,7 @@ pip install -e ".[dev]"
 
 ## Release workflow (automated)
 
-Tag a version matching `pyproject.toml` (e.g. `v0.1.4`) and push the tag.  
+Tag a version matching `pyproject.toml` (e.g. `v0.1.5`) and push the tag. Do not move `v0.1.4`.  
 [`.github/workflows/publish.yml`](../.github/workflows/publish.yml) builds the sdist/wheel and uploads via **Trusted Publishing** (OIDC). No long-lived PyPI API token in GitHub secrets.
 
 The same `v*` tag also triggers [`.github/workflows/publish-ghcr.yml`](../.github/workflows/publish-ghcr.yml), which builds the slim multi-arch image and pushes `ghcr.io/<owner>/repolens` (semver + `latest` for non-prerelease). Uses `GITHUB_TOKEN` only — no registry password in secrets. Details: [docker.md](./docker.md).
@@ -64,17 +64,17 @@ Same form on [test.pypi.org publishing](https://test.pypi.org/manage/account/pub
 
 ### D. Tag a release (only after dogfood)
 
-The first tag was `v0.1.0a1`. The current release is `v0.1.4`. Tag the version already in `pyproject.toml`:
+The first tag was `v0.1.0a1`. The current release is `v0.1.5`. Tag the version already in `pyproject.toml`:
 
 ```bash
-# On main, clean working tree, version already 0.1.4 in pyproject.toml
-git tag v0.1.4
-git push origin v0.1.4
+# On main, clean working tree, version already 0.1.5 in pyproject.toml
+git tag v0.1.5
+git push origin v0.1.5
 ```
 
 1. Watch **Actions → Publish** for the tag.  
 2. Confirm https://pypi.org/project/repolens-audit/  
-3. Smoke: `pip install "repolens-audit==0.1.4" && repolens version`
+3. Smoke: `pip install "repolens-audit==0.1.5" && repolens version`
 
 ---
 
@@ -133,10 +133,10 @@ Also exercise the Action on GitHub (workflow_dispatch on [repolens-example.yml](
 - [x] PyPI pending publisher saved for `repolens-audit` / `publish.yml` / `pypi`  
 - [x] Version in `pyproject.toml` + `src/repolens/__init__.py` matches the tag  
 - [x] [CHANGELOG.md](./CHANGELOG.md) updated  
-- [x] Tag `v0.1.4` and `git push origin v0.1.4`  
-- [x] Publish workflow green; package visible on PyPI  
-- [x] `pip install "repolens-audit==0.1.4"` smoke test (`repolens version` works)  
-- [x] Document Action pin: `uses: vksvicky/RepoLens@v0.1.4` (or `@main` while iterating)
+- [ ] Tag `v0.1.5` and `git push origin v0.1.5`  
+- [ ] Publish workflow green; package visible on PyPI  
+- [ ] `pip install "repolens-audit==0.1.5"` smoke test (`repolens version` works)  
+- [x] Document Action pin: `uses: vksvicky/RepoLens@v0.1.5` (or `@main` while iterating)
 
 ## Related
 

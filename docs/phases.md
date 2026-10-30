@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==0.1.4`**, tag `v0.1.4` (PyPI and GHCR publish succeeded 2026-10-23).  
+**Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==0.1.5`**, tag `v0.1.5`. `v0.1.4` stays the previous publish (2026-10-23).  
 **Active program:** none. [M1](https://github.com/vksvicky/RepoLens/milestone/1)–[M5](https://github.com/vksvicky/RepoLens/milestone/5) are done. Open track: benchmark [#153](https://github.com/vksvicky/RepoLens/issues/153). Index [#12](https://github.com/vksvicky/RepoLens/issues/12).  
 **Local UI calibrations:** [#91](https://github.com/vksvicky/RepoLens/issues/91) (#17b) is done. A local-only UI exposure with no network or IPC path is demoted and tagged `attack_surface=local_ui`. The same title clusters across files.  
 **Feedback:** [Discussions](https://github.com/vksvicky/RepoLens/discussions) + [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose).
@@ -612,6 +612,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-10-23 | DSPy instruction file | [#133](https://github.com/vksvicky/RepoLens/issues/133) and [#134](https://github.com/vksvicky/RepoLens/issues/134) load on review. [#135](https://github.com/vksvicky/RepoLens/issues/135) writes the file. A live optimizer call stays manual. Open track is benchmark [#153](https://github.com/vksvicky/RepoLens/issues/153) |
 | 2026-10-23 | DSPy compile | [#135](https://github.com/vksvicky/RepoLens/issues/135) calls instruction-only `COPRO` when `dspy` is installed by hand. A review still does not import it. Open track is benchmark [#153](https://github.com/vksvicky/RepoLens/issues/153) |
 | 2026-10-30 | Tracker sync ([#12](https://github.com/vksvicky/RepoLens/issues/12)) | Local `main` explains a long function without a model call, documents the pull-request job and the scheduled audit, and logs explain read failures. [#91](https://github.com/vksvicky/RepoLens/issues/91) is done. Benchmark pieces on `main` are [#150](https://github.com/vksvicky/RepoLens/issues/150), [#155](https://github.com/vksvicky/RepoLens/issues/155), [#148](https://github.com/vksvicky/RepoLens/issues/148), and [#149](https://github.com/vksvicky/RepoLens/issues/149). [#147](https://github.com/vksvicky/RepoLens/issues/147) and [#146](https://github.com/vksvicky/RepoLens/issues/146) stay open |
+| 2026-10-30 | `v0.1.5` | Fast Brain pre-commit hook, GitLab code-quality JSON, vLLM recipe, and one SARIF upload. Benchmark row writer and stream tokens stay open |
 
 ---
 

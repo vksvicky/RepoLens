@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.5] — 2026-10-30
+
+Published as `repolens-audit==0.1.5` when the `v0.1.5` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tag `v0.1.4`.
+
 ### Added
 
 - `repolens export <report.json> --gitlab-codequality <path>` and `repolens review --gitlab-codequality` write GitLab code-quality JSON. Scanner and Fast Brain rows with a safe path and line are included. An LLM row is included only when its location was verified. The GitLab CI example publishes that file as the merge-request code-quality report.
@@ -32,7 +36,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A large-function explain logs a parse or read failure with the traceback. The retry-pass tests live in their own file, so the resume tests stay under the 500-line file check.
 - The resume and retry tests share one deep-pass stand-in, so that setup is no longer a copied block.
 - `repolens explain` for a large-function finding reads that function's steps from the file and does not call the model. The diagram lists those steps. Moving the whole function into another file does not clear the span.
-- The docs linked from the PyPI page install `repolens-audit==0.1.4`. Local learning describes the store that ships. Notes that were never committed are no longer named as if they were in the repo.
+- The docs linked from the PyPI page install the published package. Local learning describes the store that ships. Notes that were never committed are no longer named as if they were in the repo.
 
 ## [0.1.4] — 2026-10-23
 
