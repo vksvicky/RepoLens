@@ -39,7 +39,7 @@ All other external tools or signals enter as imported SARIF (`--import-sarif`), 
 - **Generated Learn Notes**: Never edit files in `docs/learn/src/` or `docs/learn/tests/` manually. They are generated deterministically by `scripts/generate_learn_file_notes.py`.
 - **Handwritten Course Notes**: `docs/learn/00-start-here.md` through `docs/learn/06-order-complexity-and-your-own-model.md` are written by hand and are outside `--check`.
 - **Changelog**: Add user-visible features and fixes as bullets under `## [Unreleased]` in `docs/CHANGELOG.md`.
-- **Package Version**: The version in `pyproject.toml` remains `0.1.6` until an explicit release is requested.
+- **Package Version**: The version in `pyproject.toml` remains `0.1.6.post1` until an explicit release is requested.
 
 ## Architecture & Review Contracts
 - **Review Target Path**: When testing review runs against dogfood repositories, use `$TARGET` (`--path "$TARGET"` and `--out "$TARGET/reports"`).

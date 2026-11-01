@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.6.post1] — 2026-11-01
+
+Published as `repolens-audit==0.1.6.post1` when the `v0.1.6.post1` tag is pushed. This is a documentation follow-up to `0.1.6`. A version written `0.1.6a1` would sort before `0.1.6` and would not replace the project page. Do not move tag `v0.1.6`.
+
+### Changed
+
+- The project page lists install, commands, and documentation once. The guided-review link opens the file on GitHub.
+
 ## [0.1.6] — 2026-10-30
 
 Published as `repolens-audit==0.1.6` when the `v0.1.6` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tag `v0.1.5`.

@@ -8,12 +8,12 @@ Fast Brain only. No model and no scanner binaries. It does not scan file content
 
 ```yaml
 - repo: https://github.com/vksvicky/RepoLens
-  rev: v0.1.6
+  rev: v0.1.6.post1
   hooks:
     - id: repolens-fast
 ```
 
-Pin `rev` to `v0.1.6`.
+Pin `rev` to `v0.1.6.post1`.
 
 ```bash
 repolens hook fast
@@ -32,7 +32,7 @@ Weekly cron: `0 6 * * 1`. Monthly cron: `0 6 1 * *`. Use one of them.
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-pip install "repolens-audit[scanners]==0.1.6"
+pip install "repolens-audit[scanners]==0.1.6.post1"
 repolens plugins install all --yes
 ```
 
@@ -82,7 +82,7 @@ jobs:
         run: |
           python -m venv .venv
           . .venv/bin/activate
-          pip install "repolens-audit[scanners]==0.1.6"
+          pip install "repolens-audit[scanners]==0.1.6.post1"
           repolens plugins install all --yes
       - name: Review
         run: |
@@ -109,7 +109,7 @@ jobs:
         run: |
           python -m venv .venv
           . .venv/bin/activate
-          pip install "repolens-audit[scanners]==0.1.6"
+          pip install "repolens-audit[scanners]==0.1.6.post1"
           repolens plugins install all --yes
       - name: Audit
         env:
@@ -145,7 +145,7 @@ pipeline {
           set -euo pipefail
           python3 -m venv .venv
           . .venv/bin/activate
-          pip install "repolens-audit[scanners]==0.1.6"
+          pip install "repolens-audit[scanners]==0.1.6.post1"
           repolens plugins install all --yes
         '''
       }
@@ -206,7 +206,7 @@ pipelines:
           script:
             - python -m venv .venv
             - . .venv/bin/activate
-            - pip install "repolens-audit[scanners]==0.1.6"
+            - pip install "repolens-audit[scanners]==0.1.6.post1"
             - repolens plugins install all --yes
             - |
               repolens review --path . --out reports --format both --sarif \
@@ -223,7 +223,7 @@ pipelines:
           script:
             - python -m venv .venv
             - . .venv/bin/activate
-            - pip install "repolens-audit[scanners]==0.1.6"
+            - pip install "repolens-audit[scanners]==0.1.6.post1"
             - repolens plugins install all --yes
             - |
               repolens review --path . --out reports --format both --sarif \
@@ -251,7 +251,7 @@ repolens-pr:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   before_script:
-    - pip install "repolens-audit[scanners]==0.1.6"
+    - pip install "repolens-audit[scanners]==0.1.6.post1"
     - repolens plugins install all --yes
   script:
     - |
@@ -272,7 +272,7 @@ repolens-weekly:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   before_script:
-    - pip install "repolens-audit[scanners]==0.1.6"
+    - pip install "repolens-audit[scanners]==0.1.6.post1"
     - repolens plugins install all --yes
   script:
     - |
@@ -307,7 +307,7 @@ jobs:
       - image: cimg/python:3.12
     steps:
       - checkout
-      - run: pip install "repolens-audit[scanners]==0.1.6" && repolens plugins install all --yes
+      - run: pip install "repolens-audit[scanners]==0.1.6.post1" && repolens plugins install all --yes
       - run: |
           repolens review --path . --out reports --format both --sarif \
             --preset pr \
@@ -321,7 +321,7 @@ jobs:
       - image: cimg/python:3.12
     steps:
       - checkout
-      - run: pip install "repolens-audit[scanners]==0.1.6" && repolens plugins install all --yes
+      - run: pip install "repolens-audit[scanners]==0.1.6.post1" && repolens plugins install all --yes
       - run: |
           repolens review --path . --out reports --format both --sarif \
             --preset release \
@@ -373,7 +373,7 @@ steps:
     inputs:
       versionSpec: "3.12"
   - script: |
-      pip install "repolens-audit[scanners]==0.1.6"
+      pip install "repolens-audit[scanners]==0.1.6.post1"
       repolens plugins install all --yes
       if [ "$(Build.Reason)" = "Schedule" ]; then
         repolens review --path . --out reports --format both --sarif \
@@ -410,7 +410,7 @@ steps:
     command: |
       python3 -m venv .venv
       . .venv/bin/activate
-      pip install "repolens-audit[scanners]==0.1.6"
+      pip install "repolens-audit[scanners]==0.1.6.post1"
       repolens plugins install all --yes
       if [ "${REPOLENS_SCHEDULE:-}" = "1" ]; then
         repolens review --path . --out reports --format both --sarif \
@@ -445,7 +445,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: vksvicky/RepoLens@v0.1.6   # or @main while iterating
+      - uses: vksvicky/RepoLens@v0.1.6.post1   # or @main while iterating
         with:
           path: .
           run: dry-run
@@ -570,7 +570,7 @@ Design: phase-6.x §6.3 · blog: enterprise-scale-llm-review-ci
 | `pr-summary` | `true` | Job summary + `::error`/`::warning` annotations |
 | `reports-dir` | `reports` | Output directory under `path` |
 | `install-from` | `local` | `local` (action checkout) \| `pypi` \| `git` |
-| `version` | `0.1.6` | Used when `install-from=pypi` |
+| `version` | `0.1.6.post1` | Used when `install-from=pypi` |
 | `install-plugins` | `true` | `repolens plugins install all --yes` |
 
 Reference workflow in this repo: [`.github/workflows/repolens-example.yml`](../.github/workflows/repolens-example.yml) · Action: [`action.yml`](../action.yml)
@@ -585,7 +585,7 @@ pipelines:
     - step:
         name: RepoLens
         script:
-          - pip install "repolens-audit[scanners]==0.1.6"
+          - pip install "repolens-audit[scanners]==0.1.6.post1"
           # Fallback (unreleased tip): pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
           - repolens plugins install all --yes
           - |
@@ -781,7 +781,7 @@ Shared CLI shape for PR / merge gates (prefer scanners; optional LLM when a key 
 
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
-pip install "repolens-audit[scanners]==0.1.6"
+pip install "repolens-audit[scanners]==0.1.6.post1"
 # Fallback (unreleased tip): pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
 repolens plugins install all --yes
 repolens review --path . --out ./reports --format both --sarif \
@@ -819,7 +819,7 @@ pipeline {
           python3 -m venv .venv
           . .venv/bin/activate
           pip install -U pip
-          pip install "repolens-audit[scanners]==0.1.6"
+          pip install "repolens-audit[scanners]==0.1.6.post1"
           # Fallback (unreleased tip): pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
           repolens plugins install all --yes
           # Prefer scanners-only when no cloud key / policy forbids LLM egress:
@@ -862,7 +862,7 @@ jobs:
           name: Install RepoLens
           command: |
             pip install -U pip
-            pip install "repolens-audit[scanners]==0.1.6"
+            pip install "repolens-audit[scanners]==0.1.6.post1"
             # Fallback (unreleased tip): pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
             repolens plugins install all --yes
       - run:
@@ -890,7 +890,7 @@ repolens:
     PIP_DISABLE_PIP_VERSION_CHECK: "1"
   before_script:
     - pip install -U pip
-    - pip install "repolens-audit[scanners]==0.1.6"
+    - pip install "repolens-audit[scanners]==0.1.6.post1"
     # Fallback (unreleased tip): pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
     - repolens plugins install all --yes
   script:
@@ -919,7 +919,7 @@ steps:
     inputs:
       versionSpec: "3.12"
   - script: |
-      pip install "repolens-audit[scanners]==0.1.6"
+      pip install "repolens-audit[scanners]==0.1.6.post1"
       # Fallback (unreleased tip): pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
       repolens plugins install all --yes
       repolens review --path . --out ./reports --format both --sarif \
