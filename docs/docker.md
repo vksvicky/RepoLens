@@ -20,11 +20,11 @@ No API keys or cloud credentials are baked into the image. The runtime stage def
 ## Build locally
 
 ```bash
-docker build -t ghcr.io/vksvicky/repolens:0.1.6.post1 .
+docker build -t ghcr.io/vksvicky/repolens:1.0.0 .
 # optional SBOM for the image (Syft / BuildKit):
-# docker buildx build --sbom=true --provenance=true -t ghcr.io/vksvicky/repolens:0.1.6.post1 .
+# docker buildx build --sbom=true --provenance=true -t ghcr.io/vksvicky/repolens:1.0.0 .
 
-CI publishes the same tags on `v*` pushes via [`.github/workflows/publish-ghcr.yml`](../.github/workflows/publish-ghcr.yml) (`0.1.6.post1`, `0.1`, `latest` for non-prerelease tags).
+CI publishes the same tags on `v*` pushes via [`.github/workflows/publish-ghcr.yml`](../.github/workflows/publish-ghcr.yml) (`1.0.0`, `1.0`, `latest` for non-prerelease tags). Do not move `v0.1.6.post1`.
 ```
 
 ## Entrypoint recipes
@@ -36,7 +36,7 @@ jobs:
   repolens:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/vksvicky/repolens:0.1.6.post1
+      image: ghcr.io/vksvicky/repolens:1.0.0
     steps:
       - uses: actions/checkout@v7
       - run: repolens review --path . --out reports --preset pr --fail-on HIGH --ci
@@ -46,7 +46,7 @@ jobs:
 
 ```yaml
 repolens:
-  image: ghcr.io/vksvicky/repolens:0.1.6.post1
+  image: ghcr.io/vksvicky/repolens:1.0.0
   script:
     - repolens review --path . --out reports --preset pr --fail-on HIGH --ci
   artifacts:
@@ -59,9 +59,9 @@ repolens:
 phases:
   build:
     commands:
-      - docker pull ghcr.io/vksvicky/repolens:0.1.6.post1
+      - docker pull ghcr.io/vksvicky/repolens:1.0.0
       - docker run --rm -v "$CODEBUILD_SRC_DIR:/work" -w /work
-          ghcr.io/vksvicky/repolens:0.1.6.post1
+          ghcr.io/vksvicky/repolens:1.0.0
           review --path . --out reports --preset pr --fail-on HIGH --ci
 ```
 

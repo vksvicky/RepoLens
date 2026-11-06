@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-11-06
+
+Published as `repolens-audit==1.0.0` when the `v1.0.0` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tag `v0.1.6.post1`.
+
+This version freezes the public contract until `2.0.0`: the command stays `repolens`, exit codes stay 0 through 4, report `schemaVersion` stays `1.0`, and the scanner catalog stays Gitleaks, Semgrep, OSV, Trivy, and Checkov. A new flag may be added. Removing a flag, changing an exit code, or renaming a report field waits for `2.0.0`. The package classifier is Production/Stable.
+
+### Not in this promise
+
+- Stream token counts ([#146](https://github.com/vksvicky/RepoLens/issues/146)) and the benchmark row writer ([#147](https://github.com/vksvicky/RepoLens/issues/147)).
+- Bitbucket Code Insights JSON and Bitbucket pull-request comments.
+- A full-report HTML page ([#163](https://github.com/vksvicky/RepoLens/issues/163)), the executive summary inside the evidence zip ([#164](https://github.com/vksvicky/RepoLens/issues/164)), and ast-grep and KICS SARIF fixtures ([#165](https://github.com/vksvicky/RepoLens/issues/165)).
+- A `--gitlab` clone flag. Clone stays `repolens review --git-url`. vLLM and TGI stay `openai_compatible`. The scanner catalog does not grow.
+
 ## [0.1.6.post1] — 2026-11-01
 
 Published as `repolens-audit==0.1.6.post1` when the `v0.1.6.post1` tag is pushed. This is a documentation follow-up to `0.1.6`. A version written `0.1.6a1` would sort before `0.1.6` and would not replace the project page. Do not move tag `v0.1.6`.

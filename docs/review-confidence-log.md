@@ -95,3 +95,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-10-30 | v0.1.5→push | 93% | 0/0/0/1 | Version and install docs move to 0.1.5. Dogfood dry-run and scanners-only with an empty fail-on. Complexity highs are existing span checks. v0.1.4 stays | chat |
 | 2026-10-30 | v0.1.6→commit | 94% | 0/0/0/1 | Local-UI demotion matches a widget phrase. Bare desktop and displays no longer demote. text field stays on both sides. Local main only | chat |
 | 2026-11-01 | v0.1.6.post1→push | 95% | 0/0/0/0 | Project page lists install and docs once. Guided-review link is a GitHub URL. Post-release so the page replaces 0.1.6. v0.1.6 stays | chat |
+| 2026-11-06 | v1.0.0→push | 95% | 0/0/0/0 | Contract freeze. Selfdog summary 0/0/0/0, scanners 5/5. Two unverified model highs stay out of the gate count. v0.1.6.post1 stays | chat |

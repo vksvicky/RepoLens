@@ -6,7 +6,8 @@ RepoLens is an open-source CLI for a structured review of a project on your mach
 
 It is a local CLI. There is no hosted dashboard. Scanners, tests, and your existing CI stay in place. RepoLens adds one portable report you can run anywhere.
 
-> **`repolens-audit==0.1.6.post1`** · CLI: `repolens` · Python 3.11+  
+> **`repolens-audit==1.0.0`** · CLI: `repolens` · Python 3.11+  
+> This release keeps the `repolens` command, exit codes 0–4, report schema 1.0, and the five scanners until 2.0.0.  
 > [Sample report](https://github.com/vksvicky/RepoLens/blob/main/reports/samples/sample_audit_report.md) · [PDF](https://github.com/vksvicky/RepoLens/blob/main/reports/samples/sample_audit_report.pdf) · [Phase tracker](https://github.com/vksvicky/RepoLens/blob/main/docs/phases.md)
 
 A report is evidence, not a “% secure” score. If you will read the report and not run the tool, start with [RepoLens in plain language](https://github.com/vksvicky/RepoLens/blob/main/docs/for-everyone.md).
@@ -14,7 +15,7 @@ A report is evidence, not a “% secure” score. If you will read the report an
 ## Install and run
 
 ```bash
-pip install "repolens-audit[scanners]==0.1.6.post1"
+pip install "repolens-audit[scanners]==1.0.0"
 repolens which pr
 repolens review --preset pr --path .
 ```
@@ -71,7 +72,7 @@ The report lands at `reports/gate_review_report_{mode}_YYYY-MM-DD_HHMM.md`.
 
 ```yaml
 - uses: actions/checkout@v7
-- uses: vksvicky/RepoLens@v0.1.6.post1
+- uses: vksvicky/RepoLens@v1.0.0
   with:
     path: .
     run: auto

@@ -6,7 +6,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 **Product name:** RepoLens  
 **Security-only mode:** `repolens sentinel`  
 **Full review mode:** `repolens review` (P1 → P2 → P3)  
-**Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==0.1.6.post1`**, tag `v0.1.6.post1`. `v0.1.6` stays the previous publish (2026-10-30). `v0.1.5` stays the publish before that.  
+**Current phase:** Phases **0–9** + Waves **A–C** + Metis/Sonargraph thin lanes + parked [#92](https://github.com/vksvicky/RepoLens/issues/92)–[#96](https://github.com/vksvicky/RepoLens/issues/96) are **complete**. Package: **`repolens-audit==1.0.0`**, tag `v1.0.0`. `v0.1.6.post1` stays the previous publish. `v0.1.6` stays the publish before that.  
 **Active program:** none. [M1](https://github.com/vksvicky/RepoLens/milestone/1)–[M5](https://github.com/vksvicky/RepoLens/milestone/5) are done. Open track: benchmark [#146](https://github.com/vksvicky/RepoLens/issues/146), [#147](https://github.com/vksvicky/RepoLens/issues/147), and [#153](https://github.com/vksvicky/RepoLens/issues/153).  
 **Local UI calibrations:** [#91](https://github.com/vksvicky/RepoLens/issues/91) is done. A local-only UI exposure with no network or IPC path is demoted when the text names a widget. Bare "desktop" and "displays" do not demote. The same title clusters across files.  
 **Feedback:** [Discussions](https://github.com/vksvicky/RepoLens/discussions) + [issue templates](https://github.com/vksvicky/RepoLens/issues/new/choose).
@@ -616,6 +616,7 @@ For release notes aimed at users, also update [CHANGELOG.md](./CHANGELOG.md).
 | 2026-10-30 | `v0.1.6` | Local-UI demotion matches a widget phrase. Bare "desktop" and "displays" no longer demote. The vLLM recipe no longer uses a placeholder key word |
 | 2026-11-01 | Tracker sync | [#12](https://github.com/vksvicky/RepoLens/issues/12), [#91](https://github.com/vksvicky/RepoLens/issues/91), [#148](https://github.com/vksvicky/RepoLens/issues/148), [#149](https://github.com/vksvicky/RepoLens/issues/149), [#150](https://github.com/vksvicky/RepoLens/issues/150), and [#155](https://github.com/vksvicky/RepoLens/issues/155) are closed. Open track is [#146](https://github.com/vksvicky/RepoLens/issues/146), [#147](https://github.com/vksvicky/RepoLens/issues/147), and [#153](https://github.com/vksvicky/RepoLens/issues/153) |
 | 2026-11-01 | `v0.1.6.post1` | Project page lists install and docs once. The guided-review link is a GitHub URL |
+| 2026-11-06 | `v1.0.0` | Contract freeze. Classifier is Production/Stable. Open track stays [#146](https://github.com/vksvicky/RepoLens/issues/146), [#147](https://github.com/vksvicky/RepoLens/issues/147), and [#153](https://github.com/vksvicky/RepoLens/issues/153) |
 
 ---
 
