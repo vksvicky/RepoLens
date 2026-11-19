@@ -179,12 +179,20 @@ def test_review_writes_insights_without_calling_the_model(tmp_path: Path, monkey
 
 
 def test_audit_does_not_grow_the_flag() -> None:
-    review_help = runner.invoke(app, ["review", "--help"])
-    audit_help = runner.invoke(app, ["audit", "--help"])
-    assert review_help.exit_code == 0
-    assert "--bitbucket-insights" in review_help.output
-    assert audit_help.exit_code == 0
-    assert "--bitbucket-insights" not in audit_help.output
+    """Registration is the CI-stable contract. Rich may clip rendered help."""
+    from typer.main import get_command
+
+    click_app = get_command(app)
+
+    def names(command: str) -> set[str]:
+        found: set[str] = set()
+        for param in click_app.commands[command].params:
+            found.update(getattr(param, "opts", ()) or ())
+            found.update(getattr(param, "secondary_opts", ()) or ())
+        return found
+
+    assert "--bitbucket-insights" in names("review")
+    assert "--bitbucket-insights" not in names("audit")
 
 
 _DOCS = Path(__file__).resolve().parents[1] / "docs" / "ci.md"
