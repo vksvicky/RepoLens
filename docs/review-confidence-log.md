@@ -101,3 +101,5 @@ Durable record of dual-review gate confidence over time.
 | 2026-11-19 | v1.1.0→push | 93% | 0/0/0/0 | Bitbucket Insights file plus the summary line. Contract stays schema 1.0 and five scanners. v1.0.0 stays | chat |
 | 2026-11-19 | v1.1.1→push | 92% | 0/0/0/0 | v1.1.0 PyPI job failed on rendered help. Flag check is now registration. Action pins move to CodeQL 4.39.1, publish 1.14.3, Buildx v4. Semgrep locks stay 1.181.0 | chat |
 | 2026-11-19 | evidence-summary-sarif→commit | 93% | 0/0/0/0 | Evidence zip can hold the board summary. ast-grep and KICS stay imported SARIF. schemaVersion stays 1.0. v1.2.0 waits for #163 | chat |
+| 2026-11-19 | report-html→commit | 93% | 0/0/0/0 | Full gate report is one HTML file with an embedded style. No pandoc and no network. Board summary and diff-audit stay. v1.2.0 is not tagged yet | chat |
+| 2026-11-19 | v1.2.0→push | 91% | 0/0/0/0 | HTML gate report, evidence zip summary, imported ast-grep and KICS SARIF, selfdog menu. schemaVersion stays 1.0. No new selfdog on this commit. Do not move v1.1.1 | chat |

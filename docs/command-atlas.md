@@ -43,7 +43,7 @@ Optional Semgrep via pip: `pip install -e ".[dev,scanners]"`. What extras mean: 
 
 | Command | Expect | Example |
 |---------|--------|---------|
-| `repolens version` | Version string (e.g. `1.1.1`) | `repolens version` |
+| `repolens version` | Version string (e.g. `1.2.0`) | `repolens version` |
 | `repolens --help` | Command list including `review`, `sentinel`, `plugins`, `packs`, … | `repolens --help` |
 
 ### Configure once (only if you want LLM narrative)
@@ -149,7 +149,8 @@ Copy **Fingerprint** from the gate report (Occurrence also works) — [which UUI
 | `… --annotate` | `::error` / `::warning` for Actions | `repolens pr-summary --annotate` |
 | `repolens score-report …` | Actionability metrics table | `repolens score-report "$TARGET/reports/gate_review_report_review_2026-08-06_1928.json"` |
 | `… --json` | Same metrics as JSON | `repolens score-report "$TARGET/reports/….json" --json` |
-| `repolens export …` | `--pdf` / `--evidence-pack` / `--executive-summary` | `repolens export "$TARGET/reports/gate_….md" --evidence-pack --out "$TARGET/reports"` |
+| `repolens export …` | `--pdf` / `--evidence-pack` / `--executive-summary` / `--report-html` | `repolens export "$TARGET/reports/gate_….md" --evidence-pack --out "$TARGET/reports"` |
+| `repolens export … --report-html` | One self-contained HTML file for the full P1–P3 gate report. Stands alone. | `repolens export "$TARGET/reports/gate_review_report_review_YYYY-MM-DD_HHMM.md" --report-html "$TARGET/reports/gate.html"` |
 | `repolens diff-audit A B` | Table, `--json`, or `--format md\|html` client one-pager | `repolens diff-audit a.json b.json --format md --out diff.md` |
 | `repolens fix FP` | `--patch` / `--interactive` grounded single-file fix | `repolens fix <fingerprint> --patch` |
 | `repolens blast-radius SEED` | Transitive consumers + % graph + boundaries | `repolens blast-radius pkg/core.py --json` |

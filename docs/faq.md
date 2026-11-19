@@ -9,7 +9,7 @@ If you will read the report and not run the tool, start with [for-everyone.md](.
 | **What does the score mean?** | How complete this review was. A high score means the checklist was answered. It does not mean the project is safe. See [for-everyone.md](./for-everyone.md). |
 | **What if one change affects other files?** | The report records it. A review of what changed says how many files were included. A review of the whole project says there was no limited change-set. |
 | **Are the extra checkers a known version?** | Yes, when installed with `repolens plugins install` or the container: Semgrep 1.181.0 and Checkov 3.3.9, including the pieces they need. That install expects Python 3.12. |
-| **How do I install?** | `pip install "repolens-audit[scanners]==1.1.1"` then run `repolens …`. Dist name on PyPI is **`repolens-audit`**; CLI stays `repolens`. See [install-extras.md](./install-extras.md). |
+| **How do I install?** | `pip install "repolens-audit[scanners]==1.2.0"` then run `repolens …`. Dist name on PyPI is **`repolens-audit`**; CLI stays `repolens`. See [install-extras.md](./install-extras.md). |
 | **Which command do I run?** | `repolens which pr` (fast, no model), `repolens which changed`, or `repolens which audit` (full due diligence). `--explain` says why. Unknown names exit 2. See [which-command.md](./which-command.md). |
 | **Do I need an AI key?** | For cloud AI (ChatGPT-style providers), **yes—you use your own key**. You can also run AI **on your own computer** (no cloud key). Scanners-only (`--scanners-only`) needs no AI key. |
 | **Is it self-sufficient?** | The download is the **review process and templates**, not a free built-in AI brain. For a full written review you add **your cloud key** or a **local AI**. For maximum privacy, use local AI. |
@@ -838,6 +838,21 @@ No. It produces reports and exit codes. Git push stays under your control.
 
 ---
 
+## How do I get the full gate report as one HTML file?
+
+After a review has written the Markdown and JSON pair, pick the run by its stamp:
+
+```bash
+repolens export reports/gate_review_report_review_YYYY-MM-DD_HHMM.md \
+  --report-html reports/gate_review_report_review_YYYY-MM-DD_HHMM.html
+```
+
+The `.json` sibling must sit next to the Markdown. A directory argument uses the newest `gate_review_report_*.json` in that directory. The page embeds its style, does not call the network, and does not need pandoc. It is the full P1–P3 report. The two-page board summary and `repolens view` stay separate.
+
+`./scripts/selfdog-review.sh` opens a menu. Choice `1` or `full` writes this page after the review. Choice `2` or `./scripts/selfdog-review.sh html <report.md>` does only that step for a run you already have.
+
+`--report-html` cannot be combined with `--evidence-pack`, `--executive-summary`, `--pdf`, `--gitlab-codequality`, or `--bitbucket-insights`. That combination exits 2. The HTML file is not added to the evidence zip.
+
 ## How do I get a board-ready 2-page summary?
 
 ```bash
@@ -867,7 +882,7 @@ After a review writes Markdown + JSON (+ SARIF/SBOM) under `--out`:
 repolens export reports/gate_review_report_review_….md --evidence-pack --out reports/
 ```
 
-Creates `repolens-evidence-<UTC>.zip` with deterministic member order: `audit.md`, optional `audit.pdf` (pandoc), `findings.json`, `findings.sarif.json`, `sbom.cdx.json` when present, `provenance.json` (git SHA, scanner digests, model, journal tip). Missing optionals are listed in `NOTES.txt` — not inventing empty SBOMs.
+Creates `repolens-evidence-<UTC>.zip` with deterministic member order: `audit.md`, optional `audit.pdf` (pandoc), `findings.json`, `findings.sarif.json`, `sbom.cdx.json` when present, `provenance.json` (git SHA, scanner digests, model, journal tip). Missing optionals are listed in `NOTES.txt` — not inventing empty SBOMs. The full gate HTML from `--report-html` stays outside this zip. `--evidence-pack` and `--executive-summary` can share one command. `--report-html` cannot.
 
 ## How do I export a PDF?
 

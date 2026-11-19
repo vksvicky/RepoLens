@@ -35,6 +35,7 @@ repolens which audit
 | **Audit** (flags) | `repolens review --preset release …` | Same kit without the `audit` alias. |
 | **Evidence pack** (data room) | `repolens export REPORT.md --evidence-pack` | Timestamped zip: audit Markdown (+ PDF if pandoc), findings JSON/SARIF, SBOM when present, `provenance.json`. |
 | **Executive summary** (board) | `repolens export REPORT.md --executive-summary` | 2-page MD/HTML: traffic lights + top Critical/High + attestation. Gate ≠ “% secure”. |
+| **Gate report HTML** | `repolens export REPORT.md --report-html report.html` | One self-contained page for the full P1–P3 report. No pandoc and no network. Not the board summary, and not `repolens view`. |
 | **Audit diff** (client update) | `repolens diff-audit A.json B.json --format md --out diff.md` | Closed findings · New regressions · Debt drift (cyclicity + complexity). |
 | **Fix** (grounded patch) | `repolens fix <fingerprint> --patch` | Unified diff from `# Before`/`# After` codeExample. `--interactive --yes` applies one file + Python `ast.parse`. Refuses multi-file loops. |
 | **Blast radius** | `repolens blast-radius pkg/core.py` | Transitive consumers + % of graph + boundary violations + test density (`--json`). |
@@ -56,7 +57,26 @@ One command for **scanners + clean code + cycles + full-tree model write-up** (s
 ./scripts/selfdog-review.sh
 ```
 
-That reviews this checkout and writes `reports/selfdog-deep/`. The script puts this checkout's `src` first on `PYTHONPATH`, so a dev install that points at another checkout still runs this tree. Set `TARGET` to review another tree and still write the report here. Add `--dry-run` to count files and stop before scanners and the model. Any extra flag is passed through.
+With no arguments, that opens a numbered menu. Each row is the choice, a short description, and the command with its flags. Type `1` through `5`, or the name. `q` leaves the menu.
+
+| Choice | What it runs |
+| --- | --- |
+| `1` `full` | The review below, then the HTML file. |
+| `2` `html [report.md]` | HTML only. Omit the file to use the newest run in `reports/selfdog-deep/`. |
+| `3` `changed` | This change-set, one deep pass, then HTML. No `--full`. |
+| `4` `short` | One deep pass, Markdown and JSON, then HTML. No scanners unless you add them. |
+| `5` `fast` | Scanners only, then HTML. No model. |
+
+`./scripts/selfdog-review.sh full` starts the full review without the menu. The script puts this checkout's `src` first on `PYTHONPATH`, so a dev install that points at another checkout still runs this tree. Set `TARGET` to review another tree and still write the report here. Add `--dry-run` to count files and stop before scanners, the model, and the HTML file. Any extra flag after the choice is passed through to the review.
+
+The review already wrote Markdown and JSON. To make the full gate page for an older run, name that file. The stamp in the name is the run. Both the `.md` and the `.json` must be present.
+
+```bash
+repolens export reports/selfdog-deep/gate_review_report_review_YYYY-MM-DD_HHMM.md \
+  --report-html reports/selfdog-deep/gate_review_report_review_YYYY-MM-DD_HHMM.html
+```
+
+`--report-html` stands alone. Do not add `--evidence-pack`, `--executive-summary`, `--pdf`, `--gitlab-codequality`, or `--bitbucket-insights` on that command. The page is not added to the evidence zip. The board summary and `repolens view` stay as they are.
 
 The same command, written out:
 

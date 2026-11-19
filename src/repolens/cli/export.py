@@ -15,6 +15,7 @@ from repolens.cli.exit_codes import EXIT_BAD_INPUT
 from repolens.evidence_pack import build_evidence_pack, resolve_evidence_inputs
 from repolens.executive_summary import write_executive_summary
 from repolens.gitlab_codequality import write_gitlab_codequality
+from repolens.report_html import write_full_report_html
 from repolens.schema import FindingReport
 
 
@@ -57,11 +58,19 @@ def export(
         "--bitbucket-insights",
         help="Write Bitbucket Code Insights JSON for this FindingReport",
     ),
+    report_html: Path | None = typer.Option(
+        None,
+        "--report-html",
+        help="Write the full gate report as one self-contained HTML file",
+    ),
 ) -> None:
     """Export or convert an existing report."""
     typer.echo(f"Report: {report.resolve()}")
     host_exports = [flag for flag in (gitlab_codequality, bitbucket_insights) if flag is not None]
-    if len(host_exports) > 1 or (host_exports and (evidence_pack or executive_summary or pdf)):
+    pack_or_board = evidence_pack or executive_summary or pdf
+    html_clash = report_html is not None and (host_exports or pack_or_board)
+    host_clash = len(host_exports) > 1 or (host_exports and pack_or_board)
+    if html_clash or host_clash:
         console.print("[red]That export cannot be combined with another export[/red]")
         raise typer.Exit(code=EXIT_BAD_INPUT)
     if bitbucket_insights is not None:
@@ -73,6 +82,9 @@ def export(
         _write_host_export(
             report, gitlab_codequality, write_gitlab_codequality, "GitLab code quality"
         )
+        return
+    if report_html is not None:
+        _write_report_html(report, report_html)
         return
     dest = out or (report.resolve() if report.is_dir() else report.resolve().parent)
     if evidence_pack:
@@ -87,6 +99,16 @@ def export(
     if not pdf:
         return
     _pandoc_pdf(report)
+
+
+def _write_report_html(report: Path, dest: Path) -> None:
+    try:
+        inputs = resolve_evidence_inputs(report)
+        path = write_full_report_html(inputs.report, dest)
+    except (OSError, FileNotFoundError, ValueError) as exc:
+        console.print(f"[red]report html failed:[/red] {exc}")
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
+    console.print(f"[green]Gate report:[/green] {path}")
 
 
 def _write_evidence_pack(

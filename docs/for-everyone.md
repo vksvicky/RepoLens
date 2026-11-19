@@ -69,6 +69,13 @@ After it finishes, ask them for the board summary:
 repolens export --executive-summary --out reports
 ```
 
+For the full written report as one HTML page, name the run. The date and time in the file are that run:
+
+```bash
+repolens export reports/gate_review_report_review_YYYY-MM-DD_HHMM.md \
+  --report-html reports/gate.html
+```
+
 ## What this review is not
 
 - It is not a certificate. A fintech or health note in a report is a hint to verify, not a PCI or HIPAA stamp.

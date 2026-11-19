@@ -6,8 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-11-19
+
+Published as `repolens-audit==1.2.0` when the `v1.2.0` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tags `v1.1.1`, `v1.1.0`, or `v1.0.0`.
+
+The public contract from `1.0.0` stays: the command is `repolens`, exit codes stay 0 through 4, report `schemaVersion` stays `1.0`, and the scanner catalog stays Gitleaks, Semgrep, OSV, Trivy, and Checkov. The hashed Semgrep plugin locks stay `1.181.0`.
+
 ### Added
 
+- `repolens export <report.json> --report-html <path>` writes one self-contained HTML file for the full P1–P3 gate report. It does not use pandoc, and it does not call the network. The board summary and the diff-audit page stay as they are.
+- `./scripts/selfdog-review.sh` opens a numbered menu. Each row shows the choice, a short description, and the command. `full` writes the HTML file after the review. `html` converts a report you already have.
 - `repolens export --evidence-pack --executive-summary` puts `executive_summary.md` or `executive_summary.html` in the evidence zip. The zip still builds when pandoc is absent and still leaves out `audit.pdf`.
 - `docs/ci.md` shows how to import ast-grep and KICS SARIF. Neither tool joins the scanner catalog.
 

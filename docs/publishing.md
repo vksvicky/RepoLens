@@ -9,7 +9,7 @@ Plain `repolens` / `repo-lens` are blocked by PyPI name-similarity against exist
 
 ```bash
 # Preferred (PyPI) — CLI entry point is still `repolens`
-pip install "repolens-audit[scanners]==1.1.1"
+pip install "repolens-audit[scanners]==1.2.0"
 
 # From git (unreleased tip / contributors)
 pip install "repolens-audit[scanners] @ git+https://github.com/vksvicky/RepoLens.git@main"
@@ -20,7 +20,7 @@ pip install -e ".[dev]"
 
 ## Release workflow (automated)
 
-Tag a version matching `pyproject.toml` (e.g. `v1.1.1`) and push the tag. Do not move `v1.1.0`.  
+Tag a version matching `pyproject.toml` (e.g. `v1.2.0`) and push the tag. Do not move `v1.1.1`, `v1.1.0`, or `v1.0.0`.  
 [`.github/workflows/publish.yml`](../.github/workflows/publish.yml) builds the sdist/wheel and uploads via **Trusted Publishing** (OIDC). No long-lived PyPI API token in GitHub secrets.
 
 The same `v*` tag also triggers [`.github/workflows/publish-ghcr.yml`](../.github/workflows/publish-ghcr.yml), which builds the slim multi-arch image and pushes `ghcr.io/<owner>/repolens` (semver + `latest` for non-prerelease). Uses `GITHUB_TOKEN` only — no registry password in secrets. Details: [docker.md](./docker.md).
@@ -64,19 +64,17 @@ Same form on [test.pypi.org publishing](https://test.pypi.org/manage/account/pub
 
 ### D. Tag a release (only after dogfood)
 
-The first tag was `v0.1.0a1`. `v1.0.0` is already published. Tag `v1.1.0` was pushed and the PyPI job failed. The version in `pyproject.toml` for this release is `1.1.1`. Tag that version only after the selfdog on that line has no critical and no high:
+The first tag was `v0.1.0a1`. `v1.0.0` and `v1.1.1` are already published. Tag `v1.1.0` was pushed and the PyPI job failed. Do not move `v1.1.1`, `v1.1.0`, or `v1.0.0`. The version in `pyproject.toml` for this release is `1.2.0`. Tag that version only after the selfdog on that line has no critical and no high:
 
 ```bash
-# On main, clean working tree, version already 1.1.1 in pyproject.toml
-git tag v1.1.1
-git push origin v1.1.1
+# On main, clean working tree, version already 1.2.0 in pyproject.toml
+git tag v1.2.0
+git push origin v1.2.0
 ```
-
-Do not move `v1.1.0`.
 
 1. Watch **Actions → Publish** for the tag.  
 2. Confirm https://pypi.org/project/repolens-audit/  
-3. Smoke: `pip install "repolens-audit==1.1.1" && repolens version`
+3. Smoke: `pip install "repolens-audit==1.2.0" && repolens version`
 
 ---
 
@@ -154,9 +152,12 @@ Also exercise the Action on GitHub (workflow_dispatch on [repolens-example.yml](
 - [ ] Publish workflow green for `v1.1.0`; package visible on PyPI
 - [ ] `pip install "repolens-audit==1.1.0"` smoke test (`repolens version` works)
 - [x] `v1.1.0` publish failed on rendered help. `1.1.1` checks the registered flag instead. The 2026-11-19 selfdog still had no critical and no high
-- [ ] Tag `v1.1.1` and `git push origin v1.1.1`
-- [ ] Publish workflow green for `v1.1.1`; package visible on PyPI
-- [ ] `pip install "repolens-audit==1.1.1"` smoke test (`repolens version` works)
+- [x] Tag `v1.1.1` and `git push origin v1.1.1`
+- [x] Publish workflow green for `v1.1.1`; package visible on PyPI
+- [x] `pip install "repolens-audit==1.1.1"` smoke test (`repolens version` works)
+- [ ] Tag `v1.2.0` and `git push origin v1.2.0`
+- [ ] Publish workflow green for `v1.2.0`; package visible on PyPI
+- [ ] `pip install "repolens-audit==1.2.0"` smoke test (`repolens version` works)
 
 ## Related
 
