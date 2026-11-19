@@ -68,5 +68,5 @@ def test_ci_doc_describes_the_fast_hook() -> None:
     text = _CI.read_text(encoding="utf-8")
     assert "repolens hook fast" in text
     assert "id: repolens-fast" in text
-    assert "rev: v1.0.0" in text
-    assert "Pin `rev` to `v1.0.0`." in text
+    assert "rev: v1.1.0" in text
+    assert "Pin `rev` to `v1.1.0`." in text

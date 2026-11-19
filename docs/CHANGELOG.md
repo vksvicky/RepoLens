@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-11-19
+
+Published as `repolens-audit==1.1.0` when the `v1.1.0` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tag `v1.0.0`.
+
+The public contract from `1.0.0` stays: the command is `repolens`, exit codes stay 0 through 4, report `schemaVersion` stays `1.0`, and the scanner catalog stays Gitleaks, Semgrep, OSV, Trivy, and Checkov.
+
 ### Added
 
 - `repolens export <report.json> --bitbucket-insights <path>` and `repolens review --bitbucket-insights` write `bitbucket-insights.json`. CI posts that file. RepoLens does not call Bitbucket. `repolens audit` does not grow the flag.
