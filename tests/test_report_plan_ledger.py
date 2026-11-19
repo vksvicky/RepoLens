@@ -190,8 +190,19 @@ def test_scanner_math_names_suppressed_and_dropped_rows() -> None:
         securityAuditConfidence=90,
     )
     assert format_collapsed_duplicates(report) == (
-        "14 tool rows evaluated → 0 Critical/High retained (10 suppressed, 4 not retained)"
+        "4 extra reports of issues already counted above"
     )
+    assert "not retained" not in (format_collapsed_duplicates(report) or "")
+    ignored = FindingReport(
+        confidence=90,
+        summary=Summary(),
+        rawCriticalHighCount=10,
+        suppressedIssues=[
+            SuppressedIssue(issue=issue, reason="accepted risk", mechanism="ignore_file")
+            for issue in suppressed
+        ],
+    )
+    assert format_collapsed_duplicates(ignored) is None
 
 
 def test_audit_ledger_does_not_call_a_cloud_run_air_gapped() -> None:

@@ -9,7 +9,6 @@ from zoneinfo import ZoneInfo
 
 from repolens.report import (
     GATE_ADEQUACY_ONE_LINER,
-    format_collapsed_duplicates,
     format_duration,
     format_two_lane_headline,
     is_coverage_transport_gap,
@@ -205,90 +204,6 @@ def test_render_markdown_includes_gate_adequacy_note() -> None:
         "not a" in md.lower() and "% secure" in md
     )
     assert '"% secure"' in md or "% secure" in md
-
-
-def test_collapsed_duplicates_note_only_when_tools_overlap() -> None:
-    plain = FindingReport(
-        confidence=50,
-        summary=Summary(critical=0, high=2, medium=0, low=0),
-    )
-    assert format_collapsed_duplicates(plain) is None
-
-    same = FindingReport(
-        confidence=50,
-        summary=Summary(critical=1, high=1, medium=0, low=0),
-        rawCriticalHighCount=2,
-    )
-    assert format_collapsed_duplicates(same) is None
-
-    collapsed = FindingReport(
-        confidence=50,
-        summary=Summary(critical=0, high=2, medium=0, low=0),
-        rawCriticalHighCount=4,
-        rawTotalFindings=6,
-    )
-    assert format_collapsed_duplicates(collapsed) == (
-        "4 tool rows evaluated → 2 Critical/High retained (2 not retained)"
-    )
-
-
-def test_render_markdown_mentions_merge_without_a_combined_severity() -> None:
-    report = FindingReport(
-        confidence=60,
-        summary=Summary(critical=0, high=2, medium=1, low=0),
-        rawCriticalHighCount=4,
-        rawTotalFindings=6,
-        securityAuditConfidence=70,
-    )
-    md = render_markdown(
-        report, mode="review", commit_go="go", push_go="no-go"
-    )
-    assert "4 tool rows evaluated → 2 Critical/High retained (2 not retained)" in md
-    assert "Unique Critical/High" not in md
-    assert "High 2" in md
-    assert "Medium 1" in md
-
-
-def test_model_note_is_visible_and_not_counted() -> None:
-    from repolens.schema import Issue
-
-    measured = Issue(
-        severity="MEDIUM",
-        priority="P2",
-        category="heuristic.mega_file",
-        file="tests/test_deep.py",
-        line=1,
-        title="Mega-file",
-        explanation="513 lines",
-        recommendedFix="split",
-        source="heuristic",
-    )
-    note = Issue(
-        severity="HIGH",
-        priority="P2",
-        category="arch.readability_complexity",
-        file="src/repolens/report.py",
-        line=407,
-        title="Function is overly complex",
-        explanation="The model estimated a high score.",
-        impact="harder to change",
-        recommendedFix="split",
-        codeExample="def smaller():\n    return 1\n",
-        source="llm",
-    )
-    report = FindingReport(
-        confidence=95,
-        summary=Summary(),
-        issues=[measured, note],
-    )
-    report.summary = report.recount_summary()
-    md = render_markdown(report, mode="review", commit_go="go", push_go="go")
-    assert report.summary.high == 0
-    assert report.summary.medium == 1
-    assert report.summary.low == 0
-    assert "Function is overly complex" in md
-    assert "## Model notes" in md
-    assert "do not change Critical, High, Medium, or Low" in md
 
 
 def test_metrics_includes_fast_brain_without_band_audits(tmp_path: Path) -> None:

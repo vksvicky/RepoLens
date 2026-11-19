@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from repolens.schema import FindingReport, Severity
 
+_GATE_SEVERITIES = {Severity.CRITICAL, Severity.HIGH}
+
 
 def format_collapsed_duplicates(report: FindingReport) -> str | None:
-    """How scanner Critical/High rows were kept, suppressed, or dropped.
+    """Extra scanner reports of an issue already in Critical and High.
 
-    ``None`` when the raw row count is missing or already matches the retained
-    Critical and High counts.
+    Model notes stay in the report and are not described as dropped.
+    Ignored findings stay on the Suppressed row. ``None`` when nothing was
+    repeated.
     """
     unique = report.summary.critical + report.summary.high
     raw = report.rawCriticalHighCount
@@ -18,16 +21,19 @@ def format_collapsed_duplicates(report: FindingReport) -> str | None:
     suppressed = sum(
         1
         for row in report.suppressedIssues
-        if row.issue.severity in {Severity.CRITICAL, Severity.HIGH}
+        if row.issue.severity in _GATE_SEVERITIES
     )
-    dropped = max(0, raw - unique - suppressed)
-    parts: list[str] = []
-    if suppressed:
-        parts.append(f"{suppressed} suppressed")
-    if dropped:
-        parts.append(f"{dropped} not retained")
-    detail = f" ({', '.join(parts)})" if parts else ""
-    return f"{raw} tool rows evaluated → {unique} Critical/High retained{detail}"
+    notes = sum(
+        1
+        for issue in report.issues
+        if issue.source == "llm" and issue.severity in _GATE_SEVERITIES
+    )
+    extra = raw - unique - suppressed - notes
+    if extra <= 0:
+        return None
+    if extra == 1:
+        return "1 extra report of an issue already counted above"
+    return f"{extra} extra reports of issues already counted above"
 
 
 def suppression_suffix(report: FindingReport) -> str:
@@ -141,8 +147,9 @@ def _metrics_band_rows(report: FindingReport) -> list[str]:
     collapsed = format_collapsed_duplicates(report)
     if collapsed is not None:
         rows.append(
-            f"| Critical/High rows | {collapsed} | Scanner rows at Critical or High, "
-            "then how many were kept, suppressed, or not retained |"
+            f"| Same issue, counted once | {collapsed} | Extra scanner reports of an "
+            "issue already included in Critical and High. Model notes are not "
+            "included. |"
         )
     return rows
 

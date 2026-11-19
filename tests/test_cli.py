@@ -284,7 +284,10 @@ def test_print_summary_includes_gate_adequacy_one_liner() -> None:
     out = buf.getvalue()
     assert GATE_ADEQUACY_ONE_LINER in out or "review-package adequacy" in out
     assert "Unique Critical/High" not in out
-    assert "3 tool rows evaluated → 1 Critical/High retained (2 not retained)" in out
+    assert "Same issue, counted once" in out
+    assert "2 extra reports of issues already counted above" in out
+    assert "not retained" not in out
+    assert "tool rows evaluated" not in out
     assert "Critical" in out
     assert "High" in out
 

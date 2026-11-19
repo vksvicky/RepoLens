@@ -260,7 +260,7 @@ def _markdown_verdict(report: FindingReport) -> list[str]:
     ]
     collapsed = format_collapsed_duplicates(report)
     if collapsed is not None:
-        lines.append(f"- **Critical/High rows:** {collapsed}")
+        lines.append(f"- **Same issue, counted once:** {collapsed}")
     status = _llm_status_line(report)
     if status is not None:
         lines.append(status)

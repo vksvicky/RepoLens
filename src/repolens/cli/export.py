@@ -79,31 +79,40 @@ def export(
         raise typer.Exit(code=EXIT_BAD_INPUT)
     dest = out or (report.resolve() if report.is_dir() else report.resolve().parent)
     if evidence_pack:
-        try:
-            zip_path = build_evidence_pack(report, dest)
-        except (OSError, FileNotFoundError, ValueError) as exc:
-            console.print(f"[red]evidence pack failed:[/red] {exc}")
-            raise typer.Exit(code=EXIT_BAD_INPUT) from exc
-        console.print(f"[green]Evidence pack:[/green] {zip_path}")
+        _write_evidence_pack(report, dest)
         return
     if executive_summary:
-        fmt_norm = fmt.strip().lower()
-        if fmt_norm not in {"md", "html"}:
-            console.print("[red]--format must be md or html[/red]")
-            raise typer.Exit(code=EXIT_BAD_INPUT)
-        try:
-            inputs = resolve_evidence_inputs(report)
-            path = write_executive_summary(inputs.report, dest, fmt=fmt_norm)
-        except (OSError, FileNotFoundError, ValueError) as exc:
-            console.print(f"[red]executive summary failed:[/red] {exc}")
-            raise typer.Exit(code=EXIT_BAD_INPUT) from exc
-        console.print(f"[green]Executive summary:[/green] {path}")
+        path = _write_board_summary(report, dest, fmt)
         if pdf:
             _pandoc_pdf(path)
         return
     if not pdf:
         return
     _pandoc_pdf(report)
+
+
+def _write_evidence_pack(report: Path, dest: Path) -> None:
+    try:
+        zip_path = build_evidence_pack(report, dest)
+    except (OSError, FileNotFoundError, ValueError) as exc:
+        console.print(f"[red]evidence pack failed:[/red] {exc}")
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
+    console.print(f"[green]Evidence pack:[/green] {zip_path}")
+
+
+def _write_board_summary(report: Path, dest: Path, fmt: str) -> Path:
+    fmt_norm = fmt.strip().lower()
+    if fmt_norm not in {"md", "html"}:
+        console.print("[red]--format must be md or html[/red]")
+        raise typer.Exit(code=EXIT_BAD_INPUT)
+    try:
+        inputs = resolve_evidence_inputs(report)
+        path = write_executive_summary(inputs.report, dest, fmt=fmt_norm)
+    except (OSError, FileNotFoundError, ValueError) as exc:
+        console.print(f"[red]executive summary failed:[/red] {exc}")
+        raise typer.Exit(code=EXIT_BAD_INPUT) from exc
+    console.print(f"[green]Executive summary:[/green] {path}")
+    return path
 
 
 def _write_host_export(report: Path, dest: Path, writer, label: str) -> None:
@@ -240,7 +249,7 @@ def _print_summary(confidence: int, files: int, report: FindingReport, *, dry_ru
         table.add_row("LLM", llm_label)
     collapsed = format_collapsed_duplicates(report)
     if collapsed is not None:
-        table.add_row("Critical/High rows", collapsed)
+        table.add_row("Same issue, counted once", collapsed)
     table.add_row("Critical", str(report.summary.critical))
     table.add_row("High", str(report.summary.high))
     table.add_row("Medium", str(report.summary.medium))

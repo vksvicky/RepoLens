@@ -46,9 +46,22 @@ def test_deep_resume_and_retry_files_stay_under_mega_file_lines() -> None:
     assert mega == []
 
 
+def test_report_tests_stay_under_mega_file_lines() -> None:
+    mega, _ = find_mega_files(
+        _entries(["tests/test_report.py", "tests/test_report_counts.py"]),
+        mega_file_lines=500,
+    )
+    assert [(issue.file, issue.title) for issue in mega] == []
+
+
 def test_coverage_closure_function_stays_under_eighty_lines() -> None:
     large = find_large_functions(_entries(["src/repolens/pipeline/deep_pass.py"]))
     assert large == []
+
+
+def test_export_command_stays_under_eighty_lines() -> None:
+    large = find_large_functions(_entries(["src/repolens/cli/export.py"]))
+    assert [(issue.title, issue.line) for issue in large] == []
 
 
 def test_selfdog_29_heuristic_locations_remain_clear() -> None:
