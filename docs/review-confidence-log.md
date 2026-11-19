@@ -99,3 +99,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-11-19 | bitbucket-insights→commit | 91% | 0/0/0/1 | Insights JSON is a file CI posts. No Bitbucket client. Gate failure still posts, then the step keeps the review status. Local main only | chat |
 | 2026-11-19 | summary-counts→commit | 93% | 0/0/0/0 | Repeated scanner issues are one plain line. Model notes stay out of that line. Report tests stay under 500 lines. Local main only | chat |
 | 2026-11-19 | v1.1.0→push | 93% | 0/0/0/0 | Bitbucket Insights file plus the summary line. Contract stays schema 1.0 and five scanners. v1.0.0 stays | chat |
+| 2026-11-19 | v1.1.1→push | 92% | 0/0/0/0 | v1.1.0 PyPI job failed on rendered help. Flag check is now registration. Action pins move to CodeQL 4.39.1, publish 1.14.3, Buildx v4. Semgrep locks stay 1.181.0 | chat |

@@ -6,9 +6,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-11-19
+
+Published as `repolens-audit==1.1.1` when the `v1.1.1` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tags `v1.1.0` or `v1.0.0`.
+
+The public contract from `1.0.0` stays: the command is `repolens`, exit codes stay 0 through 4, report `schemaVersion` stays `1.0`, and the scanner catalog stays Gitleaks, Semgrep, OSV, Trivy, and Checkov. The hashed Semgrep plugin locks stay `1.181.0`.
+
+### Fixed
+
+- The publish job checks the registered `--bitbucket-insights` flag. Rendered `review --help` can drop that flag on a short terminal, which stopped tag `v1.1.0` from reaching PyPI.
+
+### Changed
+
+- CodeQL init, autobuild, and analyze use the v4.39.1 commit.
+- The PyPI publish action uses the v1.14.3 commit.
+- The GHCR workflow uses `docker/setup-buildx-action` v4.
+
 ## [1.1.0] — 2026-11-19
 
-Published as `repolens-audit==1.1.0` when the `v1.1.0` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tag `v1.0.0`.
+Tag `v1.1.0` was pushed. PyPI did not publish it: the help-text check failed on GitHub Actions. Do not move tag `v1.0.0`. The package that publishes is `1.1.1`.
 
 The public contract from `1.0.0` stays: the command is `repolens`, exit codes stay 0 through 4, report `schemaVersion` stays `1.0`, and the scanner catalog stays Gitleaks, Semgrep, OSV, Trivy, and Checkov.
 

@@ -44,5 +44,5 @@ jobs:
         run: python -m build
 
       - name: Publish to PyPI
-        # Pin commit (v1.14.2); bump deliberately — do not use floating tags.
+        # Pin commit (v1.14.3); bump deliberately — do not use floating tags.
         uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086
