@@ -155,9 +155,9 @@ Also exercise the Action on GitHub (workflow_dispatch on [repolens-example.yml](
 - [x] Tag `v1.1.1` and `git push origin v1.1.1`
 - [x] Publish workflow green for `v1.1.1`; package visible on PyPI
 - [x] `pip install "repolens-audit==1.1.1"` smoke test (`repolens version` works)
-- [ ] Tag `v1.2.0` and `git push origin v1.2.0`
-- [ ] Publish workflow green for `v1.2.0`; package visible on PyPI
-- [ ] `pip install "repolens-audit==1.2.0"` smoke test (`repolens version` works)
+- [x] Tag `v1.2.0` and `git push origin v1.2.0`
+- [x] Publish workflow green for `v1.2.0`; package visible on PyPI
+- [x] `pip install "repolens-audit==1.2.0"` smoke test (`repolens version` works)
 
 ## Related
 
