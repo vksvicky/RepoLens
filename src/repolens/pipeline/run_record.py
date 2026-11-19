@@ -59,6 +59,7 @@ def _persist_finished_artifacts(state):
         write_last_report_pointer(state.root, state.js)
     sarif_path = None
     gitlab_path = None
+    bitbucket_path = None
     if state.sarif:
         sarif_path = write_sarif_report(
             state.report, state.root, out_dir=state.out, mode=state.mode, when=state.report_when
@@ -74,6 +75,16 @@ def _persist_finished_artifacts(state):
 
         gitlab_path = write_gitlab_codequality(state.report, state.out / GITLAB_CODEQUALITY_NAME)
         state.prog.detail(f"GitLab code quality: {gitlab_path.name}")
+    if state.bitbucket_insights:
+        from repolens.bitbucket_insights import (
+            BITBUCKET_INSIGHTS_NAME,
+            write_bitbucket_insights,
+        )
+
+        bitbucket_path = write_bitbucket_insights(
+            state.report, state.out / BITBUCKET_INSIGHTS_NAME
+        )
+        state.prog.detail(f"Bitbucket Insights: {bitbucket_path.name}")
     state.prog.phase("Done")
     return ReviewResult(
         report=state.report,
@@ -83,5 +94,6 @@ def _persist_finished_artifacts(state):
         dry_run=False,
         sarif_path=sarif_path,
         gitlab_path=gitlab_path,
+        bitbucket_path=bitbucket_path,
         aborted=bool(state.aborted),
     )

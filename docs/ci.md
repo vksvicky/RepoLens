@@ -238,6 +238,59 @@ pipelines:
 
 Put `OPENAI_API_KEY` in repository variables, secured.
 
+### Bitbucket Code Insights
+
+The review writes `reports/bitbucket-insights.json`. The pipeline posts that file. RepoLens does not call Bitbucket. Set a secured repository variable `BITBUCKET_TOKEN`. Annotations go up in batches of at most 100. The post runs even when the review exits non-zero, and the step then exits with the review's status, while a failed post exits with the post's status.
+
+The report URL is `PUT https://api.bitbucket.org/2.0/repositories/${BITBUCKET_WORKSPACE}/${BITBUCKET_REPO_SLUG}/commit/${BITBUCKET_COMMIT}/reports/repolens`.
+
+The annotations URL is `POST https://api.bitbucket.org/2.0/repositories/${BITBUCKET_WORKSPACE}/${BITBUCKET_REPO_SLUG}/commit/${BITBUCKET_COMMIT}/reports/repolens/annotations`.
+
+```yaml
+image: python:3.12
+pipelines:
+  pull-requests:
+    "**":
+      - step:
+          name: RepoLens pull request
+          script:
+            - pip install "repolens-audit[scanners]==1.0.0"
+            - repolens plugins install all --yes
+            - |
+              status=0
+              repolens review --path . --out reports --format both \
+                --preset pr --scanners gitleaks,semgrep,osv,trivy,checkov \
+                --fail-on HIGH --require-scanners --bitbucket-insights || status=$?
+              post_status=0
+              python - <<'PY' || post_status=$?
+              import json, os, urllib.request
+              report_id = "repolens"
+              root = (
+                  "https://api.bitbucket.org/2.0/repositories/"
+                  f"{os.environ['BITBUCKET_WORKSPACE']}/{os.environ['BITBUCKET_REPO_SLUG']}"
+                  f"/commit/{os.environ['BITBUCKET_COMMIT']}/reports/{report_id}"
+              )
+              token = os.environ["BITBUCKET_TOKEN"]
+              payload = json.load(open("reports/bitbucket-insights.json", encoding="utf-8"))
+              def send(url, body, method):
+                  data = json.dumps(body).encode()
+                  req = urllib.request.Request(url, data=data, method=method)
+                  req.add_header("Authorization", "Bearer " + token)
+                  req.add_header("Content-Type", "application/json")
+                  urllib.request.urlopen(req)
+              send(root, payload["report"], "PUT")
+              notes = payload["annotations"]
+              for start in range(0, len(notes), 100):
+                  send(root + "/annotations", notes[start:start + 100], "POST")
+              PY
+              if [ "$post_status" -ne 0 ]; then
+                exit "$post_status"
+              fi
+              exit "$status"
+          artifacts:
+            - reports/**
+```
+
 ### GitLab CI
 
 1. Commit `.gitlab-ci.yml`.

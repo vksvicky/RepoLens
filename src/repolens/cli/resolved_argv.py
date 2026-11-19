@@ -45,6 +45,7 @@ class ResolvedInvocation:
     deep_passes: int | None = None
     sarif: bool = False
     gitlab_codequality: bool = False
+    bitbucket_insights: bool = False
     role_packs: bool | None = None
     import_sarif: tuple[str, ...] = ()
     require_scanners: bool = False
@@ -155,6 +156,8 @@ def _append_output(argv: list[str], inv: ResolvedInvocation) -> None:
         argv.append("--sarif")
     if inv.gitlab_codequality:
         argv.append("--gitlab-codequality")
+    if inv.bitbucket_insights:
+        argv.append("--bitbucket-insights")
     if inv.role_packs is True:
         argv.append("--role-packs")
     elif inv.role_packs is False:

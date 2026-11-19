@@ -10,8 +10,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from repolens.host_export import counts_as_trusted, export_path
 from repolens.issue_ids import stable_id
-from repolens.schema import FindingReport, Issue, Severity
+from repolens.schema import FindingReport, Severity
 
 GITLAB_CODEQUALITY_NAME = "gl-code-quality-report.json"
 
@@ -21,35 +22,14 @@ _SEVERITY = {
     Severity.MEDIUM: "minor",
     Severity.LOW: "info",
 }
-_TRUSTED_SOURCES = frozenset({"scanner", "heuristic", "graph", "architecture"})
-
-
-def _export_path(file: str) -> str | None:
-    raw = file.strip().replace("\\", "/")
-    if not raw or raw.startswith("/") or raw.startswith("~"):
-        return None
-    if len(raw) >= 2 and raw[1] == ":":
-        return None
-    parts = [part for part in raw.split("/") if part and part != "."]
-    if not parts or ".." in parts:
-        return None
-    return "/".join(parts)
-
-
-def _counts_as_trusted(issue: Issue) -> bool:
-    if issue.source in _TRUSTED_SOURCES:
-        return True
-    if issue.source is None and issue.category.startswith("heuristic."):
-        return True
-    return issue.source == "llm" and issue.locationVerified is True
 
 
 def gitlab_codequality_payload(report: FindingReport) -> list[dict]:
     """Map included findings to GitLab's code-quality array."""
     rows: list[dict] = []
     for issue in report.issues:
-        path = _export_path(issue.file)
-        if path is None or issue.line < 1 or not _counts_as_trusted(issue):
+        path = export_path(issue.file)
+        if path is None or issue.line < 1 or not counts_as_trusted(issue):
             continue
         fingerprint = issue.stableId or stable_id(
             category=issue.category,

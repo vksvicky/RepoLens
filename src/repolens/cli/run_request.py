@@ -43,6 +43,7 @@ class RunRequest:
     ci: bool = False
     sarif: bool = False
     gitlab_codequality: bool = False
+    bitbucket_insights: bool = False
     verify_findings: bool | None = None
     packs: list[str] | None = None
     fallback: bool = True

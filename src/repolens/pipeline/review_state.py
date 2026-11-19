@@ -42,6 +42,7 @@ class ReviewRun:
     ci: bool = False
     sarif: bool = False
     gitlab_codequality: bool = False
+    bitbucket_insights: bool = False
     record_last_report: bool = True
     verify_findings: bool | None = None
     packs: list[str] | None = None

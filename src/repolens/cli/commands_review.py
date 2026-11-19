@@ -41,6 +41,7 @@ from repolens.cli.resolved_argv import (
 )
 from repolens.cli.review_options import (
     normalize_retry_passes,
+    option_bitbucket_insights,
     option_ci,
     option_deep,
     option_deep_passes,
@@ -153,6 +154,7 @@ def _resolved_invocation(request: RunRequest) -> ResolvedInvocation:
         deep_passes=request.deep_passes,
         sarif=bool(request.sarif),
         gitlab_codequality=bool(request.gitlab_codequality),
+        bitbucket_insights=request.bitbucket_insights,
         role_packs=request.role_packs,
         import_sarif=tuple(_as_str(path) or "" for path in (request.import_sarif or [])),
         require_scanners=bool(request.require_scanners),
@@ -229,6 +231,7 @@ def review(
     ci: bool = option_ci(),
     sarif: bool = option_sarif(),
     gitlab_codequality: bool = option_gitlab_codequality(),
+    bitbucket_insights: bool = option_bitbucket_insights(),
     verify_findings: bool | None = option_verify_findings(),
     pack: list[str] | None = option_pack(),
     fallback: bool = option_fallback(),
@@ -240,7 +243,10 @@ def review(
     preset: str | None = option_preset(),
     retry_pass: list[str] | None = option_retry_pass(),
 ) -> None:
-    """Full P1→P2→P3 dual review. ``--preset`` bundles flags; explicit flags win."""
+    """Full P1→P2→P3 dual review. ``--preset`` bundles flags; explicit flags win.
+
+    ``--bitbucket-insights`` writes bitbucket-insights.json for Bitbucket Code Insights.
+    """
     retry_passes = _normalize_retry_passes_or_exit(retry_pass)
     (scanners_only, ci, deep, git_diff, force_full, force_changed, full_audit,
      timeout) = _resolve_preset(
@@ -258,7 +264,7 @@ def review(
         model_lock_flag=model_lock_flag, no_model_lock=no_model_lock,
         force_full=force_full, force_changed=force_changed, git_diff=git_diff,
         deep=deep, deep_passes=deep_passes, explain=explain, ci=ci, sarif=sarif,
-        gitlab_codequality=gitlab_codequality,
+        gitlab_codequality=gitlab_codequality, bitbucket_insights=bitbucket_insights,
         verify_findings=verify_findings, pack=pack, fallback=fallback, ratchet=ratchet,
         import_sarif=import_sarif, require_sarif_import=require_sarif_import,
         resume=resume, role_packs=role_packs, retry_passes=retry_passes,

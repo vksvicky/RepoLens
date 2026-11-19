@@ -258,6 +258,7 @@ def _call_run_review(request: RunRequest, resolved_root: Path, out_dir: Path | N
         ci=request.ci,
         sarif=request.sarif,
         gitlab_codequality=request.gitlab_codequality,
+        bitbucket_insights=request.bitbucket_insights,
         verify_findings=request.verify_findings,
         packs=request.packs,
         fallback=request.fallback,

@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `repolens export <report.json> --bitbucket-insights <path>` and `repolens review --bitbucket-insights` write `bitbucket-insights.json`. CI posts that file. RepoLens does not call Bitbucket. `repolens audit` does not grow the flag.
+
 ## [1.0.0] — 2026-11-06
 
 Published as `repolens-audit==1.0.0` when the `v1.0.0` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tag `v0.1.6.post1`.

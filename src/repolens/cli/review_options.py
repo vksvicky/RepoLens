@@ -167,6 +167,14 @@ def option_gitlab_codequality() -> Any:
     )
 
 
+def option_bitbucket_insights() -> Any:
+    return typer.Option(
+        False,
+        "--bitbucket-insights",
+        help="Write bitbucket-insights.json for Bitbucket Code Insights",
+    )
+
+
 def option_verify_findings() -> Any:
     return typer.Option(
         None, "--verify-findings/--no-verify-findings", help=_VERIFY_FINDINGS_HELP

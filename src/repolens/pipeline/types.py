@@ -38,4 +38,5 @@ class ReviewResult:
     dry_run: bool
     sarif_path: Path | None = None
     gitlab_path: Path | None = None
+    bitbucket_path: Path | None = None
     aborted: bool = False

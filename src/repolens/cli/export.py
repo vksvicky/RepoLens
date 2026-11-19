@@ -9,6 +9,7 @@ from pathlib import Path
 import typer
 from rich.table import Table
 
+from repolens.bitbucket_insights import write_bitbucket_insights
 from repolens.cli.app import app, console
 from repolens.cli.exit_codes import EXIT_BAD_INPUT
 from repolens.evidence_pack import build_evidence_pack, resolve_evidence_inputs
@@ -51,14 +52,27 @@ def export(
         "--gitlab-codequality",
         help="Write GitLab code-quality JSON for this FindingReport",
     ),
+    bitbucket_insights: Path | None = typer.Option(
+        None,
+        "--bitbucket-insights",
+        help="Write Bitbucket Code Insights JSON for this FindingReport",
+    ),
 ) -> None:
     """Export or convert an existing report."""
     typer.echo(f"Report: {report.resolve()}")
-    if gitlab_codequality is not None and (evidence_pack or executive_summary or pdf):
-        console.print("[red]--gitlab-codequality cannot be combined with another export[/red]")
+    host_exports = [flag for flag in (gitlab_codequality, bitbucket_insights) if flag is not None]
+    if len(host_exports) > 1 or (host_exports and (evidence_pack or executive_summary or pdf)):
+        console.print("[red]That export cannot be combined with another export[/red]")
         raise typer.Exit(code=EXIT_BAD_INPUT)
+    if bitbucket_insights is not None:
+        _write_host_export(
+            report, bitbucket_insights, write_bitbucket_insights, "Bitbucket Insights"
+        )
+        return
     if gitlab_codequality is not None:
-        _write_gitlab_export(report, gitlab_codequality)
+        _write_host_export(
+            report, gitlab_codequality, write_gitlab_codequality, "GitLab code quality"
+        )
         return
     if evidence_pack and executive_summary:
         console.print("[red]Choose one of --evidence-pack or --executive-summary[/red]")
@@ -92,17 +106,17 @@ def export(
     _pandoc_pdf(report)
 
 
-def _write_gitlab_export(report: Path, dest: Path) -> None:
+def _write_host_export(report: Path, dest: Path, writer, label: str) -> None:
     if report.suffix.lower() != ".json" or report.name.endswith(".sarif.json"):
-        console.print("[red]GitLab code quality needs a FindingReport JSON file[/red]")
+        console.print(f"[red]{label} needs a FindingReport JSON file[/red]")
         raise typer.Exit(code=EXIT_BAD_INPUT)
     try:
         loaded = FindingReport.model_validate_json(report.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        console.print(f"[red]GitLab code quality failed:[/red] {exc}")
+        console.print(f"[red]{label} failed:[/red] {exc}")
         raise typer.Exit(code=EXIT_BAD_INPUT) from exc
-    path = write_gitlab_codequality(loaded, dest)
-    console.print(f"[green]GitLab code quality:[/green] {path}")
+    path = writer(loaded, dest)
+    console.print(f"[green]{label}:[/green] {path}")
 
 
 def _pandoc_pdf(report: Path) -> None:
