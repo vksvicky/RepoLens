@@ -100,3 +100,4 @@ Durable record of dual-review gate confidence over time.
 | 2026-11-19 | summary-counts→commit | 93% | 0/0/0/0 | Repeated scanner issues are one plain line. Model notes stay out of that line. Report tests stay under 500 lines. Local main only | chat |
 | 2026-11-19 | v1.1.0→push | 93% | 0/0/0/0 | Bitbucket Insights file plus the summary line. Contract stays schema 1.0 and five scanners. v1.0.0 stays | chat |
 | 2026-11-19 | v1.1.1→push | 92% | 0/0/0/0 | v1.1.0 PyPI job failed on rendered help. Flag check is now registration. Action pins move to CodeQL 4.39.1, publish 1.14.3, Buildx v4. Semgrep locks stay 1.181.0 | chat |
+| 2026-11-19 | evidence-summary-sarif→commit | 93% | 0/0/0/0 | Evidence zip can hold the board summary. ast-grep and KICS stay imported SARIF. schemaVersion stays 1.0. v1.2.0 waits for #163 | chat |

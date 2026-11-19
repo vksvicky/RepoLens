@@ -74,12 +74,10 @@ def export(
             report, gitlab_codequality, write_gitlab_codequality, "GitLab code quality"
         )
         return
-    if evidence_pack and executive_summary:
-        console.print("[red]Choose one of --evidence-pack or --executive-summary[/red]")
-        raise typer.Exit(code=EXIT_BAD_INPUT)
     dest = out or (report.resolve() if report.is_dir() else report.resolve().parent)
     if evidence_pack:
-        _write_evidence_pack(report, dest)
+        summary_format = fmt if executive_summary else None
+        _write_evidence_pack(report, dest, summary_format=summary_format)
         return
     if executive_summary:
         path = _write_board_summary(report, dest, fmt)
@@ -91,9 +89,11 @@ def export(
     _pandoc_pdf(report)
 
 
-def _write_evidence_pack(report: Path, dest: Path) -> None:
+def _write_evidence_pack(
+    report: Path, dest: Path, *, summary_format: str | None = None
+) -> None:
     try:
-        zip_path = build_evidence_pack(report, dest)
+        zip_path = build_evidence_pack(report, dest, summary_format=summary_format)
     except (OSError, FileNotFoundError, ValueError) as exc:
         console.print(f"[red]evidence pack failed:[/red] {exc}")
         raise typer.Exit(code=EXIT_BAD_INPUT) from exc

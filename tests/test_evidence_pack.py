@@ -111,6 +111,53 @@ def test_build_evidence_pack_without_sbom_omits_member(tmp_path: Path) -> None:
     assert "NOTES.txt" in names  # records skipped optional artifacts
 
 
+def test_evidence_pack_includes_executive_summary_md(tmp_path: Path) -> None:
+    md = _write_report_bundle(tmp_path, with_sbom=False)
+    zip_path = build_evidence_pack(
+        md, tmp_path / "out", when_stamp="t", try_pdf=False, summary_format="md"
+    )
+    with zipfile.ZipFile(zip_path) as zf:
+        names = zf.namelist()
+        text = zf.read("executive_summary.md").decode("utf-8")
+    assert "executive_summary.md" in names
+    assert "findings.json" in names
+    assert "audit.pdf" not in names
+    assert "# RepoLens executive summary" in text
+
+
+def test_evidence_pack_includes_executive_summary_html(tmp_path: Path) -> None:
+    md = _write_report_bundle(tmp_path, with_sbom=False)
+    zip_path = build_evidence_pack(
+        md, tmp_path / "out", when_stamp="t", try_pdf=False, summary_format="html"
+    )
+    with zipfile.ZipFile(zip_path) as zf:
+        names = zf.namelist()
+    assert "executive_summary.html" in names
+    assert "executive_summary.md" not in names
+    assert "findings.json" in names
+
+
+def test_cli_export_pack_with_executive_summary(tmp_path: Path) -> None:
+    md = _write_report_bundle(tmp_path, with_sbom=False)
+    dest = tmp_path / "packs"
+    result = runner.invoke(
+        app,
+        [
+            "export", str(md),
+            "--evidence-pack", "--executive-summary",
+            "--format", "md",
+            "--out", str(dest),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    zips = list(dest.glob("repolens-evidence-*.zip"))
+    assert len(zips) == 1
+    with zipfile.ZipFile(zips[0]) as zf:
+        names = zf.namelist()
+    assert "executive_summary.md" in names
+    assert "findings.json" in names
+
+
 def test_cli_export_evidence_pack(tmp_path: Path) -> None:
     md = _write_report_bundle(tmp_path)
     result = runner.invoke(

@@ -12,6 +12,7 @@ from repolens.schema import Issue, ScannerRun, Severity
 
 _LEVEL = {
     "error": Severity.HIGH,
+    "high": Severity.HIGH,
     "warning": Severity.MEDIUM,
     "note": Severity.LOW,
     "none": Severity.LOW,

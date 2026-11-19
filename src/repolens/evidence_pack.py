@@ -10,12 +10,18 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from repolens.executive_summary import (
+    render_executive_summary_html,
+    render_executive_summary_md,
+)
 from repolens.schema import FindingReport
 
 # Canonical zip member order (optional members omitted when absent).
 EVIDENCE_MEMBERS: tuple[str, ...] = (
     "audit.md",
     "audit.pdf",
+    "executive_summary.md",
+    "executive_summary.html",
     "findings.json",
     "findings.sarif.json",
     "sbom.cdx.json",
@@ -135,12 +141,24 @@ def _provenance_payload(
     return body
 
 
+def _summary_member(report: FindingReport, fmt: str) -> tuple[str, bytes]:
+    kind = fmt.strip().lower()
+    if kind == "html":
+        text = render_executive_summary_html(report)
+        return "executive_summary.html", text.encode("utf-8")
+    if kind == "md":
+        text = render_executive_summary_md(report)
+        return "executive_summary.md", text.encode("utf-8")
+    raise ValueError("--format must be md or html")
+
+
 def build_evidence_pack(
     report_path: Path,
     out_dir: Path,
     *,
     when_stamp: str | None = None,
     try_pdf: bool = True,
+    summary_format: str | None = None,
 ) -> Path:
     """Write a timestamped evidence zip; return its path."""
     inputs = resolve_evidence_inputs(report_path)
@@ -172,6 +190,9 @@ def build_evidence_pack(
                 "PDF skipped: pandoc missing or conversion failed "
                 "(Markdown remains the archival report)."
             )
+        if summary_format is not None:
+            name, payload = _summary_member(inputs.report, summary_format)
+            members[name] = payload
 
         prov_bytes = json.dumps(
             _provenance_payload(

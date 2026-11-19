@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `repolens export --evidence-pack --executive-summary` puts `executive_summary.md` or `executive_summary.html` in the evidence zip. The zip still builds when pandoc is absent and still leaves out `audit.pdf`.
+- `docs/ci.md` shows how to import ast-grep and KICS SARIF. Neither tool joins the scanner catalog.
+
 ## [1.1.1] — 2026-11-19
 
 Published as `repolens-audit==1.1.1` when the `v1.1.1` tag is pushed. PyPI Trusted Publishing and GHCR both run on that tag. Do not move tags `v1.1.0` or `v1.0.0`.

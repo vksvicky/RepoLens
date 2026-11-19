@@ -141,6 +141,51 @@ def test_srcroot_uri_prefix_normalises(tmp_path: Path) -> None:
     assert issue.file == "src/a.py"
 
 
+def _import_fixture(tmp_path: Path, name: str, filename: str) -> SarifImportResult:
+    raw = (FIXTURES / name).read_text(encoding="utf-8")
+    root_uri = tmp_path.resolve().as_uri()
+    sarif_path = tmp_path / filename
+    sarif_path.write_text(raw.replace("file:///ABS/ROOT", root_uri), encoding="utf-8")
+    return load_sarif_issues(sarif_path, root=tmp_path)[0]
+
+
+def test_import_ast_grep_fixture(tmp_path: Path) -> None:
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.py").write_text("eval(x)\n", encoding="utf-8")
+    result = _import_fixture(tmp_path, "minimal_ast_grep.sarif.json", "ast-grep.sarif.json")
+    assert result.tool_name == "ast-grep"
+    assert len(result.issues) == 1
+    issue = result.issues[0]
+    assert issue.file == "src/app.py"
+    assert issue.line == 1
+    assert issue.severity == Severity.HIGH
+    assert "no-eval" in issue.title
+
+
+def test_import_kics_fixture_keeps_high_and_drops_outside_path(tmp_path: Path) -> None:
+    (tmp_path / "terraform").mkdir()
+    (tmp_path / "terraform" / "main.tf").write_text(
+        'resource "aws_s3_bucket" "b" {}\n', encoding="utf-8"
+    )
+    result = _import_fixture(tmp_path, "minimal_kics.sarif.json", "kics.sarif.json")
+    assert result.tool_name == "KICS"
+    assert len(result.issues) == 1
+    issue = result.issues[0]
+    assert issue.file == "terraform/main.tf"
+    assert issue.severity == Severity.HIGH
+    assert "s3-bucket-public" in issue.title
+    assert result.skipped >= 1
+
+
+def test_ci_docs_import_ast_grep_and_kics() -> None:
+    text = (Path(__file__).resolve().parents[1] / "docs" / "ci.md").read_text(encoding="utf-8")
+    assert "ast-grep scan --format sarif" in text
+    assert "kics scan -p" in text
+    assert "--report-formats sarif" in text
+    assert 'import-sarif "$TARGET/reports/ast-grep.sarif.json"' in text
+    assert 'import-sarif "$TARGET/reports/results.sarif"' in text
+
+
 def test_import_codeql_absolute_file_uri(tmp_path: Path) -> None:
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "leak.py").write_text("print('secret')\n", encoding="utf-8")

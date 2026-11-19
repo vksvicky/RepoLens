@@ -783,6 +783,24 @@ repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
   --format both --fail-on HIGH
 ```
 
+**ast-grep** (structural search; not a RepoLens scanner):
+
+```bash
+ast-grep scan --format sarif > "$TARGET/reports/ast-grep.sarif.json"
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/reports/ast-grep.sarif.json" --require-sarif-import \
+  --format both --fail-on HIGH
+```
+
+**KICS** (infrastructure as code; not a RepoLens scanner). KICS writes `results.sarif` in the output directory:
+
+```bash
+kics scan -p "$TARGET" --report-formats sarif -o "$TARGET/reports"
+repolens review --path "$TARGET" --out "$TARGET/reports" --scanners-only \
+  --import-sarif "$TARGET/reports/results.sarif" --require-sarif-import \
+  --format both --fail-on HIGH
+```
+
 ASPM portals (Aikido, Snyk AppRisk, …): keep RepoLens local; feed them RepoLens **`--sarif`** export + CycloneDX SBOM — do not expect a hosted RepoLens ASPM UI.
 
 ### Companion recipes (radon / ESLint complexity)
